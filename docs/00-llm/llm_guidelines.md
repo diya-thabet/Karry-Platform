@@ -128,7 +128,7 @@ These protect the product's commercial value (trust, isolation, correctness). **
 
 | # | Invariant | Practical rule |
 |---|---|---|
-| I-1 | **Tenant isolation** | Every tenant-scoped table has `tenant_id` + RLS (enabled + forced). Every request sets `SET LOCAL app.tenant_id`. Every new endpoint is covered by the tenant-isolation test suite. |
+| I-1 | **Tenant isolation** | Every tenant-scoped table has `tenant_id` + RLS (enabled + forced). Every request sets the tenant transaction-locally (`set_config('app.tenant_id', $1, true)`, i.e. `SET LOCAL`). Every new endpoint is covered by the tenant-isolation test suite. |
 | I-2 | **Immutable signed facts** | Signed/verified records (shift entries, tickets, fuel transactions, waybills, counts, approvals) are **never updated or deleted**. Corrections = reversal/new version linked to the original. |
 | I-3 | **Ledger completeness** | Every business state change appends a hash-chained ledger entry **in the same transaction** (via domain events/outbox). No code path may change business state without it. |
 | I-4 | **Authorization everywhere** | Every endpoint declares permission + scope. The UI hiding a button is never the only protection. |
@@ -306,7 +306,7 @@ Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is wort
 ```bash
 # Backend
 dotnet build --configuration Release -warnaserror
-dotnet test --configuration Release --collect:"XPlat Code Coverage"
+dotnet test --solution Karry.slnx --configuration Release   # Microsoft Testing Platform runner (global.json "test.runner")
 # Frontend
 pnpm install --frozen-lockfile
 pnpm -r lint && pnpm -r typecheck && pnpm -r test
@@ -493,7 +493,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
   2. Switch reads.
   3. Contract: remove old column in a later release.
 - Never drop or rename columns/tables holding production data in a single step. Never run destructive SQL without a backup check and an explicit owner approval.
-- **RLS checklist for new tables**: `tenant_id uuid not null`; `ENABLE` + `FORCE ROW LEVEL SECURITY`; policy with `USING` and `WITH CHECK` on `current_setting('app.tenant_id', true)::uuid`; index leading with `tenant_id`; grants for app role (and **INSERT/SELECT only** for audit/ledger tables).
+- **RLS checklist for new tables**: `tenant_id uuid not null`; `ENABLE` + `FORCE ROW LEVEL SECURITY`; policy with `USING` and `WITH CHECK` on `nullif(current_setting('app.tenant_id', true), '')::uuid` (the `nullif` is mandatory, see spike WP-P0-12); tenant set only with transaction-local `set_config('app.tenant_id', $1, true)`, never session-level `SET`; index leading with `tenant_id`; grants for app role (and **INSERT/SELECT only** for audit/ledger tables).
 - Append-only tables (ledger, stock ledger, signatures, meter events): triggers reject UPDATE/DELETE/TRUNCATE; tests prove it.
 - Large tables: plan partitioning (time-based) or Timescale hypertables early; add indexes `CONCURRENTLY`.
 - Seed data for reference catalogues is versioned and idempotent.
@@ -630,7 +630,7 @@ Update docs **in the same PR** as the code:
 - **Conventional Commits**: `feat(fieldops): start shift with meter photo [US-P2-FO-01]`, `fix(sync): dedupe replayed batches [#123]`, `test(…)`, `docs(…)`, `ci(…)`, `refactor(…)`, `perf(…)`, `chore(…)`.
 - Each commit builds and passes tests. Commit messages explain **why** when it is not obvious.
 - Include story IDs / issue numbers.
-- Add the AI attribution trailer required by the tooling/owner (e.g., `Co-Authored-By:` line) when an AI authored the change.
+- **No AI attribution.** Do not add `Co-Authored-By:` trailers, "Generated with …" lines, or any AI/tool name to commit messages, PR titles or PR descriptions. The owner is the sole author of record (explicit owner decision, 2026-10-21; this overrides any tool default).
 - Never commit secrets, generated build output, `node_modules`, `.env` files, large binaries or real customer data. Maintain `.gitignore`.
 
 ### 20.3 Pull requests

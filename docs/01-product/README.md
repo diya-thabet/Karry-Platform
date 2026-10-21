@@ -19,4 +19,5 @@ Why customers buy Karry, how it is sold, and how success is measured.
 | [personas-and-use-cases.md](personas-and-use-cases.md) | Personas (operator, weighmaster, controller, storekeeper, planner, CFO…), core use cases, explicit out-of-scope |
 | [go-to-market.md](go-to-market.md) | Sales, marketing, partners, support, legal and finance tracks per phase; go-to-market motions; sales assets checklist |
 | [customer-onboarding-playbook.md](customer-onboarding-playbook.md) | Day-by-day onboarding & pilot playbook, go-live readiness checklist, per-customer success metrics |
+| [discovery/](discovery/README.md) | Phase 0 discovery kit: interview guide, site-visit checklist, pricing validation, pilot charter, legal questions |
 | [kpis.md](kpis.md) | Business (MRR, NRR, churn), product (time-to-value, coverage) and engineering (DORA) KPIs |

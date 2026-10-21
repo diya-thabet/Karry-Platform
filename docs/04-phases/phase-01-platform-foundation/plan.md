@@ -112,7 +112,7 @@ As a tenant admin, I want to invite users and deactivate leavers, so that access
 
 **US-P1-TEN-02 — Row-Level Security framework** · *Persona: Engineer* · Must · L→split
 - AC1: Every tenant-scoped table has `tenant_id uuid not null`, RLS enabled + forced, policy `USING/WITH CHECK` on `app.tenant_id`.
-- AC2: Request pipeline sets `SET LOCAL app.tenant_id` from the validated token inside the request transaction; missing tenant → request rejected.
+- AC2: Request pipeline sets the tenant transaction-locally (`set_config('app.tenant_id', $1, true)` ≡ `SET LOCAL`, batched with the first statement per spike WP-P0-12) from the validated token inside the request transaction; missing tenant → request rejected.
 - AC3: App DB role has no `BYPASSRLS` and is not the table owner.
 - AC4: EF Core global query filter on `TenantId` as second layer.
 - AC5: A migration linter fails CI if a new table lacks `tenant_id` + RLS (unless whitelisted as global reference data).

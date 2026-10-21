@@ -42,6 +42,7 @@ last_updated: 2026-10-21
 
 | File | When | Content |
 |---|---|---|
+| `tracker.md` | During the phase | Live status of work packages/stories, evidence links, test results, exit-gate checklist (Phase 0: [tracker](phase-00-discovery/tracker.md)) |
 | `plan.md` | Baseline (exists) | Objectives, scope, epics, user stories + AC, technical scope, test plan, deliverables, demo, exit gate, risks |
 | `sprint-NN.md` | Each sprint | Sprint goal, committed stories, outcome, carry-over |
 | `test-report.md` | End of phase | Execution summary per `TC-…`, pass rate, defects by severity, NFR results |

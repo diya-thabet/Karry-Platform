@@ -30,5 +30,4 @@ How Karry is built. Business rules and formulas live in [03-domain](../03-domain
 | [integrations-and-edge.md](integrations-and-edge.md) | Site edge agent, telematics (AEMP 2.0), OPC UA, ERP, notifications, weather |
 | [api-standards.md](api-standards.md) | REST conventions, Problem Details, idempotency, pagination, versioning, units in API |
 | [repository-structure.md](repository-structure.md) | Target folder layout of the monorepo (backend, frontend, analytics, tests, deploy, tools, docs) |
-
-Planned (not yet written): `threat-model.md` (WP-P0-18).
+| [threat-model.md](threat-model.md) | STRIDE threat model v1: actors, trust boundaries, 17 threats mapped to mitigations, stories and tests |

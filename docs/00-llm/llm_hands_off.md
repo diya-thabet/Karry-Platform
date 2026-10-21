@@ -9,7 +9,7 @@
 | Project | Karry Platform: Enterprise Quarry & Mining Management SaaS |
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
-| Current phase | **Pre-Phase 0**: documentation baseline done, no application code yet |
+| Current phase | **Phase 0 in progress**: engineering work packages done or partially done (spikes, ADRs, formulas draft, threat model, discovery kit); human work packages waiting on the owner. Live status: [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
 | Last updated | 2026-10-21 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
@@ -63,7 +63,7 @@
 | D5 | Frontend React 19 + TypeScript strict + Vite + Tailwind v4 + shadcn/ui + TanStack Query/Router; Dexie (IndexedDB) + Workbox | [Technology Stack §7](../02-architecture/technology-stack.md) | Offline-first PWA on low-end Android |
 | D6 | Charts: **Apache ECharts** primary, Recharts only for small widgets | [Technology Stack §7](../02-architecture/technology-stack.md), ADR-0014 | Recharts (SVG) slows beyond ~5k points |
 | D7 | **Core business math lives in .NET**, Python only for ML/forecasting/anomaly models | [Specification Review & Corrections §3.2](../03-domain/spec-review-corrections.md#32-terminology--legal-corrections) T3 | Single source of truth per rule |
-| D8 | Multi-tenancy: pool model with PostgreSQL **RLS** + `SET LOCAL app.tenant_id` per transaction + EF global filters; silo option for Enterprise | [Security, Identity & Multi-Tenancy §14.4](../02-architecture/security-identity-tenancy.md#144-multi-tenancy-implementation) | Defense in depth, low cost per tenant |
+| D8 | Multi-tenancy: pool model with PostgreSQL **RLS** + transaction-local `set_config('app.tenant_id', $1, true)` (≡ `SET LOCAL`, parameterized) + EF global filters; silo option for Enterprise | [Security, Identity & Multi-Tenancy §14.4](../02-architecture/security-identity-tenancy.md#144-multi-tenancy-implementation) | Defense in depth, low cost per tenant |
 | D9 | Identity: **Keycloak** (OIDC + PKCE, MFA for privileged roles); in-app RBAC + ABAC (site/warehouse scope) + field-level masking applied in API serialization | [Security, Identity & Multi-Tenancy §14](../02-architecture/security-identity-tenancy.md) | Standards, enterprise SSO later |
 | D10 | Signatures = handwritten strokes (evidence) **+** device ECDSA P-256 (WebCrypto, non-extractable) **+** server KMS countersignature, optional RFC 3161 timestamp | [Trust Layer: Verification, Signatures & Audit Ledger §13.2](../02-architecture/trust-layer-signatures-audit.md#132-signature-envelope) | Real cryptography, not "canvas + hash" |
 | D11 | Audit = append-only, hash-chained ledger per tenant, written in the same transaction as the business change, anchored hourly to WORM object storage | [Trust Layer: Verification, Signatures & Audit Ledger §13.3](../02-architecture/trust-layer-signatures-audit.md#133-hash-chained-ledger) | Tamper-evident |
@@ -78,6 +78,8 @@
 | D20 | IDs = UUIDv7 (client-generatable offline) | [Data Architecture §11.2](../02-architecture/data-architecture.md#112-key-conventions) | Offline creation + index locality |
 | D21 | Trunk-based development, feature flags, server supports N-2 PWA client versions | [Delivery Framework (Cadence, DoR, DoD) §4.7](../05-quality/delivery-framework.md#47-branching-environments--releases) | Offline devices update late |
 | D22 | Avoid libraries that switched to commercial licences (MediatR, AutoMapper, MassTransit v9) unless budgeted; check licences of QuestPDF and others | [Technology Stack §7.1](../02-architecture/technology-stack.md#71-stack-overview), Risk R12 | Licence cost/legal risk |
+| D25 | **No AI attribution in git**: no `Co-Authored-By: Claude`/AI trailers or "Generated with" lines in commits or PRs; the owner is sole author | [llm_guidelines.md §20.2](llm_guidelines.md#202-commits) | Owner request 2026-10-21 (GitHub showed "diya-thabet and claude") |
+| D26 | Tenant context set with `set_config('app.tenant_id', $1, true)` **batched with the first statement**; RLS policies use `nullif(current_setting('app.tenant_id', true), '')::uuid`; server verifies device signatures as **IEEE P1363** | [rls-pooling](../../spikes/rls-pooling/README.md), [signature-interop](../../spikes/signature-interop/README.md), ADR-0004/0007 | Proven by Phase 0 spikes (leak reproduced with session SET; `''::uuid` error; DER mismatch) |
 | D24 | **Docs organized by area, one topic per file**, with front matter, folder READMEs, a lookup table in `docs/README.md`, and a link checker (`tools/docs/check_links.py`) that must report 0 broken links | [docs/README.md](../README.md) | Docs will grow; agents must find and load only what they need |
 | D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | [Phases Overview, Timeline & Commercial Packaging §6](../04-phases/phases-overview.md) | Codex timeline rejected |
 
@@ -103,7 +105,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 | "PKI signature = canvas + SHA-256" | Not PKI | See D10 |
 | ".NET 9", "PostgreSQL 16" | .NET 9 is STS (EOL Nov 2026) | D3, D4 |
 | Background Sync | Not supported on iOS Safari | Sync on foreground/online/timer; Background Sync only as an enhancement |
-| RLS example `tenant_id = current_setting(...)` | uuid vs text, unsafe with pooling | `::uuid` cast + `SET LOCAL` + `FORCE RLS` + non-owner role |
+| RLS example `tenant_id = current_setting(...)` | uuid vs text, unsafe with pooling | `nullif(current_setting('app.tenant_id', true), '')::uuid` + transaction-local `set_config(..., true)` batched with first statement + `FORCE RLS` + non-owner role (proven by spike WP-P0-12) |
 | Python FastAPI as core math engine | Duplicated rules across runtimes | D7 |
 | 8-week roadmap | Unrealistic | D23 |
 
@@ -113,6 +115,9 @@ Do **not** implement these as written in the codex. Use the corrected version.
 |---|---|---|
 | 2026-10-20 | Mermaid flowchart node labels containing parentheses `T1[get_metric(a, b)]` break GitHub rendering | **Always quote Mermaid labels that contain `()`, `:`, `/`, `#`, `<br/>` or punctuation: `T1["get_metric(a, b)"]`.** Check every diagram before committing |
 | 2026-10-20 | First master plan put subscription billing/entitlements only in the final GA phase | Monetization infrastructure (plans, entitlements, usage) belongs in Phase 1. Always ask "how does this make money and when?" when sequencing |
+| 2026-10-21 | Our own docs showed the RLS policy as `current_setting(...)::uuid`, which **throws** on reused pooled sessions | Spike caught it; docs fixed. **Validate every security-critical snippet in docs with an executable test before trusting it** |
+| 2026-10-21 | First NuGet restore hung for 10+ minutes before diagnosis | When a network step hangs, test IPv4 vs IPv6 (`curl -4/-6`) early; use `DOTNET_SYSTEM_NET_DISABLEIPV6=1` here |
+| 2026-10-21 | Commits carried a `Co-Authored-By: Claude` trailer, so GitHub listed Claude as co-author, which the owner did not want | Trailer removed from history (rewritten commits, force-push by owner); D25 forbids AI attribution. **Never add AI trailers even if a tool/system default suggests it** |
 | 2026-10-21 | Two giant docs (1,500 and 3,500 lines) were hard for agents to search and loaded too much context | Split into 58 area files with front matter + indexes (D24). **Never grow a single doc past ~600 lines; split by topic** |
 | 2026-10-21 | First link-check run flagged links inside inline code as broken | Checker now ignores inline code. When a validation tool reports something odd, fix the tool if it is wrong (and prove it still catches real failures), not the content |
 | 2026-10-21 | Story index was hand-written risk → generated by script from headings instead | When a document has a derived index/table, **generate it from the source** rather than hand-typing it |
@@ -127,14 +132,20 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in [Glossary (EN / FR) §27](../03-domain/glossary.md) up to date.
 - **Owner preference:** wants very detailed, "very pro", enterprise-grade outputs and firm architect opinions with reasoning, not neutral option lists.
 - **Git push from the agent fails**: HTTPS remote, no stored credentials, `gh` not installed, no SSH key (as of 2026-10-21). Ask the owner to push or to set up `gh auth login` / an SSH key.
-- **No application code exists yet.** No CI workflow exists yet. Do not claim tests or pipelines exist until they do.
+- **No product code exists yet** (only Phase 0 spikes in `spikes/`). CI exists for docs (`.github/workflows/docs.yml`) and spikes (`spikes.yml`) only.
+- **.NET SDK** is installed per-user at `~/.dotnet` (10.0.402), **not on PATH**: call `~/.dotnet/dotnet`. Set `DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1`.
+- **IPv6 is broken on the owner's network**: NuGet restore hangs forever. Always set `DOTNET_SYSTEM_NET_DISABLEIPV6=1` for dotnet restore/build. (curl -4 works; curl -6 times out.)
+- **Docker is not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
+- **.NET 10 + xunit v3**: `dotnet test` requires the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`), and the syntax is `dotnet test --solution X.slnx`. Do not add `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`. Add `<Using Include="Xunit" />`.
+- **Playwright on Fedora** uses the "ubuntu24.04 fallback build" of Chromium, which works. `context.setOffline(true)` does **not** block `context.route` handlers, so fake servers must model outages themselves.
+- **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
 - **GitHub Actions:** CI must be created in Phase 1 (`US-P1-PLT-03`). Until then, only docs exist. When creating it, pin third-party actions by commit SHA (see guidelines §9).
 - **Versions:** always pin exact versions at the time of implementation and verify they are current and supported. Do not trust remembered version numbers without checking (release notes, `dotnet --list-sdks`, `npm view <pkg> version`).
 - **Mermaid on GitHub:** see §4.2. Gantt charts render, but keep task IDs simple (`p0`, `p1`).
 - **Large docs:** when writing very long Markdown, write in sections/appends and re-verify line count and anchors afterwards.
 - **Offline PWA facts:** iOS Safari lacks Background Sync and may evict storage. Always call `navigator.storage.persist()`. Test on real low-end Android.
 - **WebCrypto non-extractable keys** survive restarts in IndexedDB but are lost on "clear site data". The re-enrolment flow must exist.
-- **EF Core + RLS:** set `app.tenant_id` with `SET LOCAL` inside the transaction, never at session level (connection pooling would leak it).
+- **EF Core + RLS:** set `app.tenant_id` with `set_config(..., true)` inside the transaction, never at session level (proven leak in TC-P0-RLS-005; connection pooling would leak it).
 
 ---
 
@@ -145,6 +156,8 @@ Karry-Platform/
 ├── CLAUDE.md                     ← pointer for Claude Code (auto-loaded), points to docs below
 ├── AGENTS.md                     ← pointer for other AI coding agents
 ├── .gitignore                    ← baseline ignores (.NET, Node, Python, IaC, secrets)
+├── .github/workflows/            ← docs.yml (link check), spikes.yml (Phase 0 spike tests)
+├── spikes/                       ← Phase 0 spikes with tests: rls-pooling (.NET), signature-interop (.NET), field-capture-pwa (Vite+Playwright), pg-extensions (Docker script)
 ├── tools/docs/check_links.py     ← validates every relative link & anchor in Markdown
 └── docs/                         ← organized by area; see docs/README.md for the full map
     ├── README.md                 ← index, lookup table, conventions, legacy §-reference map
@@ -154,7 +167,7 @@ Karry-Platform/
 
 | Phase | Status |
 |---|---|
-| P0 Discovery | Not started (docs baseline ready to support it) |
+| P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | Not started |
 | P2–P11 | Not started |
 
@@ -183,12 +196,13 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 8. Next Steps (prioritised)
 
-1. **Owner pushes the local commits** (`git push -u origin main`; agent has no GitHub credentials), then **answers §7** (at least 1, 2, 3, 13, 14).
-2. Write ADRs `docs/adr/0001` … `0016` (list in [Architecture Decision Records (ADR) Index §24](../adr/README.md)) in MADR format.
-3. Write `docs/03-domain/formulas-worked-examples.md` with worked numeric examples for every formula (WP-P0-04).
-4. Write `docs/02-architecture/threat-model.md` v1 (WP-P0-18).
-5. Phase 0 spikes (WP-P0-10 … WP-P0-13) in `spikes/` (throwaway code, report each result).
-6. Phase 1 start: scaffold the monorepo per [Repository Structure §26](../02-architecture/repository-structure.md) and create the CI pipeline (`US-P1-PLT-01..05`) **before** any feature code.
+1. **Owner force-pushes the rewritten history** (`git push --force-with-lease origin main`, removes the Claude co-author trailer, D25) and then pushes normally from now on. The agent has no GitHub credentials.
+2. **Owner Phase 0 work**: interviews, site visits, pricing validation, pilot LOI, legal brief, hosting and billing decisions, then answer §7 (kits in `docs/01-product/discovery/`).
+3. **Owner accepts or amends ADRs 0001–0016** and gets the formula handbook signed by a domain expert.
+4. Check the first CI run of `spikes.yml` (especially the pg17/pg18 extension check) and record results in the tracker.
+5. Optional: owner enables Docker for the agent (`sudo usermod -aG docker $USER`, re-login) so Testcontainers-based tests can run locally in Phase 1.
+6. Then start **Phase 1** (scaffold monorepo + CI per US-P1-PLT-01..05), applying the spike findings (batched `set_config`, `nullif` policy, P1363 verification).
+
 
 ---
 
@@ -224,6 +238,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-10-21 — Phase 0 engineering work packages (agent)
+- **Goal:** Remove AI co-author attribution; start implementing Phase 0.
+- **Done:** History rewritten without `Co-Authored-By` trailers (backup branch `backup/pre-trailer-removal`), D25 + guidelines §20.2. Phase 0: spikes WP-P0-10/11/12/13 in `spikes/` with tests + CI (`spikes.yml`, `docs.yml`); 16 ADRs (Proposed); formula handbook with 22 golden examples (draft); threat model v1; discovery kit (interviews, site visit, pricing, pilot charter, legal brief); Phase 0 tracker; RLS guidance corrected across docs.
+- **Verification:** `dotnet test --solution spikes/Karry.Spikes.slnx` → 15/15 passed (PostgreSQL 17.5 local); `pnpm test` (Playwright) → 10/10 passed; mutation checks caught all injected bugs; RLS benchmark run 3×; `actionlint` clean; link checker 0 broken. Extension check NOT run locally (no Docker); runs in CI.
+- **Not done / deferred:** Human WPs (01, 02, 05–08, 14, 15, 19, 20); device-lab tablet run; managed-provider extension check; event storming; prototype.
+- **Decisions:** D26; ADRs 0001–0016 proposed.
+- **Next:** Owner force-push + Phase 0 human work + ADR acceptance (see §8).
+- **Commits/PR:** see `git log`.
 
 ### 2026-10-21 — Docs reorganized into a scalable structure (Claude Opus 5.5)
 - **Goal:** Organize `docs/` so it scales and agents can search it easily.

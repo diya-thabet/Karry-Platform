@@ -13,23 +13,23 @@ last_updated: 2026-10-21
 
 Each architecture decision gets **one file**: `adr/NNNN-short-title.md` (4-digit number, kebab-case), using the MADR template in [llm_guidelines.md §26.1](../00-llm/llm_guidelines.md#261-adr-madr-style--docsadrnnnn-short-titlemd). Status flow: Proposed → Accepted / Rejected → Superseded. When an ADR is written, link it in the table below.
 
-ADRs live in `docs/adr/NNNN-title.md` (MADR format). Initial set to write in Phase 0:
+Initial set written in Phase 0 (WP-P0-16). All are **Proposed** until the owner accepts them at the M0 gate:
 
 | ADR | Title | Status |
 |---|---|---|
-| 0001 | Modular monolith with DDD bounded contexts | Proposed |
-| 0002 | .NET 10 LTS, version pinning & upgrade policy | Proposed |
-| 0003 | PostgreSQL 17/18 + PostGIS + TimescaleDB + pgvector | Proposed |
-| 0004 | Multi-tenancy: pool model with RLS, silo option | Proposed |
-| 0005 | Offline-first PWA with Dexie outbox and idempotent sync | Proposed |
-| 0006 | Immutable facts & correction-by-reversal | Proposed |
-| 0007 | Signature envelope: device ECDSA + KMS countersignature + RFC 3161 | Proposed |
-| 0008 | Hash-chained audit ledger with WORM anchoring | Proposed |
-| 0009 | Core math in .NET; Python sidecar for ML/forecasting only | Proposed |
-| 0010 | Material state (bank/loose/compacted) in all volume quantities | Proposed |
-| 0011 | DSCR as solvency metric (replaces codex formula) | Proposed |
-| 0012 | Keycloak for identity; in-app RBAC/ABAC + field masking | Proposed |
-| 0013 | AI via tool-calling over semantic layer; provider abstraction | Proposed |
-| 0014 | Apache ECharts as primary charting library | Proposed |
-| 0015 | Transactional outbox for domain/integration events | Proposed |
-| 0016 | Edge agent for weighbridge & plant integration | Proposed (P6) |
+| [0001](0001-modular-monolith.md) | Modular monolith with DDD bounded contexts | Proposed |
+| [0002](0002-dotnet-10-lts.md) | Backend on .NET 10 LTS with version pinning and upgrade policy | Proposed |
+| [0003](0003-postgresql-and-extensions.md) | PostgreSQL 17/18 with PostGIS, TimescaleDB and pgvector | Proposed |
+| [0004](0004-multi-tenancy-rls.md) | Multi-tenancy: pooled database with Row-Level Security, silo option | Proposed |
+| [0005](0005-offline-first-pwa.md) | Offline-first PWA with Dexie outbox and idempotent sync | Proposed |
+| [0006](0006-immutable-facts.md) | Immutable facts and correction by reversal | Proposed |
+| [0007](0007-signature-envelope.md) | Signature envelope: device ECDSA + KMS countersignature + optional RFC 3161 | Proposed |
+| [0008](0008-hash-chained-ledger.md) | Hash-chained audit ledger with WORM anchoring | Proposed |
+| [0009](0009-core-math-dotnet.md) | Core business math in .NET; Python sidecar only for ML and forecasting | Proposed |
+| [0010](0010-material-state.md) | Material state (bank / loose / compacted) on every volume quantity | Proposed |
+| [0011](0011-dscr-solvency.md) | DSCR as the asset solvency metric | Proposed |
+| [0012](0012-identity-authorization.md) | Keycloak for identity; in-app RBAC + ABAC + field masking | Proposed |
+| [0013](0013-ai-tool-calling.md) | AI copilot via tool-calling over a governed semantic layer, with provider abstraction | Proposed |
+| [0014](0014-echarts.md) | Apache ECharts as the primary charting library | Proposed |
+| [0015](0015-transactional-outbox.md) | Transactional outbox for domain and integration events | Proposed |
+| [0016](0016-edge-agent.md) | Site edge agent for weighbridge and plant integration | Proposed |

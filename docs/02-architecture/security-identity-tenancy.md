@@ -52,11 +52,12 @@ ALTER TABLE fieldops.shift_entry ENABLE ROW LEVEL SECURITY;
 ALTER TABLE fieldops.shift_entry FORCE ROW LEVEL SECURITY;
 
 CREATE POLICY tenant_isolation ON fieldops.shift_entry
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
-  WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+  USING      (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 ```
 
-- The API opens a transaction per request and executes `SET LOCAL app.tenant_id = '<from validated token>'` (safe with connection pooling because `SET LOCAL` is transaction-scoped).
+- **`nullif(..., '')` is mandatory**: once a session has used a transaction-local setting, `current_setting(..., true)` returns `''` (not `NULL`) and `''::uuid` raises an error instead of failing closed. Proven by spike WP-P0-12 ([report](../../spikes/rls-pooling/README.md), TC-P0-RLS-004).
+- The API opens a transaction per request and runs `SELECT set_config('app.tenant_id', $1, true)` (the parameterized equivalent of `SET LOCAL`, transaction-scoped and therefore safe with connection pooling) **batched with the first statement** to avoid an extra round trip (spike measured +14 % latency for a separate round trip vs +2.4–4.0 % for RLS itself). Session-level `SET` is forbidden: the spike reproduced a cross-tenant leak with it (TC-P0-RLS-005).
 - App connects as a **non-owner role** without `BYPASSRLS`. Migrations run as a separate owner role.
 - EF Core **global query filters** on `tenant_id` as a second layer; CI includes a test suite that attempts cross-tenant reads on every endpoint.
 

@@ -26,6 +26,7 @@ karry-platform/
 │   ├── 08-user-help/                  end-user help articles (fr/, en/)
 │   ├── adr/                           architecture decision records
 │   └── api/                           generated OpenAPI + guides (from Phase 1)
+├── spikes/                            Phase 0 throwaway spikes with tests (rls-pooling, field-capture-pwa, signature-interop, pg-extensions)
 ├── src/
 │   ├── backend/
 │   │   ├── Karry.Host/                 ASP.NET Core composition root

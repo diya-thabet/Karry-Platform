@@ -1,0 +1,37 @@
+---
+title: "ADR-0007: Signature envelope: device ECDSA + KMS countersignature + optional RFC 3161"
+area: adr
+tags: [signatures, pki, ecdsa, kms, webcrypto]
+source: "Phase 0 WP-P0-16"
+status: proposed
+last_updated: 2026-10-21
+---
+
+# ADR-0007 — Signature envelope: device ECDSA + KMS countersignature + optional RFC 3161
+
+> [Docs index](../README.md) › [adr](README.md)
+
+- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Date:** 2026-10-21
+- **Deciders:** Product owner, software architect
+- **Related:** WP-P0-11; spikes [field-capture-pwa](../../spikes/field-capture-pwa/README.md), [signature-interop](../../spikes/signature-interop/README.md)
+
+## Context
+
+The original specification called a canvas drawing plus a SHA-256 hash "PKI". That proves nothing about who signed. Karry needs signatures that work offline, bind a record to an enrolled device and authenticated user, and can be verified later by auditors.
+
+## Options considered
+
+1. Handwritten image + hash only — **Pros:** Simple. **Cons:** Not cryptographic proof.
+2. Qualified signatures via a trust service provider for every record — **Pros:** Highest legal weight. **Cons:** Online only, per-signature cost, unusable in the field.
+3. **Device ECDSA key + server KMS countersignature (+ optional TSA timestamp)** (chosen) — **Pros:** Works offline; strong integrity and attribution; verifiable by third parties. **Cons:** Device keys can be lost (clear site data).
+
+## Decision
+
+Each signable record gets a `SignatureEnvelope`: an RFC 8785 canonical payload hash, a handwritten-stroke image (evidence/UX), an ECDSA P-256 signature by a **non-extractable** WebCrypto device key created at enrollment, a server countersignature with a KMS-held key over `{envelope hash, receivedAt}`, and optionally an RFC 3161 timestamp (recommended for tickets and waybills). Signatures use **IEEE P1363** encoding (r‖s), and the .NET server verifies with `DSASignatureFormat.IeeeP1363FixedFieldConcatenation`. Client and server canonicalization are validated against a shared RFC 8785 test-vector suite. Legal qualification per country is confirmed by counsel (WP-P0-06).
+
+## Consequences
+
+- ✅ Spike evidence: key non-exportable, survives 10 restarts, browser signatures verify in Node and .NET; tampering detected; the DER-vs-P1363 trap is documented by a test.
+- ⚠ Key loss on storage clearing, so re-enrollment flow + alert.
+- 🔎 Revisit if a market requires qualified signatures for specific documents (integrate a QTSP for those only).

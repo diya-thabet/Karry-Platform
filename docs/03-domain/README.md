@@ -18,6 +18,7 @@ The quarry/mining business rules: what the system computes and enforces, indepen
 | [spec-review-corrections.md](spec-review-corrections.md) | Corrections to the original specification (math, terminology, legal) and requirements that were missing. **Read before implementing any formula.** |
 | [bounded-contexts.md](bounded-contexts.md) | Context map, bounded context catalogue (aggregates, events), shared value objects, asset lifetime history |
 | [computational-engines.md](computational-engines.md) | Corrected formulas: units & conversion, blast & yield, plant mass balance, conveyor capacity, RUL, fuel analytics, asset cost & DSCR, weather & delivery, inventory variance |
+| [formulas-worked-examples.md](formulas-worked-examples.md) | Formula handbook with 22 golden examples (GE-01…GE-22), the expected values for unit tests (draft, pending expert sign-off) |
 | [glossary.md](glossary.md) | English/French domain glossary |
 
 ## catalogues/
@@ -29,4 +30,4 @@ The quarry/mining business rules: what the system computes and enforces, indepen
 | [catalogues/notifications.md](catalogues/notifications.md) | Notification events, audiences, channels, phase |
 | [catalogues/documents-and-reports.md](catalogues/documents-and-reports.md) | Generated documents & reports, formats, signature and QR verification |
 
-Planned (not yet written): `formulas-worked-examples.md` (WP-P0-04, signed by the domain expert), `kpi-definitions.md` (Phase 4).
+Planned (not yet written): `kpi-definitions.md` (Phase 4).

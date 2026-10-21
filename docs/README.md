@@ -25,6 +25,11 @@
 |---|---|
 | What has been decided, mistakes to avoid, current state, next steps | [00-llm/llm_hands_off.md](00-llm/llm_hands_off.md) |
 | How to work: testing, CI, security, git, Definition of Done | [00-llm/llm_guidelines.md](00-llm/llm_guidelines.md) |
+| **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) |
+| Technical spike results (RLS, offline, device keys, extensions) | [../spikes/README.md](../spikes/README.md) |
+| Golden examples / expected values for formula tests | [03-domain/formulas-worked-examples.md](03-domain/formulas-worked-examples.md) |
+| Threats and mitigations | [02-architecture/threat-model.md](02-architecture/threat-model.md) |
+| Interview guide, site visit, pricing, pilot charter, legal brief | [01-product/discovery/](01-product/discovery/README.md) |
 | The big picture in 5 minutes | [02-architecture/overview.md](02-architecture/overview.md) |
 | Plans, prices, subscription lifecycle, entitlements | [01-product/business-model-and-pricing.md](01-product/business-model-and-pricing.md) |
 | Why a modular monolith and not microservices | [02-architecture/modular-monolith-decision.md](02-architecture/modular-monolith-decision.md) |
