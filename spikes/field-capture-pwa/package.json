@@ -1,0 +1,25 @@
+{
+  "name": "karry-spike-field-capture-pwa",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "WP-P0-10 / WP-P0-11 spike: offline capture (Dexie outbox + service worker) and non-extractable device signing keys",
+  "scripts": {
+    "build": "vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "typecheck": "tsc --noEmit",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "canonicalize": "5.1.0",
+    "dexie": "4.4.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vite-plugin-pwa": "2.0.0"
+  },
+  "packageManager": "pnpm@9.15.9"
+}

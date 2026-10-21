@@ -1,0 +1,16 @@
+{
+  "generatedBy": "Chromium WebCrypto (TC-P0-KEY-003)",
+  "publicKeyJwk": {
+    "crv": "P-256",
+    "ext": true,
+    "key_ops": [
+      "verify"
+    ],
+    "kty": "EC",
+    "x": "CjOMIDsfOzqXRmd4vxVNgZRlmZBt0vYIDgTEk3MFUTg",
+    "y": "4FegHwwYGsonQhS7K1m_zXpSQv4NAfiyq1-ZxirgNGI"
+  },
+  "canonicalPayload": "{\"assetCode\":\"CAT-966-0\",\"meterStart\":1000,\"meterType\":\"HOURS\",\"photoHash\":null}",
+  "payloadHash": "50931dcf311f8cd5985ac837b032b95f02944196497a57773a8259aa96825df5",
+  "signature": "yXkqfHXTnVk51U6j905hkz5JcCD8JmYPRLrYxNQ/tXtrzZH7SK718b4GjRqhUiHfhlNXirJ2uRiaa6OYNxiW5g=="
+}

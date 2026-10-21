@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/rls-pooling/" />
+  <Folder Name="/rls-pooling/bench/">
+    <Project Path="rls-pooling/bench/Karry.Spikes.RlsPooling.Bench/Karry.Spikes.RlsPooling.Bench.csproj" />
+  </Folder>
+  <Folder Name="/rls-pooling/src/">
+    <Project Path="rls-pooling/src/Karry.Spikes.RlsPooling/Karry.Spikes.RlsPooling.csproj" />
+  </Folder>
+  <Folder Name="/rls-pooling/tests/">
+    <Project Path="rls-pooling/tests/Karry.Spikes.RlsPooling.Tests/Karry.Spikes.RlsPooling.Tests.csproj" />
+  </Folder>
+  <Folder Name="/signature-interop/" />
+  <Folder Name="/signature-interop/tests/">
+    <Project Path="signature-interop/tests/Karry.Spikes.SignatureInterop.Tests/Karry.Spikes.SignatureInterop.Tests.csproj" />
+  </Folder>
+</Solution>
