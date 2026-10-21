@@ -1,0 +1,45 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pfx
+secrets/
+
+# .NET
+bin/
+obj/
+TestResults/
+*.user
+coverage*/
+
+# Node / frontend
+node_modules/
+dist/
+.pnpm-store/
+playwright-report/
+test-results/
+
+# Python
+__pycache__/
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# IaC
+.terraform/
+*.tfstate
+*.tfstate.*
+
+# Claude Code local settings
+.claude/settings.local.json
