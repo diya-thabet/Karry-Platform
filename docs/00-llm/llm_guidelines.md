@@ -10,7 +10,7 @@
 | Version | 1.0 |
 | Date | 2026-10-21 |
 | Applies to | All AI agents (Claude Code, Copilot, Cursor, Codex, others) and humans pairing with them |
-| Companion docs | `MASTER_PLAN.md` (architecture), `PHASES_DETAILED_PLAN.md` (stories, AC, tests), `llm_hands_off.md` (memory) |
+| Companion docs | [`docs/README.md`](../README.md) (map & lookup), `02-architecture/` + `03-domain/` (architecture & formulas), `04-phases/` (stories, AC, tests), `llm_hands_off.md` (memory) |
 
 ---
 
@@ -53,7 +53,7 @@ When instructions conflict, apply this order (highest first):
 2. **Security, legal and data-protection obligations**: never overridden by convenience.
 3. **This file** (`llm_guidelines.md`).
 4. **Accepted ADRs** in `docs/adr/`.
-5. `MASTER_PLAN.md` and `PHASES_DETAILED_PLAN.md` (the detailed plan wins over the master plan where they differ).
+5. Phase plans (`docs/04-phases/phase-NN-*/plan.md`), then architecture/domain/product docs (`docs/01-product/`, `docs/02-architecture/`, `docs/03-domain/`). A phase plan wins over the roadmap summary where they differ.
 6. Existing code conventions in the repository.
 7. General industry best practice.
 
@@ -73,7 +73,7 @@ You are not a code generator. You are a **senior multidisciplinary team in one**
 | **DevOps / SRE** | Reproducible builds, safe deploys, observability, recoverability | Pipeline green and fast; IaC; rollbacks work; alerts are actionable |
 | **Security Engineer** | Threat-model changes; least privilege; secure defaults | No secrets in code; authz on every endpoint; tenant isolation tests; dependencies scanned |
 | **Database Engineer** | Correct schema, indexes, RLS, safe migrations | Expand/contract migrations; query plans checked; RLS on every tenant table |
-| **Domain Expert (quarry/mining)** | Respect the corrected formulas and real field workflows | Units always explicit; material state respected; formulas cited from `MASTER_PLAN.md` §10 |
+| **Domain Expert (quarry/mining)** | Respect the corrected formulas and real field workflows | Units always explicit; material state respected; formulas cited from [Computational Engines (Corrected Mathematics) §10](../03-domain/computational-engines.md) |
 | **Product Engineer** | Keep the customer and revenue in mind | Features are plan-gated correctly; onboarding friction considered; value is measurable |
 | **UX Engineer** | Field usability (sun, gloves, low-end devices, low literacy) and accessibility | Large touch targets, outdoor mode, offline states visible, FR/EN |
 | **Technical Writer** | Keep docs, help articles, ADRs, changelog current | Docs updated in the same PR as the code |
@@ -93,8 +93,8 @@ You are not a code generator. You are a **senior multidisciplinary team in one**
 
 1. Read `docs/llm_hands_off.md` fully, then this file.
 2. Run `git status`, `git log --oneline -20`, and check open PRs/issues if tools allow.
-3. Identify the **phase**, **epic** and **story IDs** (`US-P<n>-<AREA>-<nn>`) the task belongs to, from `PHASES_DETAILED_PLAN.md`. If the task matches no story, say so and propose where it fits.
-4. Re-read the story's **acceptance criteria** and the **cross-cutting criteria** (`PHASES_DETAILED_PLAN.md` §5, CC-01…CC-18).
+3. Identify the **phase**, **epic** and **story IDs** (`US-P<n>-<AREA>-<nn>`) the task belongs to, from the phase plan in `docs/04-phases/` (search [`story-index.md`](../04-phases/story-index.md)). If the task matches no story, say so and propose where it fits.
+4. Re-read the story's **acceptance criteria** and the **cross-cutting criteria** ([Cross-Cutting Acceptance Criteria (CC-01…CC-18) §5](../05-quality/cross-cutting-acceptance-criteria.md), CC-01…CC-18).
 5. Check the relevant **settled decisions** (`llm_hands_off.md` §3) and **known mistakes** (§4) before designing anything.
 
 ### 3.2 During work: the loop
@@ -136,9 +136,9 @@ These protect the product's commercial value (trust, isolation, correctness). **
 | I-6 | **Explicit units** | Quantities are `{value, unit, state?}` value objects. No bare numbers for physical quantities. Volumes carry material state. |
 | I-7 | **Money correctness** | `decimal` / `numeric(19,4)` + currency code. No `float`/`double`/JS `number` arithmetic for money; use integer minor units or a decimal library in TS. |
 | I-8 | **Offline never loses data** | Field commands persist locally until the server acknowledges; sync is idempotent; nothing is dropped on restart, update or sync error. |
-| I-9 | **Field capture never blocked by billing** | Subscription states (PastDue, Restricted) never block field data capture (see `PHASES_DETAILED_PLAN.md` §2.5). |
+| I-9 | **Field capture never blocked by billing** | Subscription states (PastDue, Restricted) never block field data capture (see [Business Model, Subscription Plans & Pricing §2.5](../01-product/business-model-and-pricing.md#25-tenant-subscription-lifecycle)). |
 | I-10 | **Time integrity** | Store UTC (`timestamptz`); keep device time and server receive time for field records; display in site timezone. |
-| I-11 | **Formula fidelity** | Implement the **corrected** formulas from `MASTER_PLAN.md` §10, never the original codex versions listed in `llm_hands_off.md` §4.1. Formulas are versioned. |
+| I-11 | **Formula fidelity** | Implement the **corrected** formulas from [Computational Engines (Corrected Mathematics) §10](../03-domain/computational-engines.md), never the original codex versions listed in `llm_hands_off.md` [Product Scope, Personas & Use Cases §4.1](../01-product/personas-and-use-cases.md#41-personas). Formulas are versioned. |
 | I-12 | **Explainable numbers** | Every computed KPI can show its inputs and formula version ("show calculation"). |
 | I-13 | **AI does not invent numbers** | LLM answers use numbers only from tool outputs, with citations; AI respects RBAC and masking. |
 | I-14 | **Segregation of duties** | Nobody approves their own entry; four-eyes thresholds are enforced in the domain, not only in the UI. |
@@ -202,7 +202,7 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 ### 6.1 General
 
 - **Match existing style** in the file and module. Consistency beats personal preference.
-- Names describe intent in domain language (English in code, FR/EN in UI). Use glossary terms (`MASTER_PLAN.md` §27): `ScaleTicket` not `WeightPaper`, `ShiftEntry` not `Log`.
+- Names describe intent in domain language (English in code, FR/EN in UI). Use glossary terms ([Glossary (EN / FR) §27](../03-domain/glossary.md)): `ScaleTicket` not `WeightPaper`, `ShiftEntry` not `Log`.
 - Functions do one thing; keep most under ~40 lines; prefer early returns.
 - No commented-out code, no TODOs without an issue reference (`// TODO(#123): …`).
 - Comments explain **why**, not what. Public APIs and domain services have XML/TSDoc summaries.
@@ -292,14 +292,14 @@ Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is wort
   - TS: `test('TC-P2-SYNC-001 replaying a batch creates each record once', …)`.
   - Python: `@pytest.mark.tc("TC-P7-ANA-003")`.
 - When you implement a story, **every AC has at least one test**. List the mapping in the PR description (template §26.3).
-- If you add a test case not in the plan, give it the next free `TC-` ID for that phase and area and add it to the phase's test plan table in `PHASES_DETAILED_PLAN.md`.
+- If you add a test case not in the plan, give it the next free `TC-` ID for that phase and area and add it to the test plan table in that phase's `docs/04-phases/phase-NN-*/plan.md`.
 
 ### 7.4 Test data
 
 - Use builders/factories (`ShiftEntryBuilder.ForTenant(t).WithMeter(…)`) instead of copy-pasted object graphs.
 - Each test creates its own tenant and data. No shared mutable fixtures between tests.
 - Golden datasets live in `tests/golden/` with a README describing source, anonymisation and expected outputs. Never edit expected outputs to make a test pass without domain-expert sign-off recorded in the PR.
-- No real customer data in the repository, ever. Anonymise per `PHASES_DETAILED_PLAN.md` Appendix F.
+- No real customer data in the repository, ever. Anonymise per [Appendix F – Test Environments, Data & Device Matrix](../05-quality/test-environments-and-devices.md).
 
 ### 7.5 Running tests locally (expected commands; keep in sync with the real repo)
 
@@ -356,7 +356,7 @@ Tests must be **faithful to the requirement**: they verify the behaviour the acc
 var expected = (rating - accumulated) / (daily * delta);
 Assert.Equal(expected, rul.Compute(rating, accumulated, daily, delta));
 
-// ✅ Faithful: hand-computed example from docs/domain/formulas.md + property
+// ✅ Faithful: hand-computed example from docs/03-domain/formulas-worked-examples.md + property
 [Fact, Trait("TestCase", "TC-P4-MNT-001")]
 public void Rul_HoursOnly_MatchesWorkedExample()
 {
@@ -448,7 +448,7 @@ jobs:
 - Same artifact promoted across environments (build once, deploy many). Images signed (cosign) with SBOM.
 - DB migrations run as a separate step **before** app rollout; a failed migration aborts the deploy.
 - Production: progressive rollout (canary → 100 %), automatic rollback on error-budget breach, smoke tests after deploy, ledger verifier run.
-- Every prod deploy has release notes and a rollback plan (`PHASES_DETAILED_PLAN.md` §21.2).
+- Every prod deploy has release notes and a rollback plan ([Release Management & Go-Live Checklists §21.2](../06-operations/release-management.md#212-production-release-checklist)).
 - Never deploy to production from a local machine.
 
 ---
@@ -545,16 +545,16 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 - **OpenTelemetry** traces for every request and job, with attributes `tenant.id` (or hash), `module`, `operation`, `user.role`. No PII.
 - Metrics: RED per endpoint, job lag, outbox lag, sync backlog per device, ledger anchoring lag, AI tokens/cost per tenant, business counters (tickets/hour, verified entries/day).
 - Logs: structured JSON, correlation ID, severity discipline (Error = needs action).
-- **Every new alert has a runbook** in `docs/runbooks/` (symptom, impact, diagnosis, mitigation, escalation).
+- **Every new alert has a runbook** in `docs/06-operations/runbooks/` (symptom, impact, diagnosis, mitigation, escalation).
 - Health endpoints: liveness (process) and readiness (dependencies) separately.
 - Feature flags and config changes are audited.
-- Backups and restore drills follow `MASTER_PLAN.md` §19.4; never change backup settings without an ADR.
+- Backups and restore drills follow [Infrastructure, DevOps & Observability §19.4](../06-operations/infrastructure-devops-observability.md#194-backup--dr); never change backup settings without an ADR.
 
 ---
 
 ## 16. Performance Policy
 
-- Performance NFRs in `MASTER_PLAN.md` §5 are requirements, not wishes.
+- Performance NFRs in [Non-Functional Requirements §5](../02-architecture/non-functional-requirements.md) are requirements, not wishes.
 - Hot paths (sync batch, review queue, dashboards, ticket issue) have performance tests with thresholds (k6/benchmarks) that run at least per phase and before release.
 - Check query plans for new queries on hot paths; avoid N+1; paginate everything unbounded.
 - Cache only with a clear invalidation strategy; tenant-scoped cache keys always include `tenant_id`.
@@ -564,7 +564,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 
 ## 17. AI Feature Development Policy
 
-- Follow `MASTER_PLAN.md` §15 and `PHASES_DETAILED_PLAN.md` §15.
+- Follow [AI Copilot Architecture §15](../02-architecture/ai-copilot-architecture.md) and [Phase 8 — AI Copilot §15](../04-phases/phase-08-ai-copilot/plan.md).
 - LLM calls go **only** through the AI Gateway interfaces; no provider SDK types outside the gateway.
 - Numbers come only from tools; tools go through the semantic layer that enforces tenancy, scope and masking.
 - Prompts, tool schemas and model routing are **versioned files** in the repo. Every change runs the evaluation harness; regressions block merge (release gate ≥ 90 % numeric exactness, 100 % citation presence, 0 leaks).
@@ -592,15 +592,23 @@ Update docs **in the same PR** as the code:
 
 | Change | Update |
 |---|---|
-| Architectural decision | `docs/adr/NNNN-*.md` (+ `MASTER_PLAN.md` if the baseline changes) |
-| New/changed formula | `docs/domain/formulas.md` with worked example and version |
-| New KPI | `docs/domain/kpis.md` |
+| Architectural decision | `docs/adr/NNNN-*.md` (+ the affected `docs/02-architecture/` or `docs/03-domain/` file if the baseline changes) |
+| New/changed formula | `docs/03-domain/formulas-worked-examples.md` with worked example and version |
+| New KPI | `docs/03-domain/kpi-definitions.md` |
 | New endpoint | OpenAPI (generated) + usage notes if non-obvious |
-| New alert / operational procedure | `docs/runbooks/` |
-| User-facing feature | Help article stub FR/EN (`docs/help/fr/…`, `docs/help/en/…`) + `CHANGELOG.md` entry |
+| New alert / operational procedure | `docs/06-operations/runbooks/` |
+| User-facing feature | Help article stub FR/EN (`docs/08-user-help/fr/…`, `docs/08-user-help/en/…`) + `CHANGELOG.md` entry |
 | Story completed | Mark status in the backlog; note in `llm_hands_off.md` session log |
 | New test case | Add the `TC-` row to the phase's test plan table if not present |
 | Mistake learned | `llm_hands_off.md` §4.2 |
+| Phase test report / exit review / retrospective | `docs/04-phases/phase-NN-*/test-report.md`, `exit-review.md`, `retrospective.md` |
+
+**Docs organization rules** (full conventions in [`docs/README.md`](../README.md))
+- One topic per file. Put each file in the folder of its area: `01-product`, `02-architecture`, `03-domain`, `04-phases`, `05-quality`, `06-operations`, `07-management`, `08-user-help`, `adr`. Never create docs at the `docs/` root, and never create one giant file. Split anything that grows past ~600 lines.
+- File names are `kebab-case.md` and descriptive (`trust-layer-signatures-audit.md`, not `notes2.md`). Phase work lives in `04-phases/phase-NN-<slug>/`.
+- Every doc starts with the YAML front matter (`title`, `area`, `tags`, `source`, `status`, `last_updated`) and the breadcrumb line. Tags must use words an agent would search for.
+- When you add, rename or move a file: update the folder `README.md` index, the lookup table in `docs/README.md`, and every link to it. Then run `python3 tools/docs/check_links.py` and make sure it reports **0 broken links**.
+- Cross-references are relative Markdown links to the file and heading anchor (`[RUL engine](../03-domain/computational-engines.md#105-hybrid-maintenance--rul-engine)`), never bare "§N of some other document".
 
 **Markdown & diagram rules**
 - Use Mermaid for diagrams; **quote any label containing punctuation or parentheses**: `A["text (x)"]`.
@@ -832,7 +840,7 @@ US-Px-AREA-nn (AC1–ACn), closes #<issue>
 
 ```markdown
 Title: <component>: <symptom>
-Severity: Sev-1 | Sev-2 | Sev-3 | Sev-4 (see PHASES_DETAILED_PLAN.md Appendix E)
+Severity: Sev-1 | Sev-2 | Sev-3 | Sev-4 (see docs/05-quality/defect-severity-and-triage.md)
 Environment: <prod/staging/dev, version, device, browser>
 Tenant/site (hashed): <…>   Correlation ID: <…>
 Steps to reproduce: 1. … 2. …
@@ -842,7 +850,7 @@ Suspected cause (if verified): <…>
 Regression test: <TC ID / test name once fixed>
 ```
 
-### 26.6 Runbook — `docs/runbooks/<alert-name>.md`
+### 26.6 Runbook — `docs/06-operations/runbooks/<alert-name>.md`
 
 ```markdown
 # <Alert name>

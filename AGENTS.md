@@ -2,8 +2,8 @@
 
 This repository is developed with AI agents under strict rules. Before any work, read:
 
-1. [`docs/llm_hands_off.md`](docs/llm_hands_off.md): project memory and hand-off log (update it at the end of your session).
-2. [`docs/llm_guidelines.md`](docs/llm_guidelines.md): mandatory engineering guidelines.
-3. [`docs/MASTER_PLAN.md`](docs/MASTER_PLAN.md) and [`docs/PHASES_DETAILED_PLAN.md`](docs/PHASES_DETAILED_PLAN.md): architecture and delivery plan.
+1. [`docs/00-llm/llm_hands_off.md`](docs/00-llm/llm_hands_off.md): project memory and hand-off log (update it at the end of your session).
+2. [`docs/00-llm/llm_guidelines.md`](docs/00-llm/llm_guidelines.md): mandatory engineering guidelines.
+3. [`docs/README.md`](docs/README.md): documentation map and lookup table (product, architecture, domain, phases, quality, operations, management, ADRs).
 
-If any instruction here conflicts with the repository owner's explicit request, follow the owner and record the exception in `docs/llm_hands_off.md`.
+If any instruction here conflicts with the repository owner's explicit request, follow the owner and record the exception in `docs/00-llm/llm_hands_off.md`.

@@ -34,8 +34,8 @@
 
 1. **This file**, completely.
 2. [`llm_guidelines.md`](./llm_guidelines.md): how you must work (non-negotiable rules, testing, CI, git).
-3. [`MASTER_PLAN.md`](./MASTER_PLAN.md): architecture, stack, corrected formulas, security, data model.
-4. [`PHASES_DETAILED_PLAN.md`](./PHASES_DETAILED_PLAN.md): phases, user stories (`US-…`), acceptance criteria, test cases (`TC-…`), exit gates, business model.
+3. [`docs/README.md`](../README.md): docs map + **"where do I find…" lookup table**. Use it to open only the files your task needs.
+4. The relevant area docs: architecture [`02-architecture/`](../02-architecture/README.md), domain & formulas [`03-domain/`](../03-domain/README.md), the current phase plan in [`04-phases/`](../04-phases/README.md) (user stories `US-…`, acceptance criteria, test cases `TC-…`, exit gates), business model in [`01-product/`](../01-product/README.md).
 5. `docs/adr/` (when it exists): accepted architecture decisions.
 6. `git log --oneline -30` and open PRs/issues, to see what changed since this file was last updated.
 7. If this file and the code disagree, **the code and git history are the truth**. Fix this file.
@@ -46,7 +46,7 @@
 
 - **What:** Multi-tenant SaaS (monthly/annual subscription), offline-first PWA, for quarries, crushing plants, sand washing and open-pit mines.
 - **Core value:** trusted field data (anti-fraud on fuel, meters, scale tickets), predictive maintenance, multi-warehouse logistics, plant mass balance, per-machine finance (DSCR), weather-aware planning, AI copilot.
-- **Business model:** per-site-per-month plans (Starter / Professional / Business / Enterprise) + add-ons; field users unlimited; see `PHASES_DETAILED_PLAN.md` §2.
+- **Business model:** per-site-per-month plans (Starter / Professional / Business / Enterprise) + add-ons; field users unlimited; see [Business Model, Subscription Plans & Pricing §2](../01-product/business-model-and-pricing.md).
 - **Languages:** French + English from day 1 (Arabic RTL-ready later).
 - **Owner / product owner:** the repository owner (GitHub `diya-thabet`). The human makes product decisions; the LLM acts as senior architect/engineer/QA/DevOps.
 
@@ -56,29 +56,30 @@
 
 | # | Decision | Where documented | Why (one line) |
 |---|---|---|---|
-| D1 | **Modular monolith**, not microservices, at start; ~4 custom deployables (API, Worker, Python analytics sidecar, Edge agent) + Keycloak | Phases §3, Master §7.2 | Small team, time-to-revenue, transactional trust guarantees, offline sync coherence, margin |
-| D2 | Extraction to services only on measured triggers (telemetry ingestion and AI gateway are the first candidates) | Phases §3.6 | Avoid premature distribution |
-| D3 | Backend **.NET 10 LTS**, ASP.NET Core, EF Core 10 | Master §7 | .NET 9 support ends Nov 2026; .NET 10 is supported to Nov 2028 |
-| D4 | **PostgreSQL 17 or 18** (final pick in Phase 0 spike) + PostGIS + TimescaleDB + pgvector | Master §7, WP-P0-13 | Extension availability on managed provider must be verified |
-| D5 | Frontend React 19 + TypeScript strict + Vite + Tailwind v4 + shadcn/ui + TanStack Query/Router; Dexie (IndexedDB) + Workbox | Master §7 | Offline-first PWA on low-end Android |
-| D6 | Charts: **Apache ECharts** primary, Recharts only for small widgets | Master §7, ADR-0014 | Recharts (SVG) slows beyond ~5k points |
-| D7 | **Core business math lives in .NET**, Python only for ML/forecasting/anomaly models | Master §3.2 T3 | Single source of truth per rule |
-| D8 | Multi-tenancy: pool model with PostgreSQL **RLS** + `SET LOCAL app.tenant_id` per transaction + EF global filters; silo option for Enterprise | Master §14.4 | Defense in depth, low cost per tenant |
-| D9 | Identity: **Keycloak** (OIDC + PKCE, MFA for privileged roles); in-app RBAC + ABAC (site/warehouse scope) + field-level masking applied in API serialization | Master §14 | Standards, enterprise SSO later |
-| D10 | Signatures = handwritten strokes (evidence) **+** device ECDSA P-256 (WebCrypto, non-extractable) **+** server KMS countersignature, optional RFC 3161 timestamp | Master §13.2 | Real cryptography, not "canvas + hash" |
-| D11 | Audit = append-only, hash-chained ledger per tenant, written in the same transaction as the business change, anchored hourly to WORM object storage | Master §13.3 | Tamper-evident |
-| D12 | **Immutable facts**: signed records are never edited; corrections = reversal + new version linked to original | Master §6, §13 | Trust is the product |
-| D13 | Every volume carries a **material state** (BANK / LOOSE / COMPACTED); weighbridge mass is authoritative for invoicing | Master §3.1 M2, §10.1 | Swell factor errors misprice loads by 30–60 % |
-| D14 | Solvency = **DSCR** (net cash margin / debt service), not the codex formula | Master §3.1 M7 | Codex formula was dimensionally wrong |
-| D15 | AI never computes numbers: **tool-calling over a governed semantic layer**, no free-form text-to-SQL; provider-agnostic gateway; Claude default (`claude-sonnet-5-5` Q&A, `claude-haiku-5-5` routing, `claude-opus-5-5` deep analysis); sovereign self-hosted option | Master §15, Phases §15 | Prevent hallucinated numbers & data leaks |
-| D16 | **Plans/entitlements/usage meters built in Phase 1**, not at GA | Phases §2.4, EP-P1-05 | Needed to sell from Phase 3 |
-| D17 | **Field capture is never blocked by billing state** (Restricted state keeps field capture working) | Phases §2.5 | Losing shift data destroys trust |
-| D18 | Field users are **unlimited** on all plans; we charge per site + assets + office seats | Phases §2.3 | Per-operator pricing causes shared logins, which kills the anti-fraud value |
-| D19 | Money = `decimal`/`numeric(19,4)` + ISO-4217 currency; never floating point | Master §3.1 M11 | Financial correctness |
-| D20 | IDs = UUIDv7 (client-generatable offline) | Master §11.2 | Offline creation + index locality |
-| D21 | Trunk-based development, feature flags, server supports N-2 PWA client versions | Phases §4.7 | Offline devices update late |
-| D22 | Avoid libraries that switched to commercial licences (MediatR, AutoMapper, MassTransit v9) unless budgeted; check licences of QuestPDF and others | Master §7.1, Risk R12 | Licence cost/legal risk |
-| D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | Phases §6 | Codex timeline rejected |
+| D1 | **Modular monolith**, not microservices, at start; ~4 custom deployables (API, Worker, Python analytics sidecar, Edge agent) + Keycloak | [Decision: Modular Monolith vs Microservices §3](../02-architecture/modular-monolith-decision.md), [Technology Stack §7.2](../02-architecture/technology-stack.md#72-why-a-modular-monolith-not-microservices) | Small team, time-to-revenue, transactional trust guarantees, offline sync coherence, margin |
+| D2 | Extraction to services only on measured triggers (telemetry ingestion and AI gateway are the first candidates) | [Decision: Modular Monolith vs Microservices §3.6](../02-architecture/modular-monolith-decision.md#36-extraction-triggers-when-we-will-create-a-microservice) | Avoid premature distribution |
+| D3 | Backend **.NET 10 LTS**, ASP.NET Core, EF Core 10 | [Technology Stack §7](../02-architecture/technology-stack.md) | .NET 9 support ends Nov 2026; .NET 10 is supported to Nov 2028 |
+| D4 | **PostgreSQL 17 or 18** (final pick in Phase 0 spike) + PostGIS + TimescaleDB + pgvector | [Technology Stack §7](../02-architecture/technology-stack.md), WP-P0-13 | Extension availability on managed provider must be verified |
+| D5 | Frontend React 19 + TypeScript strict + Vite + Tailwind v4 + shadcn/ui + TanStack Query/Router; Dexie (IndexedDB) + Workbox | [Technology Stack §7](../02-architecture/technology-stack.md) | Offline-first PWA on low-end Android |
+| D6 | Charts: **Apache ECharts** primary, Recharts only for small widgets | [Technology Stack §7](../02-architecture/technology-stack.md), ADR-0014 | Recharts (SVG) slows beyond ~5k points |
+| D7 | **Core business math lives in .NET**, Python only for ML/forecasting/anomaly models | [Specification Review & Corrections §3.2](../03-domain/spec-review-corrections.md#32-terminology--legal-corrections) T3 | Single source of truth per rule |
+| D8 | Multi-tenancy: pool model with PostgreSQL **RLS** + `SET LOCAL app.tenant_id` per transaction + EF global filters; silo option for Enterprise | [Security, Identity & Multi-Tenancy §14.4](../02-architecture/security-identity-tenancy.md#144-multi-tenancy-implementation) | Defense in depth, low cost per tenant |
+| D9 | Identity: **Keycloak** (OIDC + PKCE, MFA for privileged roles); in-app RBAC + ABAC (site/warehouse scope) + field-level masking applied in API serialization | [Security, Identity & Multi-Tenancy §14](../02-architecture/security-identity-tenancy.md) | Standards, enterprise SSO later |
+| D10 | Signatures = handwritten strokes (evidence) **+** device ECDSA P-256 (WebCrypto, non-extractable) **+** server KMS countersignature, optional RFC 3161 timestamp | [Trust Layer: Verification, Signatures & Audit Ledger §13.2](../02-architecture/trust-layer-signatures-audit.md#132-signature-envelope) | Real cryptography, not "canvas + hash" |
+| D11 | Audit = append-only, hash-chained ledger per tenant, written in the same transaction as the business change, anchored hourly to WORM object storage | [Trust Layer: Verification, Signatures & Audit Ledger §13.3](../02-architecture/trust-layer-signatures-audit.md#133-hash-chained-ledger) | Tamper-evident |
+| D12 | **Immutable facts**: signed records are never edited; corrections = reversal + new version linked to original | [Architecture Principles §6](../02-architecture/architecture-principles.md), [Trust Layer: Verification, Signatures & Audit Ledger §13](../02-architecture/trust-layer-signatures-audit.md) | Trust is the product |
+| D13 | Every volume carries a **material state** (BANK / LOOSE / COMPACTED); weighbridge mass is authoritative for invoicing | [Specification Review & Corrections §3.1](../03-domain/spec-review-corrections.md#31-mathematical--physical-model-corrections) M2, [Computational Engines (Corrected Mathematics) §10.1](../03-domain/computational-engines.md#101-units--conversion-engine) | Swell factor errors misprice loads by 30–60 % |
+| D14 | Solvency = **DSCR** (net cash margin / debt service), not the codex formula | [Specification Review & Corrections §3.1](../03-domain/spec-review-corrections.md#31-mathematical--physical-model-corrections) M7 | Codex formula was dimensionally wrong |
+| D15 | AI never computes numbers: **tool-calling over a governed semantic layer**, no free-form text-to-SQL; provider-agnostic gateway; Claude default (`claude-sonnet-5-5` Q&A, `claude-haiku-5-5` routing, `claude-opus-5-5` deep analysis); sovereign self-hosted option | [AI Copilot Architecture §15](../02-architecture/ai-copilot-architecture.md), [Phase 8 — AI Copilot §15](../04-phases/phase-08-ai-copilot/plan.md) | Prevent hallucinated numbers & data leaks |
+| D16 | **Plans/entitlements/usage meters built in Phase 1**, not at GA | [Business Model, Subscription Plans & Pricing §2.4](../01-product/business-model-and-pricing.md#24-pricing-must-be-technically-enforceable--entitlements-engine), EP-P1-05 | Needed to sell from Phase 3 |
+| D17 | **Field capture is never blocked by billing state** (Restricted state keeps field capture working) | [Business Model, Subscription Plans & Pricing §2.5](../01-product/business-model-and-pricing.md#25-tenant-subscription-lifecycle) | Losing shift data destroys trust |
+| D18 | Field users are **unlimited** on all plans; we charge per site + assets + office seats | [Business Model, Subscription Plans & Pricing §2.3](../01-product/business-model-and-pricing.md#23-subscription-plans-illustrative-validated-in-phase-0-with-real-prospects) | Per-operator pricing causes shared logins, which kills the anti-fraud value |
+| D19 | Money = `decimal`/`numeric(19,4)` + ISO-4217 currency; never floating point | [Specification Review & Corrections §3.1](../03-domain/spec-review-corrections.md#31-mathematical--physical-model-corrections) M11 | Financial correctness |
+| D20 | IDs = UUIDv7 (client-generatable offline) | [Data Architecture §11.2](../02-architecture/data-architecture.md#112-key-conventions) | Offline creation + index locality |
+| D21 | Trunk-based development, feature flags, server supports N-2 PWA client versions | [Delivery Framework (Cadence, DoR, DoD) §4.7](../05-quality/delivery-framework.md#47-branching-environments--releases) | Offline devices update late |
+| D22 | Avoid libraries that switched to commercial licences (MediatR, AutoMapper, MassTransit v9) unless budgeted; check licences of QuestPDF and others | [Technology Stack §7.1](../02-architecture/technology-stack.md#71-stack-overview), Risk R12 | Licence cost/legal risk |
+| D24 | **Docs organized by area, one topic per file**, with front matter, folder READMEs, a lookup table in `docs/README.md`, and a link checker (`tools/docs/check_links.py`) that must report 0 broken links | [docs/README.md](../README.md) | Docs will grow; agents must find and load only what they need |
+| D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | [Phases Overview, Timeline & Commercial Packaging §6](../04-phases/phases-overview.md) | Codex timeline rejected |
 
 ---
 
@@ -112,6 +113,8 @@ Do **not** implement these as written in the codex. Use the corrected version.
 |---|---|---|
 | 2026-10-20 | Mermaid flowchart node labels containing parentheses `T1[get_metric(a, b)]` break GitHub rendering | **Always quote Mermaid labels that contain `()`, `:`, `/`, `#`, `<br/>` or punctuation: `T1["get_metric(a, b)"]`.** Check every diagram before committing |
 | 2026-10-20 | First master plan put subscription billing/entitlements only in the final GA phase | Monetization infrastructure (plans, entitlements, usage) belongs in Phase 1. Always ask "how does this make money and when?" when sequencing |
+| 2026-10-21 | Two giant docs (1,500 and 3,500 lines) were hard for agents to search and loaded too much context | Split into 58 area files with front matter + indexes (D24). **Never grow a single doc past ~600 lines; split by topic** |
+| 2026-10-21 | First link-check run flagged links inside inline code as broken | Checker now ignores inline code. When a validation tool reports something odd, fix the tool if it is wrong (and prove it still catches real failures), not the content |
 | 2026-10-21 | Story index was hand-written risk → generated by script from headings instead | When a document has a derived index/table, **generate it from the source** rather than hand-typing it |
 
 > Add every new mistake here, including small ones. The next agent benefits most from this section.
@@ -121,7 +124,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 ## 5. Traps, Gotchas & Environment Notes
 
 - **Owner's environment:** Fedora Linux (kernel 7.x), bash, repo at `~/Desktop/Karry-Platform`. Git user `diya-thabet`.
-- **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in `MASTER_PLAN.md` §27 up to date.
+- **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in [Glossary (EN / FR) §27](../03-domain/glossary.md) up to date.
 - **Owner preference:** wants very detailed, "very pro", enterprise-grade outputs and firm architect opinions with reasoning, not neutral option lists.
 - **Git push from the agent fails**: HTTPS remote, no stored credentials, `gh` not installed, no SSH key (as of 2026-10-21). Ask the owner to push or to set up `gh auth login` / an SSH key.
 - **No application code exists yet.** No CI workflow exists yet. Do not claim tests or pipelines exist until they do.
@@ -142,11 +145,11 @@ Karry-Platform/
 ├── CLAUDE.md                     ← pointer for Claude Code (auto-loaded), points to docs below
 ├── AGENTS.md                     ← pointer for other AI coding agents
 ├── .gitignore                    ← baseline ignores (.NET, Node, Python, IaC, secrets)
-└── docs/
-    ├── MASTER_PLAN.md            ← architecture & stack (v1.0)
-    ├── PHASES_DETAILED_PLAN.md   ← phases, 225 user stories, AC, test plans, business model (v1.0)
-    ├── llm_guidelines.md         ← mandatory working rules for LLM agents
-    └── llm_hands_off.md          ← this file
+├── tools/docs/check_links.py     ← validates every relative link & anchor in Markdown
+└── docs/                         ← organized by area; see docs/README.md for the full map
+    ├── README.md                 ← index, lookup table, conventions, legacy §-reference map
+    ├── 00-llm/                   ← llm_guidelines.md, llm_hands_off.md (this file)
+    ├── 01-product/ … 07-management/, 08-user-help/, adr/
 ```
 
 | Phase | Status |
@@ -159,7 +162,7 @@ Karry-Platform/
 
 ## 7. Open Questions Awaiting the Product Owner
 
-Copied from `MASTER_PLAN.md` §28. Remove an item when it is answered and record the answer in §3 or the relevant doc.
+Copied from [Open Questions & Next Steps §28](../07-management/open-questions.md#open-questions-for-domain-experts). Remove an item when it is answered and record the answer in [Specification Review & Corrections §3](../03-domain/spec-review-corrections.md) or the relevant doc.
 
 1. Target countries/markets first (drives legal, currency, hosting region, payment provider, languages).
 2. Connectivity at target sites (none / intermittent 3G-4G / office Wi-Fi only).
@@ -180,12 +183,12 @@ Copied from `MASTER_PLAN.md` §28. Remove an item when it is answered and record
 
 ## 8. Next Steps (prioritised)
 
-1. **Owner answers §7** (at least 1, 2, 3, 13, 14).
-2. Write ADRs `docs/adr/0001` … `0016` (list in `MASTER_PLAN.md` §24) in MADR format.
-3. Write `docs/domain/formulas.md` with worked numeric examples for every formula (WP-P0-04).
-4. Write `docs/security/threat-model.md` v1 (WP-P0-18).
+1. **Owner pushes the local commits** (`git push -u origin main`; agent has no GitHub credentials), then **answers §7** (at least 1, 2, 3, 13, 14).
+2. Write ADRs `docs/adr/0001` … `0016` (list in [Architecture Decision Records (ADR) Index §24](../adr/README.md)) in MADR format.
+3. Write `docs/03-domain/formulas-worked-examples.md` with worked numeric examples for every formula (WP-P0-04).
+4. Write `docs/02-architecture/threat-model.md` v1 (WP-P0-18).
 5. Phase 0 spikes (WP-P0-10 … WP-P0-13) in `spikes/` (throwaway code, report each result).
-6. Phase 1 start: scaffold the monorepo per `MASTER_PLAN.md` §26 and create the CI pipeline (`US-P1-PLT-01..05`) **before** any feature code.
+6. Phase 1 start: scaffold the monorepo per [Repository Structure §26](../02-architecture/repository-structure.md) and create the CI pipeline (`US-P1-PLT-01..05`) **before** any feature code.
 
 ---
 
@@ -222,6 +225,15 @@ Copied from `MASTER_PLAN.md` §28. Remove an item when it is answered and record
 
 ## 10. Session Log (newest first)
 
+### 2026-10-21 — Docs reorganized into a scalable structure (Claude Opus 5.5)
+- **Goal:** Organize `docs/` so it scales and agents can search it easily.
+- **Done:** Split `MASTER_PLAN.md` + `PHASES_DETAILED_PLAN.md` by script into `docs/01-product … 07-management`, `adr/`, `08-user-help/`, one folder per phase (`04-phases/phase-NN-*/plan.md`); moved LLM docs to `docs/00-llm/`; added YAML front matter + breadcrumbs to every doc, folder READMEs, `docs/README.md` (folder map, "where do I find…" table, conventions, legacy §-reference map); rewrote all `§N` cross-references into relative links with anchors; added `tools/docs/check_links.py`; updated `CLAUDE.md`, `AGENTS.md`, guidelines §19 (docs organization rules).
+- **Verification:** `python3 tools/docs/check_links.py .` → `0 broken link(s)`; probe file with a broken link was detected (then removed).
+- **Not done / deferred:** No CI job runs the link checker yet. Add it to `docs.yml` when CI is created in P1 (`US-P1-PLT-03`).
+- **Decisions:** D24.
+- **Next:** Push to GitHub (owner credentials needed), then ADRs 0001–0016.
+- **Commits/PR:** see `git log`.
+
 ### 2026-10-21 — LLM guidelines, hand-off cache, push to GitHub (Claude Opus 5.5)
 - **Goal:** Create `llm_hands_off.md` (this file) and `llm_guidelines.md`; push all docs to the repository.
 - **Done:** Created both files; added root `CLAUDE.md`, `AGENTS.md` and `.gitignore`; first commit created on `main`.
@@ -230,11 +242,11 @@ Copied from `MASTER_PLAN.md` §28. Remove an item when it is answered and record
 - **Decisions:** None new; D1–D23 consolidated here from earlier sessions.
 - **Mistakes / lessons:** See §4.2.
 - **Next:** Owner answers open questions §7; then ADRs 0001–0016.
-- **Commits/PR:** initial commit on `main` (push pending owner credentials).
+- **Commits/PR:** `fa52d12` on `main` (push pending owner credentials). Note: file paths in entries below this one refer to the pre-reorganization layout; see the legacy map in `docs/README.md`.
 
 ### 2026-10-21 — Detailed phase plan (Claude Opus 5.5)
 - **Goal:** Detailed plan of every phase with user stories, AC, test plans; subscription business model; microservices opinion.
-- **Done:** `docs/PHASES_DETAILED_PLAN.md` (~3,500 lines, 225 stories, test case catalogue per phase, appendices); link added in `MASTER_PLAN.md` §21.
+- **Done:** `docs/PHASES_DETAILED_PLAN.md` (~3,500 lines, 225 stories, test case catalogue per phase, appendices); link added in [Roadmap Summary §21](../04-phases/roadmap-summary.md).
 - **Decisions:** D1, D2, D16, D17, D18.
 - **Next:** Guidelines and hand-off files (done in next session).
 
