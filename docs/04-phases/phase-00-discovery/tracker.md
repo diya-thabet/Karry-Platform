@@ -42,6 +42,8 @@ Legend: ✅ done · 🟡 in progress / partially done · ⏳ waiting on owner or
 
 ## 2. Automated test cases (spikes)
 
+New to spikes? Read [Technical Spikes Explained (Simple English)](spikes-explained.md) first.
+
 All run in GitHub Actions ([`spikes.yml`](../../../.github/workflows/spikes.yml)).
 
 | Test case | Spike | Local (2026-10-21) | GitHub Actions (2026-10-22) |
