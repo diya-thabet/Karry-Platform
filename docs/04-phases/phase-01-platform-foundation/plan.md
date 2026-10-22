@@ -54,7 +54,7 @@ As an engineer, I want a scaffolded monorepo with a module template, so that eve
 - AC4: `README` explains how to run everything locally in ≤ 10 commands.
 
 **US-P1-PLT-02 — Local development environment** · Must · S
-- AC1: `docker compose up` (or .NET Aspire) starts PostgreSQL (+PostGIS, TimescaleDB, pgvector), Keycloak (realm import), MinIO, Redis, Mailpit.
+- AC1: `docker compose up` (or .NET Aspire) starts PostgreSQL (+PostGIS, TimescaleDB, pgvector), Keycloak (realm import), S3-compatible store with Object Lock (SeaweedFS, [ADR-0017](../../adr/0017-local-stack-and-object-storage.md)), Redis/Valkey, Mailpit.
 - AC2: Seed script creates 2 demo tenants with users for each default role.
 - AC3: A new engineer gets a running app in < 60 min (measured on onboarding).
 
@@ -364,7 +364,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-OPS-001 | Ops | Kill API pod under load | No failed requests beyond retry budget |
 | TC-P1-OPS-002 | Ops | Restore staging DB from PITR to T-1h | Success, documented duration |
 | TC-P1-PLT-003 | Integration | `dotnet new karry-module` output (P1.1) | Builds; 5 projects; sample test passes |
-| TC-P1-PLT-004 | Smoke | `docker compose up` (P1.1) | All services healthy; 4 extensions created |
+| TC-P1-PLT-004 | Smoke | `docker compose up` (P1.1) | All services healthy; 4 extensions created; S3 Object Lock (compliance) blocks delete/overwrite |
 | TC-P1-PLT-005 | Pipeline | Coverage below 80 % on Domain / format violation (P1.2) | CI fails |
 | TC-P1-PLT-006 | Property | `Money` arithmetic and rounding (P1.3) | No currency mixing; decimal only |
 | TC-P1-PLT-007 | Integration | Outbox with worker crash (P1.3) | Same transaction; delivered exactly once |

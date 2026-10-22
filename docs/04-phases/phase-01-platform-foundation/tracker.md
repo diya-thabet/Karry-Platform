@@ -19,7 +19,7 @@ Legend: ✅ done · 🟡 in progress · ⏳ waiting on owner or external input �
 
 | # | Sub-phase | Status | Evidence (PRs, CI runs, measurements) / next action |
 |---|---|---|---|
-| P1.0 | Kick-off & prerequisites | ⬜ | Needs: Docker access, merge rule, ADR acceptance |
+| P1.0 | Kick-off & prerequisites | 🟡 | ✅ Toolchain verified (.NET SDK 10.0.402 = latest; Node 24.22.1 installed via nvm; pnpm; gh; actionlint 1.7.12). ✅ Stack versions verified and recorded ([tech stack §7.1.1](../../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22)). ✅ Decisions recorded as ADR-0017 … 0020. ⏳ **Owner:** Docker access for the agent, merge rule (§2.3 of sub-phases), acceptance of ADRs 0001–0020 |
 | P1.1 | Monorepo, module template, local environment | ⬜ | |
 | P1.2 | CI pipeline & repository governance | ⬜ | |
 | P1.3 | Shared kernel & building blocks | ⬜ | |
@@ -51,4 +51,7 @@ Legend: ✅ done · 🟡 in progress · ⏳ waiting on owner or external input �
 
 ## 3. Findings that changed the plan
 
-None yet.
+1. **MinIO open source is archived** (April 2026, no community images): local/on-prem S3 store is now **SeaweedFS**, with an Object Lock acceptance test in P1.1 ([ADR-0017](../../adr/0017-local-stack-and-object-storage.md)).
+2. **typescript-eslint does not support TypeScript 7**: product code uses TypeScript 6.0.3 until it does ([ADR-0020](../../adr/0020-frontend-toolchain-versions.md)).
+3. **`exceljs` has had no release since 2024**: Excel parsing moves server-side (ClosedXML), which also fits the server-side validation of US-P1-ORG-03.
+4. **Node 24 is the current LTS** (not 22): pinned for the product repository.

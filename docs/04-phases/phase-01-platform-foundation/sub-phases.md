@@ -163,7 +163,7 @@ A sub-phase is ✅ only when **all** of these are true:
   - **Module template**: `dotnet new karry-module -n <Name>` producing `Domain / Application / Infrastructure / Api / Contracts` with correct references, a module registration extension and a sample test project. Template source in `tools/templates/karry-module/`.
   - **Architecture tests** `tests/Karry.ArchitectureTests` (NetArchTest or ArchUnitNET, verify current): a module may reference only other modules' `Contracts`; `Domain` has no reference to Infrastructure/EF/ASP.NET; no module references `Karry.Host`.
   - Frontend workspace: `src/frontend/apps/portal`, `src/frontend/apps/field` (Vite + React + TS, "hello" pages), `packages/ui`, `packages/i18n`, `packages/api-client`, `packages/offline`, `packages/crypto` (empty with build/test scripts), shared ESLint + TS config.
-  - **Local stack** `deploy/docker/compose.yaml`: PostgreSQL with PostGIS + TimescaleDB + pgvector + pgcrypto (image proven in WP-P0-13), Keycloak (realm import folder, empty realm for now), MinIO (bucket with Object Lock), Redis/Valkey, Mailpit. Readiness checks over TCP (Phase 0 finding).
+  - **Local stack** `deploy/docker/compose.yaml`: PostgreSQL with PostGIS + TimescaleDB + pgvector + pgcrypto (image proven in WP-P0-13), Keycloak (realm import folder, empty realm for now), **SeaweedFS** S3 store with an Object Lock bucket ([ADR-0017](../../adr/0017-local-stack-and-object-storage.md); MinIO OSS is archived), Valkey, Mailpit. Versions from [technology stack §7.1.1](../../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22). Readiness checks over TCP (Phase 0 finding).
   - `.gitignore` updates, `CODEOWNERS` placeholder.
 - **Tests:**
 
@@ -171,7 +171,7 @@ A sub-phase is ✅ only when **all** of these are true:
   |---|---|
   | TC-P1-PLT-001 | Adding a forbidden cross-module reference fails the architecture tests (pipeline test, completed in P1.2) |
   | TC-P1-PLT-003 *(new)* | `dotnet new karry-module -n Sample` output builds and its sample test passes; template output contains the 5 projects with the right references |
-  | TC-P1-PLT-004 *(new)* | `docker compose up` brings every service to healthy; all 4 PostgreSQL extensions can be created |
+  | TC-P1-PLT-004 *(new)* | `docker compose up` brings every service to healthy; all 4 PostgreSQL extensions can be created; on the S3 store, deleting/overwriting an object locked in compliance mode or shortening its retention **fails** |
   | Smoke | Host `/health/ready` returns 200 against the local stack; portal and field dev servers build |
 
 - **CI changes:** none yet (pipeline in P1.2); the existing `docs.yml` and `spikes.yml` stay green.
@@ -321,7 +321,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - **Hash:** `entry_hash = SHA-256(prev_hash ‖ tenant ‖ seq ‖ type ‖ payload_hash ‖ occurred_at)`, with the payload canonicalized per **RFC 8785** (same rules as the Phase 0 spike).
     - **Immutability:** triggers reject UPDATE/DELETE/TRUNCATE, and `karry_app` has only INSERT/SELECT.
   - Ledger writer hooked into the unit of work from P1.3, so the business change, outbox rows and ledger entry commit or roll back **together**.
-  - **Anchoring job** (Quartz, hourly): writes `{tenant, seq, hash, timestamp}` chain heads to the `anchors` bucket with **Object Lock (compliance mode)** (MinIO locally, cloud in P1.17), signed with a key behind an `IAnchorSigner` port (software key locally, KMS in P1.17). Catches up after outages; failure raises an alert (+ runbook).
+  - **Anchoring job** (Quartz, hourly): writes `{tenant, seq, hash, timestamp}` chain heads to the `anchors` bucket with **Object Lock (compliance mode)** (SeaweedFS locally, cloud S3 in P1.17), signed with a key behind an `IAnchorSigner` port (software key locally, KMS in P1.17). Catches up after outages; failure raises an alert (+ runbook).
   - **Verifier:** `tools/ledger-verifier` CLI `karry-ledger verify --tenant <id>` → OK or first broken sequence; same logic exposed as `POST /api/v1/audit/verify`.
 - **Tests:**
 
@@ -562,7 +562,7 @@ A sub-phase is ✅ only when **all** of these are true:
 - **Owner inputs:** an anonymised real asset list from a prospect, if available (best realism test).
 - **What gets built:**
   - **Templates:** downloadable FR/EN templates for sites, assets, meters (initial readings), materials and users, with data validation lists in the sheets.
-  - **Flow:** upload → validate (errors and warnings with **cell references**) → preview → commit.
+  - **Flow:** upload → validate (errors and warnings with **cell references**) → preview → commit. Parsing and validation are **server-side** with ClosedXML ([technology stack §7.1.1](../../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22)).
     - The commit is **all-or-nothing per file** and idempotent on natural keys (asset code, employee ID).
     - The import runs as a background job with progress.
   - **Retention and safety:**
@@ -760,7 +760,7 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | Test ID | Sub-phase | Type | Description | Expected |
 |---|---|---|---|---|
 | TC-P1-PLT-003 | P1.1 | Integration | `dotnet new karry-module` output | Builds; 5 projects; sample test passes |
-| TC-P1-PLT-004 | P1.1 | Smoke | `docker compose up` | All services healthy; 4 extensions created |
+| TC-P1-PLT-004 | P1.1 | Smoke | `docker compose up` | All services healthy; 4 extensions created; S3 Object Lock blocks delete/overwrite |
 | TC-P1-PLT-005 | P1.2 | Pipeline | Coverage drop below 80 % on Domain / format violation | CI fails |
 | TC-P1-PLT-006 | P1.3 | Property | `Money` arithmetic and rounding | No currency mixing; decimal only; rounding per currency |
 | TC-P1-PLT-007 | P1.3 | Integration | Outbox with worker crash | Same transaction; delivered exactly once |

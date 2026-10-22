@@ -78,7 +78,7 @@ last_updated: 2026-10-21
 | Unit | Dev | xUnit / Vitest | PR |
 | Property-based | Dev | FsCheck / fast-check | PR |
 | Mutation (math, trust) | Dev | Stryker.NET | Nightly, threshold ≥ 70 % |
-| Integration | Dev | Testcontainers (Postgres+PostGIS+Timescale, Keycloak, MinIO) | PR |
+| Integration | Dev | Testcontainers (Postgres+PostGIS+Timescale, Keycloak, SeaweedFS S3) | PR |
 | Architecture | Dev | NetArchTest / ArchUnitNET | PR |
 | Contract | Dev | OpenAPI diff | PR |
 | Tenant isolation | QA/Dev | Generated suite | PR + nightly |

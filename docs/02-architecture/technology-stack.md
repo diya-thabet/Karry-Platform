@@ -27,15 +27,15 @@ last_updated: 2026-10-21
 | **Optional native shell** | Capacitor (Phase 7+) | Only if MDM / kiosk / Bluetooth scale / camera control demands it | — |
 | **Backend runtime** | **.NET 10 LTS**, ASP.NET Core Minimal APIs + endpoint groups | Performance, strong typing, LTS to Nov 2028, great PostgreSQL support | Node/NestJS, Java/Spring |
 | **ORM / data access** | EF Core 10 (Npgsql) for writes; Dapper / raw SQL for analytics reads | Productivity + control where needed | Marten (event store), Linq2DB |
-| **Messaging (in-process)** | Domain events + **transactional outbox** in PostgreSQL; Wolverine *or* lightweight in-house dispatcher | Reliable without extra infra in MVP. ⚠ MediatR, AutoMapper, MassTransit v9 moved to commercial licences in 2025 — avoid or budget | RabbitMQ / Kafka later if needed |
-| **Background jobs** | Hangfire (PostgreSQL storage) or Quartz.NET | RUL recompute, alerts, report generation, chain anchoring | — |
+| **Messaging (in-process)** | Domain events + **transactional outbox** in PostgreSQL; **in-house dispatcher** ([ADR-0018](../adr/0018-background-jobs-and-dispatcher.md)) | Reliable without extra infra in MVP. ⚠ MediatR, AutoMapper, MassTransit v9 moved to commercial licences in 2025 — avoid or budget | Wolverine; RabbitMQ / Kafka later if needed |
+| **Background jobs** | **Quartz.NET** (PostgreSQL job store, clustered) in `Karry.Workers` ([ADR-0018](../adr/0018-background-jobs-and-dispatcher.md)) | RUL recompute, alerts, report generation, chain anchoring, usage snapshots | Hangfire |
 | **Validation** | FluentValidation | Expressive server-side rules | DataAnnotations |
 | **PDF / documents** | QuestPDF (check licence tier vs. revenue) | Scale tickets, waybills, shift reports | — |
 | **Analytics/ML sidecar** | Python 3.13, FastAPI, NumPy, SciPy, pandas/Polars, statsmodels, scikit-learn, lifelines (Weibull) | Best ecosystem for forecasting & anomaly detection | ML.NET |
 | **Database** | **PostgreSQL 17/18** | Reliability, RLS, JSONB, extensions | SQL Server |
 | **Extensions** | PostGIS (spatial), TimescaleDB (telemetry hypertables, continuous aggregates), pgcrypto, pg_partman (if needed) | Spatial blast/stockpile, efficient time-series | Separate TSDB (InfluxDB) |
 | **Cache** | Redis / Valkey | Sessions-free API, rate-limit counters, hot dashboard caches | — |
-| **Object storage** | S3-compatible (AWS S3 / Cloudflare R2 / MinIO on-prem) with Object Lock | Photos, signatures, PDFs, WORM audit anchors | — |
+| **Object storage** | S3-compatible with Object Lock: cloud provider S3 (AWS S3 / Cloudflare R2 / Scaleway / OVH); **SeaweedFS** locally, in CI and on-prem ([ADR-0017](../adr/0017-local-stack-and-object-storage.md)) | Photos, signatures, PDFs, WORM audit anchors | MinIO (OSS archived 2026), RustFS (fallback) |
 | **Search (later)** | PostgreSQL full-text first; OpenSearch only if required | Avoid premature infra | — |
 | **Identity** | **Keycloak** (OIDC/OAuth 2.1, PKCE, MFA, organizations) | Self-hostable, SSO for enterprise tenants, standards | Zitadel, Auth0/Entra (cost, residency) |
 | **Authorization** | In-app policy engine: RBAC + ABAC (site scope) + field-level masking | Fine-grained, tenant-configurable | OpenFGA (if relationships get complex) |
@@ -46,10 +46,67 @@ last_updated: 2026-10-21
 | **IaC** | OpenTofu (Terraform-compatible) + Helm | Reproducible environments | Pulumi |
 | **CI/CD** | GitHub Actions, Renovate, trunk-based development, environment promotion | — | GitLab CI |
 | **Observability** | OpenTelemetry SDKs → Grafana (Prometheus/Mimir, Loki, Tempo), Sentry for client errors | Vendor-neutral, full traces from tablet to DB | Datadog (cost) |
-| **Quality** | xUnit, FsCheck (property-based), Testcontainers, Playwright, Vitest, k6, Stryker.NET (mutation on math) | — | — |
+| **Quality** | xUnit v3 (Microsoft Testing Platform), FsCheck / CsCheck (property-based), Testcontainers, ArchUnitNET, AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
 | **Security tooling** | GitHub Advanced Security / CodeQL, Trivy, OWASP ZAP, gitleaks, Dependabot/Renovate | — | Snyk |
 
-> Exact library versions are pinned in Phase 0 (`docs/adr/0002-version-pinning.md`) and upgraded monthly via Renovate.
+> Exact library versions are pinned in lock files ([ADR-0002](../adr/0002-dotnet-10-lts.md), [ADR-0020](../adr/0020-frontend-toolchain-versions.md)) and upgraded monthly via Renovate. The reference versions below were verified at the start of Phase 1.
+
+## 7.1.1 Verified versions (Phase 1 start, 2026-10-22)
+
+Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub releases, dotnet release metadata) in sub-phase P1.0. These are the versions to start from; the lock files are the source of truth afterwards.
+
+**Runtimes & tools**
+
+| Component | Version | Notes |
+|---|---|---|
+| .NET SDK / runtime | 10.0.402 / 10.0.13 | LTS, support until 2028-11-14 |
+| Node.js | 24 LTS (24.22.1) | [ADR-0020](../adr/0020-frontend-toolchain-versions.md); Node 26 when it becomes LTS |
+| pnpm | 12.15.0 | via `packageManager` |
+| TypeScript | 6.0.3 | 7.0.2 exists but `typescript-eslint` supports `<6.1.0` ([ADR-0020](../adr/0020-frontend-toolchain-versions.md)) |
+| OpenTofu | 1.13.2 | IaC (P1.17) |
+| actionlint / gitleaks / Trivy | 1.7.12 / 8.30.1 / 0.76.1 | CI (P1.2) |
+
+**Backend (NuGet)**
+
+| Package | Version | Package | Version |
+|---|---|---|---|
+| Microsoft.EntityFrameworkCore | 10.0.13 | Npgsql / Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.3 |
+| Microsoft.AspNetCore.OpenApi | 10.0.13 | Scalar.AspNetCore (API reference UI) | 2.18.2 |
+| Quartz.Extensions.Hosting | 4.6.0 | OpenFeature | 2.14.1 |
+| OpenTelemetry.Extensions.Hosting / .Instrumentation.AspNetCore | 1.20.1 | Npgsql.OpenTelemetry | 10.0.3 |
+| FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
+| Sentry.AspNetCore | 6.12.1 | UUIDNext (UUIDv7) | 4.2.4 |
+| xunit.v3 | 4.0.2 | Testcontainers.PostgreSql / .Keycloak | 4.16.0 |
+| FsCheck / CsCheck (property tests) | 3.6.0 / 4.9.1 | TngTech.ArchUnitNET.xUnitV3 (architecture tests) | 0.13.4 |
+| AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 |
+| dotnet-stryker (mutation) | 5.0.0 | | |
+
+**Frontend (npm)**
+
+| Package | Version | Package | Version |
+|---|---|---|---|
+| react / react-dom | 19.3.1 | vite | 8.3.5 |
+| @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.5 |
+| tailwindcss | 4.3.3 | shadcn (CLI) | 4.22.1 |
+| i18next / react-i18next | 26.5.5 / 17.1.2 | dexie | 4.4.6 |
+| vite-plugin-pwa | 2.0.0 | maplibre-gl | 6.15.0 |
+| vitest | 5.0.5 | @testing-library/react | 16.3.3 |
+| @playwright/test | 1.64.1 | @axe-core/playwright | 4.14.0 |
+| storybook | 10.6.3 | eslint / typescript-eslint | 10.13.0 / 8.72.0 |
+| @sentry/react | 11.8.0 | @openfeature/web-sdk / react-sdk | 1.10.0 / 1.4.1 |
+
+**Container images (local stack, CI)**
+
+| Image | Tag | Notes |
+|---|---|---|
+| `timescale/timescaledb-ha` | `pg17.11-ts2.31.0` (pg18 tag also verified) | PostGIS 3.6.4, TimescaleDB 2.31.0, pgvector 0.8.7, pgcrypto (WP-P0-13) |
+| `quay.io/keycloak/keycloak` | 26.8.1 | Organizations feature for SaaS tenants |
+| `chrislusf/seaweedfs` | pin by digest in P1.1 (latest release 4.48) | S3 + Object Lock ([ADR-0017](../adr/0017-local-stack-and-object-storage.md)) |
+| `valkey/valkey` | 9.0.6-alpine | Redis-compatible cache |
+| `axllent/mailpit` | v1.31.6 | Local mail catcher |
+| `grafana/otel-lgtm` | 0.37.0 | Local OpenTelemetry + Grafana stack (P1.4) |
+
+**Dropped or replaced:** MinIO (OSS repository archived, no community images; replaced by SeaweedFS). `exceljs` (no release since 2024; Excel parsing moves server-side to ClosedXML, which also suits the server-side validation of US-P1-ORG-03).
 
 ## 7.2 Why a modular monolith (not microservices)
 

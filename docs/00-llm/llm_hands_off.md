@@ -80,6 +80,8 @@
 | D22 | Avoid libraries that switched to commercial licences (MediatR, AutoMapper, MassTransit v9) unless budgeted; check licences of QuestPDF and others | [Technology Stack §7.1](../02-architecture/technology-stack.md#71-stack-overview), Risk R12 | Licence cost/legal risk |
 | D25 | **No AI attribution in git**: no `Co-Authored-By: Claude`/AI trailers or "Generated with" lines in commits or PRs; the owner is sole author | [llm_guidelines.md §20.2](llm_guidelines.md#202-commits) | Owner request 2026-10-21 (GitHub showed "diya-thabet and claude") |
 | D26 | Tenant context set with `set_config('app.tenant_id', $1, true)` **batched with the first statement**; RLS policies use `nullif(current_setting('app.tenant_id', true), '')::uuid`; server verifies device signatures as **IEEE P1363** | [rls-pooling](../../spikes/rls-pooling/README.md), [signature-interop](../../spikes/signature-interop/README.md), ADR-0004/0007 | Proven by Phase 0 spikes (leak reproduced with session SET; `''::uuid` error; DER mismatch) |
+| D27 | Stack choices fixed in P1.0 (Proposed ADRs): Docker Compose local stack + **SeaweedFS** S3 with Object Lock (MinIO OSS archived), in-house outbox dispatcher + **Quartz.NET**, **OpenFeature** with DB provider, **Node 24 LTS + pnpm 12 + TypeScript 6.0** (typescript-eslint does not support TS 7) | ADR-0017 … 0020, [technology stack §7.1.1](../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22) | Registry check 2026-10-22 |
+| D28 | Phase 1 runs **sub-phase by sub-phase** (P1.0 – P1.18); the owner starts each one | [sub-phases.md](../04-phases/phase-01-platform-foundation/sub-phases.md) | Owner request 2026-10-22 |
 | D24 | **Docs organized by area, one topic per file**, with front matter, folder READMEs, a lookup table in `docs/README.md`, and a link checker (`tools/docs/check_links.py`) that must report 0 broken links | [docs/README.md](../README.md) | Docs will grow; agents must find and load only what they need |
 | D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | [Phases Overview, Timeline & Commercial Packaging §6](../04-phases/phases-overview.md) | Codex timeline rejected |
 
@@ -138,6 +140,11 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Docker is not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
 - **.NET 10 + xunit v3**: `dotnet test` requires the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`), and the syntax is `dotnet test --solution X.slnx`. Do not add `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`. Add `<Using Include="Xunit" />`.
 - **Playwright on Fedora** uses the "ubuntu24.04 fallback build" of Chromium, which works. `context.setOffline(true)` does **not** block `context.route` handlers, so fake servers must model outages themselves.
+- **MinIO OSS is archived** (2026-04; no community images). Do not add MinIO anywhere; use SeaweedFS (ADR-0017), RustFS as fallback.
+- **TypeScript 7 vs lint:** `typescript-eslint` 8.72 supports TypeScript `<6.1.0` only. Product code pins TS 6.0.x (ADR-0020); the Phase 0 spike keeps TS 7 (frozen).
+- **Node versions:** Node 24 LTS installed via nvm (`nvm use 24`; the nvm default is still 22). Product repo pins Node 24 via `.nvmrc`/`engines`.
+- **actionlint** 1.7.12 is installed at `~/.local/bin/actionlint` (checksum verified). shellcheck is not installed.
+- **Version checks that work here:** `npm view <pkg> version`; NuGet flat container `curl -4 -s https://api.nuget.org/v3-flatcontainer/<id>/index.json`; Docker Hub tags API; `gh api repos/<o>/<r>/releases/latest`. Use `curl -4` (IPv6 broken).
 - **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
 - **GitHub Actions:** full product CI is created in Phase 1 (`US-P1-PLT-03`); `docs.yml` and `spikes.yml` exist now. Pin third-party actions by commit SHA (see guidelines §9).
 - **xunit v3 TRX reports:** use `--report-xunit-trx`, **not** `--report-trx` (that needs the `Microsoft.Testing.Extensions.TrxReport` package; without it MTP exits with code 5, "Zero tests ran", "Handshake failures"). Always run the exact CI command locally before pushing.
@@ -172,7 +179,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | Not started |
+| P1 Foundation | **P1.0 in progress** (waiting on owner inputs): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---
@@ -240,6 +247,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-10-22 — Push access, green CI, Phase 1 sub-phase plan, P1.0 (agent)
+- **Goal:** Get push access, make CI green, plan Phase 1 in sub-phases, start P1.0.
+- **Done:** Owner set up `gh` (push works). Force-pushed the trailer-free history (owner approved; remote trees verified identical first). Fixed CI: xunit v3 `--report-xunit-trx`, stale pnpm lockfile, pg-extension readiness race; 4 consecutive green runs. `spikes-explained.md` (plain English). Phase 1 `sub-phases.md` (P1.0 – P1.18) + `tracker.md` + 26 new TC-P1 IDs. P1.0: versions verified (tech stack §7.1.1), ADR-0017 … 0020, MinIO replaced by SeaweedFS in docs, Node 24 + actionlint installed.
+- **Verification:** GitHub Actions runs 39828081288, 39828265888, 39828509297, 39828751049 all green; link checker 0 broken; actionlint clean.
+- **Not done / deferred:** Docker access (owner), merge rule (owner), ADR acceptance (owner). Local branch `backup/pre-trailer-removal` still exists (never pushed).
+- **Decisions:** D27, D28.
+- **Next:** Owner inputs for P1.0, then P1.1.
+- **Commits/PR:** see `git log`.
 
 ### 2026-10-21 — Phase 0 engineering work packages (agent)
 - **Goal:** Remove AI co-author attribution; start implementing Phase 0.

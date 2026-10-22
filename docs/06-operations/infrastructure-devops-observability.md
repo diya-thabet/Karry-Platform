@@ -15,7 +15,7 @@ last_updated: 2026-10-21
 
 | Env | Purpose | Data |
 |---|---|---|
-| `local` | Dev via Docker Compose (Postgres+extensions, Keycloak, MinIO, Redis, Mailpit) / .NET Aspire for orchestration | Seeded synthetic |
+| `local` | Dev via Docker Compose (Postgres+extensions, Keycloak, SeaweedFS S3 with Object Lock, Valkey, Mailpit, Grafana LGTM); .NET Aspire optional ([ADR-0017](../adr/0017-local-stack-and-object-storage.md)) | Seeded synthetic |
 | `dev` | Integration of main branch, auto-deploy | Synthetic |
 | `staging` | Release candidates, UAT, load tests | Anonymised copies |
 | `pilot` / `prod` | Customers | Real |

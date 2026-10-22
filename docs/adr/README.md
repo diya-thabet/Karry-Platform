@@ -33,3 +33,12 @@ Initial set written in Phase 0 (WP-P0-16). All are **Proposed** until the owner 
 | [0014](0014-echarts.md) | Apache ECharts as the primary charting library | Proposed |
 | [0015](0015-transactional-outbox.md) | Transactional outbox for domain and integration events | Proposed |
 | [0016](0016-edge-agent.md) | Site edge agent for weighbridge and plant integration | Proposed |
+
+Added in Phase 1 sub-phase P1.0 (version check and open choices of the stack):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0017](0017-local-stack-and-object-storage.md) | Local stack with Docker Compose and SeaweedFS as the self-hosted S3 store (MinIO OSS archived) | Proposed |
+| [0018](0018-background-jobs-and-dispatcher.md) | In-house outbox dispatcher and Quartz.NET for scheduled jobs | Proposed |
+| [0019](0019-feature-flags.md) | Feature flags with OpenFeature and a database-backed provider | Proposed |
+| [0020](0020-frontend-toolchain-versions.md) | Frontend toolchain: Node 24 LTS, pnpm 12, TypeScript 6.0 until typescript-eslint supports 7 | Proposed |
