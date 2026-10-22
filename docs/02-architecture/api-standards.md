@@ -21,3 +21,25 @@ last_updated: 2026-10-21
 - **Units in API:** quantities always as `{ "value": 12.5, "unit": "T", "state": "LOOSE" }` — never bare numbers.
 - **Time:** ISO 8601 with offset; server stores UTC.
 - **Security:** OAuth 2.1 bearer tokens; scopes per client type; rate limits per tenant & user; request size limits; audit log for all admin endpoints.
+
+## Implemented conventions (P1.3, `Karry.BuildingBlocks/Api`, `…/Idempotency`)
+
+**Error responses** (`application/problem+json`, RFC 9457). Every error has `type` = `https://karry.app/problems/{code}`, `title`, `status`, a stable machine `code` and a `traceId` for support; validation errors add `errors` (field → messages).
+
+| `Error` kind | HTTP | Example code |
+|---|---|---|
+| Validation | 400 | `request.invalid` (with `errors`) |
+| Forbidden | 403 | `asset.forbidden` |
+| NotFound | 404 | `asset.not_found` |
+| Conflict | 409 | `asset.duplicate_code`, `idempotency.request_in_progress` |
+| BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
+| (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
+
+Framework errors use the same shape: unknown route `route.not_found`, malformed JSON `request.invalid`, 405/415 likewise. Codes are part of the contract: never rename one; add a new code instead.
+
+**Validation:** request bodies are validated by FluentValidation before the handler (`.Validate<TRequest>()`); every request type needs a validator.
+
+**Idempotency** (`.RequireIdempotencyKey()`): header `Idempotency-Key` (1–200 printable characters). Same key + same request → the stored response is replayed with `Idempotency-Replayed: true` (also for 4xx); same key + different request → 422 `idempotency.key_reused`; while the first is running → 409 `idempotency.request_in_progress`; missing key → 400 `idempotency.key_required`; 5xx responses are not stored (the client may retry). Records are kept 24 h; a reservation abandoned by a crashed process is released after 2 min. Scope: tenant + user from P1.5/P1.8.
+
+**OpenAPI:** `/openapi/v1.json` (generated from code) in every environment except production; CI diffs it from P1.5.
+

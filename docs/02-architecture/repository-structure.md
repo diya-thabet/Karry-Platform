@@ -66,17 +66,21 @@ karry-platform/
 │   └── analytics/                      Python FastAPI sidecar (uv, ruff, pytest)
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
-│   ├── Karry.Host.IntegrationTests/
-│   ├── Karry.BuildingBlocks.UnitTests/
+│   ├── Karry.Host.IntegrationTests/    health, OpenAPI (Testcontainers PostgreSQL)
+│   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract
+│   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)
+│   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates
 │   ├── Karry.IntegrationTests/
 │   ├── Karry.TenantIsolationTests/
 │   ├── e2e/                            Playwright
 │   └── load/                           k6
 ├── deploy/
-│   ├── docker/                         compose for local dev
+│   ├── docker/                         compose.yaml (local stack), smoke-test.sh (TC-P1-PLT-004)
 │   ├── helm/
 │   └── infra/                          OpenTofu
+├── .github/                            workflows (ci, nightly, docs, spikes), PR/issue templates, CODEOWNERS
 ├── tools/
+│   ├── ci/                             coverage_gate.py, merge_guard.py (only merge path), install-tool.sh (checksummed tools)
 │   ├── new-module.sh                   create a module from the template and add it to Karry.slnx
 │   ├── templates/karry-module/         dotnet new template (tested by test-template.sh, TC-P1-PLT-003)
 │   ├── docs/check_links.py             docs link checker

@@ -59,8 +59,8 @@ As an engineer, I want a scaffolded monorepo with a module template, so that eve
 - AC3: A new engineer gets a running app in < 60 min (measured on onboarding).
 
 **US-P1-PLT-03 — CI pipeline with quality gates** · Must · M
-- AC1: On PR, run build, lint, format check, unit tests, architecture tests, integration tests, OpenAPI diff, CodeQL, Trivy, gitleaks.
-- AC2: PR cannot merge if any gate fails or coverage on Domain projects drops below 80 %.
+- AC1: On PR, run build, lint, format check, unit tests, architecture tests, integration tests, OpenAPI diff, SAST (Semgrep CE; CodeQL is not licensed for a private repository, [ADR-0021](../../adr/0021-security-scanning-private-repo.md)), Trivy, gitleaks.
+- AC2: PR cannot merge if any gate fails or coverage on Domain projects drops below 80 %. Enforced by `tools/ci/merge_guard.py` (server-side branch protection needs a paid GitHub plan on a private repository; owner decision 2026-10-22: no paid plan).
 - AC3: Pipeline duration p50 < 12 min.
 
 **US-P1-PLT-04 — CD to dev & staging with IaC** · Must · M

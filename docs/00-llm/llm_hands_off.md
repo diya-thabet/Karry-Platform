@@ -85,6 +85,7 @@
 | D29 | **Merge rule:** agent squash-merges normal PRs when all required checks are green; PRs touching Tenancy, Identity, Trust, Billing, Sync, ledger migrations or CI/CD security settings need the owner's explicit approval | [sub-phases §2.3](../04-phases/phase-01-platform-foundation/sub-phases.md#23-review--merge) | Owner decision 2026-10-22 |
 | D30 | **ADRs 0001–0020 accepted** by the owner; changes need a superseding ADR | [ADR index](../adr/README.md) | Owner decision 2026-10-22 |
 | D31 | Security scanning = gitleaks + Trivy + Semgrep CE (CodeQL unlicensed on private repo); npm packages ≥ 7 days old (pnpm `minimumReleaseAge`, Renovate); merges only via `tools/ci/merge_guard.py` until branch protection (needs GitHub Pro) | ADR-0021 (proposed), [sub-phases §2.3](../04-phases/phase-01-platform-foundation/sub-phases.md#23-review--merge) | P1.2, 2026-10-22 |
+| D32 | **No paid GitHub plan**: no server-side branch protection; `tools/ci/merge_guard.py` is the permanent merge path. **After every change, sweep and update every affected doc** (owner instruction) | [guidelines §9.1](llm_guidelines.md#91-pipeline-structure-built-in-p11p12-us-p1-plt-03), §20.1 | Owner, 2026-10-22 |
 | D24 | **Docs organized by area, one topic per file**, with front matter, folder READMEs, a lookup table in `docs/README.md`, and a link checker (`tools/docs/check_links.py`) that must report 0 broken links | [docs/README.md](../README.md) | Docs will grow; agents must find and load only what they need |
 | D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | [Phases Overview, Timeline & Commercial Packaging §6](../04-phases/phases-overview.md) | Codex timeline rejected |
 
@@ -155,7 +156,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Stacked PRs:** after the base PR is squash-merged, `git rebase --onto origin/main <old-base-tip-sha> <branch>` and `git push --force-with-lease` (own feature branch only). Note the SHA before merging: the guard deletes the merged local branch.
 - **xunit v3 single tests:** `dotnet test --project <proj> --filter-method '*Class.Method*'` / `--filter-class '*Class'`.
 - **Concurrency tests:** a stress test alone can pass by luck; also write a deterministic test that holds the lock/state in a second connection (see `OutboxTests.HoldMessageAsync`).
-- **Merge only with `python3 tools/ci/merge_guard.py <pr>`** (add `--owner-approved` only after the owner explicitly approves a sensitive PR). Never call `gh pr merge` directly: on 2026-10-22 PR #7 was merged with a failing `security` check that way, turning `main` red until #8. Branch protection is unavailable without **GitHub Pro** (private repo, HTTP 403).
+- **Merge only with `python3 tools/ci/merge_guard.py <pr>`** (add `--owner-approved` only after the owner explicitly approves a sensitive PR). Never call `gh pr merge` directly: on 2026-10-22 PR #7 was merged with a failing `security` check that way, turning `main` red until #8. Branch protection is unavailable without a paid plan (private repo, HTTP 403) and the owner will not pay: the guard is permanent.
 - **`gh pr merge --delete-branch`** also deletes the local branch and switches to `main`; re-create the next branch from `origin/main`.
 - **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
 - **GitHub Actions:** full product CI is created in Phase 1 (`US-P1-PLT-03`); `docs.yml` and `spikes.yml` exist now. Pin third-party actions by commit SHA (see guidelines §9).
@@ -191,7 +192,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | **P1.0–P1.3 ✅** (owner: GitHub Pro → branch protection; Renovate app; ADR-0021); next P1.4 (observability): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
+| P1 Foundation | **P1.0–P1.3 ✅** (owner: Renovate app; ADR-0021; no GitHub Pro → merge guard is permanent); next P1.4 (observability): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---
