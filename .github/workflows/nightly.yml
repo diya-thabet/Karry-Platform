@@ -1,0 +1,61 @@
+name: nightly
+
+# Catches problems that appear without a code change (new CVEs, flaky tests) and runs slow suites.
+# Mutation testing (Stryker.NET, llm_guidelines.md §7.2) is added with the first math/trust module (P1.6, P1.12).
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # 02:30 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: "1"
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  dependency-audit:
+    name: dependency-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - run: dotnet restore Karry.slnx --locked-mode
+      - name: NuGet advisories (all severities, transitive)
+        run: |
+          dotnet list Karry.slnx package --vulnerable --include-transitive | tee vulnerable.txt
+          if grep -q "has the following vulnerable packages" vulnerable.txt; then exit 1; fi
+      - name: npm advisories (high and critical)
+        working-directory: src/frontend
+        run: pnpm audit --audit-level high
+      - run: tools/ci/install-tool.sh trivy
+      - name: Trivy with a fresh vulnerability database
+        run: ~/.local/bin/trivy fs --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --skip-dirs spikes .
+
+  stability:
+    # Full backend suite twice: a test that passes once and fails once is a bug (llm_guidelines.md §7.6).
+    name: stability
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - run: dotnet restore Karry.slnx --locked-mode
+      - run: dotnet build Karry.slnx -c Release --no-restore
+      - name: Run 1
+        run: dotnet test --solution Karry.slnx -c Release --no-build
+      - name: Run 2
+        run: dotnet test --solution Karry.slnx -c Release --no-build

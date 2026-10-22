@@ -193,10 +193,9 @@ A sub-phase is ✅ only when **all** of these are true:
     - `backend`: restore `--locked-mode`, `dotnet format --verify-no-changes`, build `-warnaserror`, unit + integration tests (Testcontainers), TRX via `--report-xunit-trx`, coverage.
     - `frontend`: `pnpm install --frozen-lockfile`, lint, typecheck, Vitest.
     - `architecture`: architecture tests.
-    - `security`: CodeQL (C#, TypeScript), Trivy (filesystem + config), gitleaks.
-    - `openapi-diff`: placeholder until the first API in P1.5.
-    - `tenant-isolation`: placeholder until P1.5.
-    - `actionlint` over all workflows.
+    - `security`: gitleaks (full history), Trivy (dependencies + misconfiguration), Semgrep CE (SAST). CodeQL is not used: it needs a paid licence on a private repository ([ADR-0021](../../adr/0021-security-scanning-private-repo.md)).
+    - `openapi-diff` and `tenant-isolation`: **added in P1.5 with the first API**, not as empty placeholder jobs (a green check must always mean something was verified).
+    - `tooling`: `actionlint` over all workflows + tests of our CI scripts.
   - Coverage gate: **≥ 80 % lines on `*.Domain` projects**; PR fails if it drops below.
   - `nightly.yml` skeleton (mutation tests with Stryker.NET on math/trust modules from P1.6/P1.12, full isolation suite, dependency audit).
   - All actions pinned by full SHA with version comments; least-privilege `permissions`; caching keyed on lockfiles; `concurrency` groups; test summary in the job summary.
@@ -207,7 +206,7 @@ A sub-phase is ✅ only when **all** of these are true:
   |---|---|
   | TC-P1-PLT-001 | A PR adding a cross-module reference fails `ci / architecture` |
   | TC-P1-PLT-002 | A PR containing a fake secret is blocked by gitleaks |
-  | TC-P1-PLT-005 *(new)* | A PR lowering Domain coverage below 80 % fails; a PR with a format violation fails |
+  | TC-P1-PLT-005 *(new)* | A PR lowering Domain coverage below 80 % fails (gate unit tests in `tools/ci/test_coverage_gate.py` + real gate on every run); a PR with a format violation fails |
   | Duration | PR pipeline p50 < 12 min (measured over the first 10 runs, recorded in the tracker) |
 
   These are demonstrated with throwaway PRs that are then closed (evidence: run IDs in the tracker).
