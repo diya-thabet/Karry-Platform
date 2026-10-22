@@ -58,7 +58,7 @@ jobs:
           --report-xunit-trx --coverage --coverage-output-format cobertura
           --results-directory ${{ github.workspace }}/TestResults
       - name: Coverage gate (Domain >= 80 %)
-        run: python3 tools/ci/coverage_gate.py --summary "$GITHUB_STEP_SUMMARY" TestResults/*.cobertura.xml
+        run: python3 tools/ci/coverage_gate.py --solution Karry.slnx --summary "$GITHUB_STEP_SUMMARY" TestResults/*.cobertura.xml
       - name: Coverage report (all assemblies, informational)
         if: always()
         run: python3 tools/ci/coverage_gate.py --pattern '^Karry\.' --threshold 0 --summary "$GITHUB_STEP_SUMMARY" TestResults/*.cobertura.xml

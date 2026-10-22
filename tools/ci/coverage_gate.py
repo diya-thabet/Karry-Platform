@@ -4,7 +4,10 @@
 Merges Cobertura reports from every test project (a line counts as covered if any report hit it) and fails
 when a gated assembly falls below its threshold. Gated by default: every `*.Domain` assembly at 80 % lines.
 
-Usage: coverage_gate.py [--pattern REGEX] [--threshold PCT] [--summary FILE] report.cobertura.xml ...
+An assembly that no test loads does not appear in any report at all. With --solution, every gated project
+listed in the solution must appear; a missing one counts as 0 % (untested) and fails the gate.
+
+Usage: coverage_gate.py [--pattern REGEX] [--threshold PCT] [--solution Karry.slnx] [--summary FILE] report.cobertura.xml ...
 Exit code 0 = gate holds, 1 = below threshold, 2 = usage error.
 """
 from __future__ import annotations
@@ -15,6 +18,7 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import PurePosixPath
 
 
 @dataclass(frozen=True)
@@ -51,21 +55,36 @@ def merge(reports: list[str], pattern: re.Pattern[str]) -> list[AssemblyCoverage
     ]
 
 
+def solution_projects(solution: str, pattern: re.Pattern[str]) -> list[str]:
+    """Project names (file stems) in a .slnx solution that match the gated pattern."""
+    root = ET.parse(solution).getroot()  # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse
+    names = (PurePosixPath(p.get("Path", "").replace("\\", "/")).stem for p in root.iter("Project"))
+    return sorted(name for name in names if pattern.search(name))
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("reports", nargs="+")
     parser.add_argument("--pattern", default=r"\.Domain$", help="regex on assembly names to gate")
     parser.add_argument("--threshold", type=float, default=80.0, help="minimum line coverage in percent")
     parser.add_argument("--summary", help="append a Markdown table to this file (e.g. $GITHUB_STEP_SUMMARY)")
+    parser.add_argument("--solution", help="require every matching project of this .slnx to appear in the reports")
     args = parser.parse_args(argv)
 
-    results = merge(args.reports, re.compile(args.pattern))
+    pattern = re.compile(args.pattern)
+    results = merge(args.reports, pattern)
+    if args.solution:
+        reported = {r.name for r in results}
+        # Not loaded by any test: no report line at all. Count as entirely uncovered (1 line, 0 covered).
+        results += [AssemblyCoverage(name, 0, 1) for name in solution_projects(args.solution, pattern) if name not in reported]
+        results.sort(key=lambda r: r.name)
     failing = [r for r in results if r.percent < args.threshold]
 
     table = ["| Assembly | Lines covered | Coverage | Gate |", "|---|---|---|---|"]
     for r in results:
         verdict = "❌" if r in failing else "✅"
-        table.append(f"| {r.name} | {r.covered}/{r.total} | {r.percent:.1f} % | {verdict} ≥ {args.threshold:g} % |")
+        lines = f"{r.covered}/{r.total}" if not (r.covered == 0 and r.total == 1 and args.solution) else "not exercised by any test"
+        table.append(f"| {r.name} | {lines} | {r.percent:.1f} % | {verdict} ≥ {args.threshold:g} % |")
     if not results:
         table.append(f"| (no assembly matches `{args.pattern}` yet) | | | ✅ |")
     text = "\n".join(["### Coverage gate", "", *table, ""])
