@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />
+    <Project Path="tests/Karry.BuildingBlocks.IntegrationTests/Karry.BuildingBlocks.IntegrationTests.csproj" />
     <Project Path="tests/Karry.BuildingBlocks.UnitTests/Karry.BuildingBlocks.UnitTests.csproj" />
     <Project Path="tests/Karry.SharedKernel.UnitTests/Karry.SharedKernel.UnitTests.csproj" />
     <Project Path="tests/Karry.Host.IntegrationTests/Karry.Host.IntegrationTests.csproj" />
