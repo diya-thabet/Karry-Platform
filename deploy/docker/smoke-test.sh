@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# TC-P1-PLT-004 (+ TC-P1-PLT-012 against the real stack): start the local stack and prove every service works,
+# including S3 Object Lock in compliance mode (ADR-0017) and Karry.Host readiness.
+#   SKIP_HOST=1   skip the Karry.Host readiness check (no .NET SDK available)
+#   KEEP_STACK=1  leave the stack running afterwards
+set -euo pipefail
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+compose=(docker compose -f "$root/deploy/docker/compose.yaml")
+aws_image="amazon/aws-cli:2.38.5"
+host_pid=""
+failures=0
+
+cleanup() {
+  [[ -n "$host_pid" ]] && kill "$host_pid" 2>/dev/null || true
+  if [[ "${KEEP_STACK:-0}" != "1" ]]; then "${compose[@]}" down -v --remove-orphans >/dev/null 2>&1 || true; fi
+}
+trap cleanup EXIT
+
+pass() { echo "PASS  $1"; }
+fail() { echo "FAIL  $1" >&2; failures=$((failures + 1)); }
+check() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$name"; else fail "$name"; fi; }
+refused() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then fail "$name (operation was allowed)"; else pass "$name"; fi; }
+
+echo "Starting the local stack…"
+if ! "${compose[@]}" up -d --wait --wait-timeout 300; then
+  "${compose[@]}" ps
+  "${compose[@]}" logs --tail 80
+  exit 1
+fi
+pass "all services healthy"
+
+# PostgreSQL: the 4 extensions and the runtime role.
+psql_su() { "${compose[@]}" exec -T -e PGPASSWORD="${KARRY_PG_SUPERUSER_PASSWORD:-karry-local-only}" postgres psql -h 127.0.0.1 -U postgres -d karry -v ON_ERROR_STOP=1 -Atc "$1"; }
+extensions="$(psql_su "SELECT string_agg(extname, ',' ORDER BY extname) FROM pg_extension WHERE extname IN ('postgis','timescaledb','vector','pgcrypto')")"
+if [[ "$extensions" == "pgcrypto,postgis,timescaledb,vector" ]]; then pass "postgres extensions ($extensions)"; else fail "postgres extensions (got '$extensions')"; fi
+check "karry_app can connect" "${compose[@]}" exec -T -e PGPASSWORD="${KARRY_APP_PASSWORD:-karry-local-only}" postgres psql -h 127.0.0.1 -U karry_app -d karry -Atc "SELECT 1"
+role="$(psql_su "SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname = 'karry_app'")"
+if [[ "$role" == "false,false" ]]; then pass "karry_app is neither superuser nor BYPASSRLS"; else fail "karry_app privileges (got '$role')"; fi
+
+# Keycloak, Mailpit, Valkey.
+check "keycloak serves OIDC discovery" curl -fsS http://127.0.0.1:8080/realms/master/.well-known/openid-configuration
+check "mailpit API answers" curl -fsS http://127.0.0.1:8025/api/v1/info
+check "valkey answers PING" bash -c "${compose[*]} exec -T valkey valkey-cli ping | grep -q PONG"
+
+# S3 Object Lock (compliance mode): locked versions cannot be deleted and retention cannot be shortened.
+aws() {
+  docker run --rm --network host \
+    -e AWS_ACCESS_KEY_ID=karry-local-access -e AWS_SECRET_ACCESS_KEY=karry-local-secret-only-for-dev -e AWS_DEFAULT_REGION=us-east-1 \
+    "$aws_image" --endpoint-url http://127.0.0.1:8333 "$@"
+}
+bucket="smoke-anchors-$(date +%s)"
+retain_until="$(date -u -d '+1 day' +%Y-%m-%dT%H:%M:%SZ)"
+shorter="$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"
+check "s3 create bucket with Object Lock" aws s3api create-bucket --bucket "$bucket" --object-lock-enabled-for-bucket
+version_id="$(aws s3api put-object --bucket "$bucket" --key chain-head.json --body /etc/hostname \
+  --object-lock-mode COMPLIANCE --object-lock-retain-until-date "$retain_until" --query VersionId --output text || true)"
+if [[ -n "$version_id" && "$version_id" != "None" ]]; then pass "s3 put object under COMPLIANCE retention"; else fail "s3 put object under COMPLIANCE retention"; fi
+refused "s3 delete of a locked version is refused" aws s3api delete-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
+refused "s3 shortening COMPLIANCE retention is refused" aws s3api put-object-retention --bucket "$bucket" --key chain-head.json --version-id "$version_id" \
+  --retention "Mode=COMPLIANCE,RetainUntilDate=$shorter"
+check "s3 locked version still readable" aws s3api head-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
+
+# Karry.Host readiness against the real stack (Development settings point at this stack).
+if [[ "${SKIP_HOST:-0}" != "1" ]]; then
+  dotnet build "$root/src/backend/Karry.Host" -c Release >/dev/null
+  # Run the built assembly directly (exec) so $host_pid is the host itself and cleanup stops it.
+  (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" &&
+    ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5080 exec dotnet Karry.Host.dll >/dev/null 2>&1) &
+  host_pid=$!
+  ready=0
+  for _ in $(seq 1 60); do
+    if curl -fsS http://127.0.0.1:5080/health/ready >/dev/null 2>&1; then ready=1; break; fi
+    sleep 1
+  done
+  if [[ "$ready" == "1" ]]; then pass "Karry.Host /health/ready = 200 against the stack"; else fail "Karry.Host /health/ready against the stack"; fi
+fi
+
+if [[ "$failures" -gt 0 ]]; then
+  echo "TC-P1-PLT-004: $failures check(s) failed" >&2
+  "${compose[@]}" logs --tail 40 s3 keycloak >&2 || true
+  exit 1
+fi
+echo "TC-P1-PLT-004 passed."

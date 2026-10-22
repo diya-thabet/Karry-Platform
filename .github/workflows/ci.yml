@@ -68,3 +68,23 @@ jobs:
       - name: Test (TC-P1-PLT-015)
         run: pnpm test
       - run: pnpm build
+
+  local-stack:
+    name: local-stack
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - run: dotnet restore src/backend/Karry.Host --locked-mode
+      # TC-P1-PLT-004: all services healthy, extensions, roles, Keycloak, Mailpit, Valkey,
+      # S3 Object Lock (compliance) and Karry.Host readiness against the stack.
+      - name: Local stack smoke test (TC-P1-PLT-004)
+        run: deploy/docker/smoke-test.sh
