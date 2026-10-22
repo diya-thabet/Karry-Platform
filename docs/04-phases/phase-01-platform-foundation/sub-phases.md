@@ -794,3 +794,7 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-016 | P1.2 | Unit | Merge guard | Red/incomplete/unapproved-sensitive PRs refused |
 | TC-P1-PLT-017 | P1.3 | Unit | Typed entity IDs | UUIDv7, ordered, unique; bad GUIDs rejected |
 | TC-P1-PLT-018 | P1.3 | Unit | Result/Error/aggregate events | Correct semantics |
+| TC-P1-PLT-019 | P1.3 | Integration | Problem details | Status, code, type, traceId |
+| TC-P1-PLT-020 | P1.3 | Integration | Validation | 400 with field errors |
+| TC-P1-PLT-021 | P1.3 | Integration | Unhandled exception | Generic 500, nothing leaked |
+| TC-P1-PLT-022 | P1.3 | Integration | OpenAPI | Published outside production only |

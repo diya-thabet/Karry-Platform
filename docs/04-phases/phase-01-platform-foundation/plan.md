@@ -396,6 +396,10 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-016 | Unit | Merge guard (P1.2) | Refuses missing/failed/cancelled required checks, any other failing check, sensitive paths without owner approval; waits on pending checks; fails closed on errors |
 | TC-P1-PLT-017 | Unit | Typed entity IDs (P1.3) | UUIDv7, time-ordered with the clock, unique within a millisecond; empty and non-v7 GUIDs rejected |
 | TC-P1-PLT-018 | Unit | Result, Error and aggregate events (P1.3) | Failures short-circuit Map/Bind; value of a failure throws with its code; events collected in order with clock time |
+| TC-P1-PLT-019 | Integration | Problem details (P1.3) | Each error kind → its status (400/403/404/409/422) with RFC 9457 body, stable `code`, `type` URI and `traceId`; framework errors use the same shape |
+| TC-P1-PLT-020 | Integration | Request validation (P1.3) | Invalid body → 400 `request.invalid` with per-field errors before the handler runs; valid body reaches the handler |
+| TC-P1-PLT-021 | Integration | Unhandled exceptions (P1.3) | Generic 500 `server.unexpected_error` with trace ID; no exception type, message, host, user or stack trace in the body |
+| TC-P1-PLT-022 | Integration | OpenAPI description (P1.3) | `/openapi/v1.json` (OpenAPI 3.x) outside production; 404 in production |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 
