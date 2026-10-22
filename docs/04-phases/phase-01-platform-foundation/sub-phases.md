@@ -234,7 +234,8 @@ A sub-phase is ✅ only when **all** of these are true:
     - **Persistence base:** EF Core `DbContext` base with one transaction per request/command; a migrations runner executed as a separate owner role; naming conventions.
     - **Unit of work:** a pipeline that commits the business change, the outbox rows and (from P1.6) the ledger entry in **one transaction**.
     - **Transactional outbox** (ADR-0015, ADR-0018): per-module `outbox_messages` and `processed_messages` tables in the module's schema (`ModuleDbContext`); events named by a stable versioned `[EventType("module.event.v1")]`, never by CLR type; in-house `OutboxDispatcher<TContext>` (one transaction per message, `FOR UPDATE SKIP LOCKED`, per-aggregate ordering, exponential back-off, dead-letter); `IDomainEventSubscriber<T>` gets the dispatch transaction so in-database effects are applied exactly once; hosted by `OutboxDispatcherService<TContext>` in `Karry.Workers`.
-    - **Idempotency store** for commands with `Idempotency-Key`.
+    - **Idempotency** (`.RequireIdempotencyKey()` + `IdempotencyMiddleware`, table `platform.idempotency_records`): replay, key-reuse and in-progress detection, 24 h retention; scope becomes tenant + user in P1.5/P1.8.
+    - **Deferred to P1.5 (first real module):** EF Core migrations and the migrations runner as the owner role. P1.3 tests create schemas with `EnsureCreated`; production schemas will only come from migrations.
     - **Errors and API:** RFC 9457 problem details with stable error codes; API versioning (`/api/v1`); OpenAPI generation.
     - **Validation** pipeline.
     - **Hooks reserved** for the tenancy middleware (P1.5), authorization (P1.9) and the entitlement filter (P1.10).
@@ -798,3 +799,4 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-020 | P1.3 | Integration | Validation | 400 with field errors |
 | TC-P1-PLT-021 | P1.3 | Integration | Unhandled exception | Generic 500, nothing leaked |
 | TC-P1-PLT-022 | P1.3 | Integration | OpenAPI | Published outside production only |
+| TC-P1-PLT-023 | P1.3 | Integration | End-to-end backbone | HTTP → DB + outbox → worker → subscriber |

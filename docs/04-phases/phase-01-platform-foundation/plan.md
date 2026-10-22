@@ -368,7 +368,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-005 | Pipeline | Coverage below 80 % on Domain / format violation (P1.2) | CI fails |
 | TC-P1-PLT-006 | Property | `Money` arithmetic and rounding (P1.3) | No currency mixing; decimal only |
 | TC-P1-PLT-007 | Integration | Outbox (P1.3) | Change + events commit/roll back together; each message delivered once; failure rolls back all subscriber effects and retries with back-off; dead-letter after max attempts or unknown type; a message held by another worker is skipped (SKIP LOCKED), never waited for; later events of an aggregate wait while an earlier one is in flight; 4 concurrent workers: exactly once and per-aggregate order |
-| TC-P1-PLT-008 | API | Idempotency-Key replay (P1.3) | Original response; no second execution |
+| TC-P1-PLT-008 | API | Idempotency-Key (P1.3) | Same key + same request → stored response replayed (`Idempotency-Replayed: true`), command runs once; different request → 422 `idempotency.key_reused`; concurrent duplicate → 409 `idempotency.request_in_progress`; missing key → 400; 4xx stored, 5xx releases the key |
 | TC-P1-PLT-009 | Integration | Feature flag change (P1.10) | Effective without redeploy; ledgered |
 | TC-P1-PLT-010 | Pipeline | Failing migration during deploy (P1.17) | Rollout aborted; version unchanged |
 | TC-P1-PLT-011 | Ops | Rollback to previous release (P1.17) | Works; duration recorded |
@@ -400,6 +400,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-020 | Integration | Request validation (P1.3) | Invalid body → 400 `request.invalid` with per-field errors before the handler runs; valid body reaches the handler |
 | TC-P1-PLT-021 | Integration | Unhandled exceptions (P1.3) | Generic 500 `server.unexpected_error` with trace ID; no exception type, message, host, user or stack trace in the body |
 | TC-P1-PLT-022 | Integration | OpenAPI description (P1.3) | `/openapi/v1.json` (OpenAPI 3.x) outside production; 404 in production |
+| TC-P1-PLT-023 | Integration | End-to-end backbone (P1.3) | HTTP command (validation, idempotency) → aggregate + outbox in one transaction → hosted dispatcher → subscriber projection |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 

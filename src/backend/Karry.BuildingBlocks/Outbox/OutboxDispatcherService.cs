@@ -24,13 +24,24 @@ public sealed partial class OutboxDispatcherService<TContext>(
                     continue;
                 }
             }
-            catch (Exception ex) when (ex is not OperationCanceledException)
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return; // host shutting down
+            }
+            catch (Exception ex)
             {
                 // Database unavailable or similar: keep the worker alive and try again after the poll interval.
                 LogLoopFailure(logger, ex, typeof(TContext).Name);
             }
 
-            await Task.Delay(options.PollInterval, clock, stoppingToken).ConfigureAwait(false);
+            try
+            {
+                await Task.Delay(options.PollInterval, clock, stoppingToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+            {
+                return;
+            }
         }
     }
 
