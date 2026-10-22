@@ -44,6 +44,8 @@ last_updated: 2026-10-21
 |---|---|---|
 | `tracker.md` | During the phase | Live status of work packages/stories, evidence links, test results, exit-gate checklist (Phase 0: [tracker](phase-00-discovery/tracker.md)) |
 | `plan.md` | Baseline (exists) | Objectives, scope, epics, user stories + AC, technical scope, test plan, deliverables, demo, exit gate, risks |
+| `sub-phases.md` | Before the phase starts | Execution order: sub-phases with stories, dependencies, owner inputs, tests and done criteria; the owner starts them one by one (Phase 1: [sub-phases](phase-01-platform-foundation/sub-phases.md)) |
+| `*-explained.md` | Optional | Plain-English explanation for non-technical readers (Phase 0: [spikes explained](phase-00-discovery/spikes-explained.md)) |
 | `sprint-NN.md` | Each sprint | Sprint goal, committed stories, outcome, carry-over |
 | `test-report.md` | End of phase | Execution summary per `TC-…`, pass rate, defects by severity, NFR results |
 | `exit-review.md` | Phase gate | Exit criteria checklist with evidence, Go / Go-with-conditions / No-go decision |

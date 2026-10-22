@@ -13,6 +13,8 @@ last_updated: 2026-10-21
 
 **Duration:** 5 weeks (W4–W8), 2.5 sprints + hardening · **Team:** full core team
 
+**Execution order:** this phase is built in 19 sub-phases (P1.0 – P1.18), described in [sub-phases.md](sub-phases.md), with live status in the [Phase 1 tracker](tracker.md).
+
 ## 8.1 Objectives & business value
 
 Build the **production-grade skeleton** that every feature plugs into. That includes the SaaS foundations (tenants, plans, entitlements, users, roles) so that from P3 we can **sell and bill** without rework.
@@ -361,6 +363,32 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-002 | Pipeline | Introduce secret in code | gitleaks blocks |
 | TC-P1-OPS-001 | Ops | Kill API pod under load | No failed requests beyond retry budget |
 | TC-P1-OPS-002 | Ops | Restore staging DB from PITR to T-1h | Success, documented duration |
+| TC-P1-PLT-003 | Integration | `dotnet new karry-module` output (P1.1) | Builds; 5 projects; sample test passes |
+| TC-P1-PLT-004 | Smoke | `docker compose up` (P1.1) | All services healthy; 4 extensions created |
+| TC-P1-PLT-005 | Pipeline | Coverage below 80 % on Domain / format violation (P1.2) | CI fails |
+| TC-P1-PLT-006 | Property | `Money` arithmetic and rounding (P1.3) | No currency mixing; decimal only |
+| TC-P1-PLT-007 | Integration | Outbox with worker crash (P1.3) | Same transaction; delivered exactly once |
+| TC-P1-PLT-008 | API | Idempotency-Key replay (P1.3) | Original response; no second execution |
+| TC-P1-PLT-009 | Integration | Feature flag change (P1.10) | Effective without redeploy; ledgered |
+| TC-P1-PLT-010 | Pipeline | Failing migration during deploy (P1.17) | Rollout aborted; version unchanged |
+| TC-P1-PLT-011 | Ops | Rollback to previous release (P1.17) | Works; duration recorded |
+| TC-P1-OPS-003 | Integration | Trace attributes on API request (P1.4) | 4 attributes present; no PII |
+| TC-P1-OPS-004 | API | Support access consent / break-glass (P1.16) | Denied without; expires 1 h; ledgered |
+| TC-P1-TEN-006 | Integration | Provision same tenant twice (P1.5) | One tenant; < 30 s |
+| TC-P1-TEN-007 | Integration | Tenant settings change (P1.11) | Ledgered; applied without re-login |
+| TC-P1-AUD-005 | API | Audit CSV export (P1.16) | Masking and scope respected |
+| TC-P1-AUD-006 | Integration | Business change rolled back (P1.6) | No ledger entry, no outbox row |
+| TC-P1-IAM-007 | Integration | Deactivate user (P1.8) | API access lost ≤ 60 s; history keeps name |
+| TC-P1-IAM-008 | Integration | Invitation expiry / reuse (P1.8) | Rejected |
+| TC-P1-IAM-009 | API | Delete default role; privileged change without step-up (P1.9) | Rejected |
+| TC-P1-BIL-006 | Unit | Subscription state machine; plan versioning (P1.10) | Illegal transitions rejected; version kept |
+| TC-P1-ORG-003 | Property | Shift instances over DST / midnight / holidays (P1.11) | Correct instances |
+| TC-P1-ORG-004 | Performance | Import 1,000 assets (P1.14) | < 60 s |
+| TC-P1-AST-001 | API | QR label scanned in another tenant (P1.13) | Not found |
+| TC-P1-AST-002 | Integration | Update/delete meter history (P1.13) | Denied; readings ledgered |
+| TC-P1-OFF-006 | Accessibility | axe over all Storybook stories and themes (P1.7) | 0 serious/critical |
+| TC-P1-OFF-007 | Unit/E2E | i18n keys and pseudo-localization (P1.7) | No missing keys; no hard-coded text |
+| TC-P1-OFF-008 | E2E | Non-extractable key; re-enrollment after clearing site data (P1.15) | Old key rejected; new enrollment works |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 

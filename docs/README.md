@@ -25,7 +25,8 @@
 |---|---|
 | What has been decided, mistakes to avoid, current state, next steps | [00-llm/llm_hands_off.md](00-llm/llm_hands_off.md) |
 | How to work: testing, CI, security, git, Definition of Done | [00-llm/llm_guidelines.md](00-llm/llm_guidelines.md) |
-| **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) |
+| **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) (Phase 0), [04-phases/phase-01-platform-foundation/tracker.md](04-phases/phase-01-platform-foundation/tracker.md) (Phase 1) |
+| **Phase 1 step-by-step execution plan** (sub-phases P1.0 – P1.18: order, inputs, tests, done criteria) | [04-phases/phase-01-platform-foundation/sub-phases.md](04-phases/phase-01-platform-foundation/sub-phases.md) |
 | Technical spike results (RLS, offline, device keys, extensions) | [../spikes/README.md](../spikes/README.md) |
 | **What is a technical spike?** Phase 0 spikes explained in simple English | [04-phases/phase-00-discovery/spikes-explained.md](04-phases/phase-00-discovery/spikes-explained.md) |
 | Golden examples / expected values for formula tests | [03-domain/formulas-worked-examples.md](03-domain/formulas-worked-examples.md) |

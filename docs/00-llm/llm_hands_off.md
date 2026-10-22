@@ -200,13 +200,11 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 8. Next Steps (prioritised)
 
-1. **Owner force-pushes the rewritten history** (`git push --force-with-lease origin main`, removes the Claude co-author trailer, D25) and then pushes normally from now on. The agent has no GitHub credentials.
-2. **Owner Phase 0 work**: interviews, site visits, pricing validation, pilot LOI, legal brief, hosting and billing decisions, then answer §7 (kits in `docs/01-product/discovery/`).
-3. **Owner accepts or amends ADRs 0001–0016** and gets the formula handbook signed by a domain expert.
-4. Check the first CI run of `spikes.yml` (especially the pg17/pg18 extension check) and record results in the tracker.
-5. Optional: owner enables Docker for the agent (`sudo usermod -aG docker $USER`, re-login) so Testcontainers-based tests can run locally in Phase 1.
-6. Then start **Phase 1** (scaffold monorepo + CI per US-P1-PLT-01..05), applying the spike findings (batched `set_config`, `nullif` policy, P1363 verification).
-
+1. **Phase 1 is executed sub-phase by sub-phase** per [sub-phases.md](../04-phases/phase-01-platform-foundation/sub-phases.md) (P1.0 – P1.18). The owner says "start P1.x"; follow §2 of that file (way of working) and the card. Status in the [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md). Do not start a sub-phase whose dependencies are not ✅.
+2. **P1.0 prerequisites from the owner**: Docker access for the agent (`sudo usermod -aG docker $USER`, re-login), PR merge rule, acceptance of ADRs 0001–0016.
+3. **Owner Phase 0 work** continues in parallel: interviews, site visits, pricing validation, pilot LOI, legal brief, hosting and billing decisions, answers to §7 (kits in `docs/01-product/discovery/`). Hosting decision blocks P1.17.
+4. Formula handbook expert sign-off (needed by P1.12).
+5. Real-device run of the Phase 0 device-lab checklist (can be combined with P1.15).
 
 ---
 
