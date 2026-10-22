@@ -3,15 +3,15 @@ title: "ADR-0012: Keycloak for identity; in-app RBAC + ABAC + field masking"
 area: adr
 tags: [identity, keycloak, rbac, abac, masking, security]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0012 — Keycloak for identity; in-app RBAC + ABAC + field masking
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-IAM-01..07; US-P9-IAM-01

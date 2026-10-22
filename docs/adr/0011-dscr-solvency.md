@@ -3,15 +3,15 @@ title: "ADR-0011: DSCR as the asset solvency metric"
 area: adr
 tags: [finance, dscr, loans, formulas]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0011 — DSCR as the asset solvency metric
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** [spec-review-corrections.md](../03-domain/spec-review-corrections.md) M7; US-P7-FIN-08

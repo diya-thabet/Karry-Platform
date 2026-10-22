@@ -3,15 +3,15 @@ title: "ADR-0005: Offline-first PWA with Dexie outbox and idempotent sync"
 area: adr
 tags: [offline, pwa, sync, dexie, service-worker]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0005 — Offline-first PWA with Dexie outbox and idempotent sync
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** WP-P0-10; spike [field-capture-pwa](../../spikes/field-capture-pwa/README.md); US-P1-OFF-*, US-P2-OFF-*

@@ -3,15 +3,15 @@ title: "ADR-0004: Multi-tenancy: pooled database with Row-Level Security, silo o
 area: adr
 tags: [tenancy, rls, security, saas]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0004 — Multi-tenancy: pooled database with Row-Level Security, silo option
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** WP-P0-12; spike [rls-pooling](../../spikes/rls-pooling/README.md); US-P1-TEN-02/03

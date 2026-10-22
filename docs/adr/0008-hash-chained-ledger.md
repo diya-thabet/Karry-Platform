@@ -3,15 +3,15 @@ title: "ADR-0008: Hash-chained audit ledger with WORM anchoring"
 area: adr
 tags: [ledger, audit, hash-chain, worm, tamper-evidence]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0008 — Hash-chained audit ledger with WORM anchoring
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-AUD-01..04; [trust-layer-signatures-audit.md](../02-architecture/trust-layer-signatures-audit.md)

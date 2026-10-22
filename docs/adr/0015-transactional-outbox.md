@@ -3,15 +3,15 @@ title: "ADR-0015: Transactional outbox for domain and integration events"
 area: adr
 tags: [events, outbox, messaging, consistency]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0015 — Transactional outbox for domain and integration events
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-PLT-*, ADR-0001, ADR-0008

@@ -19,7 +19,7 @@ Legend: ✅ done · 🟡 in progress · ⏳ waiting on owner or external input �
 
 | # | Sub-phase | Status | Evidence (PRs, CI runs, measurements) / next action |
 |---|---|---|---|
-| P1.0 | Kick-off & prerequisites | 🟡 | ✅ Toolchain verified (.NET SDK 10.0.402 = latest; Node 24.22.1 installed via nvm; pnpm; gh; actionlint 1.7.12). ✅ Stack versions verified and recorded ([tech stack §7.1.1](../../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22)). ✅ Decisions recorded as ADR-0017 … 0020. ⏳ **Owner:** Docker access for the agent, merge rule (§2.3 of sub-phases), acceptance of ADRs 0001–0020 |
+| P1.0 | Kick-off & prerequisites | ✅ | Toolchain verified (.NET SDK 10.0.402; Node 24.22.1; pnpm; gh; actionlint 1.7.12). Versions recorded ([tech stack §7.1.1](../../02-architecture/technology-stack.md#711-verified-versions-phase-1-start-2026-10-22)). ADR-0017 … 0020 written; **ADRs 0001–0020 accepted** (owner, 2026-10-22). **Merge rule** decided (sub-phases §2.3). ⚠ Docker access for the agent still pending (owner re-login): Docker-based checks run in GitHub Actions until then |
 | P1.1 | Monorepo, module template, local environment | ⬜ | |
 | P1.2 | CI pipeline & repository governance | ⬜ | |
 | P1.3 | Shared kernel & building blocks | ⬜ | |

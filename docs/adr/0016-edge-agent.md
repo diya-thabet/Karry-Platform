@@ -3,15 +3,15 @@ title: "ADR-0016: Site edge agent for weighbridge and plant integration"
 area: adr
 tags: [edge, weighbridge, iot, opc-ua, integration]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0016 — Site edge agent for weighbridge and plant integration
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** Phase 6 (US-P6-EDG-*), Phase 9 (US-P9-EDG-*)

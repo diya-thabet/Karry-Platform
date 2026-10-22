@@ -3,15 +3,15 @@ title: "ADR-0001: Modular monolith with DDD bounded contexts"
 area: adr
 tags: [architecture, monolith, microservices, modules]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0001 — Modular monolith with DDD bounded contexts
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-PLT-01; [modular-monolith-decision.md](../02-architecture/modular-monolith-decision.md)

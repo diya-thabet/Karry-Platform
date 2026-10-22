@@ -3,15 +3,15 @@ title: "ADR-0013: AI copilot via tool-calling over a governed semantic layer, wi
 area: adr
 tags: [ai, llm, copilot, semantic-layer, security]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0013 — AI copilot via tool-calling over a governed semantic layer, with provider abstraction
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** [ai-copilot-architecture.md](../02-architecture/ai-copilot-architecture.md); Phase 8

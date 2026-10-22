@@ -3,7 +3,7 @@ title: "ADR-0020: Frontend toolchain: Node 24 LTS, pnpm, TypeScript 6.0 until th
 area: adr
 tags: [frontend, toolchain, typescript, node, pnpm, eslint, versions]
 source: "Phase 1 sub-phase P1.0"
-status: proposed
+status: accepted
 last_updated: 2026-10-22
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-22
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-22
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-PLT-01, US-P1-PLT-03, [guidelines §6.3](../00-llm/llm_guidelines.md#63-typescript--react)

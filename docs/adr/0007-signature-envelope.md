@@ -3,15 +3,15 @@ title: "ADR-0007: Signature envelope: device ECDSA + KMS countersignature + opti
 area: adr
 tags: [signatures, pki, ecdsa, kms, webcrypto]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0007 — Signature envelope: device ECDSA + KMS countersignature + optional RFC 3161
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** WP-P0-11; spikes [field-capture-pwa](../../spikes/field-capture-pwa/README.md), [signature-interop](../../spikes/signature-interop/README.md)

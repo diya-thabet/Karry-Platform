@@ -3,7 +3,7 @@ title: "ADR-0018: In-house outbox dispatcher and Quartz.NET for scheduled jobs"
 area: adr
 tags: [background-jobs, outbox, scheduling, quartz, licensing]
 source: "Phase 1 sub-phase P1.0"
-status: proposed
+status: accepted
 last_updated: 2026-10-22
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-22
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-22
 - **Deciders:** Product owner, software architect
 - **Related:** ADR-0015 (refines its open choice), ADR-0008, US-P1-AUD-02, US-P1-BIL-04, US-P1-ORG-02

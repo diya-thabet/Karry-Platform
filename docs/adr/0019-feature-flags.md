@@ -3,7 +3,7 @@ title: "ADR-0019: Feature flags with OpenFeature and a database-backed provider"
 area: adr
 tags: [feature-flags, openfeature, entitlements, audit]
 source: "Phase 1 sub-phase P1.0"
-status: proposed
+status: accepted
 last_updated: 2026-10-22
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-22
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-22
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-PLT-05, US-P1-BIL-03, ADR-0008

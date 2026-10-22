@@ -3,15 +3,15 @@ title: "ADR-0003: PostgreSQL 17/18 with PostGIS, TimescaleDB and pgvector"
 area: adr
 tags: [postgresql, postgis, timescaledb, pgvector, database]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0003 — PostgreSQL 17/18 with PostGIS, TimescaleDB and pgvector
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** WP-P0-13; spike [pg-extensions](../../spikes/pg-extensions/README.md)

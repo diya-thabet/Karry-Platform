@@ -3,15 +3,15 @@ title: "ADR-0010: Material state (bank / loose / compacted) on every volume quan
 area: adr
 tags: [units, volume, density, swell-factor]
 source: "Phase 0 WP-P0-16"
-status: proposed
-last_updated: 2026-10-21
+status: accepted
+last_updated: 2026-10-22
 ---
 
 # ADR-0010 — Material state (bank / loose / compacted) on every volume quantity
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (to be accepted by the owner at the Phase 0 exit gate, M0)
+- **Status:** Accepted (owner, 2026-10-22)
 - **Date:** 2026-10-21
 - **Deciders:** Product owner, software architect
 - **Related:** [spec-review-corrections.md](../03-domain/spec-review-corrections.md) M2; US-P1-UNI-01
