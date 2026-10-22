@@ -1,0 +1,35 @@
+name: User story
+description: A story from a phase plan, ready for implementation (Definition of Ready)
+title: "US-Px-AREA-nn: <title>"
+labels: [story]
+body:
+  - type: input
+    id: story
+    attributes:
+      label: Story ID and link to the phase plan
+      description: e.g. US-P1-TEN-02, docs/04-phases/phase-01-platform-foundation/plan.md
+    validations: { required: true }
+  - type: textarea
+    id: narrative
+    attributes:
+      label: As a … I want … so that …
+    validations: { required: true }
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: "- AC1:\n- AC2:"
+    validations: { required: true }
+  - type: textarea
+    id: tests
+    attributes:
+      label: Test cases (TC IDs)
+    validations: { required: true }
+  - type: checkboxes
+    id: dor
+    attributes:
+      label: Definition of Ready
+      options:
+        - label: Dependencies done or mocked; owner inputs available
+        - label: Sensitive area identified (Tenancy, Identity, Trust, Billing, Sync)
+        - label: Entitlement / feature flag known (if plan-gated)

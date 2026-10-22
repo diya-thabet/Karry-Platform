@@ -1,0 +1,43 @@
+name: Bug report
+description: Something does not work as specified (template from llm_guidelines.md §26.5)
+title: "<component>: <symptom>"
+labels: [bug]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity (docs/05-quality/defect-severity-and-triage.md)
+      options: [Sev-1 critical, Sev-2 major, Sev-3 minor, Sev-4 cosmetic]
+    validations: { required: true }
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: prod / staging / dev, version, device, browser
+    validations: { required: true }
+  - type: input
+    id: context
+    attributes:
+      label: Tenant/site (hashed) and correlation ID
+      description: Never paste customer names, personal data or secrets.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      value: "1.\n2.\n3."
+    validations: { required: true }
+  - type: textarea
+    id: expected-actual
+    attributes:
+      label: Expected vs actual
+    validations: { required: true }
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs (redacted), screenshots, trace links
+  - type: input
+    id: regression
+    attributes:
+      label: Regression test (filled when fixed)
+      description: TC ID / test name that fails before the fix and passes after

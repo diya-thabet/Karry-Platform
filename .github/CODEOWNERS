@@ -1,0 +1,18 @@
+# Owners are requested for review automatically. Sensitive areas need the owner's explicit approval
+# (merge rule D29, docs/04-phases/phase-01-platform-foundation/sub-phases.md §2.3).
+*                                         @diya-thabet
+
+# Sensitive: tenancy, identity, trust (signatures, ledger), billing, sync
+/src/backend/Modules/Tenancy/             @diya-thabet
+/src/backend/Modules/Identity/            @diya-thabet
+/src/backend/Modules/Trust/               @diya-thabet
+/src/backend/Modules/Billing/             @diya-thabet
+/src/backend/Karry.BuildingBlocks/        @diya-thabet
+/src/frontend/packages/offline/           @diya-thabet
+/src/frontend/packages/crypto/            @diya-thabet
+
+# CI/CD and security settings
+/.github/                                 @diya-thabet
+/tools/ci/                                @diya-thabet
+/deploy/                                  @diya-thabet
+/renovate.json                            @diya-thabet
