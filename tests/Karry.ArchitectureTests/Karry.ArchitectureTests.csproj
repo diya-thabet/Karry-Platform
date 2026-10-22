@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Modular-monolith boundary rules (ADR-0001), checked on the project reference graph of the real repository. -->
+</Project>

@@ -36,6 +36,9 @@ jobs:
       # Integration tests start PostgreSQL with Testcontainers (Docker is available on the runner).
       - name: Test
         run: dotnet test --solution Karry.slnx -c Release --no-build --report-xunit-trx --results-directory ${{ github.workspace }}/TestResults
+      # TC-P1-PLT-003: a module generated from the template builds, passes its tests and the architecture rules.
+      - name: Module template
+        run: tools/templates/test-template.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
