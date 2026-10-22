@@ -1,27 +1,47 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":semanticCommits", "helpers:pinGitHubActionDigests"],
+  "extends": [
+    "config:recommended",
+    ":semanticCommits",
+    "helpers:pinGitHubActionDigests"
+  ],
   "description": "Dependency updates (ADR-0002, ADR-0020, llm_guidelines.md §18). Every update is a PR that must pass the full pipeline.",
   "timezone": "Europe/Paris",
-  "schedule": ["before 6am on monday"],
+  "schedule": [
+    "before 6am on monday"
+  ],
   "prConcurrentLimit": 5,
   "minimumReleaseAge": "7 days",
   "internalChecksFilter": "strict",
-  "labels": ["dependencies"],
-  "ignorePaths": ["spikes/**"],
+  "labels": [
+    "dependencies"
+  ],
+  "ignorePaths": [
+    "spikes/**"
+  ],
   "rangeStrategy": "pin",
-  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on the first day of the month"] },
-  "vulnerabilityAlerts": { "labels": ["security"], "minimumReleaseAge": null },
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 6am on the first day of the month"
+    ]
+  },
+  "vulnerabilityAlerts": {
+    "labels": [
+      "security"
+    ],
+    "minimumReleaseAge": null
+  },
   "packageRules": [
-    { "matchManagers": ["nuget"], "matchPackageNames": ["Microsoft.*", "System.*", "Npgsql*"], "groupName": ".NET platform" },
-    { "matchManagers": ["nuget"], "matchPackageNames": ["xunit*", "AwesomeAssertions", "Testcontainers*", "Microsoft.Testing.*"], "groupName": ".NET test tooling" },
-    { "matchManagers": ["npm"], "matchPackageNames": ["eslint", "@eslint/*", "typescript-eslint", "eslint-plugin-*", "globals"], "groupName": "lint tooling" },
-    { "matchManagers": ["npm"], "matchPackageNames": ["vite", "@vitejs/*", "vitest", "jsdom", "@testing-library/*"], "groupName": "build and test tooling" },
-    { "matchManagers": ["npm"], "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"], "groupName": "react" },
-    { "matchPackageNames": ["typescript"], "allowedVersions": "<6.1", "description": "ADR-0020: stay below the typescript-eslint support limit" },
-    { "matchPackageNames": ["node", "@types/node"], "allowedVersions": "<25", "description": "ADR-0020: Node 24 LTS until Node 26 becomes LTS" },
-    { "matchManagers": ["github-actions"], "groupName": "GitHub Actions" },
-    { "matchManagers": ["docker-compose"], "groupName": "local stack images" },
-    { "matchUpdateTypes": ["major"], "dependencyDashboardApproval": true }
+    { "matchManagers": [ "nuget" ], "matchPackageNames": [ "Microsoft.*", "System.*", "Npgsql*" ], "groupName": ".NET platform", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "nuget" ], "matchPackageNames": [ "xunit*", "AwesomeAssertions", "Testcontainers*", "Microsoft.Testing.*" ], "groupName": ".NET test tooling", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "npm" ], "matchPackageNames": [ "eslint", "@eslint/*", "typescript-eslint", "eslint-plugin-*", "globals" ], "groupName": "lint tooling", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "npm" ], "matchPackageNames": [ "vite", "@vitejs/*", "vitest", "jsdom", "@testing-library/*" ], "groupName": "build and test tooling", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "npm" ], "matchPackageNames": [ "react", "react-dom", "@types/react", "@types/react-dom" ], "groupName": "react", "minimumReleaseAge": "7 days" },
+    { "matchPackageNames": [ "typescript" ], "allowedVersions": "<6.1", "description": "ADR-0020: stay below the typescript-eslint support limit", "minimumReleaseAge": "7 days" },
+    { "matchPackageNames": [ "node", "@types/node" ], "allowedVersions": "<25", "description": "ADR-0020: Node 24 LTS until Node 26 becomes LTS", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "github-actions" ], "groupName": "GitHub Actions", "minimumReleaseAge": "7 days" },
+    { "matchManagers": [ "docker-compose" ], "groupName": "local stack images", "minimumReleaseAge": "7 days" },
+    { "matchUpdateTypes": [ "major" ], "dependencyDashboardApproval": true, "minimumReleaseAge": "7 days" }
   ]
 }
