@@ -1,6 +1,6 @@
 # Phase 0 Technical Spikes
 
-Throwaway-quality **code**, production-quality **evidence**. Each spike answers one risky technical question from Phase 0 ([phase plan](../docs/04-phases/phase-00-discovery/plan.md)) with automated tests that run in GitHub Actions. Plain-English overview: [Technical Spikes Explained](../docs/04-phases/phase-00-discovery/spikes-explained.md). Tests run in GitHub Actions ([`spikes.yml`](../.github/workflows/spikes.yml)). Spike code is **not** promoted into `src/` as-is; Phase 1 re-implements the proven patterns properly.
+Throwaway-quality **code**, production-quality **evidence**. Each spike answers one risky technical question from Phase 0 ([phase plan](../docs/04-phases/phase-00-discovery/plan.md)) with automated tests that run in GitHub Actions ([`spikes.yml`](../.github/workflows/spikes.yml)). Plain-English overview: [Technical Spikes Explained](../docs/04-phases/phase-00-discovery/spikes-explained.md). Spike code is **not** promoted into `src/` as-is; Phase 1 re-implements the proven patterns properly.
 
 | Work package | Spike | Question | Result |
 |---|---|---|---|
