@@ -1,0 +1,11 @@
+{
+  "identities": [
+    {
+      "name": "karry-local",
+      "credentials": [
+        { "accessKey": "karry-local-access", "secretKey": "karry-local-secret-only-for-dev" }
+      ],
+      "actions": ["Admin", "Read", "List", "Tagging", "Write"]
+    }
+  ]
+}
