@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
 using Karry.Host;
 using Karry.Host.Health;
@@ -15,15 +16,25 @@ if (!string.IsNullOrWhiteSpace(connectionString))
 builder.Services.AddHealthChecks()
     .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
 
+builder.Services.AddKarryApiConventions();
+builder.Services.AddOpenApi("v1");
 builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
 var app = builder.Build();
+
+app.UseKarryApiConventions();
 
 // Liveness: the process is up. Readiness: dependencies are reachable.
 app.MapHealthChecks("/health/live", new HealthCheckOptions { Predicate = _ => false });
 app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 
 app.MapModules();
+
+// The API description is published outside production (CI diffs it from P1.5; clients are generated from it).
+if (!app.Environment.IsProduction())
+{
+    app.MapOpenApi("/openapi/{documentName}.json");
+}
 
 await app.RunAsync().ConfigureAwait(false);
 

@@ -2,6 +2,7 @@
   <!-- ASP.NET Core composition root: wires modules, middleware and health checks. -->
   <ItemGroup>
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
