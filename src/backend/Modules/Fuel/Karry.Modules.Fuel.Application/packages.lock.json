@@ -8,6 +8,12 @@
           "Karry.SharedKernel": "[1.0.0, )"
         }
       },
+      "karry.modules.assets.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
       "karry.modules.fuel.contracts": {
         "type": "Project",
         "dependencies": {

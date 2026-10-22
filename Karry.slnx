@@ -4,6 +4,11 @@
     <Project Path="src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <Project Path="src/backend/Karry.Host/Karry.Host.csproj" />
     <Project Path="src/backend/Karry.Workers/Karry.Workers.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Api/Karry.Modules.Assets.Api.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Application/Karry.Modules.Assets.Application.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Contracts/Karry.Modules.Assets.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Domain/Karry.Modules.Assets.Domain.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Infrastructure/Karry.Modules.Assets.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Fuel/Karry.Modules.Fuel.Api/Karry.Modules.Fuel.Api.csproj" />
     <Project Path="src/backend/Modules/Fuel/Karry.Modules.Fuel.Application/Karry.Modules.Fuel.Application.csproj" />
     <Project Path="src/backend/Modules/Fuel/Karry.Modules.Fuel.Contracts/Karry.Modules.Fuel.Contracts.csproj" />
@@ -11,6 +16,7 @@
     <Project Path="src/backend/Modules/Fuel/Karry.Modules.Fuel.Infrastructure/Karry.Modules.Fuel.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Tests/Karry.Modules.Assets.Tests.csproj" />
     <Project Path="src/backend/Modules/Fuel/Karry.Modules.Fuel.Tests/Karry.Modules.Fuel.Tests.csproj" />
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />
     <Project Path="tests/Karry.BuildingBlocks.UnitTests/Karry.BuildingBlocks.UnitTests.csproj" />

@@ -4,5 +4,6 @@
     <ProjectReference Include="../Karry.Modules.Fuel.Domain/Karry.Modules.Fuel.Domain.csproj" />
     <ProjectReference Include="../Karry.Modules.Fuel.Contracts/Karry.Modules.Fuel.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+    <ProjectReference Include="..\..\Assets\Karry.Modules.Assets.Domain\Karry.Modules.Assets.Domain.csproj" />
   </ItemGroup>
 </Project>
