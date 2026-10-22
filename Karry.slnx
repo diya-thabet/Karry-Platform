@@ -4,8 +4,14 @@
     <Project Path="src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <Project Path="src/backend/Karry.Host/Karry.Host.csproj" />
     <Project Path="src/backend/Karry.Workers/Karry.Workers.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Api/Karry.Modules.Assets.Api.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Application/Karry.Modules.Assets.Application.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Contracts/Karry.Modules.Assets.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Domain/Karry.Modules.Assets.Domain.csproj" />
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Infrastructure/Karry.Modules.Assets.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Tests/Karry.Modules.Assets.Tests.csproj" />
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />
     <Project Path="tests/Karry.BuildingBlocks.UnitTests/Karry.BuildingBlocks.UnitTests.csproj" />
     <Project Path="tests/Karry.Host.IntegrationTests/Karry.Host.IntegrationTests.csproj" />
