@@ -3,6 +3,18 @@ packages:
   - apps/*
   - packages/*
 
+# Supply-chain protections (flagged by Semgrep; llm_guidelines.md §10.2, §18).
+# Do not install versions published less than 7 days ago (most malicious releases are pulled within days).
+minimumReleaseAge: 10080
+# Refuse an update that downgrades a package's provenance/trust evidence.
+trustPolicy: no-downgrade
+# Reviewed exceptions (package published before npm provenance existed, not a takeover). Keep this list short.
+trustPolicyExclude:
+  # semver 6.x line (maintained by the npm team), 6.3.1 is the CVE-2022-25883 fix; pulled in by @babel/core.
+  - semver@6.3.1
+# Transitive dependencies may only come from the registry (no git/tarball URLs).
+blockExoticSubdeps: true
+
 catalog:
   react: 19.3.1
   react-dom: 19.3.1
@@ -10,16 +22,16 @@ catalog:
   "@types/react-dom": 19.3.0
   "@types/node": 24.19.2
   typescript: 6.0.3
-  vite: 8.3.5
+  vite: 8.3.4
   "@vitejs/plugin-react": 6.1.2
   vitest: 5.0.5
   jsdom: 30.1.3
   "@testing-library/react": 16.3.3
   "@testing-library/dom": 10.4.2
   "@testing-library/jest-dom": 7.0.1
-  eslint: 10.13.0
+  eslint: 10.12.0
   "@eslint/js": 10.0.1
-  typescript-eslint: 8.72.0
+  typescript-eslint: 8.71.2
   eslint-plugin-react-hooks: 7.1.1
   eslint-plugin-react-refresh: 0.5.7
   globals: 17.13.0

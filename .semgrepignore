@@ -1,0 +1,8 @@
+# Semgrep scope: product code only (CI security job, ADR-0021).
+spikes/
+docs/
+**/node_modules/
+**/bin/
+**/obj/
+**/dist/
+TestResults/

@@ -47,7 +47,7 @@ last_updated: 2026-10-21
 | **CI/CD** | GitHub Actions, Renovate, trunk-based development, environment promotion | — | GitLab CI |
 | **Observability** | OpenTelemetry SDKs → Grafana (Prometheus/Mimir, Loki, Tempo), Sentry for client errors | Vendor-neutral, full traces from tablet to DB | Datadog (cost) |
 | **Quality** | xUnit v3 (Microsoft Testing Platform), FsCheck / CsCheck (property-based), Testcontainers, ArchUnitNET, AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
-| **Security tooling** | GitHub Advanced Security / CodeQL, Trivy, OWASP ZAP, gitleaks, Dependabot/Renovate | — | Snyk |
+| **Security tooling** | gitleaks (secrets), Trivy (dependencies, misconfiguration), Semgrep CE (SAST), Roslyn CA analyzers, OWASP ZAP (DAST, P1.18), Renovate ([ADR-0021](../adr/0021-security-scanning-private-repo.md)) | Free and licence-compatible for a private repository | CodeQL / GitHub Code Security (paid on private repos; revisit with first customers), Snyk |
 
 > Exact library versions are pinned in lock files ([ADR-0002](../adr/0002-dotnet-10-lts.md), [ADR-0020](../adr/0020-frontend-toolchain-versions.md)) and upgraded monthly via Renovate. The reference versions below were verified at the start of Phase 1.
 
@@ -64,7 +64,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | pnpm | 12.15.0 | via `packageManager` |
 | TypeScript | 6.0.3 | 7.0.2 exists but `typescript-eslint` supports `<6.1.0` ([ADR-0020](../adr/0020-frontend-toolchain-versions.md)) |
 | OpenTofu | 1.13.2 | IaC (P1.17) |
-| actionlint / gitleaks / Trivy | 1.7.12 / 8.30.1 / 0.76.1 | CI (P1.2) |
+| actionlint / gitleaks / Trivy / Semgrep CE | 1.7.12 / 8.30.1 / 0.75.0 / 1.180.0 | CI (P1.2); installed with checksum verification by `tools/ci/install-tool.sh`; Semgrep image pinned by digest |
 
 **Backend (NuGet)**
 
@@ -85,14 +85,14 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 
 | Package | Version | Package | Version |
 |---|---|---|---|
-| react / react-dom | 19.3.1 | vite | 8.3.5 |
+| react / react-dom | 19.3.1 | vite | 8.3.4 |
 | @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.5 |
 | tailwindcss | 4.3.3 | shadcn (CLI) | 4.22.1 |
 | i18next / react-i18next | 26.5.5 / 17.1.2 | dexie | 4.4.6 |
 | vite-plugin-pwa | 2.0.0 | maplibre-gl | 6.15.0 |
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test | 1.64.1 | @axe-core/playwright | 4.14.0 |
-| storybook | 10.6.3 | eslint / typescript-eslint | 10.13.0 / 8.72.0 |
+| storybook | 10.6.3 | eslint / typescript-eslint | 10.12.0 / 8.71.2 |
 | @sentry/react | 11.8.0 | @openfeature/web-sdk / react-sdk | 1.10.0 / 1.4.1 |
 
 **Container images (local stack, CI)**
@@ -105,6 +105,8 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | `valkey/valkey` | 9.0.6-alpine | Redis-compatible cache |
 | `axllent/mailpit` | v1.31.6 | Local mail catcher |
 | `grafana/otel-lgtm` | 0.37.0 | Local OpenTelemetry + Grafana stack (P1.4) |
+
+**Supply-chain rule (P1.2):** npm packages must be **at least 7 days old** (`minimumReleaseAge` in `src/frontend/pnpm-workspace.yaml`, enforced at install) and CI tools at least one week old when pinned; hence vite 8.3.4, eslint 10.12.0, typescript-eslint 8.71.2 and Trivy 0.75.0 instead of the newest releases.
 
 **Dropped or replaced:** MinIO (OSS repository archived, no community images; replaced by SeaweedFS). `exceljs` (no release since 2024; Excel parsing moves server-side to ClosedXML, which also suits the server-side validation of US-P1-ORG-03).
 
