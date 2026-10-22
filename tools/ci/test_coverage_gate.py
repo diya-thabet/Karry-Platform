@@ -55,5 +55,32 @@ class CoverageGateTests(unittest.TestCase):
         self.assertEqual(coverage_gate.main([good, bad]), 1)
 
 
+class SolutionCoverageTests(unittest.TestCase):
+    @staticmethod
+    def solution(*projects: str) -> str:
+        items = "".join(f'<Project Path="src/backend/Modules/X/{p}/{p}.csproj" />' for p in projects)
+        fd, path = tempfile.mkstemp(suffix=".slnx")
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(f'<Solution><Folder Name="/src/">{items}</Folder></Solution>')
+        return path
+
+    def test_domain_project_not_exercised_by_any_test_fails(self) -> None:
+        # The untested assembly is absent from every report: without --solution this would pass silently.
+        covered = report("Karry.Modules.Fuel.Domain", {1: 1})
+        sln = self.solution("Karry.Modules.Fuel.Domain", "Karry.Modules.Assets.Domain", "Karry.Modules.Assets.Api")
+        self.assertEqual(coverage_gate.main([covered]), 0)
+        self.assertEqual(coverage_gate.main(["--solution", sln, covered]), 1)
+
+    def test_every_domain_project_reported_and_covered_passes(self) -> None:
+        a = report("Karry.Modules.Fuel.Domain", {1: 1})
+        b = report("Karry.Modules.Assets.Domain", {1: 1})
+        sln = self.solution("Karry.Modules.Fuel.Domain", "Karry.Modules.Assets.Domain")
+        self.assertEqual(coverage_gate.main(["--solution", sln, a, b]), 0)
+
+    def test_solution_without_domain_projects_passes(self) -> None:
+        sln = self.solution("Karry.Host", "Karry.BuildingBlocks")
+        self.assertEqual(coverage_gate.main(["--solution", sln, report("Karry.Host", {1: 0})]), 0)
+
+
 if __name__ == "__main__":
     unittest.main()
