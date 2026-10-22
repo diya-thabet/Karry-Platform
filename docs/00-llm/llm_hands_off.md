@@ -136,7 +136,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in [Glossary (EN / FR) §27](../03-domain/glossary.md) up to date.
 - **Owner preference:** wants very detailed, "very pro", enterprise-grade outputs and firm architect opinions with reasoning, not neutral option lists.
 - **Git push works** (since 2026-10-22): owner ran `gh auth login` + `gh auth setup-git`; `gh` (`/usr/bin/gh`) is logged in as `diya-thabet` with `repo` + `workflow` scopes. Use `gh run list/watch/view --log-failed` to check CI after every push. Never force-push without the owner's explicit approval.
-- **No product code exists yet** (only Phase 0 spikes in `spikes/`). CI exists for docs (`.github/workflows/docs.yml`) and spikes (`spikes.yml`) only.
+- **Product code exists since P1.1**: `Karry.slnx` (backend under `src/backend`, tests under `tests/` and inside each module), `src/frontend` (own pnpm workspace), `deploy/docker` (local stack). CI: `ci.yml` (backend, frontend, local-stack), `docs.yml`, `spikes.yml`.
 - **.NET SDK** is installed per-user at `~/.dotnet` (10.0.402), **not on PATH**: call `~/.dotnet/dotnet`. Set `DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1`.
 - **IPv6 is broken on the owner's network**: NuGet restore hangs forever. Always set `DOTNET_SYSTEM_NET_DISABLEIPV6=1` for dotnet restore/build. (curl -4 works; curl -6 times out.)
 - **Docker is not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
@@ -147,6 +147,10 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Node versions:** Node 24 LTS installed via nvm (`nvm use 24`; the nvm default is still 22). Product repo pins Node 24 via `.nvmrc`/`engines`.
 - **actionlint** 1.7.12 is installed at `~/.local/bin/actionlint` (checksum verified). shellcheck is not installed.
 - **Version checks that work here:** `npm view <pkg> version`; NuGet flat container `curl -4 -s https://api.nuget.org/v3-flatcontainer/<id>/index.json`; Docker Hub tags API; `gh api repos/<o>/<r>/releases/latest`. Use `curl -4` (IPv6 broken).
+- **Local test PostgreSQL without Docker:** portable zonky 17.5 in the scratchpad (`initdb -A scram-sha-256`, `pg_ctl -o "-p 55432 -k '' -c listen_addresses=127.0.0.1"`), then `KARRY_TEST_PG="Host=127.0.0.1;Port=55432;Username=postgres;Password=postgres;Database=postgres"` makes the integration tests use it instead of Testcontainers. No extensions in that build: tests needing PostGIS/Timescale must run in CI until Docker works.
+- **Frontend locally:** `nvm use 24` then `corepack enable` (pnpm 12 shims) inside `src/frontend`.
+- **Analyzers are strict** (`AnalysisLevel=latest-recommended`, code style enforced, warnings = errors): use `LoggerMessage` source-generated logging (CA1848), no constant array arguments (CA1861), `GenerateDocumentationFile` is on for IDE0005. Test naming with underscores is allowed only in test folders (`.editorconfig`).
+- **`gh pr merge --delete-branch`** also deletes the local branch and switches to `main`; re-create the next branch from `origin/main`.
 - **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
 - **GitHub Actions:** full product CI is created in Phase 1 (`US-P1-PLT-03`); `docs.yml` and `spikes.yml` exist now. Pin third-party actions by commit SHA (see guidelines §9).
 - **xunit v3 TRX reports:** use `--report-xunit-trx`, **not** `--report-trx` (that needs the `Microsoft.Testing.Extensions.TrxReport` package; without it MTP exits with code 5, "Zero tests ran", "Handshake failures"). Always run the exact CI command locally before pushing.
@@ -181,7 +185,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | **P1.0 in progress** (waiting on owner inputs): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
+| P1 Foundation | **P1.0 ✅, P1.1 ✅**; next P1.2 (CI quality gates + branch protection): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---
@@ -249,6 +253,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-10-22 — P1.1 monorepo, template, frontend, local stack (agent)
+- **Goal:** Sub-phase P1.1 (US-P1-PLT-01, US-P1-PLT-02).
+- **Done:** Owner accepted ADRs 0001–0020 and the merge rule (D29, D30). PRs #1–#4 merged: backend skeleton (Host health, Workers, SharedKernel, BuildingBlocks `IModule`), module template + `tools/new-module.sh` + architecture rules, frontend workspace (portal/field shells, packages, type-aware lint), local stack (compose + smoke test + README). `ci.yml` created (backend, frontend, local-stack).
+- **Verification:** local `dotnet test --solution Karry.slnx` 29/29; template test passed; frontend lint/typecheck/test/build passed; CI on `main` run 39841100580 green; smoke test 13/13 in CI (Docker not available locally).
+- **Not done / deferred:** PLT-02 AC2 seed data (P1.5/P1.8), AC3 onboarding timing (P1.18), ArchUnitNET type-level rules (P1.5). Docker for the agent still pending.
+- **Decisions:** D29, D30.
+- **Next:** P1.2 (CI quality gates, branch protection, Renovate, templates).
+- **Commits/PR:** #1, #2, #3, #4.
 
 ### 2026-10-22 — Push access, green CI, Phase 1 sub-phase plan, P1.0 (agent)
 - **Goal:** Get push access, make CI green, plan Phase 1 in sub-phases, start P1.0.
