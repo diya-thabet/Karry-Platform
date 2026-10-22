@@ -4,7 +4,7 @@ area: phases
 tags: [phase-0, tracker, status, spikes, exit-gate, test-cases]
 source: "Phase 0 execution"
 status: draft
-last_updated: 2026-10-21
+last_updated: 2026-10-22
 ---
 
 # Phase 0 Tracker: Work Packages, Evidence & Exit Gate
@@ -31,7 +31,7 @@ Legend: ✅ done · 🟡 in progress / partially done · ⏳ waiting on owner or
 | WP-P0-10 | Spike: offline capture | Agent | 🟡 | ✅ Automated (desktop Chromium): [spike report](../../../spikes/field-capture-pwa/README.md). ⏳ Device-lab run (§3) |
 | WP-P0-11 | Spike: device keys | Agent | ✅ | [PWA report](../../../spikes/field-capture-pwa/README.md), [.NET interop](../../../spikes/signature-interop/README.md) |
 | WP-P0-12 | Spike: RLS + pooling | Agent | ✅ | [spike report](../../../spikes/rls-pooling/README.md): 0 leaks; policy cost +2.4–4.0 %; batching required |
-| WP-P0-13 | Spike: PostgreSQL version & extensions | Agent → owner | 🟡 | CI check ready ([script](../../../spikes/pg-extensions/check-extensions.sh)); managed provider depends on WP-P0-14 |
+| WP-P0-13 | Spike: PostgreSQL version & extensions | Agent → owner | 🟡 | ✅ Self-hosted images verified in CI (§2): PG 17.11 and 18.6 both provide PostGIS 3.6.4, TimescaleDB 2.31.0, pgvector 0.8.7, pgcrypto. ⏳ Managed-provider support depends on WP-P0-14 |
 | WP-P0-14 | Hosting & region decision | Owner + architect | ⏳ | Needs target countries (open question 1) |
 | WP-P0-15 | Billing provider decision | Owner | ⏳ | Needs incorporation country (open question 13) |
 | WP-P0-16 | ADRs 0001–0016 | Agent → owner | 🟡 | All 16 written ([ADR index](../../adr/README.md)), status **Proposed**; owner accepts at M0 |
@@ -44,15 +44,15 @@ Legend: ✅ done · 🟡 in progress / partially done · ⏳ waiting on owner or
 
 All run in GitHub Actions ([`spikes.yml`](../../../.github/workflows/spikes.yml)).
 
-| Test case | Spike | Last local result (2026-10-21) |
-|---|---|---|
-| TC-P0-RLS-001 … 010 | rls-pooling (.NET, PostgreSQL 17.5) | ✅ 11/11 (incl. 2 theory cases) |
-| TC-P0-SIG-001 … 004 | signature-interop (.NET) | ✅ 4/4 |
-| TC-P0-OFF-001 … 005 | field-capture-pwa (Playwright, Chromium) | ✅ 5/5 |
-| TC-P0-KEY-001 … 005 | field-capture-pwa (Playwright, Chromium) | ✅ 5/5 |
-| Extension check pg17 / pg18 | pg-extensions (Docker) | ⏳ first run in CI |
+| Test case | Spike | Local (2026-10-21) | GitHub Actions (2026-10-22) |
+|---|---|---|---|
+| TC-P0-RLS-001 … 010 | rls-pooling (.NET, PostgreSQL 17.5) | ✅ 11/11 (incl. 2 theory cases) | ✅ |
+| TC-P0-SIG-001 … 004 | signature-interop (.NET) | ✅ 4/4 | ✅ |
+| TC-P0-OFF-001 … 005 | field-capture-pwa (Playwright, Chromium) | ✅ 5/5 | ✅ |
+| TC-P0-KEY-001 … 005 | field-capture-pwa (Playwright, Chromium) | ✅ 5/5 | ✅ |
+| Extension check pg17 / pg18 | pg-extensions (Docker) | n/a (no Docker locally) | ✅ pg17 + pg18 |
 
-Mutation checks were done for both code spikes (injected bugs were caught; details in each report).
+GitHub Actions: all 4 jobs green in 4 consecutive runs (39828081288, 39828265888, 39828509297, 39828751049). Mutation checks were done for both code spikes (injected bugs were caught; details in each report).
 
 ## 3. Manual device-lab checklist (WP-P0-10 remainder)
 
@@ -72,7 +72,7 @@ Run on a **real low-end Android tablet** (2 GB RAM, Android 10–12, Chrome), us
 |---|---|
 | ≥ 1 signed pilot agreement (LOI) with baseline metrics | ⏳ owner |
 | Formulas signed off by domain expert | ⏳ draft ready |
-| All 4 spikes green, or with mitigations accepted | 🟡 3 answered; extension check pending CI + provider |
+| All 4 spikes green, or with mitigations accepted | 🟡 4 answered in CI; managed-provider extension support pending WP-P0-14 |
 | ADRs accepted | ⏳ 16 proposed, awaiting owner |
 | Sprint 1–2 backlog meets DoR | 🟡 |
 | Budget and team for P1–P3 confirmed | ⏳ owner |
@@ -86,3 +86,4 @@ Run on a **real low-end Android tablet** (2 GB RAM, Android 10–12, Chrome), us
 3. **Server signature verification must use IEEE P1363**, not DER (TC-P0-SIG-004). Recorded in ADR-0007.
 4. **.NET 10 SDK requires the Microsoft Testing Platform runner** for `dotnet test` with xunit v3 (`global.json` → `test.runner`). Recorded in ADR-0002.
 5. **Playwright offline emulation does not block routed requests**, so test fakes must model outages (spike `FakeSyncServer`).
+6. **The extension check raced PostgreSQL's init restart** (intermittent pg18 failure): readiness is now probed over TCP. Same rule applies to Testcontainers/health checks in Phase 1.
