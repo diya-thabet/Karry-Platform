@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.ModuleName.Application/Karry.Modules.ModuleName.Application.csproj" />
+  </ItemGroup>
+</Project>

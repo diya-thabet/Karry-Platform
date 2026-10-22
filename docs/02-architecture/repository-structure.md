@@ -32,8 +32,8 @@ karry-platform/
 │   │   ├── Karry.Host/                 ASP.NET Core composition root
 │   │   ├── Karry.SharedKernel/         typed IDs, Money, Quantity, Result, events
 │   │   ├── Karry.BuildingBlocks/       outbox, tenancy, auth, persistence, telemetry
-│   │   ├── Modules/
-│   │   │   ├── Tenancy/  {Domain,Application,Infrastructure,Api,Contracts}
+│   │   ├── Modules/                    created with tools/new-module.sh <Name>
+│   │   │   ├── Tenancy/  {Contracts,Domain,Application,Infrastructure,Api,Tests}
 │   │   │   ├── Organization/
 │   │   │   ├── Assets/
 │   │   │   ├── FieldOps/
@@ -64,9 +64,10 @@ karry-platform/
 │   │       ├── api-client/             generated from OpenAPI
 │   │       └── i18n/                   FR/EN catalogs
 │   └── analytics/                      Python FastAPI sidecar (uv, ruff, pytest)
-├── tests/
-│   ├── Karry.ArchitectureTests/
-│   ├── Karry.<Module>.UnitTests/
+├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
+│   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
+│   ├── Karry.Host.IntegrationTests/
+│   ├── Karry.BuildingBlocks.UnitTests/
 │   ├── Karry.IntegrationTests/
 │   ├── Karry.TenantIsolationTests/
 │   ├── e2e/                            Playwright
@@ -76,6 +77,9 @@ karry-platform/
 │   ├── helm/
 │   └── infra/                          OpenTofu
 ├── tools/
+│   ├── new-module.sh                   create a module from the template and add it to Karry.slnx
+│   ├── templates/karry-module/         dotnet new template (tested by test-template.sh, TC-P1-PLT-003)
+│   ├── docs/check_links.py             docs link checker
 │   └── ledger-verifier/                CLI to verify hash chains vs anchors
 └── .github/workflows/
 ```

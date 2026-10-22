@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Karry Platform",
+  "classifications": ["Karry", "Module", "Modular monolith"],
+  "identity": "Karry.Templates.Module",
+  "name": "Karry bounded-context module",
+  "description": "Domain / Application / Infrastructure / Api / Contracts projects plus a test project, wired per the modular-monolith rules (ADR-0001).",
+  "shortName": "karry-module",
+  "sourceName": "ModuleName",
+  "preferNameDirectory": true,
+  "tags": { "language": "C#", "type": "project" },
+  "forms": {
+    "lowerInvariant": { "identifier": "lowerCaseInvariant" }
+  },
+  "symbols": {
+    "routeName": {
+      "type": "derived",
+      "valueSource": "name",
+      "valueTransform": "lowerInvariant",
+      "replaces": "modulename"
+    }
+  }
+}

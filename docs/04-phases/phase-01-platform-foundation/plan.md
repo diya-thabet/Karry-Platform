@@ -391,6 +391,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-OFF-008 | E2E | Non-extractable key; re-enrollment after clearing site data (P1.15) | Old key rejected; new enrollment works |
 | TC-P1-PLT-012 | Integration | Health endpoints (P1.1) | `/health/live` 200 without DB; `/health/ready` 503 when DB missing/unreachable (body reveals nothing), 200 when DB answers |
 | TC-P1-PLT-013 | Unit | Module registration (P1.1) | Services of every module registered; duplicate module names rejected; endpoints mapped under `/api/v1/{module}` only |
+| TC-P1-PLT-014 | Architecture | Layer and dependency rules (P1.1) | Upward layer references, infrastructure packages in Domain/Contracts, references to hosts, kernel depending upwards, projects missing from the solution, bad module project names: each fails the build |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 
