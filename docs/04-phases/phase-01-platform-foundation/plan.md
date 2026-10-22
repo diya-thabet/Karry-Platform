@@ -394,6 +394,8 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-014 | Architecture | Layer and dependency rules (P1.1) | Upward layer references, infrastructure packages in Domain/Contracts, references to hosts, kernel depending upwards, projects missing from the solution, bad module project names: each fails the build |
 | TC-P1-PLT-015 | Unit (Vitest) | Portal and field app shells (P1.1) | Each app renders its product name as the level-1 heading inside the `main` landmark; workspace lint (type-aware), typecheck and build pass |
 | TC-P1-PLT-016 | Unit | Merge guard (P1.2) | Refuses missing/failed/cancelled required checks, any other failing check, sensitive paths without owner approval; waits on pending checks; fails closed on errors |
+| TC-P1-PLT-017 | Unit | Typed entity IDs (P1.3) | UUIDv7, time-ordered with the clock, unique within a millisecond; empty and non-v7 GUIDs rejected |
+| TC-P1-PLT-018 | Unit | Result, Error and aggregate events (P1.3) | Failures short-circuit Map/Bind; value of a failure throws with its code; events collected in order with clock time |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 

@@ -223,12 +223,12 @@ A sub-phase is ✅ only when **all** of these are true:
 - **Depends on:** P1.2.
 - **What gets built:**
   - `Karry.SharedKernel`:
-    - typed strongly-typed IDs on **UUIDv7**
-    - `Money` (decimal, ISO 4217 currency, no float, rounding rules per currency)
-    - `Result<T>` and error model
-    - domain event base type
-    - `IClock` with a fake for tests
-    - guard helpers
+    - strongly typed IDs on **UUIDv7** (`IEntityId<T>`, built-in `Guid.CreateVersion7`, no extra package)
+    - `Money` + `Currency` (decimal, supported ISO 4217 codes with minor units, no float, commercial rounding, loss-free `Allocate`)
+    - `Result<T>` and `Error` (stable codes, kinds mapped to HTTP statuses)
+    - `DomainEvent` and `AggregateRoot<TId>`
+    - time from .NET's built-in **`TimeProvider`** (`FakeTimeProvider` in tests) instead of a custom `IClock`
+    - argument checks use the built-in `ArgumentException.ThrowIf…` helpers instead of a custom guard library
     - `Quantity` is **declared** here but implemented in P1.12.
   - `Karry.BuildingBlocks`:
     - **Persistence base:** EF Core `DbContext` base with one transaction per request/command; a migrations runner executed as a separate owner role; naming conventions.
@@ -792,3 +792,5 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-014 | P1.1 | Architecture | Layer/dependency rules | Each kind of violation fails the build |
 | TC-P1-PLT-015 | P1.1 | Unit | App shells render; lint/typecheck/build | Pass |
 | TC-P1-PLT-016 | P1.2 | Unit | Merge guard | Red/incomplete/unapproved-sensitive PRs refused |
+| TC-P1-PLT-017 | P1.3 | Unit | Typed entity IDs | UUIDv7, ordered, unique; bad GUIDs rejected |
+| TC-P1-PLT-018 | P1.3 | Unit | Result/Error/aggregate events | Correct semantics |

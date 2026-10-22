@@ -54,6 +54,9 @@ dotnet_naming_symbols.private_fields.applicable_kinds = field
 dotnet_naming_symbols.private_fields.applicable_accessibilities = private
 dotnet_naming_style.camel_case.capitalization = camel_case
 
+# C#-only codebase: names that are keywords in other .NET languages (e.g. VB "Error") are fine.
+dotnet_diagnostic.CA1716.severity = none
+
 # Unused code
 dotnet_diagnostic.IDE0005.severity = warning
 dotnet_diagnostic.IDE0051.severity = warning
