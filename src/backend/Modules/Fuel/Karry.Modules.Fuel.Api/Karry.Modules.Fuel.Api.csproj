@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP endpoints and the IModule entry point that wires the Fuel module into the host. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Fuel.Application/Karry.Modules.Fuel.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Fuel.Infrastructure/Karry.Modules.Fuel.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

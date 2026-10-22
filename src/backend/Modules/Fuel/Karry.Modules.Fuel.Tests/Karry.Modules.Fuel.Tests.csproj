@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit and integration tests of the Fuel module (test settings come from Directory.Build.props). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Fuel.Api/Karry.Modules.Fuel.Api.csproj" />
+  </ItemGroup>
+</Project>
