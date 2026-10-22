@@ -75,10 +75,10 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | Quartz.Extensions.Hosting | 4.6.0 | OpenFeature | 2.14.1 |
 | OpenTelemetry.Extensions.Hosting / .Instrumentation.AspNetCore | 1.20.1 | Npgsql.OpenTelemetry | 10.0.3 |
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
-| Sentry.AspNetCore | 6.12.1 | UUIDNext (UUIDv7) | 4.2.4 |
+| Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
 | xunit.v3 | 4.0.2 | Testcontainers.PostgreSql / .Keycloak | 4.16.0 |
-| FsCheck / CsCheck (property tests) | 3.6.0 / 4.9.1 | TngTech.ArchUnitNET.xUnitV3 (architecture tests) | 0.13.4 |
-| AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 |
+| Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | TngTech.ArchUnitNET.xUnitV3 (architecture tests) | 0.13.4 |
+| AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |
 | dotnet-stryker (mutation) | 5.0.0 | | |
 
 **Frontend (npm)**
