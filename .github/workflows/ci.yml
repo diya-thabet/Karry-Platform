@@ -60,7 +60,7 @@ jobs:
       - name: Coverage gate (Domain >= 80 %)
         run: python3 tools/ci/coverage_gate.py --solution Karry.slnx --summary "$GITHUB_STEP_SUMMARY" TestResults/*.cobertura.xml
       - name: Coverage report (all assemblies, informational)
-        if: always()
+        if: always() && hashFiles('TestResults/*.cobertura.xml') != ''
         run: python3 tools/ci/coverage_gate.py --pattern '^Karry\.' --threshold 0 --summary "$GITHUB_STEP_SUMMARY" TestResults/*.cobertura.xml
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -139,7 +139,9 @@ jobs:
           fetch-depth: 0 # gitleaks scans the full history
       - run: tools/ci/install-tool.sh gitleaks && tools/ci/install-tool.sh trivy
       - name: Secrets in history (gitleaks, TC-P1-PLT-002)
-        run: ~/.local/bin/gitleaks git --redact --no-banner --exit-code 1 .
+        # Only the history being built (HEAD), not every fetched branch: a secret on another branch must fail
+        # that branch's PR, not every PR (seen with the TC-P1-PLT-002 demo).
+        run: ~/.local/bin/gitleaks git --redact --no-banner --exit-code 1 --log-opts="HEAD" .
       - name: Vulnerable dependencies and misconfigurations (Trivy)
         run: >-
           ~/.local/bin/trivy fs --scanners vuln,misconfig --severity HIGH,CRITICAL

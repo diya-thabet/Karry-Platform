@@ -80,6 +80,21 @@ def gh(*args: str) -> str:
     return subprocess.run(["gh", *args], check=True, capture_output=True, text=True).stdout
 
 
+def parse_checks(returncode: int, stdout: str, stderr: str) -> list[dict[str, str]]:
+    """Interpret `gh pr checks --json`: exit 0 = all passed, 1 = some failed, 8 = some pending (all print JSON);
+    "no checks reported" means none have started yet. Anything else is an error (fail closed)."""
+    if "no checks reported" in stderr:
+        return []
+    if returncode in (0, 1, 8) and stdout.strip():
+        return json.loads(stdout)
+    raise RuntimeError(f"gh pr checks failed (exit {returncode}): {stderr.strip()}")
+
+
+def pr_checks(pr: int) -> list[dict[str, str]]:
+    result = subprocess.run(["gh", "pr", "checks", str(pr), "--json", "name,state"], capture_output=True, text=True)
+    return parse_checks(result.returncode, result.stdout, result.stderr)
+
+
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("pr", type=int)
@@ -98,7 +113,7 @@ def main(argv: list[str]) -> int:
 
     deadline = time.monotonic() + args.timeout
     while True:
-        checks = json.loads(gh("pr", "checks", str(args.pr), "--json", "name,state") or "[]")
+        checks = pr_checks(args.pr)
         verdict, reasons = evaluate_checks(checks)
         if verdict == "pass":
             break

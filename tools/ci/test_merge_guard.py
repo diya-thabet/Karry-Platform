@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import unittest
 
-from merge_guard import REQUIRED_CHECKS, evaluate_checks, sensitive_files
+from merge_guard import REQUIRED_CHECKS, evaluate_checks, parse_checks, sensitive_files
 
 
 def checks(state: str = "SUCCESS", **overrides: str) -> list[dict[str, str]]:
@@ -42,6 +42,24 @@ class EvaluateChecksTests(unittest.TestCase):
 
     def test_cancelled_counts_as_failure(self) -> None:
         self.assertEqual(evaluate_checks(checks(tooling="CANCELLED"))[0], "fail")
+
+
+class ParseChecksTests(unittest.TestCase):
+    PENDING_JSON = '[{"name":"backend","state":"IN_PROGRESS"}]'
+
+    def test_pending_exit_code_is_parsed_not_raised(self) -> None:
+        # gh exits 8 while checks are pending; the guard must keep waiting, not crash (seen on PR #15).
+        self.assertEqual(parse_checks(8, self.PENDING_JSON, ""), [{"name": "backend", "state": "IN_PROGRESS"}])
+
+    def test_failed_exit_code_is_parsed(self) -> None:
+        self.assertEqual(parse_checks(1, '[{"name":"security","state":"FAILURE"}]', "")[0]["state"], "FAILURE")
+
+    def test_no_checks_yet_is_empty(self) -> None:
+        self.assertEqual(parse_checks(1, "", "no checks reported on the 'x' branch"), [])
+
+    def test_unexpected_error_fails_closed(self) -> None:
+        with self.assertRaises(RuntimeError):
+            parse_checks(4, "", "HTTP 401: Bad credentials")
 
 
 class SensitiveFilesTests(unittest.TestCase):
