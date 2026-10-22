@@ -142,6 +142,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **GitHub Actions:** full product CI is created in Phase 1 (`US-P1-PLT-03`); `docs.yml` and `spikes.yml` exist now. Pin third-party actions by commit SHA (see guidelines §9).
 - **xunit v3 TRX reports:** use `--report-xunit-trx`, **not** `--report-trx` (that needs the `Microsoft.Testing.Extensions.TrxReport` package; without it MTP exits with code 5, "Zero tests ran", "Handshake failures"). Always run the exact CI command locally before pushing.
 - **pnpm lockfile:** after editing `package.json` versions, run `pnpm install` and commit `pnpm-lock.yaml`; CI uses `--frozen-lockfile` and fails on any specifier mismatch (e.g. `^26.6.5` vs `26.6.5`). Verify with `CI=true pnpm install --frozen-lockfile`.
+- **Postgres container readiness:** the image entrypoint runs a temporary socket-only server during init, then restarts. Check readiness with `pg_isready -h 127.0.0.1` (TCP), never via the socket, or the next command races the restart (flaky pg18 check, 2026-10-22).
 - **Path-filtered workflows may not trigger on a force-push**; both workflows have `workflow_dispatch`, so run `gh workflow run <file> --ref main`.
 - **Versions:** always pin exact versions at the time of implementation and verify they are current and supported. Do not trust remembered version numbers without checking (release notes, `dotnet --list-sdks`, `npm view <pkg> version`).
 - **Mermaid on GitHub:** see §4.2. Gantt charts render, but keep task IDs simple (`p0`, `p1`).

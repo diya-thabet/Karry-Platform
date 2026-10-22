@@ -13,13 +13,21 @@ trap cleanup EXIT
 
 docker run -d --name "$name" -e POSTGRES_PASSWORD=spike-only -e POSTGRES_DB=karry "$image" >/dev/null
 
-for _ in $(seq 1 60); do
-  if docker exec "$name" pg_isready -U postgres -d karry >/dev/null 2>&1; then break; fi
+# The image's entrypoint first runs a temporary server (Unix socket only) to initialise
+# the database, then restarts it. Checking readiness over TCP waits for the real server;
+# a socket check can succeed against the temporary one and race the restart.
+ready() { docker exec "$name" pg_isready -h 127.0.0.1 -U postgres -d karry >/dev/null 2>&1; }
+for _ in $(seq 1 90); do
+  if ready; then break; fi
   sleep 2
 done
-docker exec "$name" pg_isready -U postgres -d karry >/dev/null
+if ! ready; then
+  echo "PostgreSQL in ${image} did not become ready; container logs:" >&2
+  docker logs "$name" >&2 || true
+  exit 1
+fi
 
-psql_exec() { docker exec "$name" psql -U postgres -d karry -v ON_ERROR_STOP=1 -Atc "$1"; }
+psql_exec() { docker exec -e PGPASSWORD=spike-only "$name" psql -h 127.0.0.1 -U postgres -d karry -v ON_ERROR_STOP=1 -Atc "$1"; }
 
 server_version="$(psql_exec 'SHOW server_version')"
 report="### ${image}\n\n| Extension | Version |\n|---|---|\n| PostgreSQL server | ${server_version} |\n"
