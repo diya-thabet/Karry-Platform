@@ -13,11 +13,14 @@ public sealed class AggregateRootTests
         public static MeterId From(Guid value) => new(value);
     }
 
-    private sealed record ReadingRecorded(TimeProvider Clock, decimal Hours) : DomainEvent(Clock);
+    [EventType("assets.reading_recorded.v1")]
+    private sealed record ReadingRecorded(decimal Hours) : DomainEvent;
+
+    private sealed record Unnamed : DomainEvent;
 
     private sealed class Meter(MeterId id, TimeProvider clock) : AggregateRoot<MeterId>(id)
     {
-        public void Record(decimal hours) => Raise(new ReadingRecorded(clock, hours));
+        public void Record(decimal hours) => Raise(new ReadingRecorded(hours) { OccurredAt = clock.GetUtcNow() });
     }
 
     [Fact]
@@ -34,7 +37,28 @@ public sealed class AggregateRootTests
         meter.DomainEvents[0].OccurredAt.Should().Be(new DateTimeOffset(2026, 10, 22, 6, 0, 0, TimeSpan.Zero));
         meter.DomainEvents.Should().AllSatisfy(e => e.EventId.Version.Should().Be(7));
 
+
+        meter.DomainEvents.Select(e => e.EventId).Should().OnlyHaveUniqueItems();
+        meter.AggregateKey.Should().Be($"Meter:{meter.Id.Value}");
+
         meter.ClearDomainEvents();
         meter.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Events_have_a_stable_versioned_name_and_unnamed_events_are_refused()
+    {
+        EventTypeAttribute.NameOf(typeof(ReadingRecorded)).Should().Be("assets.reading_recorded.v1");
+        ((Action)(() => EventTypeAttribute.NameOf(typeof(Unnamed)))).Should().Throw<InvalidOperationException>().WithMessage("*EventType*");
+    }
+
+    [Theory]
+    [InlineData("Assets.Reading.v1")]
+    [InlineData("assets.reading")]
+    [InlineData("assets.reading.v0")]
+    [InlineData("reading.v1")]
+    public void Badly_formed_event_names_are_rejected(string name)
+    {
+        ((Action)(() => _ = new EventTypeAttribute(name))).Should().Throw<ArgumentException>();
     }
 }

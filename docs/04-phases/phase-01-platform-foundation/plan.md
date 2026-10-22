@@ -367,7 +367,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-004 | Smoke | `docker compose up` (P1.1) | All services healthy; 4 extensions created; S3 Object Lock (compliance) blocks delete/overwrite |
 | TC-P1-PLT-005 | Pipeline | Coverage below 80 % on Domain / format violation (P1.2) | CI fails |
 | TC-P1-PLT-006 | Property | `Money` arithmetic and rounding (P1.3) | No currency mixing; decimal only |
-| TC-P1-PLT-007 | Integration | Outbox with worker crash (P1.3) | Same transaction; delivered exactly once |
+| TC-P1-PLT-007 | Integration | Outbox (P1.3) | Change + events commit/roll back together; each message delivered once; failure rolls back all subscriber effects and retries with back-off; dead-letter after max attempts or unknown type; a message held by another worker is skipped (SKIP LOCKED), never waited for; later events of an aggregate wait while an earlier one is in flight; 4 concurrent workers: exactly once and per-aggregate order |
 | TC-P1-PLT-008 | API | Idempotency-Key replay (P1.3) | Original response; no second execution |
 | TC-P1-PLT-009 | Integration | Feature flag change (P1.10) | Effective without redeploy; ledgered |
 | TC-P1-PLT-010 | Pipeline | Failing migration during deploy (P1.17) | Rollout aborted; version unchanged |

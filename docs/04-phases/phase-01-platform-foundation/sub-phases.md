@@ -233,7 +233,7 @@ A sub-phase is ✅ only when **all** of these are true:
   - `Karry.BuildingBlocks`:
     - **Persistence base:** EF Core `DbContext` base with one transaction per request/command; a migrations runner executed as a separate owner role; naming conventions.
     - **Unit of work:** a pipeline that commits the business change, the outbox rows and (from P1.6) the ledger entry in **one transaction**.
-    - **Transactional outbox** (ADR-0015): outbox table, CloudEvents-shaped envelope, in-house dispatcher in `Karry.Workers` with ordered, idempotent delivery and retry with back-off, and an inbox/processed-messages table for consumer idempotency.
+    - **Transactional outbox** (ADR-0015, ADR-0018): per-module `outbox_messages` and `processed_messages` tables in the module's schema (`ModuleDbContext`); events named by a stable versioned `[EventType("module.event.v1")]`, never by CLR type; in-house `OutboxDispatcher<TContext>` (one transaction per message, `FOR UPDATE SKIP LOCKED`, per-aggregate ordering, exponential back-off, dead-letter); `IDomainEventSubscriber<T>` gets the dispatch transaction so in-database effects are applied exactly once; hosted by `OutboxDispatcherService<TContext>` in `Karry.Workers`.
     - **Idempotency store** for commands with `Idempotency-Key`.
     - **Errors and API:** RFC 9457 problem details with stable error codes; API versioning (`/api/v1`); OpenAPI generation.
     - **Validation** pipeline.
