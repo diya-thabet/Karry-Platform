@@ -791,3 +791,4 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-013 | P1.1 | Unit | Module registration | All module services registered; duplicate names rejected; endpoints under `/api/v1/{module}` |
 | TC-P1-PLT-014 | P1.1 | Architecture | Layer/dependency rules | Each kind of violation fails the build |
 | TC-P1-PLT-015 | P1.1 | Unit | App shells render; lint/typecheck/build | Pass |
+| TC-P1-PLT-016 | P1.2 | Unit | Merge guard | Red/incomplete/unapproved-sensitive PRs refused |
