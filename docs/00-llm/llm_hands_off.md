@@ -141,7 +141,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Product code exists since P1.1**: `Karry.slnx` (backend under `src/backend`, tests under `tests/` and inside each module), `src/frontend` (own pnpm workspace), `deploy/docker` (local stack). CI: `ci.yml` (backend, frontend, local-stack), `docs.yml`, `spikes.yml`.
 - **.NET SDK** is installed per-user at `~/.dotnet` (10.0.402), **not on PATH**: call `~/.dotnet/dotnet`. Set `DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1`.
 - **IPv6 is broken on the owner's network**: NuGet restore hangs forever. Always set `DOTNET_SYSTEM_NET_DISABLEIPV6=1` for dotnet restore/build. (curl -4 works; curl -6 times out.)
-- **Docker is not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
+- **Docker works via `sg docker -c "<command>"`** (owner added the user to the `docker` group on 2026-10-22; the current session has not re-logged in). Run Testcontainers tests as `sg docker -c "DOTNET_SYSTEM_NET_DISABLEIPV6=1 ~/.dotnet/dotnet test --solution Karry.slnx -c Release"`. After a re-login plain `docker` works. Previously: **Docker was not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
 - **.NET 10 + xunit v3**: `dotnet test` requires the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`), and the syntax is `dotnet test --solution X.slnx`. Do not add `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`. Add `<Using Include="Xunit" />`.
 - **Playwright on Fedora** uses the "ubuntu24.04 fallback build" of Chromium, which works. `context.setOffline(true)` does **not** block `context.route` handlers, so fake servers must model outages themselves.
 - **MinIO OSS is archived** (2026-04; no community images). Do not add MinIO anywhere; use SeaweedFS (ADR-0017), RustFS as fallback.
@@ -152,6 +152,9 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Local test PostgreSQL without Docker:** portable zonky 17.5 in the scratchpad (`initdb -A scram-sha-256`, `pg_ctl -o "-p 55432 -k '' -c listen_addresses=127.0.0.1"`), then `KARRY_TEST_PG="Host=127.0.0.1;Port=55432;Username=postgres;Password=postgres;Database=postgres"` makes the integration tests use it instead of Testcontainers. No extensions in that build: tests needing PostGIS/Timescale must run in CI until Docker works.
 - **Frontend locally:** `nvm use 24` then `corepack enable` (pnpm 12 shims) inside `src/frontend`.
 - **Analyzers are strict** (`AnalysisLevel=latest-recommended`, code style enforced, warnings = errors): use `LoggerMessage` source-generated logging (CA1848), no constant array arguments (CA1861), `GenerateDocumentationFile` is on for IDE0005. Test naming with underscores is allowed only in test folders (`.editorconfig`).
+- **Stacked PRs:** after the base PR is squash-merged, `git rebase --onto origin/main <old-base-tip-sha> <branch>` and `git push --force-with-lease` (own feature branch only). Note the SHA before merging: the guard deletes the merged local branch.
+- **xunit v3 single tests:** `dotnet test --project <proj> --filter-method '*Class.Method*'` / `--filter-class '*Class'`.
+- **Concurrency tests:** a stress test alone can pass by luck; also write a deterministic test that holds the lock/state in a second connection (see `OutboxTests.HoldMessageAsync`).
 - **Merge only with `python3 tools/ci/merge_guard.py <pr>`** (add `--owner-approved` only after the owner explicitly approves a sensitive PR). Never call `gh pr merge` directly: on 2026-10-22 PR #7 was merged with a failing `security` check that way, turning `main` red until #8. Branch protection is unavailable without **GitHub Pro** (private repo, HTTP 403).
 - **`gh pr merge --delete-branch`** also deletes the local branch and switches to `main`; re-create the next branch from `origin/main`.
 - **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
@@ -188,7 +191,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | **P1.0 ✅, P1.1 ✅, P1.2 ✅** (owner: GitHub Pro → branch protection; Renovate app); next P1.3 (shared kernel & building blocks): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
+| P1 Foundation | **P1.0–P1.3 ✅** (owner: GitHub Pro → branch protection; Renovate app; ADR-0021); next P1.4 (observability): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---
@@ -256,6 +259,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-10-22 — P1.3 shared kernel and building blocks (agent)
+- **Goal:** Sub-phase P1.3.
+- **Done:** #17 shared kernel (UUIDv7 IDs, Money/Currency, Result/Error, DomainEvent with stable [EventType] names, AggregateRoot); #18 API conventions (RFC 9457 problems, validation filter, generic 500, OpenAPI outside prod); #19 ModuleDbContext unit of work + transactional outbox + dispatcher (SKIP LOCKED, per-aggregate order, back-off, dead-letter, processed_messages); #20 Idempotency-Key middleware + end-to-end test. Owner approved #18–#20.
+- **Verification:** 93 backend tests locally with Docker and in CI; outbox suite stable 3×; nine mutation checks caught.
+- **Not done / deferred:** EF migrations + runner (P1.5); excluding generated OpenAPI code from the Host coverage report.
+- **Decisions:** TimeProvider instead of IClock; built-in Guid.CreateVersion7; subscribers named IDomainEventSubscriber (CA1711).
+- **Next:** P1.4 observability.
+- **Commits/PR:** #17–#21.
 
 ### 2026-10-22 — P1.2 CI quality gates and governance (agent)
 - **Goal:** Sub-phase P1.2 (US-P1-PLT-03).
