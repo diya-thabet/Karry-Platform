@@ -87,10 +87,12 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | R-02 | IndexedDB on a stolen unlocked tablet is readable | Evaluate app-level encryption of cached reference data with a PIN-derived key (Phase 2 spike) |
 | R-03 | Legal weight of signatures differs by country | WP-P0-06 legal memo; QTSP integration for specific documents if required |
 | R-04 | Collusion across several roles | Statistical anomaly detection independent of approvals; telematics cross-check (Phase 9) |
-| R-05 | Supply-chain compromise of dependencies or actions | Lockfiles, actions pinned by SHA, SBOM, signed images, scanning (guidelines §10.2) |
+| R-06 | A change reaches `main` without green checks (no server-side branch protection on a private repo without a paid plan) | `tools/ci/merge_guard.py` as the only merge path (unit-tested), CODEOWNERS, owner approval for sensitive areas; revisit when the team grows |
+| R-05 | Supply-chain compromise of dependencies or actions | Lockfiles (NuGet locked mode, pnpm frozen), actions pinned by SHA, CI tools installed with SHA-256 checks, npm packages ≥ 7 days old with trust no-downgrade and no exotic sources, gitleaks/Trivy/Semgrep on every PR, SBOM and signed images (P1.17) |
 
 ## 5. Review log
 
 | Date | Phase | Change | By |
 |---|---|---|---|
+| 2026-10-22 | P1.2–P1.3 | R-05 mitigations implemented; R-06 added (no server-side branch protection); error responses verified not to leak internals (TC-P1-PLT-021) | Software architect |
 | 2026-10-21 | P0 | v1 created; tenancy threats validated by spike WP-P0-12, device/signature threats by WP-P0-10/11 | Software architect |

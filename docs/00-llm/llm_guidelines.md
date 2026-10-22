@@ -160,13 +160,13 @@ These protect the product's commercial value (trust, isolation, correctness). **
 - Cross-module communication:
   - **Synchronous**: through the other module's `Contracts` interfaces (in-process).
   - **Asynchronous**: integration events through the transactional outbox (CloudEvents envelope).
-- Architecture tests (NetArchTest/ArchUnitNET) enforce these rules. **When you add a module, add it to the architecture tests.**
+- Architecture tests (`tests/Karry.ArchitectureTests`, project reference graph) enforce these rules automatically for every project in `Karry.slnx`. **Create modules only with `tools/new-module.sh`** so naming and references follow the rules.
 
 ### 5.2 Layer responsibilities
 
 | Layer | Contains | Must NOT contain |
 |---|---|---|
-| Domain | Entities, value objects, aggregates, domain events, domain services, invariants | I/O, EF attributes, HTTP, logging frameworks, `DateTime.Now` (use `IClock`) |
+| Domain | Entities, value objects, aggregates, domain events, domain services, invariants | I/O, EF attributes, HTTP, logging frameworks, `DateTime.Now`/`UtcNow` (inject .NET `TimeProvider`) |
 | Application | Commands/queries + handlers, validators, ports (interfaces), DTO mapping, transactions orchestration | SQL, HTTP clients, framework-specific code |
 | Infrastructure | EF Core mappings, repositories, external adapters (KMS, S3, weather, LLM), outbox publisher | Business rules |
 | Api | Endpoint groups, request/response contracts, auth policies, OpenAPI metadata | Business rules, direct DB access |
@@ -187,7 +187,7 @@ These protect the product's commercial value (trust, isolation, correctness). **
 | Explicit mapping functions | Reflection-based auto-mappers (licence + hidden behaviour) |
 | Thin in-house mediator or direct handler injection | Heavy frameworks for simple dispatch |
 | Options pattern + validated configuration at startup | Reading `Environment` variables deep in code |
-| `IClock`, `IGuidGenerator` abstractions | `DateTime.UtcNow`/`Guid.NewGuid()` in domain code |
+| `TimeProvider` (`FakeTimeProvider` in tests); IDs via `EntityId.New<TId>(clock)` (UUIDv7) | `DateTime.UtcNow`/`Guid.NewGuid()` in domain code |
 | Idempotency keys for fact-creating commands | Retry logic that can create duplicates |
 | Feature flags for incomplete features | Long-lived feature branches |
 
@@ -326,7 +326,7 @@ If a command above no longer matches the repository, **update this section** in 
 
 - A flaky test is a **bug**. Do not retry-until-green, do not add sleeps.
 - Quarantine only with an issue reference and an owner, for at most 5 working days; the quarantine list is visible in CI output.
-- Root-cause categories to check: time (use `IClock`/fake timers), ordering assumptions, shared state, network, async waits (await conditions, not durations), random seeds.
+- Root-cause categories to check: time (inject `TimeProvider`, use `FakeTimeProvider`), ordering assumptions, shared state, network, async waits (await conditions, not durations), random seeds.
 
 ---
 
@@ -387,19 +387,21 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 
 ## 9. CI/CD & GitHub Actions Policy
 
-### 9.1 Pipeline structure (target, created in Phase 1, `US-P1-PLT-03/04`)
+### 9.1 Pipeline structure (built in P1.1–P1.2, `US-P1-PLT-03`)
 
 ```
 .github/workflows/
-├── ci.yml              # PR + push to main: build, lint, unit, integration, architecture, isolation, contract, security scans
-├── e2e.yml             # main + nightly: Playwright web & offline suites
-├── nightly.yml         # mutation tests, full isolation suite, dependency audit, load smoke
-├── deploy.yml          # main → dev, tags → staging, manual approval → prod (GitHub Environments)
-├── docs.yml            # markdown lint, link check, Mermaid render check
-└── codeql.yml          # CodeQL analysis (or inside ci.yml)
+├── ci.yml        # every PR + main: tooling (actionlint, CI-script tests), backend (format, build, tests,
+│                 # coverage gate), architecture (+ module template), frontend (frozen install with
+│                 # supply-chain policy, lint, typecheck, test, build), local-stack (TC-P1-PLT-004),
+│                 # security (gitleaks, Trivy, Semgrep CE — ADR-0021)
+├── nightly.yml   # dependency audit with fresh advisory data, suite run twice (flakiness); mutation tests from P1.6
+├── docs.yml      # link and anchor check, every PR
+├── spikes.yml    # frozen Phase 0 evidence
+└── (planned) e2e.yml (P1.15), deploy.yml (P1.17); tenant-isolation and openapi-diff jobs join ci.yml in P1.5
 ```
 
-Required status checks on `main` (branch protection): `ci / backend`, `ci / frontend`, `ci / analytics`, `ci / architecture`, `ci / tenant-isolation`, `ci / security`, `ci / openapi-diff`, `docs`.
+**Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
 
 ### 9.2 Workflow rules
 
@@ -477,7 +479,7 @@ jobs:
 | Crypto | Use platform primitives (WebCrypto, .NET `System.Security.Cryptography`, KMS). ECDSA P-256, SHA-256, AES-GCM. Never invent schemes. Canonicalize JSON (RFC 8785) before hashing/signing. |
 | Transport | TLS 1.2+ everywhere; HSTS; mTLS for edge agents and internal service calls where applicable. |
 | Logging | No PII, tokens, secrets or signature private material in logs. Security events (login failures, signature failures, isolation violations) are logged and alerted. |
-| Dependencies | Scanned in CI (Dependabot/Renovate + Trivy + `dotnet list package --vulnerable` + `pnpm audit`); no high/critical vulnerabilities merged without an exception record. |
+| Dependencies | Scanned in CI (Trivy on every PR; nightly `dotnet list package --vulnerable` + `pnpm audit` + Trivy with fresh data; Renovate update PRs once its app is installed; npm packages must be ≥ 7 days old); no high/critical vulnerabilities merged without an exception record. |
 | Supply chain | Lockfiles committed; `--locked-mode`/`--frozen-lockfile`; actions pinned by SHA; images signed with SBOM. |
 | Privacy | Data minimisation; purpose-limited GPS/photos; retention policies enforced by jobs; support access only with consent and audit. |
 | AI | Treat all user/field text as untrusted data in prompts; tools enforce RBAC; no write tools without ADR; log AI interactions for audit. |
@@ -591,6 +593,8 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 
 ## 19. Documentation Policy
 
+> **Docs sweep after every change (owner rule, 2026-10-22).** Before closing any PR or sub-phase, find every doc the change made stale and fix it in the same PR: architecture (technology stack, repository structure, API standards, security, offline sync), ADRs, these guidelines (commands in §7.5, pipeline in §9), the phase plan / sub-phases / tracker, the threat model, README and the hand-off. Grep for the names the change made obsolete (old tools, renamed types, removed steps), then run `python3 tools/docs/check_links.py`. Never wait to be asked.
+
 Update docs **in the same PR** as the code:
 
 | Change | Update |
@@ -626,7 +630,7 @@ Update docs **in the same PR** as the code:
 
 - Trunk-based: short-lived branches from `main` named `feat/US-P2-FO-01-start-shift`, `fix/<issue>-<slug>`, `chore/…`, `docs/…`, `test/…`, `ci/…`.
 - Branches live ≤ 2 days where possible; incomplete features behind flags.
-- Never commit directly to `main` once branch protection exists (Phase 1). Before then, commit to `main` only when the owner explicitly asks.
+- Never commit or push directly to `main`: every change goes through a PR merged by `tools/ci/merge_guard.py` (it refuses red or incomplete checks and unapproved sensitive changes). There is no server-side branch protection (private repo without a paid plan), so this rule is enforced by discipline and the guard.
 
 ### 20.2 Commits
 

@@ -24,7 +24,7 @@ last_updated: 2026-10-21
 
 ```
 PR → lint/format → build → unit + property tests → architecture tests → integration (Testcontainers)
-   → SAST (CodeQL) + dependency & container scan (Trivy) + secret scan
+   → SAST (Semgrep CE, [ADR-0021](../adr/0021-security-scanning-private-repo.md)) + dependency & container scan (Trivy) + secret scan
    → preview environment (optional) → review (2 approvals for Trust/Security modules)
 main → build images (SBOM, signed with cosign) → deploy dev → E2E (Playwright) → tag → staging → manual gate → prod (progressive rollout)
 ```

@@ -103,7 +103,7 @@ A module becomes a separate service **only if at least one trigger is measured a
 4. **No shared mutable state** in memory between modules.
 5. **Module-level API route prefixes** (`/api/v1/maintenance/...`) so that an API gateway can later route a prefix to a new service without changing any client.
 6. **Per-module observability** (spans and metrics tagged with `module`), so we can measure the triggers in [§3.6](#36-extraction-triggers-when-we-will-create-a-microservice).
-7. **Architecture tests** (ArchUnitNET / NetArchTest) run in CI and block violations.
+7. **Architecture tests** (`tests/Karry.ArchitectureTests`: rules on the project reference graph, each proven by a deliberately broken graph; ArchUnitNET type-level rules from P1.5) run in CI and block violations.
 
 ## 3.8 Evolution path
 

@@ -57,7 +57,7 @@ flowchart LR
 |---|---|---|---|---|
 | P1.0 | Kick-off & prerequisites | — | S | Docker access; PR review/merge rule |
 | P1.1 | Monorepo, module template, local environment | PLT-01, PLT-02 | M | — |
-| P1.2 | CI pipeline & repository governance | PLT-03 | M | Approve branch protection on `main` |
+| P1.2 | CI pipeline & repository governance | PLT-03 | M | ~~Branch protection~~ not available without a paid plan → merge guard (owner decision) |
 | P1.3 | Shared kernel & building blocks | (technical scope §8.5) | M | — |
 | P1.4 | Observability baseline | OPS-01, OPS-02 | S | Sentry: SaaS account or self-host (can defer to P1.17) |
 | P1.5 | Tenancy & isolation | TEN-01, TEN-02, TEN-03 | L | — |
@@ -110,7 +110,7 @@ The team is currently the owner plus the AI agent, so the "2 reviewers" rule for
 
 1. The agent completes the **senior self-review checklist** ([§25](../../00-llm/llm_guidelines.md#25-senior-self-review-checklist-before-saying-done)) and, for `Tenancy`, `Identity`, `Trust`, `Billing`, `Sync` and CI security settings, a **separate security review pass** documented in the PR.
 2. All required checks are green.
-3. **Merges go through `tools/ci/merge_guard.py <pr>` only** (never a hand-written `gh pr merge`): it waits for checks, refuses if any required check is missing or not green, refuses sensitive PRs without `--owner-approved`, then squash-merges. Reason: PR #7 was merged with a red `security` check by a hand-written command (2026-10-22). Branch protection would enforce this server-side but needs **GitHub Pro** on a private repository.
+3. **Merges go through `tools/ci/merge_guard.py <pr>` only** (permanent: no paid GitHub plan) (never a hand-written `gh pr merge`): it waits for checks, refuses if any required check is missing or not green, refuses sensitive PRs without `--owner-approved`, then squash-merges. Reason: PR #7 was merged with a red `security` check by a hand-written command (2026-10-22). Branch protection would enforce this server-side but needs a paid plan on a private repository; the owner decided not to pay (2026-10-22), so the guard is the permanent control.
 4. **Merge rule (owner decision, 2026-10-22):** the agent squash-merges **normal PRs** itself once every required check is green. PRs touching **`Tenancy`, `Identity`, `Trust` (ledger/signatures), `Billing`, `Sync`, ledger migrations or CI/CD security settings** wait for the owner's explicit approval.
 
 ### 2.4 End of a sub-phase
@@ -120,7 +120,7 @@ A sub-phase is ✅ only when **all** of these are true:
 - [ ] Every listed story's ACs are implemented and each AC maps to ≥ 1 passing test (or the card explicitly defers an AC to a later sub-phase).
 - [ ] The card's test cases pass locally **and** in GitHub Actions on `main`.
 - [ ] [Definition of Done](../../00-llm/llm_guidelines.md#24-definition-of-done-copy-paste-checklist) satisfied for each story (N/A items noted).
-- [ ] Docs updated: ADRs, `docs/api/` (OpenAPI), runbooks, test plan rows, [§7.5 commands](../../00-llm/llm_guidelines.md#75-running-tests-locally-expected-commands-keep-in-sync-with-the-real-repo) if they changed; link checker reports 0 broken links.
+- [ ] **Docs sweep done** ([guidelines §19](../../00-llm/llm_guidelines.md#19-documentation-policy)): every doc the change made stale is fixed (grep for obsolete names). Docs updated: ADRs, `docs/api/` (OpenAPI), runbooks, test plan rows, [§7.5 commands](../../00-llm/llm_guidelines.md#75-running-tests-locally-expected-commands-keep-in-sync-with-the-real-repo) if they changed; link checker reports 0 broken links.
 - [ ] [Tracker](tracker.md) updated (status, evidence, CI run IDs) and [`llm_hands_off.md`](../../00-llm/llm_hands_off.md) session log and next steps updated.
 - [ ] Short **sub-phase report** to the owner: what was built, test results, problems found, what is next, and owner inputs needed.
 
@@ -188,8 +188,8 @@ A sub-phase is ✅ only when **all** of these are true:
 
 - **Stories:** US-P1-PLT-03 (AC1–AC3). AC1 items that need code from later sub-phases (OpenAPI diff, tenant-isolation job, integration tests) are added as **jobs that run and pass on an empty set**, then fill up as code arrives.
 - **Depends on:** P1.1.
-- **Owner inputs:** approve enabling **branch protection** on `main` (the agent configures it with `gh api`; the owner confirms). Confirm whether Renovate (GitHub App) may be installed.
-- **What gets built** (target structure: [guidelines §9.1](../../00-llm/llm_guidelines.md#91-pipeline-structure-target-created-in-phase-1-us-p1-plt-0304)):
+- **Owner inputs:** ~~enable branch protection~~ (approved, but GitHub requires a paid plan for private repositories and the owner decided not to pay, 2026-10-22: `tools/ci/merge_guard.py` enforces the same rules client-side). Confirm whether Renovate (GitHub App) may be installed.
+- **What gets built** (target structure: [guidelines §9.1](../../00-llm/llm_guidelines.md#91-pipeline-structure-built-in-p11p12-us-p1-plt-03)):
   - `.github/workflows/ci.yml`, with jobs:
     - `backend`: restore `--locked-mode`, `dotnet format --verify-no-changes`, build `-warnaserror`, unit + integration tests (Testcontainers), TRX via `--report-xunit-trx`, coverage.
     - `frontend`: `pnpm install --frozen-lockfile`, lint, typecheck, Vitest.
@@ -200,7 +200,7 @@ A sub-phase is ✅ only when **all** of these are true:
   - Coverage gate: **≥ 80 % lines on `*.Domain` projects**; PR fails if it drops below.
   - `nightly.yml` skeleton (mutation tests with Stryker.NET on math/trust modules from P1.6/P1.12, full isolation suite, dependency audit).
   - All actions pinned by full SHA with version comments; least-privilege `permissions`; caching keyed on lockfiles; `concurrency` groups; test summary in the job summary.
-  - Repository governance: branch protection with required checks (`ci / backend`, `ci / frontend`, `ci / architecture`, `ci / security`, `docs`), PR template `.github/pull_request_template.md` (from [§26.3](../../00-llm/llm_guidelines.md#263-pull-request-description)), issue templates (bug [§26.5](../../00-llm/llm_guidelines.md#265-bug-report), story), Renovate config (grouped updates, pinned digests), `SECURITY.md`.
+  - Repository governance: merge guard with required checks (branch protection unavailable, see above) (`ci / backend`, `ci / frontend`, `ci / architecture`, `ci / security`, `docs`), PR template `.github/pull_request_template.md` (from [§26.3](../../00-llm/llm_guidelines.md#263-pull-request-description)), issue templates (bug [§26.5](../../00-llm/llm_guidelines.md#265-bug-report), story), Renovate config (grouped updates, pinned digests), `SECURITY.md`.
 - **Tests:**
 
   | Test | What it proves |
@@ -211,7 +211,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | Duration | PR pipeline p50 < 12 min (measured over the first 10 runs, recorded in the tracker) |
 
   These are demonstrated with throwaway PRs that are then closed (evidence: run IDs in the tracker).
-- **Done when:** branch protection active; all required checks run on PRs; the three negative demos above are recorded; `docs/00-llm/llm_guidelines.md` §7.5 and §9 match the real commands.
+- **Done when:** merge guard in place (branch protection unavailable); all required checks run on PRs; the three negative demos above are recorded; `docs/00-llm/llm_guidelines.md` §7.5 and §9 match the real commands.
 
 ---
 

@@ -46,7 +46,7 @@ last_updated: 2026-10-21
 | **IaC** | OpenTofu (Terraform-compatible) + Helm | Reproducible environments | Pulumi |
 | **CI/CD** | GitHub Actions, Renovate, trunk-based development, environment promotion | — | GitLab CI |
 | **Observability** | OpenTelemetry SDKs → Grafana (Prometheus/Mimir, Loki, Tempo), Sentry for client errors | Vendor-neutral, full traces from tablet to DB | Datadog (cost) |
-| **Quality** | xUnit v3 (Microsoft Testing Platform), FsCheck / CsCheck (property-based), Testcontainers, ArchUnitNET, AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
+| **Quality** | xUnit v3 (Microsoft Testing Platform), CsCheck (property-based), Testcontainers, project-graph architecture tests (ArchUnitNET type rules from P1.5), AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
 | **Security tooling** | gitleaks (secrets), Trivy (dependencies, misconfiguration), Semgrep CE (SAST), Roslyn CA analyzers, OWASP ZAP (DAST, P1.18), Renovate ([ADR-0021](../adr/0021-security-scanning-private-repo.md)) | Free and licence-compatible for a private repository | CodeQL / GitHub Code Security (paid on private repos; revisit with first customers), Snyk |
 
 > Exact library versions are pinned in lock files ([ADR-0002](../adr/0002-dotnet-10-lts.md), [ADR-0020](../adr/0020-frontend-toolchain-versions.md)) and upgraded monthly via Renovate. The reference versions below were verified at the start of Phase 1.
@@ -113,5 +113,5 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 ## 7.2 Why a modular monolith (not microservices)
 
 - A team of 5–7 cannot operate 10+ services well; distributed transactions would complicate the **signed, append-only** guarantees.
-- Bounded contexts are enforced by **project references + ArchUnitNET tests**, and communicate via **domain events** through the outbox — so extraction later is mechanical.
+- Bounded contexts are enforced by **project references + architecture tests** (`tests/Karry.ArchitectureTests`, on the project graph; type-level rules from P1.5), and communicate via **domain events** through the outbox — so extraction later is mechanical.
 - Expected first extractions (only if metrics justify): **Telemetry Ingestion** (high write volume), **AI Gateway** (independent scaling / provider keys), **Analytics sidecar** (already separate, Python).
