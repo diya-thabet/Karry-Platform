@@ -1,0 +1,17 @@
+<Project>
+  <!-- Central package versions. Verified versions: docs/02-architecture/technology-stack.md §7.1.1. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Runtime -->
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <!-- Testing -->
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+    <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="10.0.13" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.16.0" />
+  </ItemGroup>
+</Project>

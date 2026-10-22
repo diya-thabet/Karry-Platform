@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- ASP.NET Core composition root: wires modules, middleware and health checks. -->
+  <ItemGroup>
+    <PackageReference Include="Npgsql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

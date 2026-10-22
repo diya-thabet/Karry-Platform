@@ -172,6 +172,8 @@ A sub-phase is ✅ only when **all** of these are true:
   | TC-P1-PLT-001 | Adding a forbidden cross-module reference fails the architecture tests (pipeline test, completed in P1.2) |
   | TC-P1-PLT-003 *(new)* | `dotnet new karry-module -n Sample` output builds and its sample test passes; template output contains the 5 projects with the right references |
   | TC-P1-PLT-004 *(new)* | `docker compose up` brings every service to healthy; all 4 PostgreSQL extensions can be created; on the S3 store, deleting/overwriting an object locked in compliance mode or shortening its retention **fails** |
+  | TC-P1-PLT-012 *(new)* | `/health/live` and `/health/ready` behave correctly with no, unreachable and reachable database; no infrastructure detail leaks |
+  | TC-P1-PLT-013 *(new)* | Module contract: services registered, duplicate names rejected, endpoints mapped under `/api/v1/{module}` |
   | Smoke | Host `/health/ready` returns 200 against the local stack; portal and field dev servers build |
 
 - **CI changes:** none yet (pipeline in P1.2); the existing `docs.yml` and `spikes.yml` stay green.
@@ -785,3 +787,5 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-OFF-006 | P1.7 | Accessibility | axe over all Storybook stories and themes | 0 serious/critical |
 | TC-P1-OFF-007 | P1.7 | Unit/E2E | i18n keys and pseudo-localization | No missing keys; no hard-coded text |
 | TC-P1-OFF-008 | P1.15 | E2E | Non-extractable key; re-enrollment after clearing site data | Old key rejected; new enrollment works |
+| TC-P1-PLT-012 | P1.1 | Integration | Health endpoints | live 200 without DB; ready 503 if DB missing/unreachable (no details leaked), 200 when DB answers |
+| TC-P1-PLT-013 | P1.1 | Unit | Module registration | All module services registered; duplicate names rejected; endpoints under `/api/v1/{module}` |

@@ -1,0 +1,6 @@
+<Project>
+  <!-- Spikes are frozen Phase 0 evidence and pin versions inline; opt out of the root central package management. -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+</Project>
