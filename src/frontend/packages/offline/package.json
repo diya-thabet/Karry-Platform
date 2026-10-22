@@ -1,0 +1,16 @@
+{
+  "name": "@karry/offline",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Dexie schema, outbox and sync client (P1.15).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

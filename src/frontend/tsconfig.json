@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.base.json",
+  "include": ["eslint.config.js"],
+  "compilerOptions": { "allowJs": true, "checkJs": false, "types": ["node"] }
+}

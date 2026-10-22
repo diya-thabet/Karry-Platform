@@ -1,0 +1,16 @@
+{
+  "name": "@karry/i18n",
+  "private": true,
+  "version": "0.0.0",
+  "description": "FR/EN message catalogs and i18next setup (P1.7).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}

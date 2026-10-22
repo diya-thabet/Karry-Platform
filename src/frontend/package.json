@@ -1,0 +1,25 @@
+{
+  "name": "karry-frontend",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": ">=24.15.0 <25"
+  },
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "pnpm -r run typecheck",
+    "test": "pnpm -r --if-present run test",
+    "build": "pnpm -r --if-present run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "catalog:",
+    "@types/node": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-hooks": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:",
+    "globals": "catalog:",
+    "typescript": "catalog:",
+    "typescript-eslint": "catalog:"
+  }
+}

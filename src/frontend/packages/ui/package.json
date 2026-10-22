@@ -1,0 +1,16 @@
+{
+  "name": "@karry/ui",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Design system: tokens, themes (light, dark, outdoor) and components (P1.7).",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "catalog:"
+  }
+}
