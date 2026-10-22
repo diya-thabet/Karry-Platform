@@ -30,6 +30,7 @@ for layer in "${expected[@]}"; do
 done
 count="$(find "$target" -name '*.csproj' | wc -l)"
 [[ "$count" -eq ${#expected[@]} ]] || { echo "FAIL: expected ${#expected[@]} projects, found $count" >&2; exit 1; }
+[[ ! -e "$target/README.md" ]] || { echo "FAIL: template documentation copied into the module" >&2; exit 1; }
 grep -q '"templatecheck"' "$target/Karry.Modules.$name.Api/${name}Module.cs" || { echo "FAIL: route name not lower-cased" >&2; exit 1; }
 
 dotnet restore Karry.slnx >/dev/null
