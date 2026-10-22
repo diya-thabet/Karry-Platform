@@ -55,11 +55,16 @@ shorter="$(date -u -d '+1 hour' +%Y-%m-%dT%H:%M:%SZ)"
 check "s3 create bucket with Object Lock" aws s3api create-bucket --bucket "$bucket" --object-lock-enabled-for-bucket
 version_id="$(aws s3api put-object --bucket "$bucket" --key chain-head.json --body /etc/hostname \
   --object-lock-mode COMPLIANCE --object-lock-retain-until-date "$retain_until" --query VersionId --output text || true)"
-if [[ -n "$version_id" && "$version_id" != "None" ]]; then pass "s3 put object under COMPLIANCE retention"; else fail "s3 put object under COMPLIANCE retention"; fi
-refused "s3 delete of a locked version is refused" aws s3api delete-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
-refused "s3 shortening COMPLIANCE retention is refused" aws s3api put-object-retention --bucket "$bucket" --key chain-head.json --version-id "$version_id" \
-  --retention "Mode=COMPLIANCE,RetainUntilDate=$shorter"
-check "s3 locked version still readable" aws s3api head-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
+if [[ -n "$version_id" && "$version_id" != "None" ]]; then
+  pass "s3 put object under COMPLIANCE retention"
+  refused "s3 delete of a locked version is refused" aws s3api delete-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
+  refused "s3 shortening COMPLIANCE retention is refused" aws s3api put-object-retention --bucket "$bucket" --key chain-head.json --version-id "$version_id" \
+    --retention "Mode=COMPLIANCE,RetainUntilDate=$shorter"
+  check "s3 locked version still readable" aws s3api head-object --bucket "$bucket" --key chain-head.json --version-id "$version_id"
+else
+  # Without a locked version the lock checks below would pass vacuously, so they are not run.
+  fail "s3 put object under COMPLIANCE retention (lock checks not run)"
+fi
 
 # Karry.Host readiness against the real stack (Development settings point at this stack).
 if [[ "${SKIP_HOST:-0}" != "1" ]]; then
