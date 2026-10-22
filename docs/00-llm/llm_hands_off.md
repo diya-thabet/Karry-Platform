@@ -131,7 +131,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Owner's environment:** Fedora Linux (kernel 7.x), bash, repo at `~/Desktop/Karry-Platform`. Git user `diya-thabet`.
 - **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in [Glossary (EN / FR) §27](../03-domain/glossary.md) up to date.
 - **Owner preference:** wants very detailed, "very pro", enterprise-grade outputs and firm architect opinions with reasoning, not neutral option lists.
-- **Git push from the agent fails**: HTTPS remote, no stored credentials, `gh` not installed, no SSH key (as of 2026-10-21). Ask the owner to push or to set up `gh auth login` / an SSH key.
+- **Git push works** (since 2026-10-22): owner ran `gh auth login` + `gh auth setup-git`; `gh` (`/usr/bin/gh`) is logged in as `diya-thabet` with `repo` + `workflow` scopes. Use `gh run list/watch/view --log-failed` to check CI after every push. Never force-push without the owner's explicit approval.
 - **No product code exists yet** (only Phase 0 spikes in `spikes/`). CI exists for docs (`.github/workflows/docs.yml`) and spikes (`spikes.yml`) only.
 - **.NET SDK** is installed per-user at `~/.dotnet` (10.0.402), **not on PATH**: call `~/.dotnet/dotnet`. Set `DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1`.
 - **IPv6 is broken on the owner's network**: NuGet restore hangs forever. Always set `DOTNET_SYSTEM_NET_DISABLEIPV6=1` for dotnet restore/build. (curl -4 works; curl -6 times out.)
@@ -139,7 +139,10 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **.NET 10 + xunit v3**: `dotnet test` requires the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`), and the syntax is `dotnet test --solution X.slnx`. Do not add `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`. Add `<Using Include="Xunit" />`.
 - **Playwright on Fedora** uses the "ubuntu24.04 fallback build" of Chromium, which works. `context.setOffline(true)` does **not** block `context.route` handlers, so fake servers must model outages themselves.
 - **Never `pkill -f <pattern>`** with a pattern that also appears in your own command line: it kills your own shell (exit 144).
-- **GitHub Actions:** CI must be created in Phase 1 (`US-P1-PLT-03`). Until then, only docs exist. When creating it, pin third-party actions by commit SHA (see guidelines §9).
+- **GitHub Actions:** full product CI is created in Phase 1 (`US-P1-PLT-03`); `docs.yml` and `spikes.yml` exist now. Pin third-party actions by commit SHA (see guidelines §9).
+- **xunit v3 TRX reports:** use `--report-xunit-trx`, **not** `--report-trx` (that needs the `Microsoft.Testing.Extensions.TrxReport` package; without it MTP exits with code 5, "Zero tests ran", "Handshake failures"). Always run the exact CI command locally before pushing.
+- **pnpm lockfile:** after editing `package.json` versions, run `pnpm install` and commit `pnpm-lock.yaml`; CI uses `--frozen-lockfile` and fails on any specifier mismatch (e.g. `^26.6.5` vs `26.6.5`). Verify with `CI=true pnpm install --frozen-lockfile`.
+- **Path-filtered workflows may not trigger on a force-push**; both workflows have `workflow_dispatch`, so run `gh workflow run <file> --ref main`.
 - **Versions:** always pin exact versions at the time of implementation and verify they are current and supported. Do not trust remembered version numbers without checking (release notes, `dotnet --list-sdks`, `npm view <pkg> version`).
 - **Mermaid on GitHub:** see §4.2. Gantt charts render, but keep task IDs simple (`p0`, `p1`).
 - **Large docs:** when writing very long Markdown, write in sections/appends and re-verify line count and anchors afterwards.
