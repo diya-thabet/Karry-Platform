@@ -110,7 +110,8 @@ The team is currently the owner plus the AI agent, so the "2 reviewers" rule for
 
 1. The agent completes the **senior self-review checklist** ([§25](../../00-llm/llm_guidelines.md#25-senior-self-review-checklist-before-saying-done)) and, for `Tenancy`, `Identity`, `Trust`, `Billing`, `Sync` and CI security settings, a **separate security review pass** documented in the PR.
 2. All required checks are green.
-3. **Merge rule (owner decision, 2026-10-22):** the agent squash-merges **normal PRs** itself once every required check is green. PRs touching **`Tenancy`, `Identity`, `Trust` (ledger/signatures), `Billing`, `Sync`, ledger migrations or CI/CD security settings** wait for the owner's explicit approval.
+3. **Merges go through `tools/ci/merge_guard.py <pr>` only** (never a hand-written `gh pr merge`): it waits for checks, refuses if any required check is missing or not green, refuses sensitive PRs without `--owner-approved`, then squash-merges. Reason: PR #7 was merged with a red `security` check by a hand-written command (2026-10-22). Branch protection would enforce this server-side but needs **GitHub Pro** on a private repository.
+4. **Merge rule (owner decision, 2026-10-22):** the agent squash-merges **normal PRs** itself once every required check is green. PRs touching **`Tenancy`, `Identity`, `Trust` (ledger/signatures), `Billing`, `Sync`, ledger migrations or CI/CD security settings** wait for the owner's explicit approval.
 
 ### 2.4 End of a sub-phase
 
