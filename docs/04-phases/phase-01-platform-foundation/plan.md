@@ -389,6 +389,8 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-OFF-006 | Accessibility | axe over all Storybook stories and themes (P1.7) | 0 serious/critical |
 | TC-P1-OFF-007 | Unit/E2E | i18n keys and pseudo-localization (P1.7) | No missing keys; no hard-coded text |
 | TC-P1-OFF-008 | E2E | Non-extractable key; re-enrollment after clearing site data (P1.15) | Old key rejected; new enrollment works |
+| TC-P1-PLT-012 | Integration | Health endpoints (P1.1) | `/health/live` 200 without DB; `/health/ready` 503 when DB missing/unreachable (body reveals nothing), 200 when DB answers |
+| TC-P1-PLT-013 | Unit | Module registration (P1.1) | Services of every module registered; duplicate module names rejected; endpoints mapped under `/api/v1/{module}` only |
 
 **Non-functional tests:** load test baseline (k6) for auth + reference data pull: 500 concurrent devices pulling deltas; DB failover test on managed PostgreSQL; backup restore drill #1.
 

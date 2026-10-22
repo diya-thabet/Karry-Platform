@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk.Worker">
+  <!-- Background host: outbox dispatcher and scheduled jobs (ADR-0018). Empty until P1.3. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

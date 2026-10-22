@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/backend/Karry.SharedKernel/Karry.SharedKernel.csproj" />
+    <Project Path="src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+    <Project Path="src/backend/Karry.Host/Karry.Host.csproj" />
+    <Project Path="src/backend/Karry.Workers/Karry.Workers.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Karry.BuildingBlocks.UnitTests/Karry.BuildingBlocks.UnitTests.csproj" />
+    <Project Path="tests/Karry.Host.IntegrationTests/Karry.Host.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
