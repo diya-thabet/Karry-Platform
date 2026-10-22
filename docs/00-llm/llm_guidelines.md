@@ -307,10 +307,13 @@ Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is wort
 # Backend
 dotnet build --configuration Release -warnaserror
 dotnet test --solution Karry.slnx --configuration Release   # Microsoft Testing Platform runner (global.json "test.runner")
-# Frontend
+# Frontend (workspace root: src/frontend; Node 24 from .nvmrc, pnpm via Corepack)
+cd src/frontend
 pnpm install --frozen-lockfile
-pnpm -r lint && pnpm -r typecheck && pnpm -r test
-pnpm --filter field e2e        # Playwright
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm --filter @karry/field e2e   # Playwright (from P1.15)
+# Module template (TC-P1-PLT-003)
+tools/templates/test-template.sh
 # Python sidecar
 uv sync --frozen && uv run ruff check . && uv run mypy . && uv run pytest
 # Workflows & IaC
