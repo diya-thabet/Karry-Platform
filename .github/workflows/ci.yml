@@ -166,6 +166,8 @@ jobs:
         run: pnpm test
       - name: FR/EN catalogs complete and every key exists (TC-P1-OFF-007)
         run: pnpm --filter @karry/i18n check:catalogs
+      - name: API client is generated from the committed contract (src/backend/Karry.Host/openapi/v1.json)
+        run: pnpm --filter @karry/api-client check:generated
       - name: Chromium for the accessibility tests
         run: pnpm --filter @karry/ui exec playwright install --with-deps chromium
       - name: Accessibility of every story in every theme (TC-P1-OFF-006, axe-core in Chromium)

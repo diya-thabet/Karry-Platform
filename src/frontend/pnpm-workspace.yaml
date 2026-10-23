@@ -62,8 +62,17 @@ catalog:
   "@tanstack/react-router": 1.170.45
   "@tanstack/react-query": 5.104.3
   "@sentry/react": 11.8.0
+  # Typed API client (P1.7)
+  openapi-typescript: 7.13.0
+  openapi-fetch: 0.17.0
 
 # Dependency install scripts are blocked by default (pnpm 12). Each decision is explicit and reviewed:
 allowBuilds:
   # The binary comes from the platform package @esbuild/<os>-<arch>; the postinstall only re-checks it.
   esbuild: false
+
+# Reviewed peer-dependency exceptions:
+peerDependencyRules:
+  allowedVersions:
+    # openapi-typescript 7.13 (newest stable) declares typescript ^5; its output is type-checked under our TS 6 in CI.
+    openapi-typescript>typescript: "6"
