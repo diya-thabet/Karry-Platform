@@ -2,6 +2,20 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "Quartz.Extensions.Hosting": {
+        "type": "Direct",
+        "requested": "[4.5.1, )",
+        "resolved": "4.5.1",
+        "contentHash": "A5werfxoXtoOtJPoafogL5WOPVZ3YEGVrIf+JlEJAGfS77xrMlxc0FyFlS3hQEB9mfobXiOJIHpl9ox89ruS2g==",
+        "dependencies": {
+          "Quartz": "4.5.1"
+        }
+      },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.102.11",
+        "contentHash": "K9PP9/qHQ7pqSB0lYwStJrpXQ8P1xc7Fbn3CyPg8EX78p4+yz8dhIiwiRc3aVbVrUZxmPAPRvmZm+ey1euIXGg=="
+      },
       "Microsoft.Bcl.Cryptography": {
         "type": "Transitive",
         "resolved": "10.0.2",
@@ -93,6 +107,22 @@
           "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.0",
           "Microsoft.Extensions.Options": "10.0.0"
         }
+      },
+      "Microsoft.Extensions.Diagnostics.HealthChecks": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "4x6y2Uy+g9Ou93eBCVkG/3JCwnc2AMKhrE1iuEhXT/MzNN7co/Zt6yL+q1Srt0CnOe3iLX+sVqpJI4ZGlOPfug==",
+        "dependencies": {
+          "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions": "10.0.0",
+          "Microsoft.Extensions.Hosting.Abstractions": "10.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
+          "Microsoft.Extensions.Options": "10.0.0"
+        }
+      },
+      "Microsoft.Extensions.Diagnostics.HealthChecks.Abstractions": {
+        "type": "Transitive",
+        "resolved": "10.0.0",
+        "contentHash": "jAhZbzDa117otUBMuQQ6JzSfuDbBBrfOs5jw5l7l9hKpzt+LjYKVjSauXG2yV9u7BqUSLUtKLwcerDQDeQ+0Xw=="
       },
       "Microsoft.Extensions.FileProviders.Abstractions": {
         "type": "Transitive",
@@ -246,6 +276,19 @@
           "OpenTelemetry.Api": "1.20.0"
         }
       },
+      "Quartz": {
+        "type": "Transitive",
+        "resolved": "4.5.1",
+        "contentHash": "vexFR5Z/Sbu0um75NOhjhinOEB4Acb/HAK6Q90EpGV44/YBxfchatXWoKJDOtYu8UtodBm6rs5GVtfM7TfUmsg==",
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Binder": "10.0.0",
+          "Microsoft.Extensions.DependencyInjection": "10.0.0",
+          "Microsoft.Extensions.Diagnostics.HealthChecks": "10.0.0",
+          "Microsoft.Extensions.Hosting.Abstractions": "10.0.0",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0",
+          "Microsoft.Extensions.Options.ConfigurationExtensions": "10.0.0"
+        }
+      },
       "System.IdentityModel.Tokens.Jwt": {
         "type": "Transitive",
         "resolved": "8.19.2",
@@ -273,8 +316,71 @@
           "OpenTelemetry.Instrumentation.Runtime": "[1.20.0, )"
         }
       },
+      "karry.modules.tenancy.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Tenancy.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AWSSDK.S3": "[4.0.104.4, )",
+          "Karry.Modules.Trust.Application": "[1.0.0, )"
+        }
+      },
       "karry.sharedkernel": {
         "type": "Project"
+      },
+      "AWSSDK.S3": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.104.4, )",
+        "resolved": "4.0.104.4",
+        "contentHash": "Qi+NicEv1md8Vxm6c40zf5pRsQ9DzPm4UwewjxSk4zbHpdzAMZK8bDZJGdp4Za9/vHP8GTbSdnDuseZQ5h9tmw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.11, 5.0.0)"
+        }
       },
       "EFCore.NamingConventions": {
         "type": "CentralTransitive",

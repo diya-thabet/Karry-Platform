@@ -2,6 +2,15 @@
   "version": 2,
   "dependencies": {
     "net10.0": {
+      "AWSSDK.S3": {
+        "type": "Direct",
+        "requested": "[4.0.104.4, )",
+        "resolved": "4.0.104.4",
+        "contentHash": "Qi+NicEv1md8Vxm6c40zf5pRsQ9DzPm4UwewjxSk4zbHpdzAMZK8bDZJGdp4Za9/vHP8GTbSdnDuseZQ5h9tmw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.11, 5.0.0)"
+        }
+      },
       "Microsoft.EntityFrameworkCore.Design": {
         "type": "Direct",
         "requested": "[10.0.13, )",
@@ -21,6 +30,11 @@
           "Mono.TextTemplating": "3.0.0",
           "Newtonsoft.Json": "13.0.4"
         }
+      },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.102.11",
+        "contentHash": "K9PP9/qHQ7pqSB0lYwStJrpXQ8P1xc7Fbn3CyPg8EX78p4+yz8dhIiwiRc3aVbVrUZxmPAPRvmZm+ey1euIXGg=="
       },
       "Humanizer.Core": {
         "type": "Transitive",
@@ -444,10 +458,17 @@
           "OpenTelemetry.Instrumentation.Runtime": "[1.20.0, )"
         }
       },
+      "karry.modules.tenancy.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
       "karry.modules.trust.application": {
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Domain": "[1.0.0, )"
         }

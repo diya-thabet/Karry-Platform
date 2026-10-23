@@ -23,6 +23,11 @@
         "resolved": "10.0.3",
         "contentHash": "7nb5YzXuvWWJxB0J8DiyL3we+X4FOctZrt0fIBnucOIaIevFEEwGQVZKtiu9olXdlNAK1eNgqSral6r/jlhI4w=="
       },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.102.11",
+        "contentHash": "K9PP9/qHQ7pqSB0lYwStJrpXQ8P1xc7Fbn3CyPg8EX78p4+yz8dhIiwiRc3aVbVrUZxmPAPRvmZm+ey1euIXGg=="
+      },
       "Microsoft.Bcl.Cryptography": {
         "type": "Transitive",
         "resolved": "10.0.2",
@@ -182,6 +187,7 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Domain": "[1.0.0, )"
         }
@@ -201,11 +207,21 @@
       "karry.modules.trust.infrastructure": {
         "type": "Project",
         "dependencies": {
+          "AWSSDK.S3": "[4.0.104.4, )",
           "Karry.Modules.Trust.Application": "[1.0.0, )"
         }
       },
       "karry.sharedkernel": {
         "type": "Project"
+      },
+      "AWSSDK.S3": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.104.4, )",
+        "resolved": "4.0.104.4",
+        "contentHash": "Qi+NicEv1md8Vxm6c40zf5pRsQ9DzPm4UwewjxSk4zbHpdzAMZK8bDZJGdp4Za9/vHP8GTbSdnDuseZQ5h9tmw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.11, 5.0.0)"
+        }
       },
       "EFCore.NamingConventions": {
         "type": "CentralTransitive",

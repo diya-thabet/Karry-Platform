@@ -3,6 +3,7 @@
   <ItemGroup>
     <!-- `dotnet ef migrations add` only; not shipped. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="AWSSDK.S3" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Trust.Application/Karry.Modules.Trust.Application.csproj" />

@@ -22,7 +22,7 @@ from pathlib import Path
 DASHBOARDS = Path(__file__).resolve().parent / "dashboards"
 EXPECTED_ALERTS = {
     "KarryApiErrorRateHigh", "KarryApiLatencyP95High", "KarryOutboxLagHigh",
-    "KarryDatabaseCpuHigh", "KarryCertificateExpiringSoon",
+    "KarryDatabaseCpuHigh", "KarryCertificateExpiringSoon", "KarryLedgerAnchoringStale",
 }
 REQUIRED_SPAN_ATTRIBUTES = {"tenant_id", "module", "route", "user_role"}
 
@@ -105,7 +105,7 @@ def main() -> int:
         ("karry-api logs in Loki", logs_in_loki),
         ("Karry dashboards provisioned in Grafana", dashboards_provisioned),
         ("every dashboard query is valid PromQL", dashboard_queries_valid),
-        ("5 alert rules loaded and healthy", alert_rules_loaded),
+        (f"{len(EXPECTED_ALERTS)} alert rules loaded and healthy", alert_rules_loaded),
     ]
     failures = 0
     for name, probe in checks:

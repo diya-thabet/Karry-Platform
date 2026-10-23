@@ -26,6 +26,7 @@ public sealed class TrustModule : IModule
         }
 
         services.AddTrustInfrastructure(connectionString);
+        services.AddTrustAnchoring(configuration); // the verify endpoint also compares the chain with its WORM anchors
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)

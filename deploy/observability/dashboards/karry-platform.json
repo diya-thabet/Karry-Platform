@@ -1,7 +1,7 @@
 {
   "uid": "karry-platform",
   "title": "Karry \u00b7 Platform (database pool, outbox, runtime)",
-  "description": "PostgreSQL connection pool (Npgsql), outbox job lag and .NET runtime of karry-api and karry-workers. Alert: KarryOutboxLagHigh.",
+  "description": "PostgreSQL connection pool (Npgsql), outbox job lag, ledger anchoring and .NET runtime of karry-api and karry-workers. Alerts: KarryOutboxLagHigh, KarryLedgerAnchoringStale.",
   "tags": [
     "karry"
   ],
@@ -311,6 +311,70 @@
           "custom": {
             "thresholdsStyle": {
               "mode": "off"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Ledger anchoring: hours since last full success",
+      "description": "WORM anchoring of chain heads (hourly). Alert above 2 h.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 24,
+        "w": 24,
+        "h": 8
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(time() - max by (service_name) (karry_ledger_anchor_last_success_seconds)) / 3600",
+          "legendFormat": "{{service_name}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "h",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 2
+              }
+            ]
+          },
+          "custom": {
+            "thresholdsStyle": {
+              "mode": "line"
             }
           }
         },

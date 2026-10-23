@@ -5,6 +5,7 @@
 # Metric sources:
 #   http_server_request_duration_seconds_*   ASP.NET Core via OpenTelemetry (karry-api)
 #   karry_outbox_oldest_pending_age_seconds  Karry.BuildingBlocks OutboxMetrics (karry-workers)
+#   karry_ledger_anchor_last_success_seconds  Trust AnchoringMetrics (karry-workers): unix time of the last full run
 #   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
 #                                            exporter relabelled to it (wired with hosting in P1.17)
 #   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
@@ -59,6 +60,21 @@ groups:
           summary: "Outbox of module {{ $labels.module }} lags {{ $value | humanizeDuration }} (> 5 min)"
           description: "Domain events are not reaching subscribers. Check the worker logs and the 'Outbox messages by outcome' panel."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-outbox-lag-high.md"
+
+      - alert: KarryLedgerAnchoringStale
+        # No fully successful anchoring run for 2 hours (US-P1-AUD-02 AC2): a tenant's anchor failed, the job is stuck,
+        # or the worker that runs it is down (metric absent for 10 minutes: the worker anchors right at start-up).
+        expr: |
+          (time() - max by (job) (karry_ledger_anchor_last_success_seconds)) > 7200
+          or
+          absent(karry_ledger_anchor_last_success_seconds)
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "Ledger anchoring has not fully succeeded for over 2 hours"
+          description: "Chain heads are not reaching WORM storage: tampering since the last anchor would be harder to prove. Check the worker logs (event 4001)."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-ledger-anchoring-stale.md"
 
   - name: karry-infrastructure
     rules:

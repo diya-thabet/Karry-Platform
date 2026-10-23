@@ -130,6 +130,55 @@ tests:
               description: "Domain events are not reaching subscribers. Check the worker logs and the 'Outbox messages by outcome' panel."
               runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-outbox-lag-high.md"
 
+  # --- Ledger anchoring stale > 2 h -------------------------------------------------------------------------
+  - name: anchoring that last succeeded 2 h 10 min ago fires; a recent success stays quiet
+    interval: 1m
+    input_series:
+      # Last full success at t=0 (value 0 = unix time 0, the test clock's origin); the worker keeps reporting it.
+      - series: 'karry_ledger_anchor_last_success_seconds{job="karry-workers"}'
+        values: '0x200'
+    alert_rule_test:
+      - eval_time: 125m
+        alertname: KarryLedgerAnchoringStale
+        exp_alerts: []
+      - eval_time: 135m
+        alertname: KarryLedgerAnchoringStale
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: page}
+            exp_annotations:
+              summary: "Ledger anchoring has not fully succeeded for over 2 hours"
+              description: "Chain heads are not reaching WORM storage: tampering since the last anchor would be harder to prove. Check the worker logs (event 4001)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-ledger-anchoring-stale.md"
+
+  - name: hourly successful anchoring stays quiet
+    interval: 1m
+    input_series:
+      # Each hour the last-success time moves forward by 3600 s.
+      - series: 'karry_ledger_anchor_last_success_seconds{job="karry-workers"}'
+        values: '0x59 3600x59 7200x59 10800x59'
+    alert_rule_test:
+      - eval_time: 230m
+        alertname: KarryLedgerAnchoringStale
+        exp_alerts: []
+
+  - name: a worker that never reports anchoring fires after the grace period
+    interval: 1m
+    input_series:
+      - series: 'up{job="karry-workers"}'
+        values: '1x30'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: KarryLedgerAnchoringStale
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: KarryLedgerAnchoringStale
+        exp_alerts:
+          - exp_labels: {severity: page}
+            exp_annotations:
+              summary: "Ledger anchoring has not fully succeeded for over 2 hours"
+              description: "Chain heads are not reaching WORM storage: tampering since the last anchor would be harder to prove. Check the worker logs (event 4001)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-ledger-anchoring-stale.md"
+
   # --- Database CPU > 80 % for 15 min -----------------------------------------------------------------------
   - name: database CPU at 90 % fires after 15 minutes; 70 % and other hosts stay quiet
     interval: 1m

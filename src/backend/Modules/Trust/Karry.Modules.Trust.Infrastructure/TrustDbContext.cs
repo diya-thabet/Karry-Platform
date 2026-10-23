@@ -39,6 +39,22 @@ public sealed class LedgerHeadRow : ITenantOwned
     public required string LastHash { get; init; }
 }
 
+/// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
+public sealed class AnchorRow : ITenantOwned
+{
+    public TenantId TenantId { get; init; }
+
+    public long Seq { get; init; }
+
+    public required string EntryHash { get; init; }
+
+    public DateTimeOffset AnchoredAt { get; init; }
+
+    public required string ObjectKey { get; init; }
+
+    public required string KeyId { get; init; }
+}
+
 /// <summary>Schema <c>audit</c>: the per-tenant hash-chained ledger (ADR-0008).</summary>
 public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : ModuleDbContext(options)
 {
@@ -49,6 +65,8 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
     public DbSet<LedgerEntryRow> LedgerEntries => Set<LedgerEntryRow>();
 
     public DbSet<LedgerHeadRow> LedgerHeads => Set<LedgerHeadRow>();
+
+    public DbSet<AnchorRow> Anchors => Set<AnchorRow>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -69,6 +87,14 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             head.ToTable("ledger_heads");
             head.HasKey(h => h.TenantId);
             head.Property(h => h.LastHash).HasMaxLength(64).IsFixedLength();
+        });
+        modelBuilder.Entity<AnchorRow>(anchor =>
+        {
+            anchor.ToTable("anchors");
+            anchor.HasKey(a => new { a.TenantId, a.Seq });
+            anchor.Property(a => a.EntryHash).HasMaxLength(64).IsFixedLength();
+            anchor.Property(a => a.ObjectKey).HasMaxLength(100);
+            anchor.Property(a => a.KeyId).HasMaxLength(64);
         });
     }
 }

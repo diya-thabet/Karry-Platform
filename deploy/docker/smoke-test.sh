@@ -87,6 +87,21 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     if [[ "$demo" == "demo-carriere-a,demo-carriere-b" ]]; then pass "seed-demo twice: exactly the 2 demo tenants"; else fail "seed-demo (got '$demo')"; fi
     ledger="$(psql_su "SELECT string_agg(seq::text || ':' || event_type, ',') FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a'")"
     if [[ "$ledger" == "1:tenancy.tenant_provisioned.v1" ]]; then pass "audit ledger: demo tenant A opened with entry 1"; else fail "audit ledger (got '$ledger')"; fi
+
+    # WORM anchoring (US-P1-AUD-02): one run, then the verifier checks the chain against the anchor in SeaweedFS.
+    dotnet build "$root/src/backend/Karry.Workers" -c Release >/dev/null && dotnet build "$root/tools/ledger-verifier/Karry.LedgerVerifier" -c Release >/dev/null
+    if (cd "$root/src/backend/Karry.Workers/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development dotnet Karry.Workers.dll anchor-now >/dev/null); then
+      pass "Karry.Workers anchor-now: every tenant anchored"
+    else
+      fail "Karry.Workers anchor-now"
+    fi
+    tenant_a="$(psql_su "SELECT id FROM tenancy.tenants WHERE slug = 'demo-carriere-a'")"
+    verify="$(Trust__Anchoring__ServiceUrl=http://127.0.0.1:8333 Trust__Anchoring__Bucket=karry-anchors \
+      Trust__Anchoring__AccessKey=karry-local-access Trust__Anchoring__SecretKey=karry-local-secret-only-for-dev \
+      Trust__Anchoring__SigningKeyFile='~/.karry/anchor-signing-dev.pem' \
+      dotnet "$root/tools/ledger-verifier/Karry.LedgerVerifier/bin/Release/net10.0/karry-ledger.dll" verify --tenant "$tenant_a" \
+      --connection "Host=127.0.0.1;Port=5432;Database=karry;Username=karry_app;Password=${KARRY_APP_PASSWORD:-karry-local-only}" || true)"
+    if [[ "$verify" == *"OK tenant"*"1 anchors matched"* ]]; then pass "karry-ledger verify: chain intact and matches its WORM anchor"; else fail "karry-ledger verify (got '$verify')"; fi
   else
     fail "Karry.Host migrate"
   fi

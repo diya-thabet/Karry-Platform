@@ -9,6 +9,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
     <ProjectReference Include="../../../../../tools/ledger-verifier/Karry.LedgerVerifier/Karry.LedgerVerifier.csproj" />
   </ItemGroup>
