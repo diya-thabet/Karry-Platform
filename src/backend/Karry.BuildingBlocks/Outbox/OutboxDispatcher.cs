@@ -1,4 +1,6 @@
+using System.Diagnostics;
 using System.Reflection;
+using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Persistence;
 using Karry.SharedKernel.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -35,9 +37,14 @@ public sealed partial class OutboxDispatcher<TContext>(
     EventSerializer serializer,
     TimeProvider clock,
     OutboxOptions options,
+    OutboxMetrics metrics,
     ILogger<OutboxDispatcher<TContext>> logger)
     where TContext : ModuleDbContext
 {
+    private const string Processed = "processed";
+    private const string Retried = "retried";
+    private const string DeadLettered = "dead_lettered";
+
     private static readonly MethodInfo HandleTypedMethod =
         typeof(OutboxDispatcher<TContext>).GetMethod(nameof(HandleTypedAsync), BindingFlags.NonPublic | BindingFlags.Static)!;
 
@@ -67,6 +74,10 @@ public sealed partial class OutboxDispatcher<TContext>(
             return false;
         }
 
+        using var activity = OutboxMetrics.ActivitySource.StartActivity("outbox dispatch", ActivityKind.Consumer);
+        activity?.SetTag(TelemetryAttributes.Module, db.Schema);
+        activity?.SetTag(TelemetryAttributes.EventType, message.Type);
+
         var domainEvent = serializer.Deserialize(message.Type, message.Payload);
         if (domainEvent is null)
         {
@@ -76,6 +87,8 @@ public sealed partial class OutboxDispatcher<TContext>(
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             LogDeadLettered(logger, message.Id, message.Type, message.LastError);
+            metrics.Record(db.Schema, DeadLettered);
+            activity?.SetStatus(ActivityStatusCode.Error, "unknown event type");
             return true;
         }
 
@@ -89,14 +102,32 @@ public sealed partial class OutboxDispatcher<TContext>(
             message.ProcessedAt = now;
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            metrics.Record(db.Schema, Processed);
             return true;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
+            activity?.SetStatus(ActivityStatusCode.Error);
+            activity?.SetTag("exception.type", ex.GetType().FullName);
             await transaction.RollbackAsync(CancellationToken.None).ConfigureAwait(false);
-            await RecordFailureAsync(message.Id, ex, now, cancellationToken).ConfigureAwait(false);
+            await RecordFailureAsync(db.Schema, message.Id, ex, now, cancellationToken).ConfigureAwait(false);
             return true;
         }
+    }
+
+    /// <summary>
+    /// Publishes the age of the oldest pending message (gauge <c>karry.outbox.oldest_pending_age</c>). Called by the
+    /// dispatcher loop on every pass, so a stuck or failing subscriber shows up as growing lag.
+    /// </summary>
+    public async Task MeasureBacklogAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<TContext>();
+        var oldest = await db.OutboxMessages
+            .Where(m => m.ProcessedAt == null && m.DeadLetteredAt == null)
+            .MinAsync(m => (DateTimeOffset?)m.OccurredAt, cancellationToken)
+            .ConfigureAwait(false);
+        metrics.SetOldestPendingAge(db.Schema, oldest is null ? TimeSpan.Zero : clock.GetUtcNow() - oldest.Value);
     }
 
     private static async Task<OutboxMessage?> ClaimNextAsync(TContext db, DateTimeOffset now, CancellationToken cancellationToken)
@@ -142,7 +173,7 @@ public sealed partial class OutboxDispatcher<TContext>(
         }
     }
 
-    private async Task RecordFailureAsync(Guid messageId, Exception exception, DateTimeOffset now, CancellationToken cancellationToken)
+    private async Task RecordFailureAsync(string module, Guid messageId, Exception exception, DateTimeOffset now, CancellationToken cancellationToken)
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<TContext>();
@@ -162,6 +193,7 @@ public sealed partial class OutboxDispatcher<TContext>(
         }
 
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+        metrics.Record(module, message.DeadLetteredAt is null ? Retried : DeadLettered);
     }
 
     private static string Truncate(string value, int length) => value.Length <= length ? value : value[..length];

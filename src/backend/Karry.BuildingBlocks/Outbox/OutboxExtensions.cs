@@ -15,6 +15,8 @@ public static class OutboxExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton(options ?? new OutboxOptions());
         services.TryAddSingleton(_ => new EventSerializer(eventAssemblies.Append(typeof(TContext).Assembly)));
+        services.AddMetrics();
+        services.TryAddSingleton<OutboxMetrics>();
         services.AddSingleton<OutboxDispatcher<TContext>>();
         return services;
     }

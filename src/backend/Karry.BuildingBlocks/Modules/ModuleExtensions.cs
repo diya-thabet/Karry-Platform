@@ -28,7 +28,7 @@ public static class ModuleExtensions
         return services;
     }
 
-    /// <summary>Maps each module's endpoints under <c>/api/v1/{module}</c>.</summary>
+    /// <summary>Maps each module's endpoints under <c>/api/v1/{module}</c>, tagged with <see cref="ModuleMetadata"/>.</summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
@@ -36,7 +36,7 @@ public static class ModuleExtensions
         var modules = endpoints.ServiceProvider.GetRequiredService<IReadOnlyList<IModule>>();
         foreach (var module in modules)
         {
-            module.MapEndpoints(endpoints.MapGroup($"/api/v1/{module.Name}"));
+            module.MapEndpoints(endpoints.MapGroup($"/api/v1/{module.Name}").WithMetadata(new ModuleMetadata(module.Name)));
         }
 
         return endpoints;

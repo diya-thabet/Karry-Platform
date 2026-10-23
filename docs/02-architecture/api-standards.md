@@ -35,6 +35,8 @@ last_updated: 2026-10-21
 | BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
 | (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
 
+**Correlation (P1.4, `Karry.BuildingBlocks/Observability`).** Every response, success or error, carries `X-Correlation-Id` (the W3C trace ID, 32 hex characters) and `traceparent`. The problem `traceId` is the same value, so the ID a user quotes from an error dialog finds the trace directly. A caller that sends `traceparent` (portal, field app) joins the same trace (TC-P1-OPS-005).
+
 Framework errors use the same shape: unknown route `route.not_found`, malformed JSON `request.invalid`, 405/415 likewise. Codes are part of the contract: never rename one; add a new code instead.
 
 **Validation:** request bodies are validated by FluentValidation before the handler (`.Validate<TRequest>()`); every request type needs a validator.

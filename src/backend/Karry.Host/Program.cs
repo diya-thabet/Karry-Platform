@@ -1,11 +1,13 @@
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Observability;
 using Karry.Host;
 using Karry.Host.Health;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Npgsql;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddKarryObservability("karry-api");
 
 var connectionString = builder.Configuration.GetConnectionString("Karry");
 if (!string.IsNullOrWhiteSpace(connectionString))
@@ -22,6 +24,7 @@ builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
 var app = builder.Build();
 
+app.UseKarryObservability();
 app.UseKarryApiConventions();
 
 // Liveness: the process is up. Readiness: dependencies are reachable.
