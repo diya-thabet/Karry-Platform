@@ -369,7 +369,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | Visual | Touch target and font-size assertions in the field theme |
 
 - **CI changes:** `ci / frontend` runs Storybook build + axe + i18n key check; api-client freshness check.
-- **Done when:** both shells run in FR/EN with all 3 themes; Storybook published as a CI artifact; checks green.
+- **Done when:** both shells run in FR/EN with all 3 themes; Storybook published as a CI artifact; checks green. *(Done 2026-10-23: built shells checked in Chromium in every theme and language; Storybook artifact `storybook` in `ci / frontend`; `build:pseudo` produces the pseudo-localized staging build.)*
 
 ---
 
