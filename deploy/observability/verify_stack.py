@@ -107,8 +107,31 @@ def main() -> int:
         ("every dashboard query is valid PromQL", dashboard_queries_valid),
         ("5 alert rules loaded and healthy", alert_rules_loaded),
     ]
-    failures = sum(not eventually(name, probe, args.timeout) for name, probe in checks)
+    failures = 0
+    for name, probe in checks:
+        if not eventually(name, probe, args.timeout):
+            failures += 1
+            diagnose(proxy, prom)
     return 1 if failures else 0
+
+
+def diagnose(proxy: str, prom) -> None:
+    """Where did telemetry stop? The collector's own metrics show what it received and failed to send."""
+    queries = {
+        "collector accepted": 'sum by (receiver) (otelcol_receiver_accepted_log_records_total)',
+        "collector refused": 'sum by (receiver) (otelcol_receiver_refused_log_records_total)',
+        "collector sent": 'sum by (exporter) (otelcol_exporter_sent_log_records_total)',
+        "collector send failed": 'sum by (exporter) (otelcol_exporter_send_failed_log_records_total)',
+    }
+    for label, query in queries.items():
+        try:
+            print(f"  diag {label}: {prom(query)['data']['result']}", file=sys.stderr)
+        except (urllib.error.URLError, KeyError, ValueError) as error:
+            print(f"  diag {label}: {error}", file=sys.stderr)
+    try:
+        print(f"  diag loki service_name values: {get(f'{proxy}/loki/loki/api/v1/label/service_name/values')}", file=sys.stderr)
+    except (urllib.error.URLError, ValueError) as error:
+        print(f"  diag loki labels: {error}", file=sys.stderr)
 
 
 if __name__ == "__main__":
