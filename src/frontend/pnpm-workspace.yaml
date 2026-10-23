@@ -35,3 +35,8 @@ catalog:
   eslint-plugin-react-hooks: 7.1.1
   eslint-plugin-react-refresh: 0.5.7
   globals: 17.13.0
+  # i18n (P1.7): newest versions published >= 7 days before 2026-10-23
+  i18next: 26.4.7
+  react-i18next: 17.0.20
+  i18next-icu: 2.5.0
+  intl-messageformat: 12.1.3
