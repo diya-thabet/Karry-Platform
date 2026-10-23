@@ -79,7 +79,7 @@ last_updated: 2026-10-21
 | Property-based | Dev | FsCheck / fast-check | PR |
 | Mutation (math, trust) | Dev | Stryker.NET | Nightly, threshold ≥ 70 % |
 | Integration | Dev | Testcontainers (Postgres+PostGIS+Timescale, Keycloak, SeaweedFS S3) | PR |
-| Architecture | Dev | `tests/Karry.ArchitectureTests` (project graph; ArchUnitNET type rules from P1.5) + module template check | PR |
+| Architecture | Dev | `tests/Karry.ArchitectureTests` (project graph; type-level rules on the compiled assemblies (P1.5, plain reflection: stable unique event names, no public setters on aggregates, tenant never re-assignable, domain assemblies load no infrastructure)) + module template check | PR |
 | Contract | Dev | OpenAPI diff | PR |
 | Tenant isolation | QA/Dev | Generated suite | PR + nightly |
 | E2E web | QA | Playwright | Main branch |

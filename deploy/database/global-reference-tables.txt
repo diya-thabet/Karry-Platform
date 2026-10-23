@@ -1,0 +1,14 @@
+# Tables WITHOUT the standard tenant row-level security (US-P1-TEN-02 AC5). Every other table in a Karry schema must
+# have `tenant_id uuid NOT NULL`, RLS ENABLE + FORCE and the `tenant_isolation` policy (EnableTenantRls).
+# Checked against the migrated database by the migration linter (TC-P1-TEN-004); a stale entry also fails.
+#
+# Format: schema.table | kind | reason        (schema `*` = every module schema)
+#   global         no tenant_id, no RLS: platform or reference data that holds no tenant's business data
+#   platform-rows  nullable tenant_id + RLS that also admits no-tenant rows (EnableTenantRls allowPlatformRows)
+#
+# Adding a line is a security decision: say why the table cannot leak one tenant's data to another.
+
+*.outbox_messages      | global        | Dispatcher infrastructure: read only by the worker, never exposed by an API; each row carries tenant_id and subscribers run in that tenant
+*.processed_messages   | global        | Dispatcher de-duplication (message id + handler name), no business data
+tenancy.tenants        | global        | Tenant catalog: slug and name only, needed before a tenant is known (address check, login branding, provisioning)
+platform.idempotency_records | platform-rows | Stored responses of operator requests have no tenant; tenant rows are isolated by RLS
