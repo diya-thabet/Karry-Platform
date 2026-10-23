@@ -1,5 +1,10 @@
 using Karry.BuildingBlocks.Modules;
+using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,7 +22,7 @@ public sealed class TrustModule : IModule
         var connectionString = configuration.GetConnectionString("Karry");
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            return; // host without a database (some host tests)
+            return; // host without a database (some host tests): endpoints still map ([FromServices])
         }
 
         services.AddTrustInfrastructure(connectionString);
@@ -25,6 +30,13 @@ public sealed class TrustModule : IModule
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Verification endpoint: P1.6 slice 3.
+        // Integrity check of the caller's tenant ledger (US-P1-AUD-03). Restricted to admins/auditors with roles (P1.9).
+        endpoints.MapPost("/verify", VerifyAsync)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("VerifyLedger");
     }
+
+    private static async Task<Ok<LedgerVerificationReport>> VerifyAsync([FromServices] VerifyLedgerHandler handler, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await handler.HandleAsync(cancellationToken).ConfigureAwait(false));
 }

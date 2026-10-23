@@ -352,6 +352,12 @@
           "xunit.v3.runner.common": "[4.0.2]"
         }
       },
+      "karry-ledger": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Trust.Infrastructure": "[1.0.0, )"
+        }
+      },
       "karry.buildingblocks": {
         "type": "Project",
         "dependencies": {

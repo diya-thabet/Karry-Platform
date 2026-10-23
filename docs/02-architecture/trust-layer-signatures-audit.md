@@ -89,7 +89,9 @@ entry_hash_n = SHA-256( prev_hash_{n-1} ‖ tenant_id ‖ seq_n ‖ event_type �
 | Gap-free | Head row `audit.ledger_heads` created if missing, locked `FOR UPDATE`, entries chained, head moved; tenants in fixed order (no deadlocks) | TC-P1-AUD-001 (50 parallel writers; deterministic concurrent-append test) |
 | Append-only | Triggers reject UPDATE/DELETE (row) and TRUNCATE (statement), also for the owner; `karry_app` has INSERT/SELECT only (privileges revoked) | TC-P1-AUD-002 (each layer separately) |
 | Isolation | RLS on entries and heads (`EnableTenantRls`); the writer sets the entry's tenant for the rest of the transaction (platform work such as provisioning has none) and refuses another tenant's ledger inside a tenant's unit of work | RLS test, linter |
-| Verification core | `LedgerVerifier` recomputes payload hashes, links and entry hashes from storage and reports the first broken sequence | TC-P1-AUD-003 (8 kinds of tampering) |
+| Verification core | `LedgerVerifier` / `LedgerChainCheck` recompute payload hashes, links and entry hashes from storage (streamed) and report the first broken sequence | TC-P1-AUD-003 (8 kinds of tampering) |
+| Verifier (operators, auditors) | `karry-ledger verify --tenant <uuid> [--connection …]` (`tools/ledger-verifier`; connection also from `KARRY_LEDGER_CONNECTION`): exit 0 = intact, 1 = broken (first broken sequence and reason), 2 = usage. A read-only role suffices: RLS scopes the reads to the tenant | TC-P1-AUD-003: a row altered or deleted by a superuser (triggers disabled) is reported at its exact sequence |
+| Verifier (tenant) | `POST /api/v1/audit/verify`: the caller's own chain only (RLS); admin/auditor roles from P1.9; "Integrity check" screen in P1.16 | endpoint test; isolation suite |
 
 ## 13.4 Scale ticket rules
 
