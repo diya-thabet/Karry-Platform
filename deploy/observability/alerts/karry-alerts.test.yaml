@@ -1,0 +1,175 @@
+# Unit tests of karry-alerts.yaml (TC-P1-OPS-006): each alert fires on the condition of US-P1-OPS-02 AC1, only after
+# its duration, and stays quiet just below the threshold or on traffic it must ignore.
+# Run: promtool test rules deploy/observability/alerts/karry-alerts.test.yaml
+rule_files:
+  - karry-alerts.yaml
+
+evaluation_interval: 1m
+
+tests:
+  # --- Error rate > 2 % for 5 min ---------------------------------------------------------------------------
+  - name: error rate of 4.8 % fires after 5 minutes, not before
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="200"}'
+        values: '0+60x20'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="500"}'
+        values: '0+3x20'
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: KarryApiErrorRateHigh
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: KarryApiErrorRateHigh
+        exp_alerts:
+          - exp_labels: {job: karry-api, severity: page}
+            exp_annotations:
+              summary: "karry-api error rate 4.762% (> 2 % for 5 min)"
+              description: "More than 2 % of API requests return 5xx. Check the 'Karry · API (RED per module)' dashboard for the module."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-api-error-rate-high.md"
+
+  - name: error rate of 1.6 % stays quiet
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="200"}'
+        values: '0+60x20'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="500"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: KarryApiErrorRateHigh
+        exp_alerts: []
+
+  - name: failing health probes are not API errors
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/health/ready", http_response_status_code="503"}'
+        values: '0+12x20'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="200"}'
+        values: '0+60x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: KarryApiErrorRateHigh
+        exp_alerts: []
+
+  - name: one failure at night (low traffic) does not page
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="200"}'
+        values: '0+2x20'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="500"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: KarryApiErrorRateHigh
+        exp_alerts: []
+
+  # --- p95 > 1 s for 10 min --------------------------------------------------------------------------------
+  - name: p95 above 1 s fires after 10 minutes, not before
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/reports", le="0.5"}'
+        values: '0+6x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/reports", le="1"}'
+        values: '0+6x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/reports", le="2.5"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/reports", le="+Inf"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/reports", http_response_status_code="200"}'
+        values: '0+60x30'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: KarryApiLatencyP95High
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: KarryApiLatencyP95High
+        exp_alerts:
+          - exp_labels: {job: karry-api, severity: page}
+            exp_annotations:
+              summary: "karry-api p95 latency 2.417s (> 1 s for 10 min)"
+              description: "Requests are slow. Check the p95-by-route panel and DB command duration on the dashboards."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-api-latency-p95-high.md"
+
+  - name: fast requests and slow health probes stay quiet
+    interval: 1m
+    input_series:
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/assets", le="0.5"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/api/v1/assets", le="+Inf"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/health/ready", le="0.5"}'
+        values: '0+0x30'
+      - series: 'http_server_request_duration_seconds_bucket{job="karry-api", http_route="/health/ready", le="+Inf"}'
+        values: '0+60x30'
+      - series: 'http_server_request_duration_seconds_count{job="karry-api", http_route="/api/v1/assets", http_response_status_code="200"}'
+        values: '0+60x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: KarryApiLatencyP95High
+        exp_alerts: []
+
+  # --- Outbox lag > 5 min -----------------------------------------------------------------------------------
+  - name: outbox lag above 5 minutes fires for that module only
+    interval: 1m
+    input_series:
+      - series: 'karry_outbox_oldest_pending_age_seconds{job="karry-workers", module="assets"}'
+        values: '0+60x12'
+      - series: 'karry_outbox_oldest_pending_age_seconds{job="karry-workers", module="fleet"}'
+        values: '30x12'
+    alert_rule_test:
+      - eval_time: 7m
+        alertname: KarryOutboxLagHigh
+        exp_alerts: []
+      - eval_time: 9m
+        alertname: KarryOutboxLagHigh
+        exp_alerts:
+          - exp_labels: {job: karry-workers, module: assets, severity: page}
+            exp_annotations:
+              summary: "Outbox of module assets lags 9m 0s (> 5 min)"
+              description: "Domain events are not reaching subscribers. Check the worker logs and the 'Outbox messages by outcome' panel."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-outbox-lag-high.md"
+
+  # --- Database CPU > 80 % for 15 min -----------------------------------------------------------------------
+  - name: database CPU at 90 % fires after 15 minutes; 70 % and other hosts stay quiet
+    interval: 1m
+    input_series:
+      - series: 'node_cpu_seconds_total{karry_role="database", instance="db-1", cpu="0", mode="idle"}'
+        values: '0+6x40'
+      - series: 'node_cpu_seconds_total{karry_role="database", instance="db-2", cpu="0", mode="idle"}'
+        values: '0+18x40'
+      - series: 'node_cpu_seconds_total{karry_role="app", instance="app-1", cpu="0", mode="idle"}'
+        values: '0+0x40'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: KarryDatabaseCpuHigh
+        exp_alerts: []
+      - eval_time: 25m
+        alertname: KarryDatabaseCpuHigh
+        exp_alerts:
+          - exp_labels: {instance: db-1, severity: page}
+            exp_annotations:
+              summary: "Database db-1 CPU 90 % (> 80 % for 15 min)"
+              description: "PostgreSQL is CPU-bound. Look for expensive queries (pg_stat_statements) before scaling."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-database-cpu-high.md"
+
+  # --- Certificate expiry < 14 days -------------------------------------------------------------------------
+  - name: certificate expiring in 10 days fires after 1 hour; 30 days stays quiet
+    interval: 1m
+    input_series:
+      - series: 'probe_ssl_earliest_cert_expiry{job="blackbox-https", instance="https://app.karry.example"}'
+        values: '864000x80'
+      - series: 'probe_ssl_earliest_cert_expiry{job="blackbox-https", instance="https://api.karry.example"}'
+        values: '2592000x80'
+    alert_rule_test:
+      - eval_time: 50m
+        alertname: KarryCertificateExpiringSoon
+        exp_alerts: []
+      - eval_time: 70m
+        alertname: KarryCertificateExpiringSoon
+        exp_alerts:
+          - exp_labels: {job: blackbox-https, instance: "https://app.karry.example", severity: ticket}
+            exp_annotations:
+              summary: "Certificate of https://app.karry.example expires in 10.0 days"
+              description: "Automatic renewal did not happen. Renew before expiry or every client (portal, field app, edge agents) fails TLS."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-certificate-expiring-soon.md"

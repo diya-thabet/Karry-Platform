@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # TC-P1-PLT-004 (+ TC-P1-PLT-012 against the real stack): start the local stack and prove every service works,
 # including S3 Object Lock in compliance mode (ADR-0017) and Karry.Host readiness.
+# P1.4: a request to Karry.Host is visible end-to-end in Grafana (trace, metrics, logs, dashboards, alert rules).
 #   SKIP_HOST=1   skip the Karry.Host readiness check (no .NET SDK available)
 #   KEEP_STACK=1  leave the stack running afterwards
 set -euo pipefail
@@ -21,6 +22,11 @@ pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1" >&2; failures=$((failures + 1)); }
 check() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$name"; else fail "$name"; fi; }
 refused() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then fail "$name (operation was allowed)"; else pass "$name"; fi; }
+
+# Loki (in lgtm) refuses log writes when its disk is more than 90 % full: say so up front.
+docker_root="$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || true)"
+disk_used="$({ df --output=pcent "${docker_root:-/}" 2>/dev/null || df --output=pcent /; } | tail -1 | tr -dc '0-9')"
+if [[ -n "$disk_used" && "$disk_used" -ge 85 ]]; then echo "WARN  Docker disk ${disk_used}% used: Loki stops accepting logs above 90 %" >&2; fi
 
 echo "Starting the local stack…"
 if ! "${compose[@]}" up -d --wait --wait-timeout 300; then
@@ -79,11 +85,21 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     sleep 1
   done
   if [[ "$ready" == "1" ]]; then pass "Karry.Host /health/ready = 200 against the stack"; else fail "Karry.Host /health/ready against the stack"; fi
+
+  # Observability end to end: the correlation ID returned to the caller is the trace ID to look up in Tempo.
+  correlation_id="$(curl -fsS -D - -o /dev/null http://127.0.0.1:5080/openapi/v1.json | tr -d '\r' | awk 'tolower($1) == "x-correlation-id:" {print $2}')"
+  if [[ "$correlation_id" =~ ^[0-9a-f]{32}$ ]]; then
+    pass "Karry.Host returns X-Correlation-Id ($correlation_id)"
+    if python3 -I "$root/deploy/observability/verify_stack.py" "$correlation_id"; then pass "request visible end to end in Grafana"; else fail "request visible end to end in Grafana"; fi
+  else
+    fail "Karry.Host returns X-Correlation-Id (got '$correlation_id')"
+  fi
 fi
 
 if [[ "$failures" -gt 0 ]]; then
   echo "TC-P1-PLT-004: $failures check(s) failed" >&2
   "${compose[@]}" logs --tail 40 s3 keycloak >&2 || true
+  "${compose[@]}" logs lgtm 2>&1 | grep -iE "error|warn|refus|reject|fail" | tail -60 >&2 || true
   exit 1
 fi
 echo "TC-P1-PLT-004 passed."

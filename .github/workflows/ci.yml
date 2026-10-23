@@ -24,10 +24,10 @@ env:
 
 jobs:
   tooling:
-    # Fast checks first: workflow lint and the tests of our own CI tools.
+    # Fast checks first: workflow lint, the tests of our own CI tools, observability as code.
     name: tooling
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - run: tools/ci/install-tool.sh actionlint
@@ -35,6 +35,19 @@ jobs:
         run: ~/.local/bin/actionlint
       - name: CI tool tests (TC-P1-PLT-005 coverage gate)
         run: python3 -m unittest discover -s tools/ci -p 'test_*.py' -v
+      - name: Dashboards as code are up to date
+        run: python3 deploy/observability/dashboards/generate.py --check
+      # promtool from the same grafana/otel-lgtm image as deploy/docker/compose.yaml (0.37.0, Prometheus 3.15.0),
+      # pinned by digest: the rules are tested by the Prometheus version that evaluates them. Upgrade both together.
+      - name: Alert rules and Prometheus config (TC-P1-OPS-006)
+        run: |
+          promtool() {
+            docker run --rm -v "$PWD/deploy/observability:/w:ro" -v "$PWD/deploy/observability/alerts:/etc/karry/alerts:ro" -w /w \
+              --entrypoint /otel-lgtm/prometheus/promtool \
+              grafana/otel-lgtm@sha256:57b5ab1ca6619beb180174e2fccce04762470750669d043f544b4726d0582d07 "$@"
+          }
+          promtool check config prometheus.yaml
+          promtool test rules alerts/karry-alerts.test.yaml
 
   backend:
     name: backend
@@ -123,9 +136,18 @@ jobs:
           cache: true
           cache-dependency-path: "**/packages.lock.json"
       - run: dotnet restore src/backend/Karry.Host --locked-mode
+      # The stack images fill the runner disk to > 90 %, where Loki refuses writes ("Ingester is shutting down").
+      # Remove preinstalled toolchains this job never uses (Android SDK, GHC, CodeQL bundles: ~10 GB).
+      - name: Free disk space for the local stack
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
       # TC-P1-PLT-004: all services healthy, extensions, roles, Keycloak, Mailpit, Valkey,
       # S3 Object Lock (compliance) and Karry.Host readiness against the stack.
       - name: Local stack smoke test (TC-P1-PLT-004)
+        env:
+          KARRY_LGTM_COMPONENT_LOGS: "true" # collector and Loki logs, printed on failure
         run: deploy/docker/smoke-test.sh
 
   security:

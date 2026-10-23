@@ -1,0 +1,86 @@
+# Karry alert rules (US-P1-OPS-02 AC1), evaluated by Prometheus. Tested by karry-alerts.test.yaml (promtool, CI).
+# Every alert has a runbook (AC3): docs/06-operations/runbooks/<runbook>.md, linked in annotations.runbook_url.
+# Severity: "page" = act now (on-call), "ticket" = act within the working day. Routing/notification: P1.17.
+#
+# Metric sources:
+#   http_server_request_duration_seconds_*   ASP.NET Core via OpenTelemetry (karry-api)
+#   karry_outbox_oldest_pending_age_seconds  Karry.BuildingBlocks OutboxMetrics (karry-workers)
+#   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
+#                                            exporter relabelled to it (wired with hosting in P1.17)
+#   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
+groups:
+  - name: karry-api
+    rules:
+      - alert: KarryApiErrorRateHigh
+        # > 2 % of requests fail with 5xx, sustained for 5 minutes. Minimum traffic (0.1 req/s) so that one failed
+        # request at night is not a "100 % error rate". Health probes excluded.
+        expr: |
+          (
+            sum by (job) (rate(http_server_request_duration_seconds_count{job="karry-api", http_route!~"/health/.*", http_response_status_code=~"5.."}[5m]))
+            /
+            sum by (job) (rate(http_server_request_duration_seconds_count{job="karry-api", http_route!~"/health/.*"}[5m]))
+          ) > 0.02
+          and
+          sum by (job) (rate(http_server_request_duration_seconds_count{job="karry-api", http_route!~"/health/.*"}[5m])) > 0.1
+        for: 5m
+        labels:
+          severity: page
+        annotations:
+          summary: "karry-api error rate {{ $value | humanizePercentage }} (> 2 % for 5 min)"
+          description: "More than 2 % of API requests return 5xx. Check the 'Karry · API (RED per module)' dashboard for the module."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-api-error-rate-high.md"
+
+      - alert: KarryApiLatencyP95High
+        # p95 request duration above 1 s, sustained for 10 minutes. Same minimum traffic as the error alert.
+        expr: |
+          histogram_quantile(0.95,
+            sum by (job, le) (rate(http_server_request_duration_seconds_bucket{job="karry-api", http_route!~"/health/.*"}[10m]))
+          ) > 1
+          and
+          sum by (job) (rate(http_server_request_duration_seconds_count{job="karry-api", http_route!~"/health/.*"}[10m])) > 0.1
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: "karry-api p95 latency {{ $value | humanizeDuration }} (> 1 s for 10 min)"
+          description: "Requests are slow. Check the p95-by-route panel and DB command duration on the dashboards."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-api-latency-p95-high.md"
+
+  - name: karry-jobs
+    rules:
+      - alert: KarryOutboxLagHigh
+        # The oldest undelivered event of a module is older than 5 minutes: subscribers are failing or the worker
+        # cannot keep up. Dead-lettered messages are excluded from the gauge (they have their own investigation path).
+        expr: max by (job, module) (karry_outbox_oldest_pending_age_seconds) > 300
+        for: 2m
+        labels:
+          severity: page
+        annotations:
+          summary: "Outbox of module {{ $labels.module }} lags {{ $value | humanizeDuration }} (> 5 min)"
+          description: "Domain events are not reaching subscribers. Check the worker logs and the 'Outbox messages by outcome' panel."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-outbox-lag-high.md"
+
+  - name: karry-infrastructure
+    rules:
+      - alert: KarryDatabaseCpuHigh
+        # Database host CPU above 80 %, sustained for 15 minutes.
+        expr: |
+          100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{karry_role="database", mode="idle"}[5m]))) > 80
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: "Database {{ $labels.instance }} CPU {{ $value | printf \"%.0f\" }} % (> 80 % for 15 min)"
+          description: "PostgreSQL is CPU-bound. Look for expensive queries (pg_stat_statements) before scaling."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-database-cpu-high.md"
+
+      - alert: KarryCertificateExpiringSoon
+        # A public TLS certificate expires in less than 14 days (automatic renewal has failed).
+        expr: (probe_ssl_earliest_cert_expiry - time()) / 86400 < 14
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Certificate of {{ $labels.instance }} expires in {{ $value | printf \"%.1f\" }} days"
+          description: "Automatic renewal did not happen. Renew before expiry or every client (portal, field app, edge agents) fails TLS."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-certificate-expiring-soon.md"
