@@ -136,6 +136,13 @@ jobs:
           cache: true
           cache-dependency-path: "**/packages.lock.json"
       - run: dotnet restore src/backend/Karry.Host --locked-mode
+      # The stack images fill the runner disk to > 90 %, where Loki refuses writes ("Ingester is shutting down").
+      # Remove preinstalled toolchains this job never uses (Android SDK, GHC, CodeQL bundles: ~10 GB).
+      - name: Free disk space for the local stack
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
       # TC-P1-PLT-004: all services healthy, extensions, roles, Keycloak, Mailpit, Valkey,
       # S3 Object Lock (compliance) and Karry.Host readiness against the stack.
       - name: Local stack smoke test (TC-P1-PLT-004)

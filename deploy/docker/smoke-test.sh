@@ -23,6 +23,10 @@ fail() { echo "FAIL  $1" >&2; failures=$((failures + 1)); }
 check() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then pass "$name"; else fail "$name"; fi; }
 refused() { local name="$1"; shift; if "$@" >/dev/null 2>&1; then fail "$name (operation was allowed)"; else pass "$name"; fi; }
 
+# Loki (in lgtm) refuses log writes when its disk is more than 90 % full: say so up front.
+disk_used="$(df --output=pcent "$(docker info --format '{{.DockerRootDir}}' 2>/dev/null || echo /)" 2>/dev/null | tail -1 | tr -dc '0-9')"
+if [[ -n "$disk_used" && "$disk_used" -ge 85 ]]; then echo "WARN  Docker disk ${disk_used}% used: Loki stops accepting logs above 90 %" >&2; fi
+
 echo "Starting the local stack…"
 if ! "${compose[@]}" up -d --wait --wait-timeout 300; then
   "${compose[@]}" ps
