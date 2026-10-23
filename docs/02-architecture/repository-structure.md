@@ -88,6 +88,6 @@ karry-platform/
 │   ├── new-module.sh                   create a module from the template and add it to Karry.slnx
 │   ├── templates/karry-module/         dotnet new template (tested by test-template.sh, TC-P1-PLT-003)
 │   ├── docs/check_links.py             docs link checker
-│   └── ledger-verifier/                CLI to verify hash chains vs anchors
+│   └── ledger-verifier/                karry-ledger CLI: verify a tenant hash chain (anchors comparison from P1.6 slice 4)
 └── .github/workflows/
 ```

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- karry-ledger verify (tenant id): recomputes a tenant audit chain (US-P1-AUD-03) for auditors and operators. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>karry-ledger</AssemblyName>
+    <RootNamespace>Karry.Tools.LedgerVerifier</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/backend/Modules/Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

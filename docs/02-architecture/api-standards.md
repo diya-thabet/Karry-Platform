@@ -41,6 +41,8 @@ last_updated: 2026-10-21
 
 **Tenancy endpoints (P1.5).** `POST /api/v1/tenancy/tenants` (platform operator, `Idempotency-Key` required; 201 created, **200 for the same slug and name again**, 409 `tenant.slug_taken`, 400 `tenant.slug_invalid` / `tenant.slug_reserved` / `tenant.name_invalid`); `GET /api/v1/tenancy/current` (the caller's company); `GET /api/v1/tenancy/public/{slug}` (anonymous branding for the login page, 404 `tenant.not_found`).
 
+**Audit endpoints (P1.6).** `POST /api/v1/audit/verify` recomputes the caller's tenant ledger and returns `{valid, entriesChecked, firstBrokenSequence, problem, headHash, verifiedAt}`.
+
 **Correlation (P1.4, `Karry.BuildingBlocks/Observability`).** Every response, success or error, carries `X-Correlation-Id` (the W3C trace ID, 32 hex characters) and `traceparent`. The problem `traceId` is the same value, so the ID a user quotes from an error dialog finds the trace directly. A caller that sends `traceparent` (portal, field app) joins the same trace (TC-P1-OPS-005).
 
 Framework errors use the same shape: unknown route `route.not_found`, malformed JSON `request.invalid`, 405/415 likewise. Codes are part of the contract: never rename one; add a new code instead.

@@ -97,7 +97,11 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         await owner.Database.ExecuteSqlRawAsync(rls);
     }
 
-    public async ValueTask DisposeAsync() => await services.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await services.DisposeAsync();
+        NpgsqlConnection.ClearAllPools(); // one database per test: release its idle connections
+    }
 
     [Fact]
     [Trait("TestCase", "TC-P1-AUD-001")]
@@ -251,6 +255,76 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         var entry = (await EntriesAsync(TenantA)).Single();
         entry.OccurredAt.Should().Be(LedgerHash.ToStoragePrecision(clock.GetUtcNow()));
         LedgerVerifier.Verify([entry]).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-03")]
+    public async Task The_cli_reports_an_intact_chain_with_exit_code_0()
+    {
+        await SaveBlastAsync(TenantA, 1);
+        await SaveBlastAsync(TenantA, 2);
+        await SaveBlastAsync(TenantA, 3);
+
+        var (exit, output) = await CliAsync("verify", "--tenant", TenantA.ToString(), "--connection", database.App);
+
+        exit.Should().Be(0);
+        output.Should().StartWith($"OK tenant {TenantA}: 3 entries, head ");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-03")]
+    [Trait("TestCase", "TC-P1-AUD-003")]
+    public async Task A_row_altered_by_a_superuser_is_reported_at_its_exact_sequence()
+    {
+        await SaveBlastAsync(TenantA, 1);
+        await SaveBlastAsync(TenantA, 2);
+        await SaveBlastAsync(TenantA, 3);
+
+        // Only a superuser can get past the triggers (by disabling them for the session): the chain still exposes it.
+        await ExecuteAsync(database.Admin,
+            """
+            SET session_replication_role = replica;
+            UPDATE audit.ledger_entries SET payload = replace(payload, '"tonnes":2', '"tonnes":20') WHERE seq = 2;
+            """);
+
+        var (exit, output) = await CliAsync("verify", "--tenant", TenantA.ToString(), "--connection", database.App);
+
+        exit.Should().Be(1);
+        output.Should().Contain("first broken sequence 2").And.Contain("payload does not match its hash").And.Contain("1 entries verified before it");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-03")]
+    [Trait("TestCase", "TC-P1-AUD-003")]
+    public async Task A_deleted_row_is_reported_as_a_missing_sequence()
+    {
+        await SaveBlastAsync(TenantA, 1);
+        await SaveBlastAsync(TenantA, 2);
+        await SaveBlastAsync(TenantA, 3);
+        await ExecuteAsync(database.Admin, "SET session_replication_role = replica; DELETE FROM audit.ledger_entries WHERE seq = 2;");
+
+        var (exit, output) = await CliAsync("verify", "--tenant", TenantA.ToString(), "--connection", database.App);
+
+        exit.Should().Be(1);
+        output.Should().Contain("first broken sequence 2").And.Contain("sequence 2 is missing");
+    }
+
+    [Theory]
+    [Trait("Story", "US-P1-AUD-03")]
+    [InlineData]
+    [InlineData("verify")]
+    [InlineData("verify", "--tenant", "not-a-uuid")]
+    [InlineData("verify", "--tenant", "00000000-0000-0000-0000-000000000000")]
+    [InlineData("check", "--tenant", "01970000-0000-7000-8000-00000000000a")]
+    [InlineData("verify", "--tenant")]
+    public async Task Invalid_arguments_exit_with_code_2(params string[] args) =>
+        (await CliAsync(args)).Exit.Should().Be(2);
+
+    private static async Task<(int Exit, string Output)> CliAsync(params string[] args)
+    {
+        await using var output = new StringWriter();
+        var exit = await Karry.Tools.LedgerVerifier.LedgerVerifierCli.RunAsync(args, output, TestContext.Current.CancellationToken);
+        return (exit, output.ToString());
     }
 
     private ServiceProvider Build(string connectionString)

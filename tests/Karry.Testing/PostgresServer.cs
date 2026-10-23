@@ -56,7 +56,9 @@ public sealed class PostgresServer : IAsyncDisposable
             await create.ExecuteNonQueryAsync().ConfigureAwait(false);
         }
 
-        var admin = new NpgsqlConnectionStringBuilder(ServerConnectionString) { Database = name }.ConnectionString;
+        // Each test gets its own database and pools; a small pool per database keeps the server (100 slots) from running
+        // out when many test databases are alive, while concurrency tests still run in parallel (they queue fairly).
+        var admin = new NpgsqlConnectionStringBuilder(ServerConnectionString) { Database = name, MaxPoolSize = 20 }.ConnectionString;
         await using (var connection = new NpgsqlConnection(admin))
         {
             await connection.OpenAsync().ConfigureAwait(false);
@@ -87,6 +89,7 @@ public sealed class PostgresServer : IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        NpgsqlConnection.ClearAllPools();
         if (container is not null)
         {
             await container.DisposeAsync().ConfigureAwait(false);

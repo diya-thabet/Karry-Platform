@@ -184,6 +184,46 @@
           }
         }
       }
+    },
+    "/api/v1/audit/verify": {
+      "post": {
+        "tags": [
+          "TrustModule"
+        ],
+        "operationId": "VerifyLedger",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LedgerVerificationReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -232,6 +272,55 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "LedgerVerificationReport": {
+        "required": [
+          "valid",
+          "entriesChecked",
+          "firstBrokenSequence",
+          "problem",
+          "headHash",
+          "verifiedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "entriesChecked": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "firstBrokenSequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "problem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "headHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "verifiedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -333,6 +422,9 @@
   "tags": [
     {
       "name": "TenancyModule"
+    },
+    {
+      "name": "TrustModule"
     }
   ]
 }

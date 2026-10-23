@@ -75,46 +75,94 @@ public static class LedgerVerifier
     public static ChainVerification Verify(IEnumerable<LedgerEntry> entries)
     {
         ArgumentNullException.ThrowIfNull(entries);
-        var previous = LedgerHash.Genesis;
-        long expected = 1;
+        var check = new LedgerChainCheck();
         foreach (var entry in entries)
         {
-            if (entry.Sequence != expected)
+            if (!check.Add(entry))
             {
-                return ChainVerification.Broken(expected - 1, expected, $"sequence {expected} is missing (found {entry.Sequence})");
+                break;
             }
-
-            string canonical;
-            try
-            {
-                canonical = LedgerHash.CanonicalPayload(entry.Payload);
-            }
-            catch (FormatException ex)
-            {
-                return ChainVerification.Broken(expected - 1, entry.Sequence, $"payload is not canonical JSON: {ex.Message}");
-            }
-
-            if (!string.Equals(canonical, entry.Payload, StringComparison.Ordinal)
-                || !string.Equals(LedgerHash.OfPayload(entry.Payload), entry.PayloadHash, StringComparison.Ordinal))
-            {
-                return ChainVerification.Broken(expected - 1, entry.Sequence, "payload does not match its hash");
-            }
-
-            if (!string.Equals(entry.PreviousHash, previous, StringComparison.Ordinal))
-            {
-                return ChainVerification.Broken(expected - 1, entry.Sequence, "previous hash does not link to the entry before");
-            }
-
-            var recomputed = LedgerHash.OfEntry(previous, entry.Tenant, entry.Sequence, entry.EventType, entry.PayloadHash, entry.OccurredAt);
-            if (!string.Equals(recomputed, entry.EntryHash, StringComparison.Ordinal))
-            {
-                return ChainVerification.Broken(expected - 1, entry.Sequence, "entry hash does not match its content");
-            }
-
-            previous = entry.EntryHash;
-            expected++;
         }
 
-        return ChainVerification.Valid(expected - 1, expected == 1 ? null : previous);
+        return check.Result;
+    }
+
+    /// <summary>Streams a chain of any length (constant memory).</summary>
+    public static async Task<ChainVerification> VerifyAsync(IAsyncEnumerable<LedgerEntry> entries, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        var check = new LedgerChainCheck();
+        await foreach (var entry in entries.WithCancellation(cancellationToken).ConfigureAwait(false))
+        {
+            if (!check.Add(entry))
+            {
+                break;
+            }
+        }
+
+        return check.Result;
+    }
+}
+
+/// <summary>Incremental chain check: feed entries in sequence order; stops at the first break.</summary>
+public sealed class LedgerChainCheck
+{
+    private string previous = LedgerHash.Genesis;
+    private long expected = 1;
+    private ChainVerification? broken;
+
+    public ChainVerification Result => broken ?? ChainVerification.Valid(expected - 1, expected == 1 ? null : previous);
+
+    /// <summary>False once the chain is broken (the result then names the first broken sequence).</summary>
+    public bool Add(LedgerEntry entry)
+    {
+        ArgumentNullException.ThrowIfNull(entry);
+        if (broken is not null)
+        {
+            return false;
+        }
+
+        var problem = Problem(entry);
+        if (problem is not null)
+        {
+            broken = ChainVerification.Broken(expected - 1, entry.Sequence == expected ? entry.Sequence : expected, problem);
+            return false;
+        }
+
+        previous = entry.EntryHash;
+        expected++;
+        return true;
+    }
+
+    private string? Problem(LedgerEntry entry)
+    {
+        if (entry.Sequence != expected)
+        {
+            return $"sequence {expected} is missing (found {entry.Sequence})";
+        }
+
+        string canonical;
+        try
+        {
+            canonical = LedgerHash.CanonicalPayload(entry.Payload);
+        }
+        catch (FormatException ex)
+        {
+            return $"payload is not canonical JSON: {ex.Message}";
+        }
+
+        if (!string.Equals(canonical, entry.Payload, StringComparison.Ordinal)
+            || !string.Equals(LedgerHash.OfPayload(entry.Payload), entry.PayloadHash, StringComparison.Ordinal))
+        {
+            return "payload does not match its hash";
+        }
+
+        if (!string.Equals(entry.PreviousHash, previous, StringComparison.Ordinal))
+        {
+            return "previous hash does not link to the entry before";
+        }
+
+        var recomputed = LedgerHash.OfEntry(previous, entry.Tenant, entry.Sequence, entry.EventType, entry.PayloadHash, entry.OccurredAt);
+        return string.Equals(recomputed, entry.EntryHash, StringComparison.Ordinal) ? null : "entry hash does not match its content";
     }
 }

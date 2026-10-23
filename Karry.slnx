@@ -26,4 +26,7 @@
     <Project Path="tests/Karry.TenantIsolationTests/Karry.TenantIsolationTests.csproj" />
     <Project Path="tests/Karry.Testing/Karry.Testing.csproj" />
   </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/ledger-verifier/Karry.LedgerVerifier/Karry.LedgerVerifier.csproj" />
+  </Folder>
 </Solution>
