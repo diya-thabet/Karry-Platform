@@ -4,7 +4,7 @@ area: architecture
 tags: [security, rbac, rls, tenancy, keycloak, threats]
 source: "MASTER_PLAN.md §14"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # Security, Identity & Multi-Tenancy
@@ -17,6 +17,36 @@ last_updated: 2026-10-21
 - **MFA mandatory** for admin, finance, controller roles; optional for operators (device enrollment + PIN covers them).
 - Enterprise tenants: SSO federation (Entra ID, Google Workspace, SAML).
 - Offline auth: on enrolled device, a locally cached, time-boxed **offline session** (e.g., 72 h) unlocked by user PIN; all offline actions are re-validated server-side on sync.
+
+### 14.1.1 As implemented (P1.8, `deploy/keycloak`)
+
+- **One realm `karry` with Keycloak Organizations**; one organization per tenant. A dedicated realm for Enterprise
+  tenants stays possible later ([ADR-0012](../adr/0012-identity-authorization.md)).
+- The tenant of a user is the **admin-only** user attribute `tenant_id`, mapped to the `tenant_id` access-token claim
+  that `TenantResolutionMiddleware` reads; platform operators have `platform_role=operator` and no tenant. Users can
+  neither read nor change these attributes (user profile permissions).
+- App clients `karry-portal` and `karry-field`: public, Authorization Code + PKCE S256 only (no password grant, no
+  implicit flow), explicit redirect URIs, audience `karry-api`, no Keycloak roles in tokens.
+- Access token 5 min; refresh rotation with reuse 0: a reused refresh token revokes the app session (all its tokens).
+  The Keycloak SSO cookie itself survives, which is safe: it is HttpOnly on the Keycloak origin and never in a token.
+- Brute force: temporary lockout after 5 failures (growing wait, max 15 min), same message as a wrong password.
+- MFA: realm role `mfa-required` (set by the Identity module for privileged roles) makes the browser flow ask for
+  WebAuthn or TOTP, and forces TOTP enrolment before any token when the user has neither.
+- Details, flow diagram and the reasons for each value: [deploy/keycloak/README.md](../../deploy/keycloak/README.md).
+
+**Security review checklist for any change to `deploy/keycloak`** (two-reviewer rule, P1.8):
+
+| # | Check | Enforced by |
+|---|---|---|
+| 1 | Access token ≤ 10 min; refresh rotation on, max reuse 0 | `RealmConfigurationTests`, `KeycloakLoginTests` |
+| 2 | App clients public, PKCE S256, no password grant, no implicit, no wildcard host | both |
+| 3 | `tenant_id` / `platform_role` admin-only, mapped to exactly these claim names | both + `ApiTokenValidationTests` |
+| 4 | Brute-force on, temporary only, generic error message | both |
+| 5 | Registration off; password policy ≥ 12 characters | `RealmConfigurationTests` |
+| 6 | `mfa-required` users cannot get a token without a second factor | `KeycloakLoginTests` (TC-P1-IAM-002) |
+| 7 | No credentials in the realm file; client secrets from the environment | `RealmConfigurationTests` |
+| 8 | Theme scripts only read public data, write with `textContent`, store no token | review |
+| 9 | Image version identical in compose and tests | `RealmConfigurationTests` |
 
 ## 14.2 Authorization model
 

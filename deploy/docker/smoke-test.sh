@@ -48,6 +48,10 @@ if [[ "$owner_role" == "false,false" ]]; then pass "karry_owner exists (migratio
 
 # Keycloak, Mailpit, Valkey.
 check "keycloak serves OIDC discovery" curl -fsS http://127.0.0.1:8080/realms/master/.well-known/openid-configuration
+# P1.8: the Karry realm and login theme from deploy/keycloak (imported on first start).
+check "keycloak imported the karry realm" curl -fsS http://127.0.0.1:8080/realms/karry/.well-known/openid-configuration
+login_page="$(curl -fsS 'http://127.0.0.1:8080/realms/karry/protocol/openid-connect/auth?client_id=karry-portal&response_type=code&scope=openid&redirect_uri=http%3A%2F%2Flocalhost%3A5173%2Fauth%2Fcallback&code_challenge=E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM&code_challenge_method=S256' || true)"
+if [[ "$login_page" == *karry-branding.js* && "$login_page" == *'lang="fr"'* ]]; then pass "keycloak login page uses the karry theme (fr)"; else fail "keycloak login page theme"; fi
 check "mailpit API answers" curl -fsS http://127.0.0.1:8025/api/v1/info
 check "valkey answers PING" bash -c "${compose[*]} exec -T valkey valkey-cli ping | grep -q PONG"
 

@@ -195,6 +195,32 @@ public sealed class TenancyApiTests(TenancyHost host) : IClassFixture<TenancyHos
     }
 
     [Fact]
+    [Trait("Story", "US-P1-IAM-01")]
+    public async Task Only_the_public_branding_is_readable_from_another_origin()
+    {
+        var slug = UniqueSlug();
+        await ProvisionAsync(slug, "Carrière Origine", Guid.NewGuid().ToString());
+        const string LoginPage = "https://auth.karry.test";
+
+        using var branding = new HttpRequestMessage(HttpMethod.Get, new Uri($"/api/v1/tenancy/public/{slug}", UriKind.Relative));
+        branding.Headers.Add("Origin", LoginPage);
+        using var preflight = new HttpRequestMessage(HttpMethod.Options, new Uri($"/api/v1/tenancy/public/{slug}", UriKind.Relative));
+        preflight.Headers.Add("Origin", LoginPage);
+        preflight.Headers.Add("Access-Control-Request-Method", "GET");
+        using var current = new HttpRequestMessage(HttpMethod.Get, new Uri("/api/v1/tenancy/current", UriKind.Relative));
+        current.Headers.Add("Origin", LoginPage);
+
+        var brandingResponse = await host.Client.SendAsync(branding, Ct);
+        var preflightResponse = await host.Client.SendAsync(preflight, Ct);
+        var currentResponse = await host.Client.SendAsync(current, Ct);
+
+        brandingResponse.Headers.GetValues("Access-Control-Allow-Origin").Should().Equal("*");
+        brandingResponse.Headers.Contains("Access-Control-Allow-Credentials").Should().BeFalse("never with cookies or tokens");
+        preflightResponse.Headers.GetValues("Access-Control-Allow-Methods").Should().Equal("GET");
+        currentResponse.Headers.Contains("Access-Control-Allow-Origin").Should().BeFalse("tenant data is same-origin only");
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P1-TEN-009")]
     public async Task A_token_works_on_its_own_company_address_and_is_refused_on_another()
     {

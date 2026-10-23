@@ -10,8 +10,15 @@ namespace Karry.BuildingBlocks.Api;
 /// <summary>Problem-details error handling shared by every host.</summary>
 public static partial class ApiConventions
 {
+    /// <summary>
+    /// CORS policy for anonymous, public GET endpoints read from other origins (the Keycloak login page reads tenant
+    /// branding): any origin, never credentials. Endpoints opt in with <see cref="AllowPublicCrossOrigin{TBuilder}"/>.
+    /// </summary>
+    public const string PublicCorsPolicy = "karry-public";
+
     public static IServiceCollection AddKarryApiConventions(this IServiceCollection services)
     {
+        services.AddCors(options => options.AddPolicy(PublicCorsPolicy, policy => policy.AllowAnyOrigin().WithMethods("GET").WithHeaders("Accept")));
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
             // Framework-generated problems (404 route, 405, 415, bad JSON) get the same shape as ours.
@@ -55,8 +62,16 @@ public static partial class ApiConventions
             }).ConfigureAwait(false);
         }));
         app.UseStatusCodePages();
+
+        // Only endpoints with a CORS policy answer cross-origin requests; the default is same-origin only.
+        app.UseCors();
         return app;
     }
+
+    /// <summary>Lets any origin read this anonymous GET endpoint (no cookies or tokens are ever sent cross-origin).</summary>
+    public static TBuilder AllowPublicCrossOrigin<TBuilder>(this TBuilder builder)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder.RequireCors(PublicCorsPolicy);
 
     [LoggerMessage(EventId = 1000, Level = LogLevel.Error, Message = "Unhandled exception on {Method} {Path}")]
     private static partial void LogUnhandled(ILogger logger, string method, PathString path, Exception? exception);
