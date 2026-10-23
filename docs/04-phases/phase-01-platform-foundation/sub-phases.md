@@ -337,7 +337,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | TC-P1-AUD-006 *(new)* | Business change rolled back → no ledger entry and no outbox row (same transaction) |
   | Property | Canonicalization is stable under key reordering; any 1-byte payload change changes the hash |
 
-- **Mutation checks:** remove the trigger; compute the hash without `prev_hash`; write the ledger outside the transaction → tests must fail. Stryker on `Trust` in nightly with score ≥ 75 %.
+- **Mutation checks:** remove the trigger; compute the hash without `prev_hash`; write the ledger outside the transaction → tests must fail. Stryker on `Trust` in nightly with score ≥ 75 %. *(As built: `nightly / mutation`, Stryker 5 with the MTP runner; Domain 95.83 %, Application 81.13 %.)*
 - **Done when:** ledger written by the sample command; verifier CLI and endpoint green; threat T-06 updated.
 
 ---

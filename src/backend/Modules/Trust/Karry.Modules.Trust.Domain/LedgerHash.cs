@@ -125,7 +125,8 @@ public sealed class LedgerChainCheck
         var problem = Problem(entry);
         if (problem is not null)
         {
-            broken = ChainVerification.Broken(expected - 1, entry.Sequence == expected ? entry.Sequence : expected, problem);
+            // The first sequence that is not a valid continuation (a gap is reported at the missing sequence).
+            broken = ChainVerification.Broken(expected - 1, expected, problem);
             return false;
         }
 

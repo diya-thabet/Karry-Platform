@@ -281,7 +281,7 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 | Unit (incl. property) | ~70 % | < 50 ms each | ≥ 80 % lines on `Domain` projects; ≥ 90 % on formula/trust code |
 | Integration | ~20 % | < 2 s each | All repositories, endpoints, migrations, RLS |
 | E2E | ~10 % | < 2 min per journey | All critical journeys (`TC-…` marked E2E in the phase plan) |
-| Mutation (Stryker) | Nightly on math & trust modules | — | Mutation score ≥ 70 % (≥ 75 % for RUL, ledger, sync) |
+| Mutation (Stryker) | Nightly on math & trust modules (`nightly / mutation`; Trust since P1.6) | — | Mutation score ≥ 70 % (≥ 75 % for RUL, ledger, sync). Every surviving mutant gets a test or is documented as equivalent in the PR |
 
 Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is worthless (§8).
 
@@ -320,6 +320,8 @@ dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants (not in 
 # Tenant isolation suite and API contract (the build regenerates src/backend/Karry.Host/openapi/v1.json: commit it)
 dotnet test --project tests/Karry.TenantIsolationTests
 tools/ci/install-tool.sh oasdiff && ~/.local/bin/oasdiff breaking <(git show origin/main:src/backend/Karry.Host/openapi/v1.json) src/backend/Karry.Host/openapi/v1.json --fail-on ERR
+# Mutation testing (Stryker.NET 5, Microsoft Testing Platform runner; config next to the module's tests)
+cd src/backend/Modules/Trust/Karry.Modules.Trust.Tests && dotnet tool restore && dotnet stryker --config-file stryker-config.json
 # Ledger anchoring run now (local stack; exit 1 if a tenant failed)
 dotnet run --project src/backend/Karry.Workers -- anchor-now
 # Audit ledger verifier (exit 0 intact, 1 broken, 2 usage)
