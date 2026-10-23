@@ -43,4 +43,6 @@ Decision unchanged. Details in [trust layer §13.3.1](../02-architecture/trust-l
 - The fields are joined with `\n` and hashed as UTF-8 text, with lowercase hex, `D`-form UUIDs and microsecond UTC timestamps. This makes the encoding unambiguous and reproducible by an external auditor; "‖" in the formula left it open.
 - Serialization uses a lock on the per-tenant chain-head row rather than an advisory lock, because the head row also stores `last_seq`/`last_hash`.
 - Payloads are RFC 8785 canonical in strict mode: exact decimals must travel as strings.
+- Anchors are signed canonical documents in a versioned Object Lock bucket. Compliance retention stops deletion and alteration of a version but not the upload of a newer version, so the verifier trusts the **oldest** version of each key and reports any key with several versions.
+- The alert `KarryLedgerAnchoringStale` fires after 2 h without a fully successful run, or when the worker reports nothing (runbook in `docs/06-operations/runbooks/`).
 

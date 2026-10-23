@@ -13,6 +13,7 @@ public static class TenancyInfrastructure
         services.AddModuleDbContext<TenancyDbContext>(connectionString);
         services.AddOutboxDispatcher<TenancyDbContext>(eventAssemblies: typeof(Domain.Tenant).Assembly);
         services.AddScoped<ITenantRepository, TenantRepository>();
+        services.AddScoped<Contracts.ITenantDirectory, TenantDirectory>();
         services.AddMemoryCache();
         services.AddSingleton<ITenantSlugLookup, TenantSlugLookup>();
         return services;

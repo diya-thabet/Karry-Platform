@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.SharedKernel.Tenancy;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Karry.Tools.LedgerVerifier;
@@ -9,7 +10,9 @@ namespace Karry.Tools.LedgerVerifier;
 /// <summary>
 /// <c>karry-ledger verify --tenant &lt;uuid&gt; [--connection &lt;connection string&gt;]</c> (US-P1-AUD-03 AC1). The connection
 /// defaults to the <c>KARRY_LEDGER_CONNECTION</c> environment variable (a read-only role is enough; row-level security
-/// scopes the reads to the tenant). Exit codes: 0 = chain intact, 1 = broken (first broken sequence printed),
+/// scopes the reads to the tenant). With anchoring settings in the environment (<c>Trust__Anchoring__Bucket</c>,
+/// <c>…__ServiceUrl</c>, <c>…__AccessKey</c>, <c>…__SecretKey</c> and the signing/trusted keys, as for the hosts) the
+/// chain is also compared with its WORM anchors. Exit codes: 0 = intact, 1 = broken (first broken sequence printed),
 /// 2 = usage or configuration error.
 /// </summary>
 public static class LedgerVerifierCli
@@ -33,14 +36,17 @@ public static class LedgerVerifierCli
             return 2;
         }
 
-        await using var services = new ServiceCollection().AddLogging().AddTrustInfrastructure(connection).BuildServiceProvider();
+        var configuration = new ConfigurationBuilder().AddEnvironmentVariables().Build();
+        await using var services = new ServiceCollection().AddLogging().AddTrustInfrastructure(connection).AddTrustAnchoring(configuration)
+            .BuildServiceProvider();
         await using var scope = services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(tenant);
         var report = await scope.ServiceProvider.GetRequiredService<VerifyLedgerHandler>().HandleAsync(cancellationToken).ConfigureAwait(false);
 
         if (report.Valid)
         {
-            await output.WriteLineAsync($"OK tenant {tenant}: {report.EntriesChecked} entries, head {report.HeadHash ?? "(empty)"}").ConfigureAwait(false);
+            var anchors = report.AnchorsChecked is { } count ? $"{count} anchors matched" : "anchors not checked (no Trust__Anchoring settings)";
+            await output.WriteLineAsync($"OK tenant {tenant}: {report.EntriesChecked} entries, head {report.HeadHash ?? "(empty)"}; {anchors}").ConfigureAwait(false);
             return 0;
         }
 

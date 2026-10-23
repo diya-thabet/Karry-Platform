@@ -282,6 +282,7 @@
           "firstBrokenSequence",
           "problem",
           "headHash",
+          "anchorsChecked",
           "verifiedAt"
         ],
         "type": "object",
@@ -317,6 +318,15 @@
               "null",
               "string"
             ]
+          },
+          "anchorsChecked": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
           },
           "verifiedAt": {
             "type": "string",

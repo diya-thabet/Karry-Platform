@@ -20,5 +20,6 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-api-error-rate-high](karry-api-error-rate-high.md) | API 5xx > 2 % for 5 min | page |
 | [karry-api-latency-p95-high](karry-api-latency-p95-high.md) | API p95 > 1 s for 10 min | page |
 | [karry-outbox-lag-high](karry-outbox-lag-high.md) | Oldest undelivered event > 5 min | page |
+| [karry-ledger-anchoring-stale](karry-ledger-anchoring-stale.md) | No full ledger anchoring run for 2 h (or worker silent) | page |
 | [karry-database-cpu-high](karry-database-cpu-high.md) | Database CPU > 80 % for 15 min | page |
 | [karry-certificate-expiring-soon](karry-certificate-expiring-soon.md) | TLS certificate expires in < 14 days | ticket |

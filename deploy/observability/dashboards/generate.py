@@ -103,7 +103,7 @@ def api_red() -> dict:
 def platform() -> dict:
     return dashboard(
         "karry-platform", "Karry · Platform (database pool, outbox, runtime)",
-        "PostgreSQL connection pool (Npgsql), outbox job lag and .NET runtime of karry-api and karry-workers. Alert: KarryOutboxLagHigh.",
+        "PostgreSQL connection pool (Npgsql), outbox job lag, ledger anchoring and .NET runtime of karry-api and karry-workers. Alerts: KarryOutboxLagHigh, KarryLedgerAnchoringStale.",
         [
             panel(1, "DB connections by state", "Npgsql pool: connections in use and idle, against the pool maximum.",
                   [target("sum by (service_name, db_client_connection_state) (db_client_connection_count)", "{{service_name}} {{db_client_connection_state}}"),
@@ -118,6 +118,9 @@ def platform() -> dict:
                   [target("sum by (module, outcome) (rate(karry_outbox_messages_total[$__rate_interval]))", "{{module}} {{outcome}}")], "short", 12, 8),
             panel(5, "Process CPU", "CPU cores used by each host.",
                   [target("sum by (service_name) (rate(dotnet_process_cpu_time_seconds_total[$__rate_interval]))", "{{service_name}}")], "short", 0, 16),
+            panel(7, "Ledger anchoring: hours since last full success", "WORM anchoring of chain heads (hourly). Alert above 2 h.",
+                  [target("(time() - max by (service_name) (karry_ledger_anchor_last_success_seconds)) / 3600", "{{service_name}}")], "h", 0, 24, w=24,
+                  thresholds=[(2, "red")]),
             panel(6, "Working set and GC heap", "Process memory and managed heap after the last collection.",
                   [target("sum by (service_name) (dotnet_process_memory_working_set_bytes)", "{{service_name}} working set"),
                    target("sum by (service_name) (dotnet_gc_last_collection_heap_size_bytes)", "{{service_name}} GC heap", "B")], "bytes", 12, 16),

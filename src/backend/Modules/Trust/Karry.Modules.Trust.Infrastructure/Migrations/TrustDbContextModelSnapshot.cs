@@ -116,6 +116,48 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.ToTable("processed_messages", "audit");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.AnchorRow", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long>("Seq")
+                        .HasColumnType("bigint")
+                        .HasColumnName("seq");
+
+                    b.Property<DateTimeOffset>("AnchoredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anchored_at");
+
+                    b.Property<string>("EntryHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("entry_hash")
+                        .IsFixedLength();
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key_id");
+
+                    b.Property<string>("ObjectKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("object_key");
+
+                    b.HasKey("TenantId", "Seq")
+                        .HasName("pk_anchors");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_anchors_tenant_id");
+
+                    b.ToTable("anchors", "audit");
+                });
+
             modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.LedgerEntryRow", b =>
                 {
                     b.Property<Guid>("TenantId")
