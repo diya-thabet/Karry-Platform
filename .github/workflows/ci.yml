@@ -139,6 +139,8 @@ jobs:
       # TC-P1-PLT-004: all services healthy, extensions, roles, Keycloak, Mailpit, Valkey,
       # S3 Object Lock (compliance) and Karry.Host readiness against the stack.
       - name: Local stack smoke test (TC-P1-PLT-004)
+        env:
+          KARRY_LGTM_COMPONENT_LOGS: "true" # collector and Loki logs, printed on failure
         run: deploy/docker/smoke-test.sh
 
   security:

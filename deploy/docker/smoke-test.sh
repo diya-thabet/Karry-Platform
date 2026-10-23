@@ -93,7 +93,8 @@ fi
 
 if [[ "$failures" -gt 0 ]]; then
   echo "TC-P1-PLT-004: $failures check(s) failed" >&2
-  "${compose[@]}" logs --tail 40 s3 keycloak lgtm >&2 || true
+  "${compose[@]}" logs --tail 40 s3 keycloak >&2 || true
+  "${compose[@]}" logs lgtm 2>&1 | grep -iE "error|warn|refus|reject|fail" | tail -60 >&2 || true
   exit 1
 fi
 echo "TC-P1-PLT-004 passed."

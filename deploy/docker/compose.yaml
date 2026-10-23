@@ -105,6 +105,9 @@ services:
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      # Component logs (collector, Loki) are off by default; CI turns them on to diagnose failures.
+      ENABLE_LOGS_OTELCOL: ${KARRY_LGTM_COMPONENT_LOGS:-false}
+      ENABLE_LOGS_LOKI: ${KARRY_LGTM_COMPONENT_LOGS:-false}
     ports: ["127.0.0.1:3000:3000", "127.0.0.1:4317:4317", "127.0.0.1:4318:4318"]
     volumes:
       - ../observability/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
