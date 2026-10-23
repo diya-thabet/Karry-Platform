@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -28,7 +29,10 @@ public static class ModuleExtensions
         return services;
     }
 
-    /// <summary>Maps each module's endpoints under <c>/api/v1/{module}</c>, tagged with <see cref="ModuleMetadata"/>.</summary>
+    /// <summary>
+    /// Maps each module's endpoints under <c>/api/v1/{module}</c>, tagged with <see cref="ModuleMetadata"/>, requiring
+    /// authentication and a tenant by default.
+    /// </summary>
     public static IEndpointRouteBuilder MapModules(this IEndpointRouteBuilder endpoints)
     {
         ArgumentNullException.ThrowIfNull(endpoints);
@@ -36,7 +40,12 @@ public static class ModuleExtensions
         var modules = endpoints.ServiceProvider.GetRequiredService<IReadOnlyList<IModule>>();
         foreach (var module in modules)
         {
-            module.MapEndpoints(endpoints.MapGroup($"/api/v1/{module.Name}").WithMetadata(new ModuleMetadata(module.Name)));
+            // Secure by default: every module endpoint needs an authenticated caller and a tenant, unless an endpoint
+            // explicitly opts out (.AllowAnonymous(), .AllowWithoutTenant()).
+            var group = endpoints.MapGroup($"/api/v1/{module.Name}")
+                .WithMetadata(new ModuleMetadata(module.Name), new TenantRequired())
+                .RequireAuthorization();
+            module.MapEndpoints(group);
         }
 
         return endpoints;

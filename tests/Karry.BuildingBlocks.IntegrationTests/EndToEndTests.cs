@@ -6,6 +6,7 @@ using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -63,7 +64,11 @@ public sealed class EndToEndTests(PostgresFixture postgres) : IAsyncLifetime
                     return TypedResults.Created($"/api/v1/probe/probes/{probe.Id.Value}", new { id = probe.Id.Value, probe.Name });
                 })
                 .Validate<CreateProbe>()
-                .RequireIdempotencyKey();
+                .RequireIdempotencyKey()
+                // The backbone under test here is HTTP → validation → idempotency → outbox; the probe is not
+                // tenant-owned. Tenant resolution is tested in TenantResolutionTests / TenantIsolationTests.
+                .AllowAnonymous()
+                .AllowWithoutTenant();
     }
 
     private SemaphoreSlim? gate;
@@ -188,10 +193,12 @@ public sealed class EndToEndTests(PostgresFixture postgres) : IAsyncLifetime
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Services.AddKarryApiConventions();
+        builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.AddIdempotency(connectionString);
         builder.Services.AddModules(builder.Configuration, [new ProbeModule(connectionString, entered, gate)]);
         app = builder.Build();
         app.UseKarryApiConventions();
+        app.UseKarryTenancy();
         app.UseIdempotency();
         app.MapModules();
 

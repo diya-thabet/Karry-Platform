@@ -36,3 +36,12 @@ Every tenant table carries `tenant_id uuid not null`, with RLS `ENABLE` + `FORCE
 - ⚠ A separate `set_config` round trip costs ~+14 % on single-query transactions, so batching is mandatory.
 - ⚠ Session-level `SET` is forbidden (spike reproduced a leak with connection reset disabled).
 - 🔎 Revisit for tenants whose size justifies their own cell.
+
+## Implementation notes (P1.5, 2026-10-23)
+
+The decision is unchanged; these refine how it is executed (details: [security §14.4.1](../02-architecture/security-identity-tenancy.md#1441-as-implemented-p15-karrybuildingblockstenancy)).
+
+- The transaction-local setting is sent as `SET LOCAL app.tenant_id = '<uuid>'` (value formatted from a `Guid`, injection-safe) instead of `SELECT set_config($1, …, true)`, because `set_config` returns a row that would become the first result of EF Core readers.
+- It is batched with the statement for commands outside a transaction (no extra round trip). Inside a transaction, which every `SaveChanges` now is, it runs once as the transaction's first statement: prefixing modification batches shifts EF Core's per-statement rows-affected.
+- Session-level leaks are tested with `No Reset On Close=true` (PgBouncer-like); Npgsql's default `DISCARD ALL` on return to the pool would otherwise hide them.
+

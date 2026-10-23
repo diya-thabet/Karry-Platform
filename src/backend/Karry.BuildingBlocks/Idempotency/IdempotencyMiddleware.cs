@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.SharedKernel.Results;
+using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -22,7 +24,8 @@ public sealed class RequiresIdempotencyKey;
 /// </summary>
 public sealed class IdempotencyMiddleware(RequestDelegate next, TimeProvider clock, IdempotencyOptions options)
 {
-    private const string AnonymousScope = "anonymous";
+    /// <summary>Scope of keys sent to endpoints without a tenant (platform operator).</summary>
+    private const string PlatformScope = "platform";
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -41,13 +44,16 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, TimeProvider clo
             return;
         }
 
+        // Keys belong to the tenant (and the user, from P1.8); the table is RLS-protected by tenant as well.
+        var tenant = context.RequestServices.GetRequiredService<ITenantContext>().Current;
+        var scope = tenant?.ToString() ?? PlatformScope;
         var fingerprint = await FingerprintAsync(context.Request).ConfigureAwait(false);
         var db = context.RequestServices.GetRequiredService<PlatformDbContext>();
         var now = clock.GetUtcNow();
 
-        if (!await TryReserveAsync(db, key, fingerprint, now, context.RequestAborted).ConfigureAwait(false))
+        if (!await TryReserveAsync(db, tenant, scope, key, fingerprint, now, context.RequestAborted).ConfigureAwait(false))
         {
-            await RespondToDuplicateAsync(context, db, key, fingerprint).ConfigureAwait(false);
+            await RespondToDuplicateAsync(context, db, scope, key, fingerprint).ConfigureAwait(false);
             return;
         }
 
@@ -66,7 +72,7 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, TimeProvider clo
             if (completed)
             {
                 await db.IdempotencyRecords
-                    .Where(r => r.Scope == AnonymousScope && r.Key == key)
+                    .Where(r => r.Scope == scope && r.Key == key)
                     .ExecuteUpdateAsync(set => set
                         .SetProperty(r => r.StatusCode, context.Response.StatusCode)
                         .SetProperty(r => r.ContentType, context.Response.ContentType)
@@ -76,7 +82,7 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, TimeProvider clo
             else
             {
                 // Server error or exception: release the key so the client can retry.
-                await db.IdempotencyRecords.Where(r => r.Scope == AnonymousScope && r.Key == key)
+                await db.IdempotencyRecords.Where(r => r.Scope == scope && r.Key == key)
                     .ExecuteDeleteAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
@@ -85,29 +91,30 @@ public sealed class IdempotencyMiddleware(RequestDelegate next, TimeProvider clo
         await captured.CopyToAsync(originalBody, context.RequestAborted).ConfigureAwait(false);
     }
 
-    private async Task<bool> TryReserveAsync(PlatformDbContext db, string key, string fingerprint, DateTimeOffset now, CancellationToken cancellationToken)
+    private async Task<bool> TryReserveAsync(
+        PlatformDbContext db, TenantId? tenant, string scope, string key, string fingerprint, DateTimeOffset now, CancellationToken cancellationToken)
     {
         // Expired records, and first requests abandoned by a crashed process, no longer hold their key.
         var abandonedBefore = now - options.InProgressTimeout;
         await db.IdempotencyRecords
-            .Where(r => r.Scope == AnonymousScope && r.Key == key && (r.ExpiresAt <= now || (r.StatusCode == null && r.CreatedAt <= abandonedBefore)))
+            .Where(r => r.Scope == scope && r.Key == key && (r.ExpiresAt <= now || (r.StatusCode == null && r.CreatedAt <= abandonedBefore)))
             .ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
 
         var expiresAt = now + options.Retention;
         var inserted = await db.Database.ExecuteSqlInterpolatedAsync(
             $"""
-            INSERT INTO platform.idempotency_records (scope, key, request_fingerprint, created_at, expires_at)
-            VALUES ({AnonymousScope}, {key}, {fingerprint}, {now}, {expiresAt})
+            INSERT INTO platform.idempotency_records (scope, key, tenant_id, request_fingerprint, created_at, expires_at)
+            VALUES ({scope}, {key}, {tenant?.Value}, {fingerprint}, {now}, {expiresAt})
             ON CONFLICT (scope, key) DO NOTHING
             """,
             cancellationToken).ConfigureAwait(false);
         return inserted == 1;
     }
 
-    private static async Task RespondToDuplicateAsync(HttpContext context, PlatformDbContext db, string key, string fingerprint)
+    private static async Task RespondToDuplicateAsync(HttpContext context, PlatformDbContext db, string scope, string key, string fingerprint)
     {
         var record = await db.IdempotencyRecords.AsNoTracking()
-            .SingleOrDefaultAsync(r => r.Scope == AnonymousScope && r.Key == key, context.RequestAborted).ConfigureAwait(false);
+            .SingleOrDefaultAsync(r => r.Scope == scope && r.Key == key, context.RequestAborted).ConfigureAwait(false);
 
         if (record is null)
         {

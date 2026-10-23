@@ -62,6 +62,10 @@ namespace Karry.BuildingBlocks.Idempotency.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status_code");
 
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
                     b.HasKey("Scope", "Key")
                         .HasName("pk_idempotency_records");
 
@@ -118,6 +122,10 @@ namespace Karry.BuildingBlocks.Idempotency.Migrations
                         .HasMaxLength(63)
                         .HasColumnType("character varying(63)")
                         .HasColumnName("source");
+
+                    b.Property<Guid?>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
 
                     b.Property<string>("Type")
                         .IsRequired()

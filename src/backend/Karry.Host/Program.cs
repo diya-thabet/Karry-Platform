@@ -3,6 +3,7 @@ using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Host;
 using Karry.Host.Health;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -22,6 +23,7 @@ builder.Services.AddHealthChecks()
     .AddCheck<PostgresHealthCheck>("postgres", tags: ["ready"]);
 
 builder.Services.AddKarryApiConventions();
+builder.Services.AddKarryTenancy(builder.Configuration);
 builder.Services.AddOpenApi("v1");
 builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
@@ -43,6 +45,7 @@ if (args is ["migrate", ..])
 
 app.UseKarryObservability();
 app.UseKarryApiConventions();
+app.UseKarryTenancy();
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
     app.UseIdempotency();

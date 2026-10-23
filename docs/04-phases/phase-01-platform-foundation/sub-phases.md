@@ -289,7 +289,7 @@ A sub-phase is ✅ only when **all** of these are true:
   - **RLS framework:**
     - **Roles:** `karry_owner` for migrations and `karry_app` for runtime (not owner, no `BYPASSRLS`).
     - **Policies:** a migration helper `EnableTenantRls("schema.table")` generates `ENABLE` + `FORCE` + a `nullif(current_setting('app.tenant_id', true), '')::uuid` policy for both `USING` and `WITH CHECK`.
-    - **Tenant per transaction:** a connection/command interceptor sets the tenant with `set_config('app.tenant_id', $1, true)` **batched with the first statement** of the transaction. A missing tenant means the request is rejected before any query runs.
+    - **Tenant per transaction:** a connection/command interceptor sets the tenant with `set_config('app.tenant_id', $1, true)` **batched with the first statement** of the transaction. A missing tenant means the request is rejected before any query runs. *(As built: `SET LOCAL` with a formatted `Guid`, prefixed outside transactions and once per transaction inside; see [ADR-0004 implementation notes](../../adr/0004-multi-tenancy-rls.md#implementation-notes-p15-2026-10-23).)*
     - **Second layer:** an EF Core global query filter on `TenantId`.
   - **Migration linter** (CI step): fails when a new table lacks `tenant_id` + RLS, unless it is listed in `global-reference-tables.txt` with a reason.
   - **Tenant-isolation suite** `tests/Karry.TenantIsolationTests`: it reads the OpenAPI document, seeds data in tenant A, calls **every** endpoint with a tenant B token, and asserts 403/404 with no A data in the body. The `ci / tenant-isolation` job becomes real and required.

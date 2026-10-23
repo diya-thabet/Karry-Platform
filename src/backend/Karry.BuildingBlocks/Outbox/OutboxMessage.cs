@@ -14,6 +14,9 @@ public sealed class OutboxMessage
     /// <summary>Producing module (its schema name).</summary>
     public required string Source { get; init; }
 
+    /// <summary>Tenant of the aggregate that raised the event (null for platform events); subscribers run in its context.</summary>
+    public Guid? TenantId { get; init; }
+
     /// <summary>Events with the same key are dispatched strictly in order.</summary>
     public required string AggregateKey { get; init; }
 
