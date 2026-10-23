@@ -312,6 +312,10 @@ cd src/frontend
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
 pnpm --filter @karry/field e2e   # Playwright (from P1.15)
+# Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
+dotnet tool restore
+dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations
+dotnet run --project src/backend/Karry.Host -- migrate   # applies all modules' migrations as karry_owner
 # Module template (TC-P1-PLT-003)
 tools/templates/test-template.sh
 # Local stack incl. observability end to end (TC-P1-PLT-004; needs Docker)

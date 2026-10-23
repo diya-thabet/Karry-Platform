@@ -21,17 +21,20 @@
 docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Keycloak, S3 (SeaweedFS), Valkey, Mailpit, Grafana LGTM
 dotnet build Karry.slnx                                        # 2. build the backend
 dotnet test --solution Karry.slnx                              # 3. backend tests (Testcontainers needs Docker)
-dotnet run --project src/backend/Karry.Host                    # 4. API on http://localhost:5000 (/health/ready)
-cd src/frontend && corepack enable && pnpm install             # 5. frontend dependencies
-pnpm --filter @karry/portal dev                                # 6. office portal (Vite dev server)
-pnpm --filter @karry/field dev                                 # 7. field app (Vite dev server)
+dotnet run --project src/backend/Karry.Host -- migrate         # 4. apply database migrations (as karry_owner)
+dotnet run --project src/backend/Karry.Host                    # 5. API on http://localhost:5000 (/health/ready)
+cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
+pnpm --filter @karry/portal dev                                # 7. office portal (Vite dev server)
+pnpm --filter @karry/field dev                                 # 8. field app (Vite dev server)
 ```
+
+Database roles come from [`deploy/database/roles.sql`](deploy/database/roles.sql) on the first start of the stack. A stack created before P1.5 lacks `karry_owner`: recreate it once with `docker compose -f deploy/docker/compose.yaml down -v`.
 
 Local services (bound to `127.0.0.1` only; development credentials are in [`deploy/docker/compose.yaml`](deploy/docker/compose.yaml)):
 
 | Service | URL / port |
 |---|---|
-| PostgreSQL 17 (`karry` database, `karry_app` role) | `localhost:5432` |
+| PostgreSQL 17 (`karry` database; `karry_app` runtime role, `karry_owner` migrations role) | `localhost:5432` |
 | Keycloak admin console | http://localhost:8080 |
 | S3 API (SeaweedFS, Object Lock) | http://localhost:8333 |
 | Valkey (Redis-compatible) | `localhost:6379` |
