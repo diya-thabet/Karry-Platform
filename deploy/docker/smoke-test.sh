@@ -85,6 +85,8 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && for _ in 1 2; do DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development dotnet Karry.Host.dll seed-demo >/dev/null || exit 1; done) || fail "Karry.Host seed-demo"
     demo="$(psql_su "SELECT string_agg(slug, ',' ORDER BY slug) FROM tenancy.tenants WHERE slug LIKE 'demo-carriere-%'")"
     if [[ "$demo" == "demo-carriere-a,demo-carriere-b" ]]; then pass "seed-demo twice: exactly the 2 demo tenants"; else fail "seed-demo (got '$demo')"; fi
+    ledger="$(psql_su "SELECT string_agg(seq::text || ':' || event_type, ',') FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a'")"
+    if [[ "$ledger" == "1:tenancy.tenant_provisioned.v1" ]]; then pass "audit ledger: demo tenant A opened with entry 1"; else fail "audit ledger (got '$ledger')"; fi
   else
     fail "Karry.Host migrate"
   fi

@@ -1,10 +1,12 @@
 using System.Linq.Expressions;
+using Karry.BuildingBlocks.Ledger;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.SharedKernel.Domain;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Karry.BuildingBlocks.Persistence;
 
@@ -43,8 +45,12 @@ public abstract partial class ModuleDbContext : DbContext
     /// The unit of work's tenant context, from the scope that created this context (AddDbContext passes the scoped
     /// provider as application service provider). Null for contexts created outside DI (migrations).
     /// </summary>
-    private ITenantContext? TenantContext =>
-        tenantContext ??= this.GetService<IDbContextOptions>().FindExtension<CoreOptionsExtension>()?.ApplicationServiceProvider?.GetService(typeof(ITenantContext)) as ITenantContext;
+    private ITenantContext? TenantContext => tenantContext ??= Service<ITenantContext>();
+
+    /// <summary>A service from the scope that created this context (null outside DI, e.g. migrations).</summary>
+    private T? Service<T>()
+        where T : class =>
+        this.GetService<IDbContextOptions>().FindExtension<CoreOptionsExtension>()?.ApplicationServiceProvider?.GetService(typeof(T)) as T;
 
     private ITenantContext? tenantContext;
 
@@ -68,30 +74,76 @@ public abstract partial class ModuleDbContext : DbContext
             .Where(aggregate => aggregate.DomainEvents.Count > 0)
             .ToList();
 
+        var ledger = new List<LedgerRecord>();
         foreach (var aggregate in aggregates)
         {
+            var tenant = AuditTenantOf(aggregate);
             foreach (var domainEvent in aggregate.DomainEvents)
             {
+                var type = EventTypeAttribute.NameOf(domainEvent.GetType());
+                var payload = EventSerializer.Serialize(domainEvent);
                 OutboxMessages.Add(new OutboxMessage
                 {
                     Id = domainEvent.EventId,
-                    Type = EventTypeAttribute.NameOf(domainEvent.GetType()),
+                    Type = type,
                     Source = Schema,
-                    TenantId = (aggregate as ITenantOwned)?.TenantId.Value,
+                    TenantId = tenant?.Value,
                     AggregateKey = aggregate.AggregateKey,
                     OccurredAt = domainEvent.OccurredAt,
                     NextAttemptAt = domainEvent.OccurredAt,
-                    Payload = EventSerializer.Serialize(domainEvent),
+                    Payload = payload,
                 });
+                if (tenant is { } owner)
+                {
+                    ledger.Add(new LedgerRecord(owner, domainEvent.EventId, type, payload, domainEvent.OccurredAt));
+                }
             }
         }
 
-        // One SaveChanges = one transaction (or the caller's explicit transaction): changes and outbox rows commit
-        // or roll back together.
-        var written = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
-        aggregates.ForEach(aggregate => aggregate.ClearDomainEvents());
-        return written;
+        if (ledger.Count == 0)
+        {
+            // One SaveChanges = one transaction (or the caller's): changes and outbox rows commit or roll back together.
+            var saved = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+            aggregates.ForEach(aggregate => aggregate.ClearDomainEvents());
+            return saved;
+        }
+
+        // Business change + outbox rows + ledger entries in ONE transaction (ADR-0008, US-P1-AUD-01 AC1): the ledger is
+        // appended after the change is written and before the commit; any failure rolls all three back.
+        var writer = Service<ILedgerWriter>()
+            ?? throw new InvalidOperationException("Tenant events must be recorded in the audit ledger, but no ILedgerWriter is registered.");
+        var ownTransaction = Database.CurrentTransaction is null
+            ? await Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        try
+        {
+            var written = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
+            await writer.AppendAsync(Database.GetDbConnection(), Database.CurrentTransaction!.GetDbTransaction(), TenantContext?.Current,
+                ledger, cancellationToken).ConfigureAwait(false);
+            if (ownTransaction is not null)
+            {
+                await ownTransaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+            }
+
+            aggregates.ForEach(aggregate => aggregate.ClearDomainEvents());
+            return written;
+        }
+        finally
+        {
+            if (ownTransaction is not null)
+            {
+                await ownTransaction.DisposeAsync().ConfigureAwait(false);
+            }
+        }
     }
+
+    /// <summary>The tenant whose ledger records the aggregate's events; null for platform aggregates (not audited).</summary>
+    private static TenantId? AuditTenantOf(IHasDomainEvents aggregate) => aggregate switch
+    {
+        ITenantOwned owned => owned.TenantId,
+        ITenantAudited audited => audited.AuditTenantId,
+        _ => null,
+    };
 
     /// <summary>Name of the EF Core migrations history table, kept in the module's own schema.</summary>
     public const string MigrationsHistoryTable = "__ef_migrations_history";

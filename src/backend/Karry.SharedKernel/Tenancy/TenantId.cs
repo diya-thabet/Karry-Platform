@@ -18,3 +18,12 @@ public interface ITenantOwned
 {
     TenantId TenantId { get; }
 }
+
+/// <summary>
+/// An aggregate whose events belong in a tenant's audit ledger although the aggregate is not a tenant-owned row
+/// (the tenant catalog entry itself). <see cref="ITenantOwned"/> aggregates are audited under their tenant automatically.
+/// </summary>
+public interface ITenantAudited
+{
+    TenantId AuditTenantId { get; }
+}

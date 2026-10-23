@@ -66,7 +66,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | T-03 | Tampering | Payload modified between signing and server (malware, proxy) | Signature over RFC 8785 canonical payload; hash check; reject on mismatch | TC-P0-KEY-004, TC-P0-SIG-003, TC-P2-SIG-002 |
 | T-04 | Tampering | Backdated entries (device clock changed) | Server receive time + device time; clock-offset measurement per sync; CLOCK_SKEW flag | US-P2-OFF-05, RULE-FO-03 |
 | T-05 | Tampering | Replay of an old valid batch to duplicate fuel/tickets | Idempotency by `commandId`; per-device monotonic sequence; gap detection | TC-P0-OFF-005, TC-P2-SYNC-001/003 |
-| T-06 | Tampering | DB insider edits or deletes signed records / ledger rows | Append-only tables with triggers; app role INSERT/SELECT only; hash chain; WORM anchoring; verifier | US-P1-AUD-01..03, ADR-0008, TC-P1-AUD-002/003 |
+| T-06 | Tampering | DB insider edits or deletes signed records / ledger rows | Append-only tables with triggers; app role INSERT/SELECT only; hash chain; WORM anchoring; verifier | US-P1-AUD-01..03, ADR-0008, TC-P1-AUD-002/003; **P1.6**: triggers + revoked privileges + hash chain verified (TC-P1-AUD-001/002/003/006); WORM anchoring in P1.6 slice 4 |
 | T-07 | Repudiation | Controller denies having approved / corrected an entry | Controller signature on every action; before/after diff in ledger; SoD | US-P2-VER-02..04, ADR-0006 |
 | T-08 | Repudiation | Weighmaster denies issuing a ticket / claims edit | Tickets immutable; reversal requires countersignature; indicator-sourced weights signed by edge agent | US-P3-WB-01/02, US-P6-EDG-02 |
 | T-09 | Information disclosure | Cross-tenant data read via API, export, report, notification, AI | RLS (forced, `nullif` policy, transaction-local tenant) + EF filters + isolation test suite on every endpoint | ADR-0004, TC-P0-RLS-001..010, US-P1-TEN-03; **verified P1.5**: TC-P1-TEN-001/002/003/004/009 (suite on every API operation, required check `tenant-isolation`) |
@@ -96,6 +96,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
+| 2026-10-23 | P1.6 | T-06: append-only ledger enforced by triggers and privileges, written in the business transaction, tampering detected at the exact sequence | Software architect |
 | 2026-10-23 | P1.5 | T-09 and T-11 verified against the real framework: RLS + EF filter + save check + token-only tenant source + tenant address check; migration linter; isolation suite on every API operation as required CI check (TC-P1-TEN-001…004, 009); R-07 added | Software architect |
 | 2026-10-23 | P1.4 | T-18 added (telemetry data leaks) and mitigated | Software architect |
 | 2026-10-22 | P1.2–P1.3 | R-05 mitigations implemented; R-06 added (no server-side branch protection); error responses verified not to leak internals (TC-P1-PLT-021) | Software architect |

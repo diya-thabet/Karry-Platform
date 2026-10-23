@@ -9,6 +9,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
+    <!-- Provisioning writes the new tenant's first ledger entry: the real Trust module records it. -->
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>
