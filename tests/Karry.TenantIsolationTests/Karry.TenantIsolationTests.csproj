@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- US-P1-TEN-03: every API operation attacked with another tenant's token (own CI job: ci / tenant-isolation). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/backend/Karry.Host/Karry.Host.csproj" />
+    <ProjectReference Include="../Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+</Project>

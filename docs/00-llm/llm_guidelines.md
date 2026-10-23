@@ -317,6 +317,9 @@ dotnet tool restore
 dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations
 dotnet run --project src/backend/Karry.Host -- migrate   # applies all modules' migrations as karry_owner
 dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants (not in production; idempotent)
+# Tenant isolation suite and API contract (the build regenerates src/backend/Karry.Host/openapi/v1.json: commit it)
+dotnet test --project tests/Karry.TenantIsolationTests
+tools/ci/install-tool.sh oasdiff && ~/.local/bin/oasdiff breaking <(git show origin/main:src/backend/Karry.Host/openapi/v1.json) src/backend/Karry.Host/openapi/v1.json --fail-on ERR
 # Module template (TC-P1-PLT-003)
 tools/templates/test-template.sh
 # Local stack incl. observability end to end (TC-P1-PLT-004; needs Docker)
@@ -406,15 +409,16 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 │                 # alert-rule tests TC-P1-OPS-006), backend (format, build, tests,
 │                 # coverage gate), architecture (+ module template), frontend (frozen install with
 │                 # supply-chain policy, lint, typecheck, test, build), local-stack (TC-P1-PLT-004 + request
-│                 # visible end to end in Grafana),
+│                 # visible end to end in Grafana), tenant-isolation (every API operation with a foreign
+│                 # tenant's token, TC-P1-TEN-002), openapi-diff (oasdiff: no breaking change),
 │                 # security (gitleaks, Trivy, Semgrep CE — ADR-0021)
 ├── nightly.yml   # dependency audit with fresh advisory data, suite run twice (flakiness); mutation tests from P1.6
 ├── docs.yml      # link and anchor check, every PR
 ├── spikes.yml    # frozen Phase 0 evidence
-└── (planned) e2e.yml (P1.15), deploy.yml (P1.17); tenant-isolation and openapi-diff jobs join ci.yml in P1.5
+└── (planned) e2e.yml (P1.15), deploy.yml (P1.17)
 ```
 
-**Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
+**Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `tenant-isolation`, `openapi-diff`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
 
 ### 9.2 Workflow rules
 

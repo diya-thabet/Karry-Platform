@@ -72,7 +72,7 @@ karry-platform/
 │   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)
 │   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates
 │   ├── Karry.IntegrationTests/
-│   ├── Karry.TenantIsolationTests/
+│   ├── Karry.TenantIsolationTests/     every API operation attacked with another tenant's token (ci / tenant-isolation)
 │   ├── e2e/                            Playwright
 │   └── load/                           k6
 ├── deploy/

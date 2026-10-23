@@ -1,6 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <!-- ASP.NET Core composition root: wires modules, middleware and health checks. -->
+  <!-- The API contract is generated at build time into openapi/v1.json and committed: CI fails if it is stale and
+       diffs it against main for breaking changes (oasdiff). Clients are generated from it. -->
+  <PropertyGroup>
+    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
+    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name v1</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" PrivateAssets="all" IncludeAssets="runtime; build; native; contentfiles; analyzers; buildtransitive" />
     <PackageReference Include="Npgsql" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
   </ItemGroup>

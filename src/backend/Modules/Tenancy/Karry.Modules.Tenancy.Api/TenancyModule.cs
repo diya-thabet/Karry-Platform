@@ -48,15 +48,24 @@ public sealed class TenancyModule : IModule
             .RequireAuthorization(KarryPolicies.PlatformOperator)
             .Validate<ProvisionTenant>()
             .RequireIdempotencyKey()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("ProvisionTenant");
 
         // The caller's own company (portal header). Tenant-scoped: the tenant comes from the token only.
-        endpoints.MapGet("/current", CurrentAsync).WithName("GetCurrentTenant");
+        endpoints.MapGet("/current", CurrentAsync)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetCurrentTenant");
 
         // Login page branding before sign-in (name now; logo and colour with tenant settings, P1.11).
         endpoints.MapGet("/public/{slug}", BrandingAsync)
             .AllowAnonymous()
             .AllowWithoutTenant()
+            .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetTenantBranding");
     }
 

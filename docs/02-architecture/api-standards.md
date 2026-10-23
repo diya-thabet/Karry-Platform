@@ -49,5 +49,5 @@ Framework errors use the same shape: unknown route `route.not_found`, malformed 
 
 **Idempotency** (`.RequireIdempotencyKey()`): header `Idempotency-Key` (1–200 printable characters). Same key + same request → the stored response is replayed with `Idempotency-Replayed: true` (also for 4xx); same key + different request → 422 `idempotency.key_reused`; while the first is running → 409 `idempotency.request_in_progress`; missing key → 400 `idempotency.key_required`; 5xx responses are not stored (the client may retry). Records are kept 24 h; a reservation abandoned by a crashed process is released after 2 min. Scope: tenant + user from P1.5/P1.8.
 
-**OpenAPI:** `/openapi/v1.json` (generated from code) in every environment except production; CI diffs it from P1.5.
+**OpenAPI:** `/openapi/v1.json` (generated from code) in every environment except production. The contract is also generated at **build time** into [`src/backend/Karry.Host/openapi/v1.json`](../../src/backend/Karry.Host/openapi/v1.json) and committed: `ci / backend` fails if it is stale, `ci / openapi-diff` (oasdiff) fails on a **breaking change** against the base branch, and `ci / tenant-isolation` attacks every operation in it. Every endpoint needs `.WithName(...)` (operationId) and declares its problem responses (`.ProducesProblem(...)`).
 

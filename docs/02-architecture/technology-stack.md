@@ -64,6 +64,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | pnpm | 12.15.0 | via `packageManager` |
 | TypeScript | 6.0.3 | 7.0.2 exists but `typescript-eslint` supports `<6.1.0` ([ADR-0020](../adr/0020-frontend-toolchain-versions.md)) |
 | OpenTofu | 1.13.2 | IaC (P1.17) |
+| oasdiff | 1.33.0 | CI `openapi-diff` (P1.5): breaking-change check of the API contract; checksum-verified install |
 | actionlint / gitleaks / Trivy / Semgrep CE | 1.7.12 / 8.30.1 / 0.75.0 / 1.180.0 | CI (P1.2); installed with checksum verification by `tools/ci/install-tool.sh`; Semgrep image pinned by digest |
 
 **Backend (NuGet)**
@@ -72,7 +73,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 |---|---|---|---|
 | Microsoft.EntityFrameworkCore | 10.0.13 | Npgsql / Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.3 |
 | Microsoft.AspNetCore.OpenApi | 10.0.13 | Scalar.AspNetCore (API reference UI) | 2.18.2 |
-| Microsoft.EntityFrameworkCore.Design, dotnet-ef (local tool) | 10.0.13 (P1.5) | | |
+| Microsoft.EntityFrameworkCore.Design, dotnet-ef (local tool) | 10.0.13 (P1.5) | Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.Extensions.ApiDescription.Server (build-time OpenAPI) | 10.0.13 (P1.5) |
 | Quartz.Extensions.Hosting | 4.6.0 | OpenFeature | 2.14.1 |
 | OpenTelemetry.Extensions.Hosting, .Instrumentation.AspNetCore/.Http/.Runtime, .Exporter.OpenTelemetryProtocol/.InMemory | 1.20.0 (P1.4; 1.20.1 was < 7 days old on 2026-10-23) | Npgsql.OpenTelemetry | 10.0.3 |
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
