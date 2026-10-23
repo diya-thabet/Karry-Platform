@@ -38,7 +38,8 @@ main → build images (SBOM, signed with cosign) → deploy dev → E2E (Playwri
 - OpenTelemetry traces from PWA (sync calls) → API → DB; correlation ID shown in UI error messages for support.
 - Metrics: RED (rate/errors/duration) per endpoint, sync backlog per device, outbox lag, ledger anchoring lag, AI tokens/cost per tenant.
 - Business health alerts: "site X has not synced in 24 h", "pending reviews > SLA", "anchoring failed".
-- Logs structured (Serilog → Loki), PII-scrubbed.
+- Logs structured (`Microsoft.Extensions.Logging` with source-generated `LoggerMessage` → OpenTelemetry → Loki), no personal data: the request-start log with the full URL is not exported, log scopes are off (records carry trace and span IDs).
+- **Implemented in P1.4** (`Karry.BuildingBlocks/Observability`): OpenTelemetry in `karry-api` and `karry-workers` (traces: ASP.NET Core, HttpClient, Npgsql, outbox dispatch; metrics: HTTP RED with a `module` tag, runtime, Npgsql pool, `karry.outbox.messages`, `karry.outbox.oldest_pending_age`; logs). Exported with OTLP only when `OTEL_EXPORTER_OTLP_ENDPOINT` is set. Span attributes are **allow-listed** (`TelemetryAttributes.Allowed`): `tenant_id`, `module`, `route`, `user_role`, `event_type` plus semantic-convention attributes without data; `url.*`, user agent and client address are dropped; SQL text is kept (always parameterized). Health probes are not traced. Verified by TC-P1-OPS-003 and TC-P1-OPS-005.
 
 ## 19.4 Backup & DR
 

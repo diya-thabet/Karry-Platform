@@ -18,6 +18,7 @@ public sealed partial class OutboxDispatcherService<TContext>(
         {
             try
             {
+                await dispatcher.MeasureBacklogAsync(stoppingToken).ConfigureAwait(false);
                 var attempted = await dispatcher.DispatchPendingAsync(500, stoppingToken).ConfigureAwait(false);
                 if (attempted > 0)
                 {

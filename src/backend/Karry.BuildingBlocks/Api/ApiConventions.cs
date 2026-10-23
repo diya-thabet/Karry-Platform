@@ -15,7 +15,8 @@ public static partial class ApiConventions
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
             // Framework-generated problems (404 route, 405, 415, bad JSON) get the same shape as ours.
-            context.ProblemDetails.Extensions.TryAdd("traceId", Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier);
+            // Overwrite ASP.NET Core's default (the full traceparent): support needs the same ID as X-Correlation-Id.
+            context.ProblemDetails.Extensions["traceId"] = Activity.Current?.TraceId.ToString() ?? context.HttpContext.TraceIdentifier;
             context.ProblemDetails.Extensions.TryAdd("code", context.ProblemDetails.Status switch
             {
                 StatusCodes.Status400BadRequest => ProblemTypes.ValidationCode,
