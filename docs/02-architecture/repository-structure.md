@@ -67,7 +67,7 @@ karry-platform/
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
 │   ├── Karry.Host.IntegrationTests/    health, OpenAPI (Testcontainers PostgreSQL)
-│   ├── Karry.Testing/                  shared test kit (not a test project): PostgresServer with the real roles, TestTokens issuer
+│   ├── Karry.Testing/                  shared test kit (not a test project): PostgresServer with the real roles, TestTokens issuer, MigrationLinter
 │   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract, observability (TC-P1-OPS-003/005)
 │   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)
 │   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates
@@ -77,7 +77,7 @@ karry-platform/
 │   └── load/                           k6
 ├── deploy/
 │   ├── docker/                         compose.yaml (local stack incl. Grafana LGTM), smoke-test.sh (TC-P1-PLT-004)
-│   ├── database/                       roles.sql (karry_owner / karry_app, privileges; used by local stack, tests, environments)
+│   ├── database/                       roles.sql (karry_owner / karry_app, privileges; used by local stack, tests, environments), global-reference-tables.txt (tables without tenant RLS, with reasons; migration linter)
 │   ├── observability/                  prometheus.yaml, alerts/ (rules + promtool tests), dashboards/ (generate.py → JSON), verify_stack.py
 │   ├── helm/
 │   └── infra/                          OpenTofu

@@ -752,6 +752,13 @@
       "karry.sharedkernel": {
         "type": "Project"
       },
+      "karry.testing": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Testcontainers.PostgreSql": "[4.16.0, )"
+        }
+      },
       "EFCore.NamingConventions": {
         "type": "CentralTransitive",
         "requested": "[10.0.1, )",

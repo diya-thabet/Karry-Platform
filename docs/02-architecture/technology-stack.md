@@ -46,7 +46,7 @@ last_updated: 2026-10-21
 | **IaC** | OpenTofu (Terraform-compatible) + Helm | Reproducible environments | Pulumi |
 | **CI/CD** | GitHub Actions, Renovate, trunk-based development, environment promotion | — | GitLab CI |
 | **Observability** | OpenTelemetry SDKs → Grafana (Prometheus/Mimir, Loki, Tempo), Sentry for client errors | Vendor-neutral, full traces from tablet to DB | Datadog (cost) |
-| **Quality** | xUnit v3 (Microsoft Testing Platform), CsCheck (property-based), Testcontainers, project-graph architecture tests (ArchUnitNET type rules from P1.5), AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
+| **Quality** | xUnit v3 (Microsoft Testing Platform), CsCheck (property-based), Testcontainers, project-graph architecture tests + reflection-based type rules (P1.5; ArchUnitNET not needed), AwesomeAssertions, Playwright, Vitest, Storybook + axe, k6, Stryker.NET (mutation on math/trust) | — | — |
 | **Security tooling** | gitleaks (secrets), Trivy (dependencies, misconfiguration), Semgrep CE (SAST), Roslyn CA analyzers, OWASP ZAP (DAST, P1.18), Renovate ([ADR-0021](../adr/0021-security-scanning-private-repo.md)) | Free and licence-compatible for a private repository | CodeQL / GitHub Code Security (paid on private repos; revisit with first customers), Snyk |
 
 > Exact library versions are pinned in lock files ([ADR-0002](../adr/0002-dotnet-10-lts.md), [ADR-0020](../adr/0020-frontend-toolchain-versions.md)) and upgraded monthly via Renovate. The reference versions below were verified at the start of Phase 1.
@@ -78,7 +78,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
 | Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
 | xunit.v3 | 4.0.2 | Testcontainers.PostgreSql / .Keycloak | 4.16.0 |
-| Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | TngTech.ArchUnitNET.xUnitV3 (architecture tests) | 0.13.4 |
+| Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | ~~TngTech.ArchUnitNET.xUnitV3~~ (not used: type rules are plain reflection, P1.5) | n/a |
 | AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |
 | dotnet-stryker (mutation) | 5.0.0 | | |
 

@@ -1,3 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Modular-monolith boundary rules (ADR-0001), checked on the project reference graph of the real repository. -->
+  <!-- Modular-monolith boundary rules (ADR-0001), checked on the project reference graph of the real repository,
+       and type-level rules checked on the compiled assemblies of the host (all modules). -->
+  <ItemGroup>
+    <ProjectReference Include="../../src/backend/Karry.Host/Karry.Host.csproj" />
+  </ItemGroup>
 </Project>
