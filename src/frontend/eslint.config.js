@@ -6,7 +6,8 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/storybook-static/**", "**/.vitest/**"] },
+  // Generated code is checked by its generator's freshness check and by tsc, not by style rules.
+  { ignores: ["**/dist/**", "**/coverage/**", "**/node_modules/**", "**/storybook-static/**", "**/.vitest/**", "packages/api-client/src/schema.ts"] },
   js.configs.recommended,
   ...tseslint.configs.strictTypeChecked,
   ...tseslint.configs.stylisticTypeChecked,

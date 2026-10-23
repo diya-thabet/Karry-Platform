@@ -2,15 +2,24 @@
   "name": "@karry/api-client",
   "private": true,
   "version": "0.0.0",
-  "description": "Typed API client generated from the OpenAPI document (P1.7).",
+  "description": "Typed API client generated from the committed OpenAPI contract (src/backend/Karry.Host/openapi/v1.json).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "generate": "openapi-typescript ../../../backend/Karry.Host/openapi/v1.json -o src/schema.ts",
+    "check:generated": "openapi-typescript ../../../backend/Karry.Host/openapi/v1.json --check -o src/schema.ts"
+  },
+  "dependencies": {
+    "openapi-fetch": "catalog:"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@types/node": "catalog:",
+    "openapi-typescript": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

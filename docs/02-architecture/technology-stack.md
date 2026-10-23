@@ -96,6 +96,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test / playwright | 1.64.1 | axe-core (in Vitest browser mode, P1.7) | 4.14.0 |
 | storybook (+ react-vite, addon-a11y) | 10.6.2 (P1.7) | eslint / typescript-eslint | 10.12.0 / 8.71.2 |
+| openapi-typescript / openapi-fetch (`@karry/api-client`, P1.7) | 7.13.0 / 0.17.0 (peer `typescript ^5` allowed for TS 6, output type-checked) |
 | @sentry/react (error tracking, `@karry/observability`) | 11.8.0: `dataCollection` all off (v11 collects user, cookies, headers, bodies, query strings by default) | @openfeature/web-sdk / react-sdk | 1.10.0 / 1.4.1 |
 
 **Container images (local stack, CI)**
