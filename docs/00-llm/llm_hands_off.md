@@ -84,7 +84,7 @@
 | D28 | Phase 1 runs **sub-phase by sub-phase** (P1.0 – P1.18); the owner starts each one | [sub-phases.md](../04-phases/phase-01-platform-foundation/sub-phases.md) | Owner request 2026-10-22 |
 | D29 | **Merge rule:** agent squash-merges normal PRs when all required checks are green; PRs touching Tenancy, Identity, Trust, Billing, Sync, ledger migrations or CI/CD security settings need the owner's explicit approval | [sub-phases §2.3](../04-phases/phase-01-platform-foundation/sub-phases.md#23-review--merge) | Owner decision 2026-10-22 |
 | D30 | **ADRs 0001–0020 accepted** by the owner; changes need a superseding ADR | [ADR index](../adr/README.md) | Owner decision 2026-10-22 |
-| D31 | Security scanning = gitleaks + Trivy + Semgrep CE (CodeQL unlicensed on private repo); npm packages ≥ 7 days old (pnpm `minimumReleaseAge`, Renovate); merges only via `tools/ci/merge_guard.py` until branch protection (needs GitHub Pro) | ADR-0021 (proposed), [sub-phases §2.3](../04-phases/phase-01-platform-foundation/sub-phases.md#23-review--merge) | P1.2, 2026-10-22 |
+| D31 | Security scanning = gitleaks + Trivy + Semgrep CE (CodeQL unlicensed on private repo); npm packages ≥ 7 days old (pnpm `minimumReleaseAge`, Renovate); merges only via `tools/ci/merge_guard.py` (see D32) | ADR-0021 (**accepted** by the owner 2026-10-23), [sub-phases §2.3](../04-phases/phase-01-platform-foundation/sub-phases.md#23-review--merge) | P1.2, 2026-10-22 |
 | D32 | **No paid GitHub plan**: no server-side branch protection; `tools/ci/merge_guard.py` is the permanent merge path. **After every change, sweep and update every affected doc** (owner instruction) | [guidelines §9.1](llm_guidelines.md#91-pipeline-structure-built-in-p11p12-us-p1-plt-03), §20.1 | Owner, 2026-10-22 |
 | D24 | **Docs organized by area, one topic per file**, with front matter, folder READMEs, a lookup table in `docs/README.md`, and a link checker (`tools/docs/check_links.py`) that must report 0 broken links | [docs/README.md](../README.md) | Docs will grow; agents must find and load only what they need |
 | D23 | Timeline: 8 weeks is NOT realistic; plan is P0–P10 over ~13 months; Starter sellable after P3 | [Phases Overview, Timeline & Commercial Packaging §6](../04-phases/phases-overview.md) | Codex timeline rejected |
@@ -192,7 +192,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | **P1.0–P1.3 ✅** (owner: Renovate app; ADR-0021; no GitHub Pro → merge guard is permanent); next P1.4 (observability): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
+| P1 Foundation | **P1.0–P1.3 ✅** (owner: Renovate app pending; ADR-0021 accepted; no GitHub Pro → merge guard is permanent); next P1.4 (observability): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---

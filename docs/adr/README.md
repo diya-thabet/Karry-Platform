@@ -42,4 +42,4 @@ Added in Phase 1 sub-phase P1.0 (version check and open choices of the stack):
 | [0018](0018-background-jobs-and-dispatcher.md) | In-house outbox dispatcher and Quartz.NET for scheduled jobs | Accepted |
 | [0019](0019-feature-flags.md) | Feature flags with OpenFeature and a database-backed provider | Accepted |
 | [0020](0020-frontend-toolchain-versions.md) | Frontend toolchain: Node 24 LTS, pnpm 12, TypeScript 6.0 until typescript-eslint supports 7 | Accepted |
-| [0021](0021-security-scanning-private-repo.md) | Security scanning with gitleaks, Trivy and Semgrep CE (CodeQL needs a paid licence on private repos) | Proposed |
+| [0021](0021-security-scanning-private-repo.md) | Security scanning with gitleaks, Trivy and Semgrep CE (CodeQL needs a paid licence on private repos) | Accepted |
