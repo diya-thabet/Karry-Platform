@@ -69,7 +69,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | T-06 | Tampering | DB insider edits or deletes signed records / ledger rows | Append-only tables with triggers; app role INSERT/SELECT only; hash chain; WORM anchoring; verifier | US-P1-AUD-01..03, ADR-0008, TC-P1-AUD-002/003 |
 | T-07 | Repudiation | Controller denies having approved / corrected an entry | Controller signature on every action; before/after diff in ledger; SoD | US-P2-VER-02..04, ADR-0006 |
 | T-08 | Repudiation | Weighmaster denies issuing a ticket / claims edit | Tickets immutable; reversal requires countersignature; indicator-sourced weights signed by edge agent | US-P3-WB-01/02, US-P6-EDG-02 |
-| T-09 | Information disclosure | Cross-tenant data read via API, export, report, notification, AI | RLS (forced, `nullif` policy, transaction-local tenant) + EF filters + isolation test suite on every endpoint | ADR-0004, TC-P0-RLS-001..010, US-P1-TEN-03 |
+| T-09 | Information disclosure | Cross-tenant data read via API, export, report, notification, AI | RLS (forced, `nullif` policy, transaction-local tenant) + EF filters + isolation test suite on every endpoint | ADR-0004, TC-P0-RLS-001..010, US-P1-TEN-03; **verified P1.5**: TC-P1-TEN-001/002/003/004/009 (suite on every API operation, required check `tenant-isolation`) |
 | T-10 | Information disclosure | Field roles see margins, prices, wages | Field-level masking in API serialization, exports, PDFs, AI tools | US-P1-IAM-07, CC-03 |
 | T-11 | Information disclosure | Tenant context leaks across pooled connections | Transaction-local setting only (`SET LOCAL` per command or transaction); session-level SET forbidden | TC-P0-RLS-005/006; P1.5 framework: pooled-session reuse test with `No Reset On Close` (mutation "session-level SET" caught) |
 | T-12 | Denial of service | Sync flood from a compromised device or shift-change burst | Rate limits per device/tenant; batch size limits; queue back-pressure; load tests | US-P2-OFF-03, k6 shift-change test |
@@ -96,7 +96,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
-| 2026-10-23 | P1.5 | T-11 verified against the real framework; T-09 layers in place (RLS, EF filter, save check, token-only tenant source; TC-P1-TEN-001/003), endpoint-wide suite TC-P1-TEN-002 pending (slice 5) | Software architect |
+| 2026-10-23 | P1.5 | T-09 and T-11 verified against the real framework: RLS + EF filter + save check + token-only tenant source + tenant address check; migration linter; isolation suite on every API operation as required CI check (TC-P1-TEN-001…004, 009); R-07 added | Software architect |
 | 2026-10-23 | P1.4 | T-18 added (telemetry data leaks) and mitigated | Software architect |
 | 2026-10-22 | P1.2–P1.3 | R-05 mitigations implemented; R-06 added (no server-side branch protection); error responses verified not to leak internals (TC-P1-PLT-021) | Software architect |
 | 2026-10-21 | P0 | v1 created; tenancy threats validated by spike WP-P0-12, device/signature threats by WP-P0-10/11 | Software architect |

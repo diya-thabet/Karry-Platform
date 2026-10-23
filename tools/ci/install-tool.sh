@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Install a pinned CI tool into ~/.local/bin after verifying its SHA-256 (supply chain: never "curl | sh").
-# Usage: tools/ci/install-tool.sh <gitleaks|trivy|actionlint>
+# Usage: tools/ci/install-tool.sh <gitleaks|trivy|actionlint|oasdiff>
 # Versions are at least one week old when pinned; Renovate proposes updates.
 set -euo pipefail
 
-tool="${1:?usage: $0 <gitleaks|trivy|actionlint>}"
+tool="${1:?usage: $0 <gitleaks|trivy|actionlint|oasdiff>}"
 case "$tool" in
   gitleaks)
     version=8.30.1
@@ -18,6 +18,11 @@ case "$tool" in
     version=1.7.12
     url="https://github.com/rhysd/actionlint/releases/download/v${version}/actionlint_${version}_linux_amd64.tar.gz"
     sha256=8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8 ;;
+  oasdiff)
+    # 1.33.0: 1.34.x was younger than the 7-day release-age rule on 2026-10-23.
+    version=1.33.0
+    url="https://github.com/oasdiff/oasdiff/releases/download/v${version}/oasdiff_${version}_linux_amd64.tar.gz"
+    sha256=43a4e328e2d13ba1552d760aa68d2485c75c5621f309f6ff64ae895188345247 ;;
   *) echo "unknown tool: $tool" >&2; exit 2 ;;
 esac
 
