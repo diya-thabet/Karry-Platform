@@ -46,3 +46,8 @@ __pycache__/
 
 # Stryker.NET mutation reports (CI writes them to the runner temp directory)
 StrykerOutput/
+
+# Storybook static build (CI artifact)
+storybook-static/
+# Vitest browser-mode local artifacts
+.vitest/

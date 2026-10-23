@@ -1,4 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
-  "include": ["src"]
+  "compilerOptions": {
+    "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom/vitest", "node"]
+  },
+  "include": ["src", "vitest.config.ts", ".storybook/main.ts", ".storybook/preview.tsx"]
 }

@@ -1,0 +1,56 @@
+/* Karry design system (US-P1-OFF-05). Apps import this file and add their own `@source` for their code. */
+@import "tailwindcss";
+
+@source "./";
+
+/* Colours come from the active theme (ThemeProvider writes --karry-* on <html>, from tokens.ts). */
+@theme inline {
+  --color-background: var(--karry-background);
+  --color-surface: var(--karry-surface);
+  --color-text: var(--karry-text);
+  --color-text-muted: var(--karry-text-muted);
+  --color-border: var(--karry-border);
+  --color-primary: var(--karry-primary);
+  --color-primary-text: var(--karry-primary-text);
+  --color-danger: var(--karry-danger);
+  --color-danger-text: var(--karry-danger-text);
+  --color-success: var(--karry-success);
+  --color-warning: var(--karry-warning);
+  --color-focus: var(--karry-focus);
+}
+
+/* Density: the field app uses data-density="field": touch targets >= 48 px (here 56), body text >= 16 px (here 18). */
+:root {
+  --karry-control-height: 2.5rem;
+  --karry-font-body: 0.9375rem;
+}
+
+[data-density="field"] {
+  --karry-control-height: 3.5rem;
+  --karry-font-body: 1.125rem;
+}
+
+/* Outdoor: heavier borders and a thick focus ring that stays visible in sunlight. */
+[data-theme="outdoor"] {
+  --karry-border-width: 2px;
+  --karry-focus-width: 4px;
+}
+
+:root:not([data-theme="outdoor"]) {
+  --karry-border-width: 1px;
+  --karry-focus-width: 3px;
+}
+
+body {
+  margin: 0;
+  background: var(--karry-background);
+  color: var(--karry-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-size: var(--karry-font-body);
+  line-height: 1.5;
+}
+
+:focus-visible {
+  outline: var(--karry-focus-width) solid var(--karry-focus);
+  outline-offset: 2px;
+}
