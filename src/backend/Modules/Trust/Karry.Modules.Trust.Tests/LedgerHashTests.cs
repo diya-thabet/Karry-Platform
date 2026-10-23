@@ -55,10 +55,19 @@ public sealed class LedgerHashTests
         variants.Should().OnlyHaveUniqueItems().And.NotContain(baseline);
     }
 
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("""{"alg":"ES256","anchor":{"anchoredAt":"2026-10-23T08:00:00.000000Z","entryHash":"aa","keyId":"k","seq":1,"tenantId":"01970000-0000-7000-8000-00000000000a"},"signature":"%%%"}""")]
+    [InlineData("""{"alg":"HS256","anchor":{"anchoredAt":"2026-10-23T08:00:00.000000Z","entryHash":"aa","keyId":"k","seq":1,"tenantId":"01970000-0000-7000-8000-00000000000a"},"signature":"AA=="}""")]
+    [InlineData("""{"alg":"ES256","anchor":{"anchoredAt":"yesterday","entryHash":"aa","keyId":"k","seq":1,"tenantId":"01970000-0000-7000-8000-00000000000a"},"signature":"AA=="}""")]
+    public void A_malformed_anchor_document_is_rejected(string document) =>
+        LedgerAnchor.FromDocument(document).Should().BeNull();
+
     [Fact]
     public void Sequences_start_at_one_and_event_types_cannot_inject_a_separator()
     {
         ((Action)(() => LedgerHash.OfEntry(LedgerHash.Genesis, Tenant, 0, "t.e.v1", PayloadHash, OccurredAt))).Should().Throw<ArgumentOutOfRangeException>();
-        ((Action)(() => LedgerHash.OfEntry(LedgerHash.Genesis, Tenant, 1, "t.e.v1\nforged", PayloadHash, OccurredAt))).Should().Throw<ArgumentException>();
+        ((Action)(() => LedgerHash.OfEntry(LedgerHash.Genesis, Tenant, 1, "t.e.v1\nforged", PayloadHash, OccurredAt)))
+            .Should().Throw<ArgumentException>().WithMessage("*newline*");
     }
 }

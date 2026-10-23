@@ -9,6 +9,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <!-- Direct references so Stryker (nightly mutation testing) can find the projects it mutates. -->
+    <ProjectReference Include="../Karry.Modules.Trust.Domain/Karry.Modules.Trust.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Trust.Application/Karry.Modules.Trust.Application.csproj" />
     <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
     <ProjectReference Include="../../../../../tools/ledger-verifier/Karry.LedgerVerifier/Karry.LedgerVerifier.csproj" />

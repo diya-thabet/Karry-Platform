@@ -1,7 +1,8 @@
 name: nightly
 
 # Catches problems that appear without a code change (new CVEs, flaky tests) and runs slow suites.
-# Mutation testing (Stryker.NET, llm_guidelines.md §7.2) is added with the first math/trust module (P1.6, P1.12).
+# Mutation testing (Stryker.NET, llm_guidelines.md §7.2): Trust since P1.6 (score >= 75 % or the job fails); the math
+# modules join in P1.12.
 
 on:
   schedule:
@@ -59,3 +60,31 @@ jobs:
         run: dotnet test --solution Karry.slnx -c Release --no-build
       - name: Run 2
         run: dotnet test --solution Karry.slnx -c Release --no-build
+
+  mutation:
+    # Stryker.NET 5 with the Microsoft Testing Platform runner. Trust.Domain (hashing, chain verification, anchors) and
+    # Trust.Application (anchoring, verification against anchors); the tests use real PostgreSQL (Docker on the runner).
+    name: mutation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: src/backend/Modules/Trust/Karry.Modules.Trust.Tests
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - run: dotnet restore ../../../../../Karry.slnx --locked-mode
+      - run: dotnet tool restore
+      - name: Trust.Domain (break below 75 %)
+        run: dotnet stryker --config-file stryker-config.json --output "$RUNNER_TEMP/stryker/domain"
+      - name: Trust.Application (break below 75 %)
+        if: always()
+        run: dotnet stryker --config-file stryker-config.application.json --output "$RUNNER_TEMP/stryker/application"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: mutation-reports
+          path: ${{ runner.temp }}/stryker/
+
