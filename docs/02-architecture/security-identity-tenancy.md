@@ -61,6 +61,20 @@ CREATE POLICY tenant_isolation ON fieldops.shift_entry
 - App connects as a **non-owner role** without `BYPASSRLS`. Migrations run as a separate owner role.
 - EF Core **global query filters** on `tenant_id` as a second layer; CI includes a test suite that attempts cross-tenant reads on every endpoint.
 
+### 14.4.1 As implemented (P1.5, `Karry.BuildingBlocks/Tenancy`)
+
+| Layer | Implementation | Proven by |
+|---|---|---|
+| Roles | [`deploy/database/roles.sql`](../../deploy/database/roles.sql): `karry_owner` (schemas, tables, migrations via `Karry.Host migrate`), `karry_app` (DML only, owns nothing, no `BYPASSRLS`) | TC-P1-TEN-008 |
+| Policy | `migrationBuilder.EnableTenantRls(schema, table)` → ENABLE + FORCE + `tenant_isolation` policy (USING = WITH CHECK, `nullif` form). `allowPlatformRows: true` variant (`tenant_id IS NOT DISTINCT FROM …`) for tables that also hold no-tenant rows (`platform.idempotency_records`) | catalog check test; FORCE, nullif, WITH CHECK mutation-checked |
+| Tenant per transaction | `TenantCommandInterceptor`: command **outside** a transaction → `SET LOCAL app.tenant_id = '<uuid>';` prepended in the same batch (one round trip, implicit transaction); command **inside** a transaction → `SET LOCAL` once as the transaction's own statement. Every `SaveChanges` is transactional (`AutoTransactionBehavior.Always`). | TC-P1-TEN-001, pooled-session reuse with `No Reset On Close` (PgBouncer-like) |
+| Tenant source | `TenantResolutionMiddleware`: exactly one UUID `tenant_id` claim in the **validated** token; otherwise 401/403 before the endpoint runs (no database connection opened). Module endpoints require authentication and a tenant by default (`MapModules`); opt-out only with `.AllowAnonymous()` / `.AllowWithoutTenant()` | TC-P1-TEN-003 |
+| EF filter | Every `ITenantOwned` entity gets a query filter on the scope's tenant (no tenant → matches nothing) | layer tested alone (admin connection bypassing RLS) |
+| Save check | `ModuleDbContext.SaveChangesAsync` refuses added/modified rows of another tenant before reaching the database | test + mutation |
+| Events | Outbox rows carry `tenant_id`; the dispatcher runs each message's subscribers in that tenant | subscriber test |
+
+Why `SET LOCAL` and not `SELECT set_config($1, …, true)`: `set_config` returns a result set, which would become the first result of every EF reader. The value is a .NET `Guid` formatted as `D` (hex digits and dashes only), so the statement cannot carry SQL. Why not prefix commands inside transactions: EF Core reads rows-affected per statement of a modification batch, and an extra leading statement shifted them (every insert reported 0 rows; found by the tests).
+
 ## 14.5 Data protection
 
 - TLS everywhere; AES-256 at rest (managed disks + object storage SSE-KMS).

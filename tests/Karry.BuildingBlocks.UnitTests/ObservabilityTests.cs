@@ -6,6 +6,7 @@ using System.Text.Json;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Observability;
+using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -50,10 +51,12 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
         builder.Services.ConfigureOpenTelemetryMeterProvider(meters => meters.AddInMemoryExporter(metrics));
         builder.Services.ConfigureOpenTelemetryLoggerProvider(logging => logging.AddProcessor(new SimpleLogRecordExportProcessor(logs)));
         builder.Services.AddKarryApiConventions();
+        builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.AddModules(builder.Configuration, [new ProbeModule()]);
         app = builder.Build();
         app.UseKarryObservability();
         app.UseKarryApiConventions();
+        app.UseKarryTenancy();
         app.MapModules();
         app.MapGet("/boom", IResult () => throw new InvalidOperationException("boom"));
 
@@ -289,6 +292,6 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
                 var logger = loggers.CreateLogger("Karry.Probe");
                 LogSignup(logger, "signup");
                 return TypedResults.Created($"/api/v1/probe/signups/{code}", signup.Name.Length);
-            });
+            }).AllowAnonymous().AllowWithoutTenant(); // a public sign-up: no token, no tenant (attributes keep their defaults)
     }
 }

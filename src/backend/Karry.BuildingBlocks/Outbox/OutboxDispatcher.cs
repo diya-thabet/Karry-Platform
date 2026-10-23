@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Reflection;
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.SharedKernel.Domain;
+using Karry.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -72,6 +74,13 @@ public sealed partial class OutboxDispatcher<TContext>(
         if (message is null)
         {
             return false;
+        }
+
+        // Subscribers act for the tenant whose aggregate raised the event: every later command of this transaction
+        // carries its SET LOCAL, and tenant-owned queries are filtered to it.
+        if (message.TenantId is { } tenantId)
+        {
+            scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenantId));
         }
 
         using var activity = OutboxMetrics.ActivitySource.StartActivity("outbox dispatch", ActivityKind.Consumer);

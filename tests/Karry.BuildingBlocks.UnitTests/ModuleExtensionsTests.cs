@@ -1,5 +1,6 @@
 using System.Net;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -41,18 +42,39 @@ public sealed class ModuleExtensionsTests
     {
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
+        builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.AddModules(builder.Configuration, [new FakeModule("alpha")]);
         await using var app = builder.Build();
+        app.UseKarryTenancy();
         app.MapModules();
         await app.StartAsync(TestContext.Current.CancellationToken);
         using var client = app.GetTestClient();
 
-        var mapped = await client.GetAsync(new Uri("/api/v1/alpha/ping", UriKind.Relative), TestContext.Current.CancellationToken);
+        var mapped = await client.GetAsync(new Uri("/api/v1/alpha/open", UriKind.Relative), TestContext.Current.CancellationToken);
         var unprefixed = await client.GetAsync(new Uri("/ping", UriKind.Relative), TestContext.Current.CancellationToken);
 
         mapped.StatusCode.Should().Be(HttpStatusCode.OK);
         (await mapped.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Should().Be("alpha");
         unprefixed.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-TEN-02")]
+    public async Task Module_endpoints_require_an_authenticated_caller_by_default()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.WebHost.UseTestServer();
+        builder.Services.AddKarryTenancy(builder.Configuration);
+        builder.Services.AddModules(builder.Configuration, [new FakeModule("alpha")]);
+        await using var app = builder.Build();
+        app.UseKarryTenancy();
+        app.MapModules();
+        await app.StartAsync(TestContext.Current.CancellationToken);
+        using var client = app.GetTestClient();
+
+        var response = await client.GetAsync(new Uri("/api/v1/alpha/ping", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "secure by default: a module endpoint must opt out explicitly");
     }
 
     private sealed class Marker;
@@ -64,7 +86,10 @@ public sealed class ModuleExtensionsTests
         public void AddServices(IServiceCollection services, IConfiguration configuration) =>
             services.AddKeyedSingleton<Marker>(name);
 
-        public void MapEndpoints(IEndpointRouteBuilder endpoints) =>
+        public void MapEndpoints(IEndpointRouteBuilder endpoints)
+        {
             endpoints.MapGet("/ping", () => Results.Text(name));
+            endpoints.MapGet("/open", () => Results.Text(name)).AllowAnonymous().AllowWithoutTenant();
+        }
     }
 }
