@@ -311,6 +311,7 @@ dotnet test --solution Karry.slnx --configuration Release   # Microsoft Testing 
 cd src/frontend
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm --filter @karry/i18n check:catalogs   # FR/EN complete, valid ICU, same placeholders, every t("key") exists (TC-P1-OFF-007)
 pnpm --filter @karry/field e2e   # Playwright (from P1.15)
 # Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
 dotnet tool restore

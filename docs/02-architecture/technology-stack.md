@@ -91,7 +91,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | react / react-dom | 19.3.1 | vite | 8.3.4 |
 | @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.5 |
 | tailwindcss | 4.3.3 | shadcn (CLI) | 4.22.1 |
-| i18next / react-i18next | 26.5.5 / 17.1.2 | dexie | 4.4.6 |
+| i18next / react-i18next (+ i18next-icu 2.5.0, intl-messageformat 12.1.3) | 26.4.7 / 17.0.20 (P1.7: newest ≥ 7 days old) | dexie | 4.4.6 |
 | vite-plugin-pwa | 2.0.0 | maplibre-gl | 6.15.0 |
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test | 1.64.1 | @axe-core/playwright | 4.14.0 |
