@@ -104,7 +104,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | `chrislusf/seaweedfs` | pin by digest in P1.1 (latest release 4.48) | S3 + Object Lock ([ADR-0017](../adr/0017-local-stack-and-object-storage.md)) |
 | `valkey/valkey` | 9.0.6-alpine | Redis-compatible cache |
 | `axllent/mailpit` | v1.31.6 | Local mail catcher |
-| `grafana/otel-lgtm` | 0.37.0 | Local OpenTelemetry + Grafana stack (P1.4) |
+| `grafana/otel-lgtm` | 0.37.0 | Local OpenTelemetry + Grafana stack (P1.4): Grafana 13.2.3, Prometheus 3.15.0 (its promtool tests the alert rules in CI), Tempo 3.1.0, Loki 3.7.8 |
 
 **Supply-chain rule (P1.2):** npm packages must be **at least 7 days old** (`minimumReleaseAge` in `src/frontend/pnpm-workspace.yaml`, enforced at install) and CI tools at least one week old when pinned; hence vite 8.3.4, eslint 10.12.0, typescript-eslint 8.71.2 and Trivy 0.75.0 instead of the newest releases.
 

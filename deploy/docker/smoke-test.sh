@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # TC-P1-PLT-004 (+ TC-P1-PLT-012 against the real stack): start the local stack and prove every service works,
 # including S3 Object Lock in compliance mode (ADR-0017) and Karry.Host readiness.
+# P1.4: a request to Karry.Host is visible end-to-end in Grafana (trace, metrics, logs, dashboards, alert rules).
 #   SKIP_HOST=1   skip the Karry.Host readiness check (no .NET SDK available)
 #   KEEP_STACK=1  leave the stack running afterwards
 set -euo pipefail
@@ -79,11 +80,20 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     sleep 1
   done
   if [[ "$ready" == "1" ]]; then pass "Karry.Host /health/ready = 200 against the stack"; else fail "Karry.Host /health/ready against the stack"; fi
+
+  # Observability end to end: the correlation ID returned to the caller is the trace ID to look up in Tempo.
+  correlation_id="$(curl -fsS -D - -o /dev/null http://127.0.0.1:5080/openapi/v1.json | tr -d '\r' | awk 'tolower($1) == "x-correlation-id:" {print $2}')"
+  if [[ "$correlation_id" =~ ^[0-9a-f]{32}$ ]]; then
+    pass "Karry.Host returns X-Correlation-Id ($correlation_id)"
+    if python3 -I "$root/deploy/observability/verify_stack.py" "$correlation_id"; then pass "request visible end to end in Grafana"; else fail "request visible end to end in Grafana"; fi
+  else
+    fail "Karry.Host returns X-Correlation-Id (got '$correlation_id')"
+  fi
 fi
 
 if [[ "$failures" -gt 0 ]]; then
   echo "TC-P1-PLT-004: $failures check(s) failed" >&2
-  "${compose[@]}" logs --tail 40 s3 keycloak >&2 || true
+  "${compose[@]}" logs --tail 40 s3 keycloak lgtm >&2 || true
   exit 1
 fi
 echo "TC-P1-PLT-004 passed."

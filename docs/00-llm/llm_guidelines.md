@@ -314,6 +314,12 @@ pnpm lint && pnpm typecheck && pnpm test && pnpm build
 pnpm --filter @karry/field e2e   # Playwright (from P1.15)
 # Module template (TC-P1-PLT-003)
 tools/templates/test-template.sh
+# Local stack incl. observability end to end (TC-P1-PLT-004; needs Docker)
+deploy/docker/smoke-test.sh
+# Observability as code: dashboards generated from generate.py; alert rules unit-tested (TC-P1-OPS-006)
+python3 deploy/observability/dashboards/generate.py --check
+docker run --rm -v "$PWD/deploy/observability:/w:ro" -w /w --entrypoint /otel-lgtm/prometheus/promtool \
+  grafana/otel-lgtm:0.37.0 test rules alerts/karry-alerts.test.yaml
 # Python sidecar
 uv sync --frozen && uv run ruff check . && uv run mypy . && uv run pytest
 # Workflows & IaC
@@ -391,9 +397,11 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 
 ```
 .github/workflows/
-├── ci.yml        # every PR + main: tooling (actionlint, CI-script tests), backend (format, build, tests,
+├── ci.yml        # every PR + main: tooling (actionlint, CI-script tests, dashboards up to date, promtool
+│                 # alert-rule tests TC-P1-OPS-006), backend (format, build, tests,
 │                 # coverage gate), architecture (+ module template), frontend (frozen install with
-│                 # supply-chain policy, lint, typecheck, test, build), local-stack (TC-P1-PLT-004),
+│                 # supply-chain policy, lint, typecheck, test, build), local-stack (TC-P1-PLT-004 + request
+│                 # visible end to end in Grafana),
 │                 # security (gitleaks, Trivy, Semgrep CE — ADR-0021)
 ├── nightly.yml   # dependency audit with fresh advisory data, suite run twice (flakiness); mutation tests from P1.6
 ├── docs.yml      # link and anchor check, every PR

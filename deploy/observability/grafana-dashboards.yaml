@@ -1,0 +1,11 @@
+# Grafana provisioning: Karry dashboards as code (US-P1-OPS-01 AC2), read-only in the UI.
+apiVersion: 1
+
+providers:
+  - name: karry
+    folder: Karry
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /otel-lgtm/karry-dashboards

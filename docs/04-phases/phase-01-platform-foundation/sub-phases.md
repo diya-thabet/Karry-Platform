@@ -272,7 +272,7 @@ A sub-phase is ✅ only when **all** of these are true:
   |---|---|
   | TC-P1-OPS-003 *(new)* | An API request emits a trace with the 4 required attributes and **no** PII (email, name, phone, token) in any attribute or log (in-memory exporter) |
   | TC-P1-OPS-005 *(new)* | Correlation ID present in response headers and in problem details |
-  | Lint | Alert rules and dashboards validate (promtool / JSON schema) |
+  | TC-P1-OPS-006 *(new)* | Alert rules validate and are unit-tested with promtool; dashboards are generated from code and every query runs against Prometheus in the smoke test |
 
 - **Done when:** a local request is visible end-to-end in Grafana; 5 alert rules + 5 runbooks committed; PII test green in CI.
 
@@ -772,6 +772,7 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-010 | P1.17 | Pipeline | Failing migration during deploy | Rollout aborted; version unchanged |
 | TC-P1-PLT-011 | P1.17 | Ops | Rollback to previous release | Works; duration recorded |
 | TC-P1-OPS-003 | P1.4 | Integration | Trace attributes on API request | 4 attributes present; no PII |
+| TC-P1-OPS-006 | P1.4 | Unit (promtool) | Alert rules fire on threshold and duration | Fires after duration; quiet below threshold |
 | TC-P1-OPS-005 | P1.4 | Integration | Correlation ID on every response | Header = trace ID = problem `traceId`; caller trace continued |
 | TC-P1-OPS-004 | P1.16 | API | Support access consent / break-glass | Denied without; expires 1 h; ledgered |
 | TC-P1-TEN-006 | P1.5 | Integration | Provision same tenant twice | One tenant; < 30 s |

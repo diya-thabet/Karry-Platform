@@ -67,7 +67,7 @@ karry-platform/
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
 │   ├── Karry.Host.IntegrationTests/    health, OpenAPI (Testcontainers PostgreSQL)
-│   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract
+│   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract, observability (TC-P1-OPS-003/005)
 │   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)
 │   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates
 │   ├── Karry.IntegrationTests/
@@ -75,7 +75,8 @@ karry-platform/
 │   ├── e2e/                            Playwright
 │   └── load/                           k6
 ├── deploy/
-│   ├── docker/                         compose.yaml (local stack), smoke-test.sh (TC-P1-PLT-004)
+│   ├── docker/                         compose.yaml (local stack incl. Grafana LGTM), smoke-test.sh (TC-P1-PLT-004)
+│   ├── observability/                  prometheus.yaml, alerts/ (rules + promtool tests), dashboards/ (generate.py → JSON), verify_stack.py
 │   ├── helm/
 │   └── infra/                          OpenTofu
 ├── .github/                            workflows (ci, nightly, docs, spikes), PR/issue templates, CODEOWNERS

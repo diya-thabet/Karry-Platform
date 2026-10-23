@@ -94,6 +94,31 @@ services:
       timeout: 3s
       retries: 30
 
+  lgtm:
+    # Local observability (US-P1-OPS-01/02): OpenTelemetry collector, Prometheus (with Karry's alert rules), Tempo,
+    # Loki and Grafana in one container. Grafana: http://localhost:3000 (anonymous admin, local only).
+    # Karry hosts send OTLP to 127.0.0.1:4317 (appsettings.Development.json).
+    image: grafana/otel-lgtm:0.37.0
+    environment:
+      # No plugin downloads and no phoning home: the stack starts offline and reproducibly.
+      GF_PLUGINS_PREINSTALL_DISABLED: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+    ports: ["127.0.0.1:3000:3000", "127.0.0.1:4317:4317", "127.0.0.1:4318:4318"]
+    volumes:
+      - ../observability/prometheus.yaml:/otel-lgtm/prometheus.yaml:ro
+      - ../observability/alerts:/etc/karry/alerts:ro
+      - ../observability/grafana-dashboards.yaml:/otel-lgtm/grafana/conf/provisioning/dashboards/karry.yaml:ro
+      - ../observability/dashboards:/otel-lgtm/karry-dashboards:ro
+    healthcheck:
+      # The image writes /tmp/ready once every component answers.
+      test: ["CMD-SHELL", "test -f /tmp/ready"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 10s
+
 volumes:
   pgdata:
   s3data:

@@ -18,7 +18,7 @@
 ## Run everything locally (≤ 10 commands)
 
 ```bash
-docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Keycloak, S3 (SeaweedFS), Valkey, Mailpit
+docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Keycloak, S3 (SeaweedFS), Valkey, Mailpit, Grafana LGTM
 dotnet build Karry.slnx                                        # 2. build the backend
 dotnet test --solution Karry.slnx                              # 3. backend tests (Testcontainers needs Docker)
 dotnet run --project src/backend/Karry.Host                    # 4. API on http://localhost:5000 (/health/ready)
@@ -36,6 +36,7 @@ Local services (bound to `127.0.0.1` only; development credentials are in [`depl
 | S3 API (SeaweedFS, Object Lock) | http://localhost:8333 |
 | Valkey (Redis-compatible) | `localhost:6379` |
 | Mailpit (all local e-mail) | http://localhost:8025 |
+| Grafana (traces, metrics, logs, Karry dashboards and alerts) | http://localhost:3000 |
 
 Stop with `docker compose -f deploy/docker/compose.yaml down` (add `-v` to delete the data).
 
@@ -45,6 +46,7 @@ Stop with `docker compose -f deploy/docker/compose.yaml down` (add `-v` to delet
 deploy/docker/smoke-test.sh          # TC-P1-PLT-004: every local service works, incl. S3 Object Lock
 tools/templates/test-template.sh     # TC-P1-PLT-003: the module template produces a valid module
 cd src/frontend && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+python3 deploy/observability/dashboards/generate.py --check   # dashboards as code are up to date
 python3 tools/docs/check_links.py    # docs: 0 broken links
 ```
 
