@@ -174,6 +174,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **promtool:** use the one inside the pinned `grafana/otel-lgtm` image (`--entrypoint /otel-lgtm/prometheus/promtool`); test cases need 1-minute samples (Prometheus lookback is 5 min) and one case per protection.
 - **Semgrep (CI image) scans only git-tracked files:** `git add` new files before a local scan.
 - **Docker pulls over IPv6 fail intermittently here** (connection reset): retry `docker compose pull`.
+- **Docker Hub can refuse anonymous pulls in CI** ("unauthorized: authentication required", seen on `main` for #26, 2026-10-23): infrastructure, not code; re-run the failed job (`gh run rerun <id> --failed`). If it recurs, mirror the stack images to GHCR or log in to Docker Hub in CI (decide in P1.17).
 - **OpenTelemetry .NET:** OTLP settings (`OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_METRIC_EXPORT_INTERVAL`) are read from `IConfiguration`, so appsettings work. ASP.NET Core puts the full traceparent in problem `traceId` unless overwritten (done in `ApiConventions`).
 - **Mermaid on GitHub:** see §4.2. Gantt charts render, but keep task IDs simple (`p0`, `p1`).
 - **Large docs:** when writing very long Markdown, write in sections/appends and re-verify line count and anchors afterwards.
