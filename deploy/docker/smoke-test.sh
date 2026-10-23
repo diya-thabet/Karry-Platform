@@ -43,6 +43,8 @@ if [[ "$extensions" == "pgcrypto,postgis,timescaledb,vector" ]]; then pass "post
 check "karry_app can connect" "${compose[@]}" exec -T -e PGPASSWORD="${KARRY_APP_PASSWORD:-karry-local-only}" postgres psql -h 127.0.0.1 -U karry_app -d karry -Atc "SELECT 1"
 role="$(psql_su "SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname = 'karry_app'")"
 if [[ "$role" == "false,false" ]]; then pass "karry_app is neither superuser nor BYPASSRLS"; else fail "karry_app privileges (got '$role')"; fi
+owner_role="$(psql_su "SELECT rolsuper::text || ',' || rolbypassrls::text FROM pg_roles WHERE rolname = 'karry_owner'")"
+if [[ "$owner_role" == "false,false" ]]; then pass "karry_owner exists (migrations), neither superuser nor BYPASSRLS"; else fail "karry_owner role (got '$owner_role')"; fi
 
 # Keycloak, Mailpit, Valkey.
 check "keycloak serves OIDC discovery" curl -fsS http://127.0.0.1:8080/realms/master/.well-known/openid-configuration
@@ -75,6 +77,13 @@ fi
 # Karry.Host readiness against the real stack (Development settings point at this stack).
 if [[ "${SKIP_HOST:-0}" != "1" ]]; then
   dotnet build "$root/src/backend/Karry.Host" -c Release >/dev/null
+  # Migrations as their own step, as karry_owner (ConnectionStrings:KarryOwner in Development settings).
+  if (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development dotnet Karry.Host.dll migrate >/dev/null); then
+    owner="$(psql_su "SELECT tableowner FROM pg_tables WHERE schemaname = 'platform' AND tablename = 'idempotency_records'")"
+    if [[ "$owner" == "karry_owner" ]]; then pass "Karry.Host migrate: platform schema created, owned by karry_owner"; else fail "Karry.Host migrate: table owner '$owner'"; fi
+  else
+    fail "Karry.Host migrate"
+  fi
   # Run the built assembly directly (exec) so $host_pid is the host itself and cleanup stops it.
   (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" &&
     ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://127.0.0.1:5080 exec dotnet Karry.Host.dll >/dev/null 2>&1) &

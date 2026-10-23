@@ -72,6 +72,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 |---|---|---|---|
 | Microsoft.EntityFrameworkCore | 10.0.13 | Npgsql / Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.3 |
 | Microsoft.AspNetCore.OpenApi | 10.0.13 | Scalar.AspNetCore (API reference UI) | 2.18.2 |
+| Microsoft.EntityFrameworkCore.Design, dotnet-ef (local tool) | 10.0.13 (P1.5) | | |
 | Quartz.Extensions.Hosting | 4.6.0 | OpenFeature | 2.14.1 |
 | OpenTelemetry.Extensions.Hosting, .Instrumentation.AspNetCore/.Http/.Runtime, .Exporter.OpenTelemetryProtocol/.InMemory | 1.20.0 (P1.4; 1.20.1 was < 7 days old on 2026-10-23) | Npgsql.OpenTelemetry | 10.0.3 |
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |

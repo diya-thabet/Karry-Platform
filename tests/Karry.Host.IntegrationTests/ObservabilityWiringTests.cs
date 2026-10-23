@@ -15,13 +15,13 @@ public sealed class ObservabilityWiringTests
     [Trait("TestCase", "TC-P1-OPS-003")]
     public async Task The_api_host_traces_requests_with_karry_attributes_and_returns_the_correlation_id()
     {
-        var spans = new List<Activity>();
+        var spans = new SpanCapture();
         await using var factory = new HostFactory(connectionString: null).WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services => services.ConfigureOpenTelemetryTracerProvider(t => t.AddInMemoryExporter(spans))));
+            builder.ConfigureTestServices(services => services.ConfigureOpenTelemetryTracerProvider(t => t.AddProcessor(new SimpleActivityExportProcessor(spans)))));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
-        var span = await WaitForServerSpanAsync(spans);
+        var span = await WaitForServerSpanAsync(spans, response);
 
         span.GetTagItem(TelemetryAttributes.Module).Should().Be(TelemetryAttributes.HostModule);
         span.GetTagItem(TelemetryAttributes.Route).Should().Be("/openapi/{documentName}.json");
@@ -35,34 +35,51 @@ public sealed class ObservabilityWiringTests
     [Fact]
     public async Task Health_probes_are_not_traced_but_still_return_a_correlation_id()
     {
-        var spans = new List<Activity>();
+        var spans = new SpanCapture();
         await using var factory = new HostFactory(connectionString: null).WithWebHostBuilder(builder =>
-            builder.ConfigureTestServices(services => services.ConfigureOpenTelemetryTracerProvider(t => t.AddInMemoryExporter(spans))));
+            builder.ConfigureTestServices(services => services.ConfigureOpenTelemetryTracerProvider(t => t.AddProcessor(new SimpleActivityExportProcessor(spans)))));
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync(new Uri("/health/live", UriKind.Relative), TestContext.Current.CancellationToken);
-        await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
-        await WaitForServerSpanAsync(spans); // the later request is traced, so the probe would be too if it were
+        var later = await client.GetAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
+        await WaitForServerSpanAsync(spans, later); // the later request is traced, so the probe would be too if it were
 
-        response.Headers.Contains(RequestTelemetryMiddleware.CorrelationHeader).Should().BeTrue();
-        spans.Should().NotContain(s => Equals(s.GetTagItem(TelemetryAttributes.Route), "/health/live"));
+        var probeTraceId = response.Headers.GetValues(RequestTelemetryMiddleware.CorrelationHeader).Single();
+        spans.Snapshot().Should().NotContain(s => s.TraceId.ToString() == probeTraceId);
     }
 
-    private static async Task<Activity> WaitForServerSpanAsync(List<Activity> spans)
+    /// <summary>The server span of the response's trace (listeners are process-wide: other tests' spans arrive too).</summary>
+    private static async Task<Activity> WaitForServerSpanAsync(SpanCapture spans, HttpResponseMessage response)
     {
+        var traceId = response.Headers.GetValues(RequestTelemetryMiddleware.CorrelationHeader).Single();
         for (var i = 0; i < 100; i++)
         {
-            lock (spans)
+            if (spans.Snapshot().FirstOrDefault(s => s.Kind == ActivityKind.Server && s.TraceId.ToString() == traceId) is { } span)
             {
-                if (spans.FirstOrDefault(s => s.Kind == ActivityKind.Server) is { } span)
-                {
-                    return span;
-                }
+                return span;
             }
 
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }
 
-        throw new InvalidOperationException("No server span exported.");
+        throw new InvalidOperationException($"No server span exported for trace {traceId}.");
+    }
+
+    /// <summary>Thread-safe span sink: exporters run on whichever thread ends an activity.</summary>
+    private sealed class SpanCapture : BaseExporter<Activity>
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<Activity> exported = new();
+
+        public Activity[] Snapshot() => [.. exported];
+
+        public override ExportResult Export(in Batch<Activity> batch)
+        {
+            foreach (var activity in batch)
+            {
+                exported.Enqueue(activity);
+            }
+
+            return ExportResult.Success;
+        }
     }
 }

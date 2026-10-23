@@ -33,7 +33,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
     private const string Phone = "+216 98 765 432";
     private const string Token = "eyJhbGciOiJSUzI1NiJ9.secret-access-token";
 
-    private readonly List<Activity> spans = [];
+    private readonly SpanCapture spans = new();
     private readonly List<Metric> metrics = [];
     private readonly LogCapture logs = new();
     private WebApplication? app;
@@ -46,7 +46,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.AddKarryObservability("karry-test");
-        builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddInMemoryExporter(spans));
+        builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddProcessor(new SimpleActivityExportProcessor(spans)));
         builder.Services.ConfigureOpenTelemetryMeterProvider(meters => meters.AddInMemoryExporter(metrics));
         builder.Services.ConfigureOpenTelemetryLoggerProvider(logging => logging.AddProcessor(new SimpleLogRecordExportProcessor(logs)));
         builder.Services.AddKarryApiConventions();
@@ -84,7 +84,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
 
         var response = await client!.SendAsync(request, TestContext.Current.CancellationToken);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
-        var server = await ServerSpanAsync("/api/v1/probe/signups/{code}");
+        var server = await ServerSpanAsync(response, "/api/v1/probe/signups/{code}");
 
         server.GetTagItem(TelemetryAttributes.TenantId).Should().Be(TelemetryAttributes.NoTenant);
         server.GetTagItem(TelemetryAttributes.Module).Should().Be("probe");
@@ -92,7 +92,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
         server.GetTagItem(TelemetryAttributes.UserRole).Should().Be(TelemetryAttributes.AnonymousRole);
 
         string[] personalData = [Email, Name, Phone, Token, "jane.doe", "98 765 432", "secret-access-token", "196.203.10.7", "S-42"];
-        foreach (var span in spans)
+        foreach (var span in spans.OfTrace(server.TraceId))
         {
             span.TagObjects.Select(t => t.Key).Should().OnlyContain(key => TelemetryAttributes.Allowed.Contains(key), $"span '{span.DisplayName}' exports only allow-listed attributes");
             span.TagObjects.Select(t => Convert.ToString(t.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty)
@@ -109,14 +109,16 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
     [Trait("TestCase", "TC-P1-OPS-003")]
     public async Task Requests_outside_modules_are_attributed_to_the_host_or_unmatched()
     {
-        (await client!.GetAsync(new Uri("/boom", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.InternalServerError);
-        (await client.GetAsync(new Uri("/nowhere/jane.doe@example.com", UriKind.Relative), TestContext.Current.CancellationToken)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        var failed = await client!.GetAsync(new Uri("/boom", UriKind.Relative), TestContext.Current.CancellationToken);
+        var missing = await client.GetAsync(new Uri("/nowhere/jane.doe@example.com", UriKind.Relative), TestContext.Current.CancellationToken);
+        failed.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        missing.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-        var boom = await ServerSpanAsync("/boom");
+        var boom = await ServerSpanAsync(failed, "/boom");
         boom.GetTagItem(TelemetryAttributes.Module).Should().Be(TelemetryAttributes.HostModule);
         boom.Status.Should().Be(ActivityStatusCode.Error);
 
-        var unmatched = await ServerSpanAsync(TelemetryAttributes.Unmatched);
+        var unmatched = await ServerSpanAsync(missing, TelemetryAttributes.Unmatched);
         unmatched.GetTagItem(TelemetryAttributes.Module).Should().Be(TelemetryAttributes.Unmatched);
         unmatched.GetTagItem(TelemetryAttributes.TenantId).Should().Be(TelemetryAttributes.NoTenant);
         unmatched.DisplayName.Should().NotContain("jane.doe", "the concrete path is never exported");
@@ -127,7 +129,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
     public async Task Every_response_returns_the_trace_id_as_correlation_id_and_a_traceparent()
     {
         var response = await client!.PostAsJsonAsync("/api/v1/probe/signups/S-1", new Signup("a@b.c", "A", "1"), TestContext.Current.CancellationToken);
-        var server = await ServerSpanAsync("/api/v1/probe/signups/{code}");
+        var server = await ServerSpanAsync(response, "/api/v1/probe/signups/{code}");
 
         response.Headers.GetValues(RequestTelemetryMiddleware.CorrelationHeader).Should().Equal(server.TraceId.ToString());
         response.Headers.GetValues(RequestTelemetryMiddleware.TraceParentHeader).Should().Equal(server.Id);
@@ -139,7 +141,7 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
     {
         var response = await client!.GetAsync(new Uri("/boom", UriKind.Relative), TestContext.Current.CancellationToken);
         var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
-        var server = await ServerSpanAsync("/boom");
+        var server = await ServerSpanAsync(response, "/boom");
 
         response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
         var correlationId = response.Headers.GetValues(RequestTelemetryMiddleware.CorrelationHeader).Should().ContainSingle().Subject;
@@ -164,8 +166,8 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
     [Fact]
     public async Task Request_metrics_carry_the_module_for_red_dashboards()
     {
-        await client!.PostAsJsonAsync("/api/v1/probe/signups/S-7", new Signup("a@b.c", "A", "1"), TestContext.Current.CancellationToken);
-        await ServerSpanAsync("/api/v1/probe/signups/{code}"); // the request is complete once its span ended
+        var response = await client!.PostAsJsonAsync("/api/v1/probe/signups/S-7", new Signup("a@b.c", "A", "1"), TestContext.Current.CancellationToken);
+        await ServerSpanAsync(response, "/api/v1/probe/signups/{code}"); // the request is complete once its span ended
 
         app!.Services.GetRequiredService<MeterProvider>().ForceFlush().Should().BeTrue();
 
@@ -208,28 +210,51 @@ public sealed partial class ObservabilityTests : IAsyncLifetime
         return tags;
     }
 
-    /// <summary>The server span ends after the response is sent: wait for its export.</summary>
-    private async Task<Activity> ServerSpanAsync(string route)
+    /// <summary>
+    /// The server span of <paramref name="response"/>'s request, found by the trace ID the response returned. Activity
+    /// listeners are process-wide, so spans of tests running in parallel arrive here too and must be filtered out.
+    /// The span ends after the response is sent: wait for its export.
+    /// </summary>
+    private async Task<Activity> ServerSpanAsync(HttpResponseMessage response, string route)
     {
+        var traceId = response.Headers.GetValues(RequestTelemetryMiddleware.CorrelationHeader).Single();
         for (var i = 0; i < 100; i++)
         {
-            lock (spans)
+            var span = spans.Snapshot().LastOrDefault(s =>
+                s.Kind == ActivityKind.Server && s.TraceId.ToString() == traceId && Equals(s.GetTagItem(TelemetryAttributes.Route), route));
+            if (span is not null)
             {
-                var span = spans.LastOrDefault(s => s.Kind == ActivityKind.Server && Equals(s.GetTagItem(TelemetryAttributes.Route), route));
-                if (span is not null)
-                {
-                    return span;
-                }
+                return span;
             }
 
             await Task.Delay(50, TestContext.Current.CancellationToken);
         }
 
-        throw new InvalidOperationException($"No server span for route {route}.");
+        throw new InvalidOperationException($"No server span for route {route} in trace {traceId}.");
     }
 
     [LoggerMessage(EventId = 9001, Level = LogLevel.Information, Message = "Signup {Code} accepted")]
     private static partial void LogSignup(ILogger logger, string code);
+
+    /// <summary>Thread-safe span sink: exporters run on whichever thread ends an activity.</summary>
+    private sealed class SpanCapture : BaseExporter<Activity>
+    {
+        private readonly ConcurrentQueue<Activity> exported = new();
+
+        public Activity[] Snapshot() => [.. exported];
+
+        public IEnumerable<Activity> OfTrace(ActivityTraceId traceId) => Snapshot().Where(s => s.TraceId == traceId);
+
+        public override ExportResult Export(in Batch<Activity> batch)
+        {
+            foreach (var activity in batch)
+            {
+                exported.Enqueue(activity);
+            }
+
+            return ExportResult.Success;
+        }
+    }
 
     /// <summary>Snapshots everything a log exporter would send (records are pooled and reused after export).</summary>
     private sealed class LogCapture : BaseExporter<LogRecord>

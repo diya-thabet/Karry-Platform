@@ -52,6 +52,16 @@ public abstract partial class ModuleDbContext(DbContextOptions options) : DbCont
         return written;
     }
 
+    /// <summary>Name of the EF Core migrations history table, kept in the module's own schema.</summary>
+    public const string MigrationsHistoryTable = "__ef_migrations_history";
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(optionsBuilder);
+        // Keeps the connection configured by AddModuleDbContext / the migration runner and adds the history table.
+        optionsBuilder.UseNpgsql(npgsql => npgsql.MigrationsHistoryTable(MigrationsHistoryTable, Schema));
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);

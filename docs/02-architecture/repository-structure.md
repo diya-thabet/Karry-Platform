@@ -76,6 +76,7 @@ karry-platform/
 │   └── load/                           k6
 ├── deploy/
 │   ├── docker/                         compose.yaml (local stack incl. Grafana LGTM), smoke-test.sh (TC-P1-PLT-004)
+│   ├── database/                       roles.sql (karry_owner / karry_app, privileges; used by local stack, tests, environments)
 │   ├── observability/                  prometheus.yaml, alerts/ (rules + promtool tests), dashboards/ (generate.py → JSON), verify_stack.py
 │   ├── helm/
 │   └── infra/                          OpenTofu

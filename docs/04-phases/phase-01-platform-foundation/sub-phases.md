@@ -235,7 +235,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - **Unit of work:** a pipeline that commits the business change, the outbox rows and (from P1.6) the ledger entry in **one transaction**.
     - **Transactional outbox** (ADR-0015, ADR-0018): per-module `outbox_messages` and `processed_messages` tables in the module's schema (`ModuleDbContext`); events named by a stable versioned `[EventType("module.event.v1")]`, never by CLR type; in-house `OutboxDispatcher<TContext>` (one transaction per message, `FOR UPDATE SKIP LOCKED`, per-aggregate ordering, exponential back-off, dead-letter); `IDomainEventSubscriber<T>` gets the dispatch transaction so in-database effects are applied exactly once; hosted by `OutboxDispatcherService<TContext>` in `Karry.Workers`.
     - **Idempotency** (`.RequireIdempotencyKey()` + `IdempotencyMiddleware`, table `platform.idempotency_records`): replay, key-reuse and in-progress detection, 24 h retention; scope becomes tenant + user in P1.5/P1.8.
-    - **Deferred to P1.5 (first real module):** EF Core migrations and the migrations runner as the owner role. P1.3 tests create schemas with `EnsureCreated`; production schemas will only come from migrations.
+    - **Deferred to P1.5 (first real module):** EF Core migrations and the migrations runner as the owner role. P1.3 tests create schemas with `EnsureCreated`; production schemas will only come from migrations. *(Done in P1.5: `MigrationRunner`, `Karry.Host migrate`, `deploy/database/roles.sql`.)*
     - **Errors and API:** RFC 9457 problem details with stable error codes; API versioning (`/api/v1`); OpenAPI generation.
     - **Validation** pipeline.
     - **Hooks reserved** for the tenancy middleware (P1.5), authorization (P1.9) and the entitlement filter (P1.10).
@@ -773,6 +773,7 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-010 | P1.17 | Pipeline | Failing migration during deploy | Rollout aborted; version unchanged |
 | TC-P1-PLT-011 | P1.17 | Ops | Rollback to previous release | Works; duration recorded |
 | TC-P1-OPS-003 | P1.4 | Integration | Trace attributes on API request | 4 attributes present; no PII |
+| TC-P1-TEN-008 | P1.5 | Integration | Database roles | App role: DML only, no DDL, owns nothing, no BYPASSRLS; migrations owned by `karry_owner` |
 | TC-P1-OPS-006 | P1.4 | Unit (promtool) | Alert rules fire on threshold and duration | Fires after duration; quiet below threshold |
 | TC-P1-OPS-005 | P1.4 | Integration | Correlation ID on every response | Header = trace ID = problem `traceId`; caller trace continued |
 | TC-P1-OPS-004 | P1.16 | API | Support access consent / break-glass | Denied without; expires 1 h; ledgered |

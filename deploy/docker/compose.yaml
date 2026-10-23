@@ -9,12 +9,14 @@ services:
     environment:
       POSTGRES_PASSWORD: ${KARRY_PG_SUPERUSER_PASSWORD:-karry-local-only}
       POSTGRES_DB: karry
+      KARRY_OWNER_PASSWORD: ${KARRY_OWNER_PASSWORD:-karry-owner-local-only}
       KARRY_APP_PASSWORD: ${KARRY_APP_PASSWORD:-karry-local-only}
       KEYCLOAK_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak-local-only}
     ports: ["127.0.0.1:5432:5432"]
     volumes:
       - pgdata:/home/postgres/pgdata
       - ./postgres/init:/docker-entrypoint-initdb.d:ro
+      - ../database:/karry/database:ro
     healthcheck:
       # TCP, not the socket: the init phase runs a socket-only temporary server (Phase 0 finding).
       test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d karry"]
