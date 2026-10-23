@@ -67,6 +67,7 @@ karry-platform/
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
 │   ├── Karry.Host.IntegrationTests/    health, OpenAPI (Testcontainers PostgreSQL)
+│   ├── vectors/                        rfc8785.json (+ generator): canonical-JSON reference shared by .NET and TypeScript
 │   ├── Karry.Testing/                  shared test kit (not a test project): PostgresServer with the real roles, TestTokens issuer, MigrationLinter
 │   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract, observability (TC-P1-OPS-003/005)
 │   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)

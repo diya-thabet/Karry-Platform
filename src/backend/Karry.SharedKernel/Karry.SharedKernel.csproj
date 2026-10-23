@@ -1,3 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!-- Typed IDs, Money, Quantity, Result, domain event base, clock (filled in P1.3). No dependencies on purpose. -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="Karry.SharedKernel.UnitTests" />
+  </ItemGroup>
 </Project>
