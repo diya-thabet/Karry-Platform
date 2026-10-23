@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Tenancy.Api;
+using Karry.Modules.Trust.Api;
 
 namespace Karry.Host;
 
@@ -11,5 +12,6 @@ internal static class ModuleCatalog
     public static IReadOnlyList<IModule> All { get; } =
     [
         new TenancyModule(),
+        new TrustModule(),
     ];
 }

@@ -35,3 +35,12 @@ Every business state change appends a ledger entry **in the same transaction** (
 - ✅ Any edit to history is detectable at the exact sequence number.
 - ⚠ Per-tenant serialization of ledger appends (advisory lock), ample for expected write rates (< 1 write/s average).
 - 🔎 Revisit if per-tenant write rates exceed ~200/s sustained.
+
+## Implementation notes (P1.6, 2026-10-23)
+
+Decision unchanged. Details in [trust layer §13.3.1](../02-architecture/trust-layer-signatures-audit.md#1331-as-implemented-p16-trust-module-schema-audit):
+
+- The fields are joined with `\n` and hashed as UTF-8 text, with lowercase hex, `D`-form UUIDs and microsecond UTC timestamps. This makes the encoding unambiguous and reproducible by an external auditor; "‖" in the formula left it open.
+- Serialization uses a lock on the per-tenant chain-head row rather than an advisory lock, because the head row also stores `last_seq`/`last_hash`.
+- Payloads are RFC 8785 canonical in strict mode: exact decimals must travel as strings.
+

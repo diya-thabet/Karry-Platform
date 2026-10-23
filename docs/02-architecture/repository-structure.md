@@ -32,7 +32,7 @@ karry-platform/
 │   │   ├── Karry.Host/                 ASP.NET Core composition root
 │   │   ├── Karry.SharedKernel/         typed IDs, Money, Quantity, Result, events
 │   │   ├── Karry.BuildingBlocks/       outbox, tenancy, auth, persistence, telemetry
-│   │   ├── Modules/                    created with tools/new-module.sh <Name>; Tenancy (tenant catalog, provisioning) since P1.5
+│   │   ├── Modules/                    created with tools/new-module.sh <Name>; Tenancy (tenant catalog, provisioning) since P1.5; Trust (audit ledger) since P1.6
 │   │   │   ├── Tenancy/  {Contracts,Domain,Application,Infrastructure,Api,Tests}
 │   │   │   ├── Organization/
 │   │   │   ├── Assets/

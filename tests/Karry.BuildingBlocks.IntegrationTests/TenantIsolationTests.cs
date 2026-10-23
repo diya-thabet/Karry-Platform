@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Ledger;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -23,6 +24,7 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
     private static readonly TenantId TenantA = new(Guid.Parse("01970000-0000-7000-8000-00000000000a"));
     private static readonly TenantId TenantB = new(Guid.Parse("01970000-0000-7000-8000-00000000000b"));
 
+    private readonly RecordingLedger ledger = new();
     private readonly FakeTimeProvider clock = new(new DateTimeOffset(2026, 10, 23, 6, 0, 0, TimeSpan.Zero));
     private KarryDatabase database = null!;
     private ServiceProvider services = null!;
@@ -197,6 +199,35 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
         await Task.CompletedTask;
     }
 
+    [Fact]
+    [Trait("Story", "US-P1-AUD-01")]
+    public async Task Tenant_events_are_handed_to_the_ledger_inside_the_open_transaction()
+    {
+        await SaveNotesAsync(TenantA, "A1", "A2");
+
+        ledger.Calls.Should().Equal((TenantA, 2, true));
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-01")]
+    public async Task Without_a_ledger_writer_tenant_events_are_refused_and_nothing_is_saved()
+    {
+        var collection = new ServiceCollection();
+        collection.AddLogging();
+        collection.AddSingleton<TimeProvider>(clock);
+        collection.AddModuleDbContext<TenantProbeDbContext>(database.App);
+        await using var unaudited = collection.BuildServiceProvider();
+
+        var act = () => InTenantAsync(TenantA, async db =>
+        {
+            db.Notes.Add(SiteNote.Write(clock, TenantA, "unaudited"));
+            return await db.SaveChangesAsync();
+        }, unaudited);
+
+        await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*ILedgerWriter*");
+        (await RawCountAsync(database.Admin, "SELECT count(*) FROM tenantprobe.site_notes")).Should().Be(0);
+    }
+
     private ServiceProvider BuildServices(string connectionString)
     {
         var collection = new ServiceCollection();
@@ -205,6 +236,7 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
         collection.AddModuleDbContext<TenantProbeDbContext>(connectionString);
         collection.AddOutboxDispatcher<TenantProbeDbContext>();
         collection.AddScoped<IDomainEventSubscriber<NoteWritten>, NoteCopier>();
+        collection.AddSingleton<ILedgerWriter>(ledger); // the real writer lives in the Trust module (tested there)
         return collection.BuildServiceProvider(validateScopes: true);
     }
 
@@ -240,5 +272,22 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         await using var command = new NpgsqlCommand(sql, connection);
         return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
+    }
+
+    /// <summary>Records ledger calls and checks they arrive inside an open transaction of the caller's connection.</summary>
+    private sealed class RecordingLedger : ILedgerWriter
+    {
+        public System.Collections.Concurrent.ConcurrentQueue<(TenantId Tenant, int Records, bool InTransaction)> Calls { get; } = new();
+
+        public Task AppendAsync(System.Data.Common.DbConnection connection, System.Data.Common.DbTransaction transaction, TenantId? unitOfWorkTenant,
+            IReadOnlyList<LedgerRecord> records, CancellationToken cancellationToken)
+        {
+            foreach (var group in records.GroupBy(r => r.Tenant))
+            {
+                Calls.Enqueue((group.Key, group.Count(), transaction.Connection == connection));
+            }
+
+            return Task.CompletedTask;
+        }
     }
 }

@@ -48,7 +48,7 @@ public sealed class TenancyHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new Trust.Api.TrustModule()]);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -168,6 +168,16 @@ public sealed class TenancyApiTests(TenancyHost host) : IClassFixture<TenancyHos
 
         (await CountAsync($"SELECT count(*) FROM tenancy.outbox_messages WHERE type = 'tenancy.tenant_provisioned.v1' AND payload->>'tenantId' = '{id}'"))
             .Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-01")]
+    public async Task Provisioning_opens_the_new_tenants_audit_ledger_with_entry_one()
+    {
+        var id = await IdOf(await ProvisionAsync(UniqueSlug(), "Carrière Registre", Guid.NewGuid().ToString()));
+
+        (await CountAsync($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{id}' AND seq = 1 AND event_type = 'tenancy.tenant_provisioned.v1'"))
+            .Should().Be(1, "the operator has no tenant context, yet the entry lands in the new tenant's chain");
     }
 
     [Fact]

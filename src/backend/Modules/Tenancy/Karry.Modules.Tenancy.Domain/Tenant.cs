@@ -19,7 +19,7 @@ public sealed record TenantProvisioned(Guid TenantId, string Slug, string Name) 
 /// A customer company in the tenant catalog (US-P1-TEN-01). The catalog row itself is platform data, not tenant-owned:
 /// it is read to resolve addresses and by operators, and holds no business data of the tenant.
 /// </summary>
-public sealed class Tenant : AggregateRoot<TenantId>
+public sealed class Tenant : AggregateRoot<TenantId>, ITenantAudited
 {
     public const int NameMaxLength = 120;
 
@@ -39,6 +39,9 @@ public sealed class Tenant : AggregateRoot<TenantId>
     public TenantStatus Status { get; private set; }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>The tenant's own ledger starts with its provisioning.</summary>
+    TenantId ITenantAudited.AuditTenantId => Id;
 
     public static Result<Tenant> Provision(TimeProvider clock, string? slug, string? name)
     {

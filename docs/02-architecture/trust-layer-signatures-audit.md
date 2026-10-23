@@ -74,10 +74,22 @@ entry_hash_n = SHA-256( prev_hash_{n-1} ‖ tenant_id ‖ seq_n ‖ event_type �
 ```
 
 - Written in the **same transaction** as the business change (outbox pattern guarantees no business change without a ledger entry).
-- Sequence gap-free per tenant (serialized via advisory lock per tenant; throughput is ample for this domain).
+- Sequence gap-free per tenant (serialized by locking the tenant's chain-head row `FOR UPDATE`; throughput is ample for this domain).
 - DB enforcement: app role has `INSERT`/`SELECT` only on `audit.*`; a trigger rejects `UPDATE`/`DELETE`/`TRUNCATE`.
 - **Anchoring job** (hourly): writes `{tenant, seq, entry_hash}` heads to object storage with **Object Lock (compliance mode)** and optionally a public transparency log. Tampering with DB history becomes detectable by any auditor.
 - **Verifier tool** (CLI + admin UI): recomputes the chain and compares to anchors; part of quarterly audit procedure.
+
+### 13.3.1 As implemented (P1.6, Trust module, schema `audit`)
+
+| Aspect | Implementation | Proven by |
+|---|---|---|
+| Hash spec | `entry_hash = hex(SHA-256(UTF-8(prev_hash "\n" tenant_id "\n" seq "\n" event_type "\n" payload_hash "\n" occurred_at)))`, `payload_hash = hex(SHA-256(RFC 8785 canonical payload))`, lowercase hex, UUID `D` form, `occurred_at` UTC with microseconds (`yyyy-MM-ddTHH:mm:ss.ffffffZ`), genesis = 64 zeros (`LedgerHash`) | golden values from an independent Python implementation |
+| What is recorded | Every domain event of an `ITenantOwned` aggregate, and of `ITenantAudited` ones (the tenant catalog entry: provisioning is entry 1 of the tenant's chain). The canonical payload is stored as text, so the hashed bytes are kept exactly | Tenancy test, smoke test |
+| Same transaction | `ModuleDbContext.SaveChangesAsync`: business rows + outbox rows, then `ILedgerWriter.AppendAsync` on the same connection and transaction, then commit. Without a registered writer, tenant events are refused | TC-P1-AUD-006 (rollback; failing ledger write rolls back the change) |
+| Gap-free | Head row `audit.ledger_heads` created if missing, locked `FOR UPDATE`, entries chained, head moved; tenants in fixed order (no deadlocks) | TC-P1-AUD-001 (50 parallel writers; deterministic concurrent-append test) |
+| Append-only | Triggers reject UPDATE/DELETE (row) and TRUNCATE (statement), also for the owner; `karry_app` has INSERT/SELECT only (privileges revoked) | TC-P1-AUD-002 (each layer separately) |
+| Isolation | RLS on entries and heads (`EnableTenantRls`); the writer sets the entry's tenant for the rest of the transaction (platform work such as provisioning has none) and refuses another tenant's ledger inside a tenant's unit of work | RLS test, linter |
+| Verification core | `LedgerVerifier` recomputes payload hashes, links and entry hashes from storage and reports the first broken sequence | TC-P1-AUD-003 (8 kinds of tampering) |
 
 ## 13.4 Scale ticket rules
 
