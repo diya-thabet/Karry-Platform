@@ -22,6 +22,7 @@ docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Ke
 dotnet build Karry.slnx                                        # 2. build the backend
 dotnet test --solution Karry.slnx                              # 3. backend tests (Testcontainers needs Docker)
 dotnet run --project src/backend/Karry.Host -- migrate         # 4. apply database migrations (as karry_owner)
+dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: demo tenants demo-carriere-a / -b
 dotnet run --project src/backend/Karry.Host                    # 5. API on http://localhost:5000 (/health/ready)
 cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
 pnpm --filter @karry/portal dev                                # 7. office portal (Vite dev server)

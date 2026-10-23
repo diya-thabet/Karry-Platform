@@ -43,6 +43,19 @@ if (args is ["migrate", ..])
     return 0;
 }
 
+// `Karry.Host seed-demo`: the two demo tenants (US-P1-TEN-01), idempotent. Never in production.
+if (args is ["seed-demo", ..])
+{
+    if (app.Environment.IsProduction())
+    {
+        await Console.Error.WriteLineAsync("seed-demo is not available in production.").ConfigureAwait(false);
+        return 2;
+    }
+
+    await DemoSeed.RunAsync(app.Services, CancellationToken.None).ConfigureAwait(false);
+    return 0;
+}
+
 app.UseKarryObservability();
 app.UseKarryApiConventions();
 app.UseKarryTenancy();

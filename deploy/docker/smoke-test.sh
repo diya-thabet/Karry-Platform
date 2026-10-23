@@ -81,6 +81,10 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
   if (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development dotnet Karry.Host.dll migrate >/dev/null); then
     owner="$(psql_su "SELECT tableowner FROM pg_tables WHERE schemaname = 'platform' AND tablename = 'idempotency_records'")"
     if [[ "$owner" == "karry_owner" ]]; then pass "Karry.Host migrate: platform schema created, owned by karry_owner"; else fail "Karry.Host migrate: table owner '$owner'"; fi
+    # Demo tenants (US-P1-TEN-01), twice: provisioning is idempotent.
+    (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && for _ in 1 2; do DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development dotnet Karry.Host.dll seed-demo >/dev/null || exit 1; done) || fail "Karry.Host seed-demo"
+    demo="$(psql_su "SELECT string_agg(slug, ',' ORDER BY slug) FROM tenancy.tenants WHERE slug LIKE 'demo-carriere-%'")"
+    if [[ "$demo" == "demo-carriere-a,demo-carriere-b" ]]; then pass "seed-demo twice: exactly the 2 demo tenants"; else fail "seed-demo (got '$demo')"; fi
   else
     fail "Karry.Host migrate"
   fi

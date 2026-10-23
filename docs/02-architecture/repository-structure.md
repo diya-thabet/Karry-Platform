@@ -32,7 +32,7 @@ karry-platform/
 │   │   ├── Karry.Host/                 ASP.NET Core composition root
 │   │   ├── Karry.SharedKernel/         typed IDs, Money, Quantity, Result, events
 │   │   ├── Karry.BuildingBlocks/       outbox, tenancy, auth, persistence, telemetry
-│   │   ├── Modules/                    created with tools/new-module.sh <Name>
+│   │   ├── Modules/                    created with tools/new-module.sh <Name>; Tenancy (tenant catalog, provisioning) since P1.5
 │   │   │   ├── Tenancy/  {Contracts,Domain,Application,Infrastructure,Api,Tests}
 │   │   │   ├── Organization/
 │   │   │   ├── Assets/
@@ -67,6 +67,7 @@ karry-platform/
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)
 │   ├── Karry.Host.IntegrationTests/    health, OpenAPI (Testcontainers PostgreSQL)
+│   ├── Karry.Testing/                  shared test kit (not a test project): PostgresServer with the real roles, TestTokens issuer
 │   ├── Karry.BuildingBlocks.UnitTests/ API conventions, module contract, observability (TC-P1-OPS-003/005)
 │   ├── Karry.BuildingBlocks.IntegrationTests/ outbox, idempotency, end-to-end backbone (PostgreSQL)
 │   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates

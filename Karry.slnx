@@ -4,12 +4,19 @@
     <Project Path="src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <Project Path="src/backend/Karry.Host/Karry.Host.csproj" />
     <Project Path="src/backend/Karry.Workers/Karry.Workers.csproj" />
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Application/Karry.Modules.Tenancy.Application.csproj" />
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Domain/Karry.Modules.Tenancy.Domain.csproj" />
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Infrastructure/Karry.Modules.Tenancy.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Tests/Karry.Modules.Tenancy.Tests.csproj" />
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />
     <Project Path="tests/Karry.BuildingBlocks.IntegrationTests/Karry.BuildingBlocks.IntegrationTests.csproj" />
     <Project Path="tests/Karry.BuildingBlocks.UnitTests/Karry.BuildingBlocks.UnitTests.csproj" />
     <Project Path="tests/Karry.SharedKernel.UnitTests/Karry.SharedKernel.UnitTests.csproj" />
     <Project Path="tests/Karry.Host.IntegrationTests/Karry.Host.IntegrationTests.csproj" />
+    <Project Path="tests/Karry.Testing/Karry.Testing.csproj" />
   </Folder>
 </Solution>

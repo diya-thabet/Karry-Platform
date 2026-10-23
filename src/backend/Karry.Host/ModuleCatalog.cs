@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Modules;
+using Karry.Modules.Tenancy.Api;
 
 namespace Karry.Host;
 
@@ -7,5 +8,8 @@ namespace Karry.Host;
 /// </summary>
 internal static class ModuleCatalog
 {
-    public static IReadOnlyList<IModule> All { get; } = [];
+    public static IReadOnlyList<IModule> All { get; } =
+    [
+        new TenancyModule(),
+    ];
 }

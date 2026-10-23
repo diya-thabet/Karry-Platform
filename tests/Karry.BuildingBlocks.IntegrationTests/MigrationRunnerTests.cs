@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Persistence;
+using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 

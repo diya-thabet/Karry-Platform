@@ -88,6 +88,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | R-02 | IndexedDB on a stolen unlocked tablet is readable | Evaluate app-level encryption of cached reference data with a PIN-derived key (Phase 2 spike) |
 | R-03 | Legal weight of signatures differs by country | WP-P0-06 legal memo; QTSP integration for specific documents if required |
 | R-04 | Collusion across several roles | Statistical anomaly detection independent of approvals; telematics cross-check (Phase 9) |
+| R-07 | The anonymous branding endpoint `GET /api/v1/tenancy/public/{slug}` confirms whether a company uses Karry (slug enumeration) | By design (login page branding); returns only slug and name; rate limiting per IP in P1.18 |
 | R-06 | A change reaches `main` without green checks (no server-side branch protection on a private repo without a paid plan) | `tools/ci/merge_guard.py` as the only merge path (unit-tested), CODEOWNERS, owner approval for sensitive areas; revisit when the team grows |
 | R-05 | Supply-chain compromise of dependencies or actions | Lockfiles (NuGet locked mode, pnpm frozen), actions pinned by SHA, CI tools installed with SHA-256 checks, npm packages ≥ 7 days old with trust no-downgrade and no exotic sources, gitleaks/Trivy/Semgrep on every PR, SBOM and signed images (P1.17) |
 

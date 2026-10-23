@@ -373,6 +373,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | TC-P1-PLT-010 | Pipeline | Failing migration during deploy (P1.17) | Rollout aborted; version unchanged |
 | TC-P1-PLT-011 | Ops | Rollback to previous release (P1.17) | Works; duration recorded |
 | TC-P1-OPS-003 | Integration | Trace attributes on API request (P1.4) | 4 attributes present; only allow-listed attributes; no PII (query, headers, body, SQL parameters) in spans or exported logs |
+| TC-P1-TEN-009 | API | Tenant address check (P1.5) | Token works on its own `<slug>.<domain>`; another tenant's or an unknown slug → 403 `tenant.host_mismatch`; platform address (`api.<domain>`) unaffected |
 | TC-P1-TEN-008 | Integration | Database roles (P1.5) | `karry_app` reads/writes data but cannot create, alter, drop or truncate; owns nothing; no `BYPASSRLS`; schemas and tables owned by `karry_owner` |
 | TC-P1-OPS-006 | Unit (promtool) | Alert rules (P1.4) | Each of the 5 alerts fires on its AC threshold only after its duration; quiet below the threshold, on health probes and at low traffic |
 | TC-P1-OPS-005 | Integration | Correlation ID (P1.4) | Every response (incl. 500) has `X-Correlation-Id` = trace ID = problem `traceId`, plus `traceparent`; a caller's `traceparent` is continued |
