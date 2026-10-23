@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Commands, queries, handlers and ports (interfaces) of Tenancy. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Tenancy.Domain/Karry.Modules.Tenancy.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

@@ -5,6 +5,7 @@ using Karry.SharedKernel.Results;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 
 namespace Karry.BuildingBlocks.Tenancy;
 
@@ -35,6 +36,14 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
 
         if (TryReadTenant(context, out var tenant))
         {
+            if (await HostTenantAsync(context).ConfigureAwait(false) is { } hostTenant && hostTenant != tenant)
+            {
+                // A token of tenant A used on tenant B's address (stolen session, misrouted link): refuse.
+                await Error.Forbidden("tenant.host_mismatch", "This account does not belong to this company's address.")
+                    .ToProblem().ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
+
             context.RequestServices.GetRequiredService<ITenantContext>().Set(tenant);
             Activity.Current?.SetTag(TelemetryAttributes.TenantId, tenant.ToString());
         }
@@ -53,6 +62,32 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         }
 
         await next(context).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// The tenant named by the request address (<c>&lt;slug&gt;.&lt;BaseDomain&gt;</c>), or null when the address is not a
+    /// tenant address (other domain, platform name such as <c>api</c>, several labels). A well-formed address of no
+    /// company resolves to an impossible tenant, so every token is refused there.
+    /// </summary>
+    private static async Task<TenantId?> HostTenantAsync(HttpContext context)
+    {
+        var baseDomain = context.RequestServices.GetService<IOptions<TenancyOptions>>()?.Value.BaseDomain;
+        var lookup = context.RequestServices.GetService<ITenantSlugLookup>();
+        var host = context.Request.Host.Host;
+        if (string.IsNullOrWhiteSpace(baseDomain) || lookup is null
+            || !host.EndsWith("." + baseDomain, StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        var label = host[..^(baseDomain.Length + 1)];
+        if (label.Contains('.', StringComparison.Ordinal))
+        {
+            return null;
+        }
+
+        var resolution = await lookup.ResolveAsync(label.ToLowerInvariant(), context.RequestAborted).ConfigureAwait(false);
+        return resolution.IsTenantAddress ? resolution.Tenant ?? new TenantId(Guid.Empty) : null;
     }
 
     private static bool TryReadTenant(HttpContext context, out TenantId tenant)

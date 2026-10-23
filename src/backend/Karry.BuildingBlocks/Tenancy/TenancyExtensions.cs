@@ -24,7 +24,8 @@ public static class TenancyExtensions
             options.MapInboundClaims = false; // keep "sub", "tenant_id" … as issued
             options.TokenValidationParameters.ValidateAudience = !string.IsNullOrEmpty(options.Audience);
         });
-        services.AddAuthorization();
+        services.AddAuthorization(KarryPolicies.Add);
+        services.Configure<TenancyOptions>(configuration.GetSection(TenancyOptions.Section));
         return services;
     }
 

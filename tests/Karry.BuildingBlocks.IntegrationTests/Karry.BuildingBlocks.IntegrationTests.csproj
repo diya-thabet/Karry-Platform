@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+    <ProjectReference Include="../Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

@@ -773,6 +773,7 @@ These IDs extend the [Phase 1 test plan](plan.md#86-test-plan-phase-1) (§8.6), 
 | TC-P1-PLT-010 | P1.17 | Pipeline | Failing migration during deploy | Rollout aborted; version unchanged |
 | TC-P1-PLT-011 | P1.17 | Ops | Rollback to previous release | Works; duration recorded |
 | TC-P1-OPS-003 | P1.4 | Integration | Trace attributes on API request | 4 attributes present; no PII |
+| TC-P1-TEN-009 | P1.5 | API | Tenant address check | Own address OK; other/unknown → 403; platform address unaffected |
 | TC-P1-TEN-008 | P1.5 | Integration | Database roles | App role: DML only, no DDL, owns nothing, no BYPASSRLS; migrations owned by `karry_owner` |
 | TC-P1-OPS-006 | P1.4 | Unit (promtool) | Alert rules fire on threshold and duration | Fires after duration; quiet below threshold |
 | TC-P1-OPS-005 | P1.4 | Integration | Correlation ID on every response | Header = trace ID = problem `traceId`; caller trace continued |

@@ -37,6 +37,10 @@ last_updated: 2026-10-21
 
 **Authentication and tenant (P1.5).** Module endpoints (`/api/v1/{module}/…`) require a bearer token and a tenant **by default**. The tenant comes only from the validated token's `tenant_id` claim (exactly one UUID), never from a header, path or body. No or invalid token → **401**; a valid token without exactly one tenant → **403 `tenant.missing`**. Both are answered before the endpoint runs. An endpoint opts out explicitly with `.AllowAnonymous()` (public) and/or `.AllowWithoutTenant()` (platform operator, branding lookup), and the opt-out is reviewed.
 
+**Tenant address (P1.5).** When `Tenancy:BaseDomain` is set (e.g. `karry.app`), a request on `https://<slug>.karry.app` must carry a token of *that* tenant, otherwise **403 `tenant.host_mismatch`** (also for an unknown slug). Platform addresses (`api`, `www` and the other reserved names, multi-label hosts) are not tenant addresses and are not checked.
+
+**Tenancy endpoints (P1.5).** `POST /api/v1/tenancy/tenants` (platform operator, `Idempotency-Key` required; 201 created, **200 for the same slug and name again**, 409 `tenant.slug_taken`, 400 `tenant.slug_invalid` / `tenant.slug_reserved` / `tenant.name_invalid`); `GET /api/v1/tenancy/current` (the caller's company); `GET /api/v1/tenancy/public/{slug}` (anonymous branding for the login page, 404 `tenant.not_found`).
+
 **Correlation (P1.4, `Karry.BuildingBlocks/Observability`).** Every response, success or error, carries `X-Correlation-Id` (the W3C trace ID, 32 hex characters) and `traceparent`. The problem `traceId` is the same value, so the ID a user quotes from an error dialog finds the trace directly. A caller that sends `traceparent` (portal, field app) joins the same trace (TC-P1-OPS-005).
 
 Framework errors use the same shape: unknown route `route.not_found`, malformed JSON `request.invalid`, 405/415 likewise. Codes are part of the contract: never rename one; add a new code instead.
