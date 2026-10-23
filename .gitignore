@@ -51,3 +51,4 @@ StrykerOutput/
 storybook-static/
 # Vitest browser-mode local artifacts
 .vitest/
+dist-pseudo/

@@ -27,6 +27,7 @@ dotnet run --project src/backend/Karry.Host                    # 5. API on http:
 cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
 pnpm --filter @karry/portal dev                                # 7. office portal (Vite dev server)
 pnpm --filter @karry/field dev                                 # 8. field app (Vite dev server)
+pnpm --filter @karry/ui storybook                              # 9. design system (Storybook, http://localhost:6006)
 ```
 
 Database roles come from [`deploy/database/roles.sql`](deploy/database/roles.sql) on the first start of the stack. A stack created before P1.5 lacks `karry_owner`: recreate it once with `docker compose -f deploy/docker/compose.yaml down -v`.
