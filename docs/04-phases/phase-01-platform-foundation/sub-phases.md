@@ -354,7 +354,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - **Foundation:** Tailwind CSS + shadcn/ui (Radix) components with design tokens and **light, dark and outdoor high-contrast** themes.
     - **Components:** buttons, inputs, `QuantityInput` shell (logic in P1.12), selectors, lists/tables, dialogs, toasts, status chips, empty/error states, and a **standard list/detail page pattern** used by every admin screen (risk mitigation from [plan §8.10](plan.md#810-risks)).
     - **Field rules:** touch targets ≥ 48 px and body text ≥ 16 px in the field app.
-  - **Storybook** with the axe accessibility addon; stories for every component and theme.
+  - **Storybook** with the axe accessibility addon; stories for every component and theme. *(As built: components written in the shadcn/ui style on Radix without the CLI; CI renders every story in every theme in Chromium with axe-core via Vitest browser mode, since jsdom cannot check colour contrast; theme contrast is also unit-tested from the tokens.)*
   - `packages/i18n`: i18next + ICU, FR/EN catalogs, instant language switch, default from tenant then user, a **pseudo-localization** build (staging), and a CI check for missing keys.
   - `apps/portal` shell (TanStack Router + Query, layout, navigation driven by permissions/entitlements later, error dialog showing the correlation ID); `apps/field` shell (home screen, large navigation, sync status placeholder).
   - `packages/api-client` generated from OpenAPI (generation script + CI check that it is up to date).
