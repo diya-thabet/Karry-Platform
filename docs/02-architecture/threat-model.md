@@ -78,7 +78,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | T-15 | Info disclosure / Tampering | Prompt injection via remarks makes the copilot reveal masked data or mislead | Tools enforce RBAC/masking; user text delimited as data; no write tools; red-team set | ADR-0013, US-P8-AI-11, TC-P8-AI-004 |
 | T-16 | Tampering | Weight spoofing at the indicator / edge PC | mTLS client certs, signed readings, stability window, ANPR match, physical seals procedure | US-P6-EDG-02, US-P9-EDG-01 |
 | T-17 | Information disclosure | Lost/stolen tablet exposes cached data | Device revocation, auto-lock, short offline session, minimal cached scope; quarantine of revoked device uploads | US-P1-OFF-02/04 |
-| T-18 | Information disclosure | Personal data (e-mail, names, phone, tokens, client IP) leaks into traces or logs and from there to the observability backend or vendor | Span attribute **allow-list** processor before every exporter; no `url.*`, user agent or client address; request-start logs and log scopes not exported; route templates instead of paths; SQL text parameterized | TC-P1-OPS-003 (mutation-checked) |
+| T-18 | Information disclosure | Personal data (e-mail, names, phone, tokens, client IP) leaks into traces or logs and from there to the observability backend or vendor | Span attribute **allow-list** processor before every exporter; no `url.*`, user agent or client address; request-start logs and log scopes not exported; route templates instead of paths; SQL text parameterized | TC-P1-OPS-003 (mutation-checked); frontend errors (P1.7): SDK data collection off, scrubber, hashed tenant (observability tests) |
 
 ## 4. Residual risks & open items
 

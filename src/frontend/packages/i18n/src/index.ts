@@ -4,3 +4,4 @@ export { createI18n, catalogs, type I18nOptions } from "./setup";
 export { defaultLanguage, isLanguage, resolveLanguage, supportedLanguages, type Language } from "./languages";
 export { pseudoClose, pseudoLocalize, pseudoOpen } from "./pseudo";
 export { I18nextProvider as I18nProvider, useTranslation } from "react-i18next";
+export type { i18n as I18n } from "i18next";

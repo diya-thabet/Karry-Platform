@@ -89,14 +89,14 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | Package | Version | Package | Version |
 |---|---|---|---|
 | react / react-dom | 19.3.1 | vite | 8.3.4 |
-| @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.5 |
+| @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.3 (P1.7: newest ≥ 7 days old) |
 | tailwindcss (+ @tailwindcss/vite) | 4.3.3 | Radix primitives (dialog 1.3.1, select 2.4.1, toast 1.3.1, slot 1.5.0), cva 0.7.1, tailwind-merge 3.7.0, lucide-react 1.58.0 (P1.7; shadcn patterns written in-house, no CLI) | n/a |
 | i18next / react-i18next (+ i18next-icu 2.5.0, intl-messageformat 12.1.3) | 26.4.7 / 17.0.20 (P1.7: newest ≥ 7 days old) | dexie | 4.4.6 |
 | vite-plugin-pwa | 2.0.0 | maplibre-gl | 6.15.0 |
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test / playwright | 1.64.1 | axe-core (in Vitest browser mode, P1.7) | 4.14.0 |
 | storybook (+ react-vite, addon-a11y) | 10.6.2 (P1.7) | eslint / typescript-eslint | 10.12.0 / 8.71.2 |
-| @sentry/react | 11.8.0 | @openfeature/web-sdk / react-sdk | 1.10.0 / 1.4.1 |
+| @sentry/react (error tracking, `@karry/observability`) | 11.8.0: `dataCollection` all off (v11 collects user, cookies, headers, bodies, query strings by default) | @openfeature/web-sdk / react-sdk | 1.10.0 / 1.4.1 |
 
 **Container images (local stack, CI)**
 
