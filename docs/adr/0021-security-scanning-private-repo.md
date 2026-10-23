@@ -3,17 +3,17 @@ title: "ADR-0021: Security scanning with gitleaks, Trivy and Semgrep CE (CodeQL 
 area: adr
 tags: [security, ci, sast, secrets, sca, codeql, semgrep, trivy, gitleaks, licensing]
 source: "Phase 1 sub-phase P1.2"
-status: proposed
-last_updated: 2026-10-22
+status: accepted
+last_updated: 2026-10-23
 ---
 
 # ADR-0021 — Security scanning with gitleaks, Trivy and Semgrep CE
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (owner to accept; in effect in CI meanwhile because the alternative is not licensed)
+- **Status:** Accepted (owner, 2026-10-23: "keep it with the free tools")
 - **Date:** 2026-10-22
-- **Deciders:** Software architect (owner informed)
+- **Deciders:** Owner (accepted 2026-10-23), software architect
 - **Related:** US-P1-PLT-03, [guidelines §10](../00-llm/llm_guidelines.md#10-security-policy), [technology stack](../02-architecture/technology-stack.md)
 
 ## Context
