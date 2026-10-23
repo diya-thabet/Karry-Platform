@@ -320,6 +320,8 @@ dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants (not in 
 # Tenant isolation suite and API contract (the build regenerates src/backend/Karry.Host/openapi/v1.json: commit it)
 dotnet test --project tests/Karry.TenantIsolationTests
 tools/ci/install-tool.sh oasdiff && ~/.local/bin/oasdiff breaking <(git show origin/main:src/backend/Karry.Host/openapi/v1.json) src/backend/Karry.Host/openapi/v1.json --fail-on ERR
+# RFC 8785 vectors (regenerate only on purpose: they are the reference for .NET and TypeScript canonicalization)
+node tests/vectors/generate-jcs-vectors.mjs
 # Module template (TC-P1-PLT-003)
 tools/templates/test-template.sh
 # Local stack incl. observability end to end (TC-P1-PLT-004; needs Docker)
