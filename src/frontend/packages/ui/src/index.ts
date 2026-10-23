@@ -13,3 +13,4 @@ export { EmptyState, ErrorState } from "./components/States";
 export { DataTable, type Column } from "./components/DataTable";
 export { ListDetailPage } from "./components/ListDetailPage";
 export { ToastProvider, useToast } from "./components/Toast";
+export { LanguageSwitcher, savedLanguage, ThemeSwitcher } from "./components/Switchers";

@@ -1,3 +1,3 @@
-// Typed API client generated from the OpenAPI document (P1.7).
+// Typed API client generated from the OpenAPI contract (P1.7 slice 4) and the error type the UI shows.
 // Source-first internal package: apps import TypeScript directly, no build step.
-export {};
+export { ApiError } from "./errors";
