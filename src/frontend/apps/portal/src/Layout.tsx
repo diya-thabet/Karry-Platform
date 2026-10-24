@@ -1,6 +1,7 @@
 import { Link, Outlet } from "@tanstack/react-router";
+import { useAuth } from "@karry/auth";
 import { useTranslation } from "@karry/i18n";
-import { EmptyState, LanguageSwitcher, ThemeSwitcher } from "@karry/ui";
+import { Button, EmptyState, LanguageSwitcher, ThemeSwitcher } from "@karry/ui";
 import { sections, type SectionKey } from "./sections";
 
 /** Portal layout: header with switchers, main navigation (permission- and plan-driven from P1.9/P1.10), content. */
@@ -13,9 +14,10 @@ export function Layout() {
           <p className="text-2xl font-bold">{t("portal.title")}</p>
           <p className="text-text-muted">{t("portal.subtitle")}</p>
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap items-end gap-4">
           <LanguageSwitcher />
           <ThemeSwitcher />
+          <Account />
         </div>
       </header>
       <div className="flex flex-col md:flex-row">
@@ -39,6 +41,20 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+    </div>
+  );
+}
+
+/** Who is signed in, and sign-out (US-P1-IAM-01). */
+function Account() {
+  const { t } = useTranslation();
+  const { user, signOut } = useAuth();
+  return (
+    <div className="flex items-center gap-3">
+      <span className="text-text-muted">{t("common.account.signedInAs", { name: user?.name ?? "" })}</span>
+      <Button variant="secondary" onClick={() => void signOut()}>
+        {t("common.account.signOut")}
+      </Button>
     </div>
   );
 }

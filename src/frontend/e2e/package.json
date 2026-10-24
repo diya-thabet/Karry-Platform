@@ -1,0 +1,16 @@
+{
+  "name": "@karry/e2e",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Browser end-to-end tests of the apps against the local stack (Keycloak, Karry.Host). Run with tools/e2e/run.sh.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:"
+  }
+}

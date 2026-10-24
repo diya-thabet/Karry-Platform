@@ -42,5 +42,7 @@
   "field.action.issue": "Report a problem",
   "field.sync.label": "Synchronization",
   "field.sync.unknown": "Sync status not available yet",
-  "field.sync.pending": "{count, plural, =0 {Everything is sent} one {# entry waiting to be sent} other {# entries waiting to be sent}}"
+  "field.sync.pending": "{count, plural, =0 {Everything is sent} one {# entry waiting to be sent} other {# entries waiting to be sent}}",
+  "common.account.signedInAs": "Signed in as {name}",
+  "common.account.signOut": "Sign out"
 }

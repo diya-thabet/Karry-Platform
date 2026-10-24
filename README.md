@@ -26,10 +26,13 @@ dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: de
 dotnet run --project src/backend/Karry.Workers                 #    optional: outbox dispatchers + ledger anchoring (or `-- dispatch-now`)
 dotnet run --project src/backend/Karry.Host                    # 5. API on http://localhost:5000 (/health/ready)
 cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
-pnpm --filter @karry/portal dev                                # 7. office portal (Vite dev server)
-pnpm --filter @karry/field dev                                 # 8. field app (Vite dev server)
+pnpm --filter @karry/portal dev                                # 7. office portal: http://demo-carriere-a.localhost:5173
+pnpm --filter @karry/field dev                                 # 8. field app: http://demo-carriere-a.localhost:5174
 pnpm --filter @karry/ui storybook                              # 9. design system (Storybook, http://localhost:6006)
 ```
+
+Both apps sign in with Keycloak (the API must run for the login page's company name: `/api` is proxied to
+`localhost:5000`). Browser end-to-end tests against the running stack: `tools/e2e/run.sh`.
 
 **Demo sign-in** (after `seed-demo`, local stack only): `<role>@demo-carriere-a.karry.test` (e.g. `site-manager@…`,
 `tenant-admin@…`) with password `karry-demo-local-only`. Privileged roles (tenant admin, executive, finance, controller)

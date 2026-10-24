@@ -1,6 +1,7 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, type RouterHistory } from "@tanstack/react-router";
 import { useState } from "react";
+import { AuthProvider, type Auth } from "@karry/auth";
 import { I18nProvider, type I18n } from "@karry/i18n";
 import { ThemeProvider, ToastProvider } from "@karry/ui";
 import { ErrorDialogProvider } from "./ErrorDialog";
@@ -19,8 +20,9 @@ function DataLayer({ history }: { history?: RouterHistory | undefined }) {
   );
 }
 
-export function App({ i18n, history }: { i18n: I18n; history?: RouterHistory }) {
+export function App({ i18n, auth, history }: { i18n: I18n; auth: Auth; history?: RouterHistory }) {
   return (
+    <AuthProvider auth={auth}>
     <I18nProvider i18n={i18n}>
       <ThemeProvider defaultTheme="light" density="office">
         <ToastProvider label="Notifications">
@@ -30,5 +32,6 @@ export function App({ i18n, history }: { i18n: I18n; history?: RouterHistory }) 
         </ToastProvider>
       </ThemeProvider>
     </I18nProvider>
+    </AuthProvider>
   );
 }

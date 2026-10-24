@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@karry/auth": "workspace:*",
     "@karry/i18n": "workspace:*",
     "@karry/observability": "workspace:*",
     "@karry/ui": "workspace:*",
