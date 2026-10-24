@@ -4,7 +4,8 @@ Sign-in for Karry (ADR-0012, sub-phase P1.8). Everything Keycloak needs is in th
 
 | Path | What it is |
 |---|---|
-| `realm/karry-realm.json` | The `karry` realm: app clients, token lifetimes, brute-force protection, password policy, user profile, MFA browser flow, events. Imported on first start (`--import-realm`). |
+| `generate_realm.py` | **Source of the realm.** Edit it, then run it; `--check` (CI) fails when the JSON was edited by hand or not regenerated. |
+| `realm/karry-realm.json` | Generated: the `karry` realm (app clients, token lifetimes, brute-force protection, password policy, user profile, MFA browser flow, events). Imported on first start (`--import-realm`). |
 | `themes/karry/login/` | Login theme on top of Keycloak's `keycloak.v2`: FR (default) / EN messages, tenant branding script. Read live by Keycloak. |
 
 ## Clients
@@ -14,7 +15,7 @@ Sign-in for Karry (ADR-0012, sub-phase P1.8). Everything Keycloak needs is in th
 | `karry-portal` | public, Authorization Code + PKCE (S256) | Portal (`http://localhost:5173` locally) |
 | `karry-field` | public, Authorization Code + PKCE (S256) | Field PWA (`http://localhost:5174` locally) |
 | `karry-api` | bearer-only | Token audience the API validates (`Authentication:Audience`) |
-| `karry-identity` | confidential, service account | The Identity module calls the admin API (users, organizations, events). Secret from `KARRY_IDENTITY_CLIENT_SECRET`; the `identity-local-only` default is for the local stack and tests only. |
+| `karry-identity` | confidential, service account | The Identity module calls the admin API: users (`manage-users`), organizations (`manage-realm`), login events (`view-events`), each tenant's app addresses as redirect URIs (`manage-clients`). Secret from `KARRY_IDENTITY_CLIENT_SECRET`; the `identity-local-only` default is for the local stack and tests only. **This secret is as sensitive as the Keycloak admin password**: vault only (P1.17), never in configuration files outside local development. |
 
 App tokens carry `tenant_id` and `platform_role` from **admin-only** user attributes (users can neither see nor change
 them), plus `aud=karry-api`. They carry no roles: authorization is Karry's (P1.9).
@@ -53,7 +54,8 @@ the tab (`sessionStorage`, branding only, never a token) so pages rendered after
 
 ## Changing the realm
 
-- Edit `realm/karry-realm.json`; `RealmConfigurationTests` (static) and `KeycloakLoginTests` (live Keycloak) must pass.
+- Edit `generate_realm.py`, run `python3 deploy/keycloak/generate_realm.py`; `RealmConfigurationTests` (static) and
+  `KeycloakLoginTests` (live Keycloak) must pass.
 - Import only happens when the realm does not exist. Locally: `docker compose -f deploy/docker/compose.yaml down -v`
   (drops all local data), or delete the `karry` realm in the admin console and restart Keycloak.
 - Production imports and upgrades are a deployment step (P1.17); the Identity module creates tenant organizations

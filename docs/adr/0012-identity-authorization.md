@@ -40,6 +40,9 @@ Keycloak provides OIDC (Authorization Code + PKCE), MFA, brute-force protection 
   `TenantResolutionMiddleware` requires) even if a person later belongs to several organizations.
 - **Dedicated realm** remains the option for Enterprise / regulated tenants (silo model); same clients and flows,
   imported from the same file.
+- Consequence of one realm: **one Keycloak account per e-mail across all tenants**. A consultant working for two
+  quarries needs two addresses (or an Enterprise realm); inviting an address used elsewhere is refused with
+  `identity.account_exists`. Accepted for the SaaS tier.
 - MFA for privileged roles is enforced **in Keycloak** (realm role `mfa-required`, conditional browser flow), so no
   token is ever issued without the second factor; Karry decides who holds the role.
 - Implementation and reasons for every setting: [deploy/keycloak/README.md](../../deploy/keycloak/README.md);

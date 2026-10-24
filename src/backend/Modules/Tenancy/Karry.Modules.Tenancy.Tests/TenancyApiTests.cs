@@ -181,6 +181,44 @@ public sealed class TenancyApiTests(TenancyHost host) : IClassFixture<TenancyHos
     }
 
     [Fact]
+    public async Task Without_the_identity_module_an_administrator_invitation_is_reported_unavailable_and_the_tenant_still_exists()
+    {
+        var slug = UniqueSlug();
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/api/v1/tenancy/tenants", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { slug, name = "Carrière Sans Identité", admin = new { firstName = "A", lastName = "B", email = "a@example.test" } }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForPlatformOperator());
+        request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
+
+        var response = await host.Client.SendAsync(request, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var invitation = (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("adminInvitation");
+        invitation.GetProperty("invited").GetBoolean().Should().BeFalse();
+        invitation.GetProperty("error").GetString().Should().Be("identity.unavailable");
+    }
+
+    [Theory]
+    [InlineData("not-an-email")]
+    [InlineData("")]
+    public async Task An_invalid_administrator_email_is_rejected_before_anything_is_created(string email)
+    {
+        var slug = UniqueSlug();
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("/api/v1/tenancy/tenants", UriKind.Relative))
+        {
+            Content = JsonContent.Create(new { slug, name = "Carrière Courriel", admin = new { firstName = "A", lastName = "B", email } }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForPlatformOperator());
+        request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
+
+        var response = await host.Client.SendAsync(request, Ct);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await CountAsync($"SELECT count(*) FROM tenancy.tenants WHERE slug = '{slug}'")).Should().Be(0);
+    }
+
+    [Fact]
     public async Task The_public_branding_of_a_company_is_readable_before_sign_in()
     {
         var slug = UniqueSlug();

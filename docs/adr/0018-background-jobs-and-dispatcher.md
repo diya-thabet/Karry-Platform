@@ -4,7 +4,7 @@ area: adr
 tags: [background-jobs, outbox, scheduling, quartz, licensing]
 source: "Phase 1 sub-phase P1.0"
 status: accepted
-last_updated: 2026-10-22
+last_updated: 2026-10-24
 ---
 
 # ADR-0018 — In-house outbox dispatcher and Quartz.NET for scheduled jobs
@@ -33,7 +33,10 @@ ADR-0015 chose a transactional outbox but left the dispatcher open ("thin in-hou
 
 ## Decision
 
-- Outbox dispatch uses an **in-house dispatcher** hosted in `Karry.Workers` (contract and tests in P1.3, TC-P1-PLT-007).
+- Outbox dispatch uses an **in-house dispatcher** hosted in `Karry.Workers` (contract and tests in P1.3, TC-P1-PLT-007;
+  running there since P1.8 for Tenancy and Identity, `Karry.Workers dispatch-now` drains once). Another module's events
+  are consumed through a contract of the publishing module (e.g. `ITenantProvisionedHandler` in Tenancy.Contracts),
+  because modules may not reference each other's domain event types.
 - Scheduled work uses **Quartz.NET** with persistent PostgreSQL job store in clustered mode, hosted in `Karry.Workers`.
 - Every job is idempotent, tenant-aware (iterates tenants explicitly, sets tenant context per tenant transaction), emits metrics (last success, duration, lag) and has an alert + runbook when it guards an invariant (anchoring).
 

@@ -293,7 +293,9 @@
           "query-users",
           "manage-realm",
           "view-realm",
-          "view-events"
+          "view-events",
+          "view-clients",
+          "manage-clients"
         ]
       }
     }
@@ -308,7 +310,9 @@
           "query-users",
           "manage-realm",
           "view-realm",
-          "view-events"
+          "view-events",
+          "view-clients",
+          "manage-clients"
         ]
       }
     ]

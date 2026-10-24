@@ -3,7 +3,10 @@ using Karry.SharedKernel.Results;
 
 namespace Karry.Modules.Tenancy.Application;
 
-public sealed record ProvisionTenant(string Slug, string Name);
+/// <summary>A tenant to provision; <c>Admin</c> (optional) is invited by e-mail as first Tenant Admin (US-P1-TEN-01 AC1).</summary>
+public sealed record ProvisionTenant(string Slug, string Name, FirstAdmin? Admin = null);
+
+public sealed record FirstAdmin(string FirstName, string LastName, string Email);
 
 public sealed record ProvisionedTenant(Guid Id, string Slug, string Name, DateTimeOffset CreatedAt, bool Created);
 

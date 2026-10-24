@@ -139,6 +139,37 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
     }
 
     [Fact]
+    public async Task Every_transaction_of_one_unit_of_work_carries_the_tenant()
+    {
+        // Npgsql hands out the same transaction object for consecutive transactions on a connection: the interceptor
+        // must set the tenant again for each new transaction, not once per object (P1.8 finding: the second save of a
+        // unit of work was refused by RLS).
+        var saved = await InTenantAsync(TenantA, async db =>
+        {
+            var total = 0;
+            foreach (var text in (string[])["A1", "A2", "A3"])
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                db.Notes.Add(SiteNote.Write(clock, TenantA, text));
+                total += await db.SaveChangesAsync();
+            }
+
+            await using (var explicitTransaction = await db.Database.BeginTransactionAsync())
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                db.Notes.Add(SiteNote.Write(clock, TenantA, "A4"));
+                total += await db.SaveChangesAsync();
+                await explicitTransaction.CommitAsync();
+            }
+
+            return total;
+        });
+
+        saved.Should().BeGreaterThanOrEqualTo(4);
+        (await NotesAsync(TenantA)).Should().Equal("A1", "A2", "A3", "A4");
+    }
+
+    [Fact]
     public async Task Force_applies_rls_to_the_table_owner_too()
     {
         await SaveNotesAsync(TenantA, "A1");

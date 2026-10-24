@@ -55,7 +55,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     public const int NameMaxLength = 60;
     public const int EmployeeIdMaxLength = 32;
 
-    private UserAccount(UserId id, TenantId tenantId, UserKind kind, string firstName, string lastName, List<RoleAssignment> roles, DateTimeOffset createdAt)
+    private UserAccount(UserId id, TenantId tenantId, UserKind kind, string firstName, string lastName, IReadOnlyList<RoleAssignment> roles, DateTimeOffset createdAt)
         : base(id)
     {
         TenantId = tenantId;

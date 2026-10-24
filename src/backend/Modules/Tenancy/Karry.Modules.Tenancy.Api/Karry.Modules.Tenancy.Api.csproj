@@ -6,5 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Tenancy.Application/Karry.Modules.Tenancy.Application.csproj" />
     <ProjectReference Include="../Karry.Modules.Tenancy.Infrastructure/Karry.Modules.Tenancy.Infrastructure.csproj" />
+    <!-- First administrator invitation after provisioning (US-P1-TEN-01 AC1). -->
+    <ProjectReference Include="../../Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
   </ItemGroup>
 </Project>

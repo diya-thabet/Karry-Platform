@@ -32,6 +32,19 @@ last_updated: 2026-10-24
 - Brute force: temporary lockout after 5 failures (growing wait, max 15 min), same message as a wrong password.
 - MFA: realm role `mfa-required` (set by the Identity module for privileged roles) makes the browser flow ask for
   WebAuthn or TOTP, and forces TOTP enrolment before any token when the user has neither.
+- **Users** live in the Identity module (`identity.users`, RLS): office users linked to Keycloak by `sub`, field users
+  with employee ID + PIN (PBKDF2-HMAC-SHA256, 600 000 iterations, salted; trivial PINs refused; never returned).
+- **Invitations**: 7 days, single use, only the SHA-256 of the token stored; the link carries the token in the URL
+  fragment (never sent to a server or logged); the token starts with the tenant ID so the anonymous accept runs under
+  that tenant's RLS. The password typed on acceptance goes straight to Keycloak's admin API (policy enforced there) and is
+  never stored or logged by Karry.
+- **Deactivation** (TC-P1-IAM-007): Karry first (the tenant middleware asks `IAccessRevocation` on every tenant request;
+  cached 30 s per instance, forgotten at once by the deactivating instance), then Keycloak (account disabled, sessions
+  ended). A still-valid access token gets 401 `auth.revoked` within 30 s on any instance; the user record and name stay.
+- **One realm, one account per e-mail** across tenants: inviting an address that already has an account elsewhere is a
+  409 `identity.account_exists` (dedicated realm for Enterprise tenants that need it).
+- **Ledger events of identity changes carry identifiers only** (user, invitation, roles), never names, e-mails or phone
+  numbers: the ledger is immutable, personal data must stay erasable.
 - Details, flow diagram and the reasons for each value: [deploy/keycloak/README.md](../../deploy/keycloak/README.md).
 
 **Security review checklist for any change to `deploy/keycloak`** (two-reviewer rule, P1.8):

@@ -260,6 +260,8 @@ public sealed class AnchoringTests(LedgerDatabase postgres) : IClassFixture<Ledg
     private sealed class FixedDirectory(params TenantId[] tenants) : ITenantDirectory
     {
         public Task<IReadOnlyList<TenantId>> ListAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<TenantId>>(tenants);
+
+        public Task<TenantSummary?> FindAsync(TenantId tenant, CancellationToken cancellationToken) => Task.FromResult<TenantSummary?>(null);
     }
 
     /// <summary>Keeps every version per key, like a versioned Object Lock bucket.</summary>

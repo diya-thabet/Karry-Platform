@@ -4,14 +4,14 @@ using Karry.Testing;
 
 namespace Karry.Modules.Identity.Tests.Realm;
 
-/// <summary>One Keycloak (repository realm and theme) for the live sign-in tests.</summary>
+/// <summary>The test run's Keycloak (repository realm and theme), shared by every class that needs one.</summary>
 public sealed class KeycloakFixture : IAsyncLifetime
 {
     public KeycloakServer Server { get; private set; } = null!;
 
-    public async ValueTask InitializeAsync() => Server = await KeycloakServer.StartAsync();
+    public async ValueTask InitializeAsync() => Server = await KeycloakServer.SharedAsync();
 
-    public async ValueTask DisposeAsync() => await Server.DisposeAsync();
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }
 
 /// <summary>

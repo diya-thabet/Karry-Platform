@@ -11,8 +11,8 @@ namespace Karry.Testing;
 /// <summary>
 /// Keycloak with the repository's realm and login theme (<c>deploy/keycloak</c>), imported exactly as the local stack
 /// does: the Keycloak in <c>KARRY_TEST_KEYCLOAK</c> when set (e.g. the compose stack, <c>http://127.0.0.1:8080</c>),
-/// otherwise a Testcontainers instance of the local-stack image. Tests create their own users with random names, so
-/// one server serves a whole test class.
+/// otherwise a Testcontainers instance of the local-stack image. Tests create their own users, tenants and slugs with
+/// random names, so one server serves a whole test run: <see cref="SharedAsync"/> (a Keycloak takes ~30 s and ~700 MB).
 /// </summary>
 public sealed class KeycloakServer : IAsyncDisposable
 {
@@ -29,6 +29,8 @@ public sealed class KeycloakServer : IAsyncDisposable
     private const ushort HttpPort = 8080;
     private const ushort ManagementPort = 9000;
 
+    private static readonly Lazy<Task<KeycloakServer>> Shared = new(StartAsync);
+
     private readonly IContainer? container;
     private readonly HttpClient http = new();
 
@@ -43,6 +45,9 @@ public sealed class KeycloakServer : IAsyncDisposable
 
     /// <summary>Issuer of the Karry realm (<c>…/realms/karry</c>, no trailing slash, as in tokens).</summary>
     public string Issuer => new Uri(BaseUrl, $"realms/{Realm}").ToString();
+
+    /// <summary>The test run's Keycloak, started on first use; removed with the process (Testcontainers' reaper).</summary>
+    public static Task<KeycloakServer> SharedAsync() => Shared.Value;
 
     public static async Task<KeycloakServer> StartAsync()
     {

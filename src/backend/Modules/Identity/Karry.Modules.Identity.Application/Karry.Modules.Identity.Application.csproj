@@ -4,5 +4,7 @@
     <ProjectReference Include="../Karry.Modules.Identity.Domain/Karry.Modules.Identity.Domain.csproj" />
     <ProjectReference Include="../Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+    <!-- Invitation links and messages need the tenant's address and name. -->
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
   </ItemGroup>
 </Project>

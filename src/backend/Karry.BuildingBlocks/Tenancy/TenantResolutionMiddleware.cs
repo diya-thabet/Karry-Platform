@@ -27,6 +27,8 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
 
     public const string UnauthenticatedCode = "auth.unauthenticated";
 
+    public const string RevokedCode = "auth.revoked";
+
     public async Task InvokeAsync(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -46,17 +48,22 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
 
             context.RequestServices.GetRequiredService<ITenantContext>().Set(tenant);
             Activity.Current?.SetTag(TelemetryAttributes.TenantId, tenant.ToString());
+
+            // A deactivated user's token stays cryptographically valid until it expires: refuse it now (TC-P1-IAM-007).
+            if (context.RequestServices.GetService<IAccessRevocation>() is { } revocation
+                && context.User.FindFirst("sub")?.Value is { Length: > 0 } subject
+                && await revocation.IsRevokedAsync(tenant, subject, context.RequestAborted).ConfigureAwait(false))
+            {
+                await Unauthenticated("This account has been deactivated.", RevokedCode).ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
         }
         else if (required)
         {
             // Normally authorization already answered 401 for anonymous callers; this is the fail-closed backstop.
             var result = context.User.Identity?.IsAuthenticated == true
                 ? Error.Forbidden("tenant.missing", "The access token does not name a tenant.").ToProblem()
-                : TypedResults.Problem(
-                    title: "Authentication is required.",
-                    statusCode: StatusCodes.Status401Unauthorized,
-                    type: ProblemTypes.For(UnauthenticatedCode).ToString(),
-                    extensions: new Dictionary<string, object?> { ["code"] = UnauthenticatedCode });
+                : Unauthenticated("Authentication is required.", UnauthenticatedCode);
             await result.ExecuteAsync(context).ConfigureAwait(false);
             return;
         }
@@ -89,6 +96,13 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         var resolution = await lookup.ResolveAsync(label.ToLowerInvariant(), context.RequestAborted).ConfigureAwait(false);
         return resolution.IsTenantAddress ? resolution.Tenant ?? new TenantId(Guid.Empty) : null;
     }
+
+    private static Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult Unauthenticated(string title, string code) =>
+        TypedResults.Problem(
+            title: title,
+            statusCode: StatusCodes.Status401Unauthorized,
+            type: ProblemTypes.For(code).ToString(),
+            extensions: new Dictionary<string, object?> { ["code"] = code });
 
     private static bool TryReadTenant(HttpContext context, out TenantId tenant)
     {

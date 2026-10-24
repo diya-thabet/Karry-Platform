@@ -40,8 +40,17 @@ public sealed class IsolationHost : IAsyncLifetime
 
         A = await ProvisionAsync("iso-carriere-a", "Isolation Carrière Alpha");
         B = await ProvisionAsync("iso-carriere-b", "Isolation Carrière Bravo");
+
         // Module data of tenant A is seeded here as modules add tenant-owned resources (P1.6+).
+        // Identity (P1.8): a user of A to steal, and B's attacker is an active Tenant Admin of B, so user-management
+        // endpoints really run (and must stay inside B) instead of stopping at "admin required".
+        AUser = await SeedUserAsync(A.Id, "Alphauser", "alpha.victim@iso-a.test", subject: null);
+        await SeedUserAsync(B.Id, "Bravoadmin", "bravo.admin@iso-b.test", AttackerSubject);
     }
+
+    public const string AttackerSubject = "attacker-b";
+
+    public SeededUser AUser { get; private set; } = null!;
 
     public async ValueTask DisposeAsync()
     {
@@ -68,6 +77,25 @@ public sealed class IsolationHost : IAsyncLifetime
         return new SeededTenant(id, slug, name);
     }
 
+    private async Task<SeededUser> SeedUserAsync(Guid tenant, string lastName, string email, string? subject)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO identity.users (id, tenant_id, kind, status, first_name, last_name, email, subject, roles, created_at)
+            VALUES ($1, $2, 'Office', 'Active', 'Isolation', $3, $4, $5, '[{"role":"tenant-admin","siteId":null}]', now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(lastName);
+        insert.Parameters.AddWithValue(email);
+        insert.Parameters.AddWithValue((object?)subject ?? DBNull.Value);
+        await insert.ExecuteNonQueryAsync();
+        return new SeededUser(id, lastName, email);
+    }
+
     private sealed class Factory(string connectionString) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -78,6 +106,8 @@ public sealed class IsolationHost : IAsyncLifetime
         }
     }
 }
+
+public sealed record SeededUser(Guid Id, string LastName, string Email);
 
 public sealed record SeededTenant(Guid Id, string Slug, string Name)
 {
@@ -133,7 +163,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         var before = await TenantRowCountsAsync(host.A.Id);
         var (path, targetsA) = Fill(pathTemplate);
 
-        var response = await SendAsync(method, path, TestTokens.ForTenant(host.B.Id));
+        var response = await SendAsync(method, path, TestTokens.ForTenant(host.B.Id, IsolationHost.AttackerSubject));
         var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
 
         ((int)response.StatusCode).Should().BeLessThan(500, $"{operationId} must handle a foreign tenant cleanly");
@@ -143,7 +173,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
                 $"{operationId} addressed tenant A's resource with tenant B's token");
         }
 
-        body.Should().NotContainAny(host.A.Markers, $"{operationId} returned tenant A's data to tenant B");
+        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email], $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
 
@@ -168,6 +198,17 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
     }
 
     [Fact]
+    public async Task Positive_control_the_attacker_is_a_real_administrator_of_its_own_tenant()
+    {
+        var own = await SendAsync("GET", "/api/v1/identity/users", TestTokens.ForTenant(host.B.Id, IsolationHost.AttackerSubject));
+        var victim = await SendAsync("GET", "/api/v1/identity/users", TestTokens.ForTenant(host.A.Id, "someone-of-a"));
+
+        own.StatusCode.Should().Be(HttpStatusCode.OK, "user management really runs for the attacker");
+        (await own.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).Should().Contain("Bravoadmin").And.NotContain("Alphauser");
+        victim.StatusCode.Should().Be(HttpStatusCode.Forbidden, "an unknown subject of A is no administrator");
+    }
+
+    [Fact]
     public async Task The_published_contract_is_the_one_the_suite_attacks()
     {
         var published = await host.Client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
@@ -184,7 +225,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         var targetsA = false;
         foreach (System.Text.RegularExpressions.Match match in System.Text.RegularExpressions.Regex.Matches(template, "{([^}:]+)[^}]*}"))
         {
-            var value = AttackValue(match.Groups[1].Value)
+            var value = AttackValue(match.Groups[1].Value, template)
                 ?? throw new InvalidOperationException($"No attack value for route parameter '{match.Groups[1].Value}' in {template}: add one pointing at tenant A's data.");
             path = path.Replace(match.Value, Uri.EscapeDataString(value), StringComparison.Ordinal);
             targetsA = true;
@@ -193,8 +234,9 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         return (path, targetsA);
     }
 
-    private string? AttackValue(string parameter) => parameter switch
+    private string? AttackValue(string parameter, string template) => parameter switch
     {
+        "id" when template.StartsWith("/api/v1/identity/users/", StringComparison.Ordinal) => host.AUser.Id.ToString(),
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,
         _ => null,
