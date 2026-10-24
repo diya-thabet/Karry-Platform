@@ -6,7 +6,15 @@ using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Karry.Modules.Identity.Infrastructure;
 
-/// <summary>Schema <c>identity</c>: users and invitations, both tenant-owned (row-level security).</summary>
+/// <summary>Position of an importer (e.g. Keycloak sign-in failures): platform data, one row per source.</summary>
+public sealed class ImportCursorRow
+{
+    public required string Source { get; set; }
+
+    public DateTimeOffset Position { get; set; }
+}
+
+/// <summary>Schema <c>identity</c>: users, invitations and sign-in failures (tenant-owned, row-level security) and importer cursors.</summary>
 public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : ModuleDbContext(options)
 {
     public const string SchemaName = "identity";
@@ -18,6 +26,10 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<UserAccount> Users => Set<UserAccount>();
 
     public DbSet<Invitation> Invitations => Set<Invitation>();
+
+    public DbSet<SignInFailure> SignInFailures => Set<SignInFailure>();
+
+    public DbSet<ImportCursorRow> ImportCursors => Set<ImportCursorRow>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -68,6 +80,29 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             invitation.HasOne<UserAccount>().WithMany().HasForeignKey(i => i.UserId).OnDelete(DeleteBehavior.Restrict);
             invitation.Ignore(i => i.DomainEvents);
             invitation.Ignore(i => i.AggregateKey);
+        });
+
+        modelBuilder.Entity<SignInFailure>(failure =>
+        {
+            failure.ToTable("sign_in_failures");
+            failure.HasKey(f => f.Id);
+            failure.Property(f => f.Id).HasConversion(id => id.Value, value => new SignInFailureId(value)).ValueGeneratedNever();
+            failure.Property(f => f.UserId).HasConversion(id => id.Value, value => new UserId(value));
+            failure.Property(f => f.Reason).HasMaxLength(SignInFailure.ReasonMaxLength);
+            failure.Property(f => f.IpAddress).HasMaxLength(45);
+            failure.HasIndex(f => new { f.UserId, f.OccurredAt });
+            failure.HasOne<UserAccount>().WithMany().HasForeignKey(f => f.UserId).OnDelete(DeleteBehavior.Restrict);
+            failure.Ignore(f => f.Locked);
+            failure.Ignore(f => f.DomainEvents);
+            failure.Ignore(f => f.AggregateKey);
+        });
+
+        // Platform bookkeeping of the importers (no tenant data): see deploy/database/global-reference-tables.txt.
+        modelBuilder.Entity<ImportCursorRow>(cursor =>
+        {
+            cursor.ToTable("import_cursors");
+            cursor.HasKey(c => c.Source);
+            cursor.Property(c => c.Source).HasMaxLength(60);
         });
     }
 }

@@ -30,12 +30,16 @@ public static class IdentityInfrastructure
         services.AddScoped<IRevocationCache>(sp => sp.GetRequiredService<RevocationCache>());
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up.
-        services.TryAddSingleton<IIdentityProvider>(sp => new KeycloakIdentityProvider(
+        services.TryAddSingleton(sp => new KeycloakIdentityProvider(
             new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = TimeSpan.FromSeconds(15) },
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<KeycloakOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>(),
             sp.GetRequiredService<TimeProvider>()));
+        services.TryAddSingleton<IIdentityProvider>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
+        services.TryAddSingleton<ISignInEventSource>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
         services.TryAddSingleton<IInvitationSender, InvitationSender>();
+        services.AddScoped<IImportCursor, ImportCursor>();
+        services.AddSingleton<ImportSignInFailures>();
 
         services.AddScoped<InviteUserHandler>();
         services.AddScoped<AcceptInvitationHandler>();

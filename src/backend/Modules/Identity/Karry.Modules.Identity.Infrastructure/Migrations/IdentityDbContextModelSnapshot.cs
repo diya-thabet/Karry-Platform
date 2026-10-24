@@ -177,6 +177,47 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                     b.ToTable("invitations", "identity");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.SignInFailure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("reason");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sign_in_failures");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_sign_in_failures_tenant_id");
+
+                    b.HasIndex("UserId", "OccurredAt")
+                        .HasDatabaseName("ix_sign_in_failures_user_id_occurred_at");
+
+                    b.ToTable("sign_in_failures", "identity");
+                });
+
             modelBuilder.Entity("Karry.Modules.Identity.Domain.UserAccount", b =>
                 {
                     b.Property<Guid>("Id")
@@ -284,6 +325,23 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                     b.ToTable("users", "identity");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Identity.Infrastructure.ImportCursorRow", b =>
+                {
+                    b.Property<string>("Source")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("source");
+
+                    b.Property<DateTimeOffset>("Position")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("position");
+
+                    b.HasKey("Source")
+                        .HasName("pk_import_cursors");
+
+                    b.ToTable("import_cursors", "identity");
+                });
+
             modelBuilder.Entity("Karry.Modules.Identity.Domain.Invitation", b =>
                 {
                     b.HasOne("Karry.Modules.Identity.Domain.UserAccount", null)
@@ -292,6 +350,16 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_invitations_users_user_id");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.SignInFailure", b =>
+                {
+                    b.HasOne("Karry.Modules.Identity.Domain.UserAccount", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_sign_in_failures_users_user_id");
                 });
 #pragma warning restore 612, 618
         }

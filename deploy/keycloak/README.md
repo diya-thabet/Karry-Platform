@@ -31,7 +31,7 @@ them), plus `aud=karry-api`. They carry no roles: authorization is Karry's (P1.9
 | Password policy | ≥ 12 chars, not username/e-mail, history 5 | NIST 800-63B style: length over composition rules |
 | Registration | off | Users are invited (US-P1-IAM-03) |
 | Second factor | role `mfa-required` ⇒ WebAuthn or TOTP; TOTP enrolment forced when none | US-P1-IAM-02. The Identity module gives the role to holders of a privileged Karry role. |
-| Events | login, failures, credential changes; 30 days | Karry copies failures and lockouts to the tenant ledger (P1.8 Identity module) |
+| Events | login, failures, credential changes; 30 days | `Karry.Workers` copies failures and lockouts of known users to the tenant ledger every minute (`import-sign-ins` once) |
 
 ### MFA flow (`karry browser`)
 

@@ -38,7 +38,7 @@ public sealed class KeycloakOptions
 /// and retried against another process's concurrent update (two workers provisioning tenants at the same moment).
 /// </summary>
 internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<KeycloakOptions> options, IOptions<IdentityOptions> identity, TimeProvider clock)
-    : IIdentityProvider, IDisposable
+    : IIdentityProvider, ISignInEventSource, IDisposable
 {
     private const string TenantAttribute = "tenant_id";
 
@@ -151,6 +151,32 @@ internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<Keycloa
         var settings = identity.Value;
         await AllowOriginAsync(Options.PortalClientId, settings.PortalFor(slug), cancellationToken).ConfigureAwait(false);
         await AllowOriginAsync(Options.FieldClientId, settings.FieldFor(slug), cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<KeycloakSignInEvent>> ReadFailuresAsync(DateTimeOffset from, int first, int max, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Get,
+            $"events?type=LOGIN_ERROR&dateFrom={from.ToUnixTimeMilliseconds()}&direction=asc&first={first}&max={max}", null, cancellationToken).ConfigureAwait(false);
+        var events = await Ensure(response, "read events").Content.ReadFromJsonAsync<JsonArray>(cancellationToken).ConfigureAwait(false) ?? [];
+        return [.. events.Where(e => e is not null).Select(e => new KeycloakSignInEvent(
+            Guid.Parse(e!["id"]!.GetValue<string>()),
+            DateTimeOffset.FromUnixTimeMilliseconds(e["time"]!.GetValue<long>()),
+            e["error"]?.GetValue<string>(),
+            e["userId"]?.GetValue<string>(),
+            e["ipAddress"]?.GetValue<string>()))];
+    }
+
+    public async Task<TenantId?> TenantOfAsync(string subject, CancellationToken cancellationToken)
+    {
+        using var response = await SendAsync(HttpMethod.Get, $"users/{Uri.EscapeDataString(subject)}", null, cancellationToken).ConfigureAwait(false);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+        {
+            return null;
+        }
+
+        var user = await Ensure(response, "read user").Content.ReadFromJsonAsync<JsonObject>(cancellationToken).ConfigureAwait(false);
+        var value = user?["attributes"]?[TenantAttribute]?.AsArray().FirstOrDefault()?.GetValue<string>();
+        return Guid.TryParseExact(value, "D", out var tenant) && tenant != Guid.Empty ? new TenantId(tenant) : null;
     }
 
     private static string OriginOf(Uri address) => address.GetLeftPart(UriPartial.Authority);
