@@ -79,15 +79,16 @@ public sealed class CallerAccess
 
     /// <summary>
     /// The caller's level for a sensitive field of an object of <paramref name="siteId"/>: the highest level among the
-    /// roles that apply there (tenant-wide roles and roles on that site). For an object of no site, every role counts.
-    /// No applicable role: <see cref="FieldAccess.Hidden"/>.
+    /// roles that apply there (tenant-wide roles and roles on that site). For an object of no site (a company-wide
+    /// object, or one that forgot <see cref="ISiteScoped"/>), only tenant-wide roles count: forgetting the site
+    /// over-masks, it never leaks. No applicable role: <see cref="FieldAccess.Hidden"/>.
     /// </summary>
     public FieldAccess FieldAccessFor(string field, Guid? siteId)
     {
         var level = FieldAccess.Hidden;
         foreach (var assignment in Assignments)
         {
-            var applies = siteId is not { } site || assignment.TenantWide || assignment.SiteId == site;
+            var applies = assignment.TenantWide || (siteId is { } site && assignment.SiteId == site);
             if (applies && assignment.Fields.TryGetValue(field, out var granted) && granted > level)
             {
                 level = granted;

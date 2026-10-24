@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Karry.Host.IntegrationTests;
+namespace Karry.AuthorizationTests;
 
 /// <summary>
 /// Every endpoint of the real host carries a reviewed authorization decision (ADR-0022, US-P1-IAM-05/06). The
@@ -32,7 +32,7 @@ public sealed class EndpointAuthorizationTests
     [Fact]
     public void Every_tenant_endpoint_requires_a_declared_permission_or_is_a_reviewed_any_member_endpoint()
     {
-        using var factory = new HostFactory(connectionString: null);
+        using var factory = new HostFactory();
         var catalog = factory.Services.GetRequiredService<AuthorizationCatalog>();
         var problems = new List<string>();
         var named = new HashSet<string>(StringComparer.Ordinal);

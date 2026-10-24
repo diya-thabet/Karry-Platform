@@ -79,6 +79,7 @@ FieldRule  = (resource.field, READ | WRITE | MASKED | HIDDEN)
 - Default roles shipped (Operator, Weighmaster, Controller, Storekeeper, Planner, Site Manager, Finance, Executive, Tenant Admin) and fully customisable.
 - Permission changes are themselves ledger events.
 - How the engine is built (declarations in code, fail-closed middleware, scope rules, step-up, masking in the JSON contract): [ADR-0022](../adr/0022-authorization-engine.md).
+- Masking is proven by the `ci / authorization` job: the masking suite (TC-P1-IAM-005) checks that every money-like property of the committed contract is marked, that every success response is JSON (so it passes the masking serializer) and, for every API type with sensitive fields, that the host's own serializer never writes a masked or hidden canary value.
 
 ## 14.3 Threat model highlights (STRIDE)
 

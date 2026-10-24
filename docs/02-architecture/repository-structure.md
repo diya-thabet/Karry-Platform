@@ -4,7 +4,7 @@ area: architecture
 tags: [repository, monorepo, folders]
 source: "MASTER_PLAN.md §26"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # Repository Structure
@@ -74,6 +74,7 @@ karry-platform/
 │   ├── Karry.SharedKernel.UnitTests/   IDs, Money (property tests), Result, aggregates
 │   ├── Karry.IntegrationTests/
 │   ├── Karry.TenantIsolationTests/     every API operation attacked with another tenant's token (ci / tenant-isolation)
+│   ├── Karry.AuthorizationTests/       every endpoint's permission declaration, masking suite (ci / authorization)
 │   ├── e2e/                            Playwright
 │   └── load/                           k6
 ├── deploy/

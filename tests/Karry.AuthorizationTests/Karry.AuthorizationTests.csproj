@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- US-P1-IAM-05..07: every endpoint's authorization decision and the masking suite (own CI job: ci / authorization). -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/backend/Karry.Host/Karry.Host.csproj" />
+    <ProjectReference Include="../Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+</Project>

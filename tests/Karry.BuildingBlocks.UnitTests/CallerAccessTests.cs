@@ -96,7 +96,7 @@ public sealed class CallerAccessTests
         access.FieldAccessFor("probe.ticket.unit-price", SiteA).Should().Be(FieldAccess.Masked, "weighmaster on A, site manager on B");
         access.FieldAccessFor("probe.ticket.unit-price", SiteB).Should().Be(FieldAccess.Read);
         access.FieldAccessFor("probe.ticket.unit-price", Guid.CreateVersion7()).Should().Be(FieldAccess.Hidden, "no role on that site");
-        access.FieldAccessFor("probe.ticket.unit-price", null).Should().Be(FieldAccess.Read, "an object of no site: every role counts");
+        access.FieldAccessFor("probe.ticket.unit-price", null).Should().Be(FieldAccess.Hidden, "an object of no site: only company-wide roles count");
         access.FieldAccessFor("probe.ticket.margin", SiteB).Should().Be(FieldAccess.Hidden, "a field the role does not list");
     }
 
@@ -107,6 +107,7 @@ public sealed class CallerAccessTests
         var access = CallerAccess.From(Catalog, [Fields(FieldAccess.Write), Fields(FieldAccess.Masked) with { SiteId = SiteA }]);
 
         access.FieldAccessFor("probe.ticket.unit-price", SiteA).Should().Be(FieldAccess.Write);
+        access.FieldAccessFor("probe.ticket.unit-price", null).Should().Be(FieldAccess.Write);
     }
 
     private static AccessAssignment Assignment(params string[] permissions) =>
