@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
+using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
@@ -46,16 +47,46 @@ if (args is ["dispatch-now", ..])
     return left == 0 ? 0 : 1;
 }
 
+// `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
+var keycloak = !string.IsNullOrWhiteSpace(builder.Configuration["Identity:Keycloak:BaseUrl"]);
+if (args is ["import-sign-ins", ..])
+{
+    if (!keycloak)
+    {
+        await Console.Error.WriteLineAsync("Identity:Keycloak:BaseUrl is not configured.").ConfigureAwait(false);
+        return 2;
+    }
+
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<ImportSignInFailures>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"sign-in failures: {run.Imported} imported, {run.AlreadyImported} already imported, {run.Unattributed} not attributable to a tenant");
+    return 0;
+}
+
 // Subscribers of each module's events (ADR-0015): Tenancy's tenant_provisioned sets up the tenant in Keycloak.
 builder.Services.AddOutboxDispatcherService<TenancyDbContext>();
 builder.Services.AddOutboxDispatcherService<IdentityDbContext>();
 
-if (anchoring)
+if (anchoring || keycloak)
 {
-    builder.Services.AddQuartz(quartz => quartz.ScheduleJob<LedgerAnchoringJob>(trigger => trigger
-        .WithIdentity("ledger-anchoring")
-        .StartNow()
-        .WithCronSchedule(LedgerAnchoringJob.Schedule)));
+    builder.Services.AddQuartz(quartz =>
+    {
+        if (anchoring)
+        {
+            quartz.ScheduleJob<LedgerAnchoringJob>(trigger => trigger
+                .WithIdentity("ledger-anchoring")
+                .StartNow()
+                .WithCronSchedule(LedgerAnchoringJob.Schedule));
+        }
+
+        if (keycloak)
+        {
+            quartz.ScheduleJob<SignInFailureImportJob>(trigger => trigger
+                .WithIdentity("sign-in-failure-import")
+                .StartNow()
+                .WithCronSchedule(SignInFailureImportJob.Schedule));
+        }
+    });
     builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 }
 

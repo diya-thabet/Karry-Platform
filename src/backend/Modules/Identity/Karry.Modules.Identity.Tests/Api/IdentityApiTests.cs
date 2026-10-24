@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Outbox;
+using Karry.Modules.Identity.Application;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -232,6 +233,43 @@ public sealed class IdentityApiTests(IdentityHost host) : IClassFixture<Identity
     }
 
     [Fact]
+    [Trait("Story", "US-P1-IAM-01")]
+    public async Task Failed_sign_ins_and_the_lockout_reach_the_tenants_ledger_once_without_personal_data()
+    {
+        var (tenant, admin) = await TenantWithAdminAsync();
+        var email = $"locked-{Guid.NewGuid():N}@example.test";
+        await InviteAsync(admin, tenant, email, "weighmaster");
+        await AcceptAsync(host.Sender.TokenFor(email), Password);
+        using var browser = new KeycloakBrowser(host.Keycloak);
+        for (var attempt = 0; attempt < 6; attempt++)
+        {
+            await browser.LoginAsync(await browser.StartAsync(cancellationToken: Ct), email, "wrong-password-123", Ct);
+        }
+
+        await browser.LoginAsync(await browser.StartAsync(cancellationToken: Ct), $"nobody-{Guid.NewGuid():N}", "whatever-123", Ct);
+        var import = host.Services.GetRequiredService<ImportSignInFailures>();
+
+        var first = await import.RunAsync(Ct);
+        var second = await import.RunAsync(Ct);
+
+        first.Imported.Should().BeGreaterThanOrEqualTo(6);
+        first.Unattributed.Should().BeGreaterThanOrEqualTo(1, "an unknown username belongs to no tenant");
+        second.Imported.Should().Be(0, "each Keycloak event is recorded once");
+
+        // A crash after recording but before saving the cursor: the next run reads everything again.
+        await ExecuteAsync("DELETE FROM identity.import_cursors");
+        var replay = await import.RunAsync(Ct);
+        replay.Imported.Should().Be(0, "Keycloak's event ID is the key: nothing is recorded twice");
+        replay.AlreadyImported.Should().BeGreaterThanOrEqualTo(6);
+        var subject = await SubjectAsync(email);
+        var reasons = await ReasonsAsync(subject);
+        reasons.Should().HaveCount(6).And.Contain("invalid_user_credentials").And.Contain("user_temporarily_disabled", "the lockout is audited");
+        var ledger = (await LedgerAsync(tenant)).Where(e => e.Type == "identity.sign_in_failed.v1").ToList();
+        ledger.Should().HaveCount(6);
+        string.Join('\n', ledger.Select(e => e.Payload)).Should().Contain("\"locked\":true").And.NotContain(email).And.NotContain("127.0.0.1").And.NotContain("172.");
+    }
+
+    [Fact]
     public async Task Users_are_listed_page_by_page()
     {
         var (tenant, admin) = await TenantWithAdminAsync();
@@ -304,6 +342,33 @@ public sealed class IdentityApiTests(IdentityHost host) : IClassFixture<Identity
         await connection.OpenAsync(Ct);
         await using var command = new NpgsqlCommand("SELECT subject FROM identity.users WHERE email = $1", connection) { Parameters = { new() { Value = email } } };
         return (string)(await command.ExecuteScalarAsync(Ct))!;
+    }
+
+    private async Task ExecuteAsync(string sql)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync(Ct);
+    }
+
+    private async Task<List<string>> ReasonsAsync(string subject)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(
+            "SELECT f.reason FROM identity.sign_in_failures f JOIN identity.users u ON u.id = f.user_id WHERE u.subject = $1 ORDER BY f.occurred_at", connection)
+        {
+            Parameters = { new() { Value = subject } },
+        };
+        await using var reader = await command.ExecuteReaderAsync(Ct);
+        var reasons = new List<string>();
+        while (await reader.ReadAsync(Ct))
+        {
+            reasons.Add(reader.GetString(0));
+        }
+
+        return reasons;
     }
 
     private async Task<List<(string Type, string Payload)>> LedgerAsync(Guid tenant)

@@ -110,6 +110,11 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     else
       fail "Karry.Workers dispatch-now"
     fi
+    if (cd "$root/src/backend/Karry.Workers/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development dotnet Karry.Workers.dll import-sign-ins >/dev/null); then
+      pass "Karry.Workers import-sign-ins: Keycloak events readable by the Identity service account"
+    else
+      fail "Karry.Workers import-sign-ins"
+    fi
     orgs="$(python3 - <<'PY' || true
 import json, urllib.parse, urllib.request
 token = json.load(urllib.request.urlopen(urllib.request.Request(

@@ -322,6 +322,7 @@ dotnet ef migrations add <Name> --project <module Infrastructure project> --cont
 dotnet run --project src/backend/Karry.Host -- migrate   # applies all modules' migrations as karry_owner
 dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants + one user per role (not in production; idempotent)
 dotnet run --project src/backend/Karry.Workers -- dispatch-now # drain every module's outbox once (exit 1 if messages wait for a retry)
+dotnet run --project src/backend/Karry.Workers -- import-sign-ins # Keycloak failed sign-ins and lockouts → tenant ledgers, once
 python3 deploy/keycloak/generate_realm.py            # after editing the realm generator (CI: --check)
 # Keycloak realm (deploy/keycloak): static rules + live sign-in on a Keycloak container (or KARRY_TEST_KEYCLOAK=http://127.0.0.1:8080)
 dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests

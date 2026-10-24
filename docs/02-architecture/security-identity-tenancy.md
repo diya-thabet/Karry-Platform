@@ -43,6 +43,7 @@ last_updated: 2026-10-24
   ended). A still-valid access token gets 401 `auth.revoked` within 30 s on any instance; the user record and name stay.
 - **One realm, one account per e-mail** across tenants: inviting an address that already has an account elsewhere is a
   409 `identity.account_exists` (dedicated realm for Enterprise tenants that need it).
+- **Failed sign-ins and lockouts** (US-P1-IAM-01 AC4): `Karry.Workers` reads Keycloak's `LOGIN_ERROR` events every minute and records each failure of a known user once (Keycloak's event ID is the key) in `identity.sign_in_failures` and the tenant's ledger (`identity.sign_in_failed.v1`, `locked` when the brute-force protection refused the attempt). Failures for unknown usernames belong to no tenant and are only counted.
 - **Ledger events of identity changes carry identifiers only** (user, invitation, roles), never names, e-mails or phone
   numbers: the ledger is immutable, personal data must stay erasable.
 - Details, flow diagram and the reasons for each value: [deploy/keycloak/README.md](../../deploy/keycloak/README.md).

@@ -57,6 +57,9 @@ public interface IIdentityStore
     /// <summary>Adds a new user (and its invitation) with their events; Conflict on a duplicate e-mail, phone, employee ID or account.</summary>
     Task<Result<UserAccount>> AddAsync(UserAccount user, Invitation? invitation, CancellationToken cancellationToken);
 
+    /// <summary>Records an imported sign-in failure with its ledger event; false when it was imported before.</summary>
+    Task<bool> AddSignInFailureAsync(SignInFailure failure, CancellationToken cancellationToken);
+
     /// <summary>Saves changes to loaded aggregates; Conflict <c>identity.concurrent_change</c> when another request changed them first.</summary>
     Task<Result<bool>> SaveAsync(CancellationToken cancellationToken);
 }

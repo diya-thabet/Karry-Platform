@@ -49,6 +49,21 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
         }
     }
 
+    public async Task<bool> AddSignInFailureAsync(SignInFailure failure, CancellationToken cancellationToken)
+    {
+        db.SignInFailures.Add(failure);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+
     public async Task<Result<bool>> SaveAsync(CancellationToken cancellationToken)
     {
         try
