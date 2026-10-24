@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
@@ -8,7 +9,7 @@ namespace Karry.BuildingBlocks.Modules;
 
 public static class ModuleExtensions
 {
-    /// <summary>Registers every module's services and the module list itself (for endpoint mapping).</summary>
+    /// <summary>Registers every module's services, the module list (for endpoint mapping) and their authorization catalog.</summary>
     public static IServiceCollection AddModules(
         this IServiceCollection services, IConfiguration configuration, IReadOnlyList<IModule> modules)
     {
@@ -26,6 +27,8 @@ public static class ModuleExtensions
         }
 
         services.AddSingleton(modules);
+        // Validated here so a wrong declaration stops the host at start-up, not at the first request.
+        services.AddSingleton(AuthorizationCatalog.From(modules));
         return services;
     }
 

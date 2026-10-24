@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -18,6 +19,7 @@ public static class TenancyExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.AddKarryAuthorization();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
             options.Authority = configuration["Authentication:Authority"];

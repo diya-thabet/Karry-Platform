@@ -78,6 +78,7 @@ FieldRule  = (resource.field, READ | WRITE | MASKED | HIDDEN)
 - **RBAC** for coarse roles, **ABAC** for scope (tenant → site → warehouse), **field-level masking** applied in the API serialisation layer (never only in UI).
 - Default roles shipped (Operator, Weighmaster, Controller, Storekeeper, Planner, Site Manager, Finance, Executive, Tenant Admin) and fully customisable.
 - Permission changes are themselves ledger events.
+- How the engine is built (declarations in code, fail-closed middleware, scope rules, step-up, masking in the JSON contract): [ADR-0022](../adr/0022-authorization-engine.md).
 
 ## 14.3 Threat model highlights (STRIDE)
 
