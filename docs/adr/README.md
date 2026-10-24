@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-22
+last_updated: 2026-10-24
 ---
 
 # Architecture Decision Records (ADR) Index
@@ -43,3 +43,9 @@ Added in Phase 1 sub-phase P1.0 (version check and open choices of the stack):
 | [0019](0019-feature-flags.md) | Feature flags with OpenFeature and a database-backed provider | Accepted |
 | [0020](0020-frontend-toolchain-versions.md) | Frontend toolchain: Node 24 LTS, pnpm 12, TypeScript 6.0 until typescript-eslint supports 7 | Accepted |
 | [0021](0021-security-scanning-private-repo.md) | Security scanning with gitleaks, Trivy and Semgrep CE (CodeQL needs a paid licence on private repos) | Accepted |
+
+Added in Phase 1 sub-phase P1.9 (authorization):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0022](0022-authorization-engine.md) | Authorization engine: permissions declared in code, scopes per assignment, masking in the serializer | Proposed |

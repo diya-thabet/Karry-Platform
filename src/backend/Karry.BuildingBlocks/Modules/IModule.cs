@@ -1,3 +1,4 @@
+using Karry.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,4 +17,10 @@ public interface IModule
     void AddServices(IServiceCollection services, IConfiguration configuration);
 
     void MapEndpoints(IEndpointRouteBuilder endpoints);
+
+    /// <summary>The permissions this module's endpoints require (codes start with <see cref="Name"/>; ADR-0022).</summary>
+    IReadOnlyList<PermissionDefinition> Permissions => [];
+
+    /// <summary>The configurable sensitive fields of this module's API objects (US-P1-IAM-07).</summary>
+    IReadOnlyList<SensitiveFieldDefinition> SensitiveFields => [];
 }
