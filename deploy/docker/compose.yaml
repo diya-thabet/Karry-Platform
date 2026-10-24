@@ -37,7 +37,9 @@ services:
       KC_HEALTH_ENABLED: "true"
     ports: ["127.0.0.1:8080:8080", "127.0.0.1:9000:9000"]
     volumes:
-      - ./keycloak/import:/opt/keycloak/data/import:ro
+      # Realm and login theme as code (P1.8, ADR-0012): the realm is imported on first start, themes are read live.
+      - ../keycloak/realm:/opt/keycloak/data/import:ro
+      - ../keycloak/themes:/opt/keycloak/themes:ro
     depends_on:
       postgres:
         condition: service_healthy

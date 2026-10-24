@@ -4,6 +4,11 @@
     <Project Path="src/backend/Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <Project Path="src/backend/Karry.Host/Karry.Host.csproj" />
     <Project Path="src/backend/Karry.Workers/Karry.Workers.csproj" />
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Api/Karry.Modules.Identity.Api.csproj" />
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Application/Karry.Modules.Identity.Application.csproj" />
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Domain/Karry.Modules.Identity.Domain.csproj" />
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Infrastructure/Karry.Modules.Identity.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Application/Karry.Modules.Tenancy.Application.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
@@ -16,6 +21,7 @@
     <Project Path="src/backend/Modules/Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Tests/Karry.Modules.Identity.Tests.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Tests/Karry.Modules.Tenancy.Tests.csproj" />
     <Project Path="src/backend/Modules/Trust/Karry.Modules.Trust.Tests/Karry.Modules.Trust.Tests.csproj" />
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />

@@ -1,0 +1,8 @@
+/* Karry login: tenant name under the product name (tenant logo and colour arrive with tenant settings, P1.11). */
+.karry-tenant-name {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 1rem;
+  font-weight: 400;
+  opacity: 0.85;
+}

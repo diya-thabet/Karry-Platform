@@ -4,7 +4,7 @@ area: architecture
 tags: [stack, dotnet, react, postgresql, keycloak, python]
 source: "MASTER_PLAN.md §7"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # Technology Stack
@@ -79,7 +79,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | OpenTelemetry.Extensions.Hosting, .Instrumentation.AspNetCore/.Http/.Runtime, .Exporter.OpenTelemetryProtocol/.InMemory | 1.20.0 (P1.4; 1.20.1 was < 7 days old on 2026-10-23) | Npgsql.OpenTelemetry | 10.0.3 |
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
 | Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
-| xunit.v3 | 4.0.2 | Testcontainers.PostgreSql / .Keycloak | 4.16.0 |
+| xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak runs from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |
 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | ~~TngTech.ArchUnitNET.xUnitV3~~ (not used: type rules are plain reflection, P1.5) | n/a |
 | AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |
 | dotnet-stryker (mutation) | 5.0.0 | | |
@@ -104,7 +104,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | Image | Tag | Notes |
 |---|---|---|
 | `timescale/timescaledb-ha` | `pg17.11-ts2.31.0` (pg18 tag also verified) | PostGIS 3.6.4, TimescaleDB 2.31.0, pgvector 0.8.7, pgcrypto (WP-P0-13) |
-| `quay.io/keycloak/keycloak` | 26.8.1 | Organizations feature for SaaS tenants |
+| `quay.io/keycloak/keycloak` | 26.8.1 | Organizations feature for SaaS tenants; realm and theme as code in `deploy/keycloak` (P1.8) |
 | `chrislusf/seaweedfs` | pin by digest in P1.1 (latest release 4.48) | S3 + Object Lock ([ADR-0017](../adr/0017-local-stack-and-object-storage.md)) |
 | `valkey/valkey` | 9.0.6-alpine | Redis-compatible cache |
 | `axllent/mailpit` | v1.31.6 | Local mail catcher |

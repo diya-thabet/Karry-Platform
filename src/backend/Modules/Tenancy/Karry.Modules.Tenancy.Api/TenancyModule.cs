@@ -61,10 +61,12 @@ public sealed class TenancyModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetCurrentTenant");
 
-        // Login page branding before sign-in (name now; logo and colour with tenant settings, P1.11).
+        // Login page branding before sign-in (name now; logo and colour with tenant settings, P1.11). The Keycloak
+        // login page reads it from another origin (deploy/keycloak/themes/karry): public data, CORS for any origin.
         endpoints.MapGet("/public/{slug}", BrandingAsync)
             .AllowAnonymous()
             .AllowWithoutTenant()
+            .AllowPublicCrossOrigin()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetTenantBranding");
     }

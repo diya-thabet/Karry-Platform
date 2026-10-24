@@ -10,8 +10,9 @@ public static class TenancyExtensions
 {
     /// <summary>
     /// Bearer-token authentication and the tenant context. Tokens are validated against <c>Authentication:Authority</c>
-    /// (the Keycloak realm, wired in P1.8) and <c>Authentication:Audience</c>. Without an authority no token can be
-    /// validated, so every protected endpoint answers 401 (fail closed).
+    /// (the Keycloak realm, <c>deploy/keycloak</c>) and <c>Authentication:Audience</c> (<c>karry-api</c>). Without an
+    /// authority no token can be validated, so every protected endpoint answers 401 (fail closed). The authority must be
+    /// HTTPS unless <c>Authentication:RequireHttpsMetadata</c> is false (local stack only).
     /// </summary>
     public static IServiceCollection AddKarryTenancy(this IServiceCollection services, IConfiguration configuration)
     {
@@ -21,6 +22,7 @@ public static class TenancyExtensions
         {
             options.Authority = configuration["Authentication:Authority"];
             options.Audience = configuration["Authentication:Audience"];
+            options.RequireHttpsMetadata = configuration.GetValue("Authentication:RequireHttpsMetadata", true);
             options.MapInboundClaims = false; // keep "sub", "tenant_id" … as issued
             options.TokenValidationParameters.ValidateAudience = !string.IsNullOrEmpty(options.Audience);
         });

@@ -321,6 +321,8 @@ dotnet tool restore
 dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations
 dotnet run --project src/backend/Karry.Host -- migrate   # applies all modules' migrations as karry_owner
 dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants (not in production; idempotent)
+# Keycloak realm (deploy/keycloak): static rules + live sign-in on a Keycloak container (or KARRY_TEST_KEYCLOAK=http://127.0.0.1:8080)
+dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests
 # Tenant isolation suite and API contract (the build regenerates src/backend/Karry.Host/openapi/v1.json: commit it)
 dotnet test --project tests/Karry.TenantIsolationTests
 tools/ci/install-tool.sh oasdiff && ~/.local/bin/oasdiff breaking <(git show origin/main:src/backend/Karry.Host/openapi/v1.json) src/backend/Karry.Host/openapi/v1.json --fail-on ERR
