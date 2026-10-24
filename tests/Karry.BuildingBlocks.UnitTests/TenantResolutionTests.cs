@@ -53,6 +53,7 @@ public sealed class TenantResolutionTests : IAsyncLifetime
             };
         });
         builder.Services.AddSingleton(connections);
+        builder.Services.AddSingleton<IAccessRevocation>(new RevokedSubjects(TenantA, "user-deactivated"));
         // Port 1 never answers: a request that reaches the database fails, and the counter sees the attempt.
         builder.Services.AddModuleDbContext<CountingDbContext>("Host=127.0.0.1;Port=1;Database=none;Username=none;Password=none;Timeout=1");
         builder.Services.AddModules(builder.Configuration, [new ProbeModule()]);
@@ -83,6 +84,7 @@ public sealed class TenantResolutionTests : IAsyncLifetime
         { "two tenant claims", Token(("tenant_id", TenantA.ToString()), ("tenant_id", Guid.CreateVersion7().ToString())), 403, "tenant.missing" },
         { "token signed by another key", Token(new RsaSecurityKey(RSA.Create(2048)), ("tenant_id", TenantA.ToString())), 401, "" },
         { "expired token", Token(expires: DateTime.UtcNow.AddMinutes(-10), claims: ("tenant_id", TenantA.ToString())), 401, "" },
+        { "valid token of a deactivated user", Token(("sub", "user-deactivated"), ("tenant_id", TenantA.ToString())), 401, "auth.revoked" },
     };
 
     [Theory]
@@ -124,6 +126,18 @@ public sealed class TenantResolutionTests : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Story", "US-P1-IAM-03")]
+    public async Task Revocation_is_per_tenant_and_subject()
+    {
+        // The same subject in another tenant, and another subject in the same tenant, are not revoked.
+        var otherTenant = await SendAsync("/api/v1/probe/whoami", Token(("sub", "user-deactivated"), ("tenant_id", Guid.CreateVersion7().ToString())));
+        var otherUser = await SendAsync("/api/v1/probe/whoami", Token(("sub", "user-2"), ("tenant_id", TenantA.ToString())));
+
+        otherTenant.StatusCode.Should().Be(HttpStatusCode.OK);
+        otherUser.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task An_endpoint_that_opts_out_works_without_a_tenant_but_still_needs_authentication()
     {
         (await SendAsync("/api/v1/probe/platform", Token())).StatusCode.Should().Be(HttpStatusCode.OK);
@@ -158,9 +172,18 @@ public sealed class TenantResolutionTests : IAsyncLifetime
             NotBefore = expires.AddMinutes(-30),
             IssuedAt = expires.AddMinutes(-30),
             Expires = expires,
-            Subject = new ClaimsIdentity([new Claim("sub", "user-1"), .. claims.Select(c => new Claim(c.Type, c.Value))]),
+            Subject = new ClaimsIdentity([
+                .. claims.Any(c => c.Type == "sub") ? [] : new[] { new Claim("sub", "user-1") },
+                .. claims.Select(c => new Claim(c.Type, c.Value)),
+            ]),
             SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.RsaSha256),
         });
+
+    private sealed class RevokedSubjects(Guid tenant, string subject) : IAccessRevocation
+    {
+        public ValueTask<bool> IsRevokedAsync(SharedKernel.Tenancy.TenantId tokenTenant, string tokenSubject, CancellationToken cancellationToken) =>
+            ValueTask.FromResult(tokenTenant.Value == tenant && tokenSubject == subject);
+    }
 
     public sealed class ConnectionCounter : DbConnectionInterceptor
     {

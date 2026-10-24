@@ -1,5 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
-  <!-- Background host: scheduled jobs (Quartz, ADR-0018) such as hourly ledger anchoring; outbox dispatchers follow. -->
+  <!-- Background host: scheduled jobs (Quartz, ADR-0018) such as hourly ledger anchoring, and the modules' outbox dispatchers. -->
   <ItemGroup>
     <PackageReference Include="Quartz.Extensions.Hosting" />
   </ItemGroup>
@@ -7,5 +7,6 @@
     <ProjectReference Include="../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <ProjectReference Include="../Modules/Tenancy/Karry.Modules.Tenancy.Infrastructure/Karry.Modules.Tenancy.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
+    <ProjectReference Include="../Modules/Identity/Karry.Modules.Identity.Infrastructure/Karry.Modules.Identity.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

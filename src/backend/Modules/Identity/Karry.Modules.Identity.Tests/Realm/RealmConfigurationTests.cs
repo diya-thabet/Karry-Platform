@@ -126,6 +126,10 @@ public sealed class RealmConfigurationTests
         identity["serviceAccountsEnabled"]!.GetValue<bool>().Should().BeTrue();
         identity["standardFlowEnabled"]!.GetValue<bool>().Should().BeFalse();
         identity["fullScopeAllowed"]!.GetValue<bool>().Should().BeFalse("its token carries only the realm-management roles it is given");
+        string[] needed = ["manage-users", "view-users", "query-users", "manage-realm", "view-realm", "view-events", "view-clients", "manage-clients"];
+        Realm["users"]!.AsArray().Single(u => u!["serviceAccountClientId"]?.GetValue<string>() == "karry-identity")!["clientRoles"]!["realm-management"]!
+            .AsArray().Select(r => r!.GetValue<string>()).Should().BeEquivalentTo(needed,
+                "least privilege: users, organizations (manage-realm), login events, and app redirect URIs (manage-clients); nothing else");
         File.ReadAllText(Path.Combine(KeycloakDirectory, "realm", "karry-realm.json")).Should().NotContainAny(["\"password\"", "\"value\""], "no user credentials in the realm file");
     }
 

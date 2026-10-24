@@ -1,11 +1,14 @@
+using System.Security.Claims;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Tenancy.Application;
 using Karry.Modules.Tenancy.Domain;
 using Karry.Modules.Tenancy.Infrastructure;
+using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -71,8 +74,9 @@ public sealed class TenancyModule : IModule
             .WithName("GetTenantBranding");
     }
 
-    private static async Task<Results<Created<TenantResponse>, Ok<TenantResponse>, ProblemHttpResult>> ProvisionAsync(
-        ProvisionTenant request, [FromServices] ProvisionTenantHandler handler, CancellationToken cancellationToken)
+    private static async Task<Results<Created<ProvisionedTenantResponse>, Ok<ProvisionedTenantResponse>, ProblemHttpResult>> ProvisionAsync(
+        ProvisionTenant request, ClaimsPrincipal caller, [FromServices] ProvisionTenantHandler handler, [FromServices] IServiceScopeFactory scopes,
+        CancellationToken cancellationToken)
     {
         var result = await handler.HandleAsync(request, cancellationToken).ConfigureAwait(false);
         if (!result.IsSuccess)
@@ -81,10 +85,31 @@ public sealed class TenancyModule : IModule
         }
 
         var tenant = result.Value;
-        var body = new TenantResponse(tenant.Id, tenant.Slug, tenant.Name, tenant.CreatedAt);
+        var invitation = request.Admin is null ? null : await InviteFirstAdminAsync(tenant.Id, request.Admin, caller, scopes, cancellationToken).ConfigureAwait(false);
+        var body = new ProvisionedTenantResponse(tenant.Id, tenant.Slug, tenant.Name, tenant.CreatedAt, invitation);
         return tenant.Created
             ? TypedResults.Created($"/api/v1/tenancy/tenants/{tenant.Id}", body)
             : TypedResults.Ok(body);
+    }
+
+    /// <summary>
+    /// In its own scope: the invitation works under the new tenant, while this request stays a platform request. The
+    /// tenant exists whatever happens here; the operator repeats the (idempotent) provisioning to retry the invitation.
+    /// </summary>
+    private static async Task<AdminInvitationResponse> InviteFirstAdminAsync(
+        Guid tenant, FirstAdmin admin, ClaimsPrincipal caller, IServiceScopeFactory scopes, CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        if (scope.ServiceProvider.GetService<IFirstAdminInvitation>() is not { } invitations)
+        {
+            return new AdminInvitationResponse(Invited: false, Delivered: false, Error: "identity.unavailable");
+        }
+
+        var invited = await invitations.InviteAsync(new TenantId(tenant), admin.FirstName, admin.LastName, admin.Email,
+            caller.FindFirst("sub")?.Value, cancellationToken).ConfigureAwait(false);
+        return invited.IsSuccess
+            ? new AdminInvitationResponse(invited.Value.Invited, invited.Value.Delivered, Error: null)
+            : new AdminInvitationResponse(Invited: false, Delivered: false, invited.Error.Code);
     }
 
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> CurrentAsync(
@@ -114,5 +139,11 @@ public sealed class TenancyModule : IModule
 }
 
 public sealed record TenantResponse(Guid Id, string Slug, string Name, DateTimeOffset CreatedAt);
+
+/// <summary>The provisioned tenant; <c>AdminInvitation</c> is the outcome of the first administrator invitation when one was requested.</summary>
+public sealed record ProvisionedTenantResponse(Guid Id, string Slug, string Name, DateTimeOffset CreatedAt, AdminInvitationResponse? AdminInvitation);
+
+/// <summary><c>Invited</c> is false when the tenant already had an administrator, or on <c>Error</c>.</summary>
+public sealed record AdminInvitationResponse(bool Invited, bool Delivered, string? Error);
 
 public sealed record TenantBrandingResponse(string Slug, string Name);

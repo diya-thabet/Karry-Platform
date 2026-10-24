@@ -62,6 +62,14 @@ public sealed partial class OutboxDispatcher<TContext>(
         return attempted;
     }
 
+    /// <summary>Messages neither processed nor dead-lettered (including those waiting for a retry).</summary>
+    public async Task<int> PendingAsync(CancellationToken cancellationToken)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<TContext>();
+        return await db.OutboxMessages.CountAsync(m => m.ProcessedAt == null && m.DeadLetteredAt == null, cancellationToken).ConfigureAwait(false);
+    }
+
     /// <summary>Claims and dispatches one eligible message; false when there is none.</summary>
     public async Task<bool> DispatchNextAsync(CancellationToken cancellationToken)
     {

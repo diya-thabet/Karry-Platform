@@ -14,6 +14,7 @@ public static class TenancyInfrastructure
         services.AddOutboxDispatcher<TenancyDbContext>(eventAssemblies: typeof(Domain.Tenant).Assembly);
         services.AddScoped<ITenantRepository, TenantRepository>();
         services.AddScoped<Contracts.ITenantDirectory, TenantDirectory>();
+        services.AddScoped<IDomainEventSubscriber<Domain.TenantProvisioned>, TenantProvisionedFanOut>();
         services.AddMemoryCache();
         services.AddSingleton<ITenantSlugLookup, TenantSlugLookup>();
         return services;

@@ -22,13 +22,20 @@ docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Ke
 dotnet build Karry.slnx                                        # 2. build the backend
 dotnet test --solution Karry.slnx                              # 3. backend tests (Testcontainers needs Docker)
 dotnet run --project src/backend/Karry.Host -- migrate         # 4. apply database migrations (as karry_owner)
-dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: demo tenants demo-carriere-a / -b
+dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: demo tenants demo-carriere-a / -b, one user per role
+dotnet run --project src/backend/Karry.Workers                 #    optional: outbox dispatchers + ledger anchoring (or `-- dispatch-now`)
 dotnet run --project src/backend/Karry.Host                    # 5. API on http://localhost:5000 (/health/ready)
 cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
 pnpm --filter @karry/portal dev                                # 7. office portal (Vite dev server)
 pnpm --filter @karry/field dev                                 # 8. field app (Vite dev server)
 pnpm --filter @karry/ui storybook                              # 9. design system (Storybook, http://localhost:6006)
 ```
+
+**Demo sign-in** (after `seed-demo`, local stack only): `<role>@demo-carriere-a.karry.test` (e.g. `site-manager@…`,
+`tenant-admin@…`) with password `karry-demo-local-only`. Privileged roles (tenant admin, executive, finance, controller)
+set up an authenticator app at first sign-in. Field roles have employee IDs `DEMO-<ROLE>` and PIN `804613`. The
+Keycloak realm and login theme are code in [`deploy/keycloak`](deploy/keycloak/README.md); a stack created before P1.8
+lacks the realm: `docker compose -f deploy/docker/compose.yaml down -v` once.
 
 Database roles come from [`deploy/database/roles.sql`](deploy/database/roles.sql) on the first start of the stack. A stack created before P1.5 lacks `karry_owner`: recreate it once with `docker compose -f deploy/docker/compose.yaml down -v`.
 

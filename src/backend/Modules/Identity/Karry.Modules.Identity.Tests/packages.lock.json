@@ -41,6 +41,11 @@
           "xunit.v3.mtp-v2": "[4.0.2]"
         }
       },
+      "AWSSDK.Core": {
+        "type": "Transitive",
+        "resolved": "4.0.102.11",
+        "contentHash": "K9PP9/qHQ7pqSB0lYwStJrpXQ8P1xc7Fbn3CyPg8EX78p4+yz8dhIiwiRc3aVbVrUZxmPAPRvmZm+ey1euIXGg=="
+      },
       "BouncyCastle.Cryptography": {
         "type": "Transitive",
         "resolved": "2.7.0",
@@ -220,6 +225,15 @@
         "resolved": "5.0.0",
         "contentHash": "dDoKi0PnDz31yAyETfRntsLArTlVAVzUzCIvvEDsDsucrl33Dl8pIJG06ePTJTI3tGpeyHS9Cq7Foc/s4EeKcg=="
       },
+      "MimeKit": {
+        "type": "Transitive",
+        "resolved": "4.18.1",
+        "contentHash": "D8AfFVMFVJldWmhQWCziC9nWUN/zayFFBAKpyjVyCeh0tqBiI9jtUVuMrKgWw1EGnCp09msDZldbRvp2jfUehQ==",
+        "dependencies": {
+          "BouncyCastle.Cryptography": "2.7.0",
+          "System.Security.Cryptography.Pkcs": "10.0.0"
+        }
+      },
       "Mono.Cecil": {
         "type": "Transitive",
         "resolved": "0.11.6",
@@ -382,7 +396,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Identity.Contracts": "[1.0.0, )",
-          "Karry.Modules.Identity.Domain": "[1.0.0, )"
+          "Karry.Modules.Identity.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.identity.contracts": {
@@ -400,7 +415,77 @@
       "karry.modules.identity.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "Karry.Modules.Identity.Application": "[1.0.0, )"
+          "Karry.Modules.Identity.Application": "[1.0.0, )",
+          "MailKit": "[4.18.1, )"
+        }
+      },
+      "karry.modules.tenancy.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Identity.Contracts": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Application": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Tenancy.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Trust.Application": "[1.0.0, )",
+          "Karry.Modules.Trust.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.trust.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "AWSSDK.S3": "[4.0.104.4, )",
+          "Karry.Modules.Trust.Application": "[1.0.0, )"
         }
       },
       "karry.sharedkernel": {
@@ -411,6 +496,15 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Testcontainers.PostgreSql": "[4.16.0, )"
+        }
+      },
+      "AWSSDK.S3": {
+        "type": "CentralTransitive",
+        "requested": "[4.0.104.4, )",
+        "resolved": "4.0.104.4",
+        "contentHash": "Qi+NicEv1md8Vxm6c40zf5pRsQ9DzPm4UwewjxSk4zbHpdzAMZK8bDZJGdp4Za9/vHP8GTbSdnDuseZQ5h9tmw==",
+        "dependencies": {
+          "AWSSDK.Core": "[4.0.102.11, 5.0.0)"
         }
       },
       "EFCore.NamingConventions": {
@@ -436,6 +530,15 @@
         "contentHash": "QpKXgiO9E6wXCh19X2Musn8MZM0xt7KQt/QrD6GDBn3MCUfy8a+rkhCzrYJNCfoxTsTRQ7bpKP8T3geTnJNNeQ==",
         "dependencies": {
           "FluentValidation": "12.2.0"
+        }
+      },
+      "MailKit": {
+        "type": "CentralTransitive",
+        "requested": "[4.18.1, )",
+        "resolved": "4.18.1",
+        "contentHash": "EssBsnKHvIcH1QpqqsVUEWAlAHI3dkGXJpKAzSNJ8PGjClNynSo9bRkT68jVZkxhREm0Z51Dwu3127f4WfIiRg==",
+        "dependencies": {
+          "MimeKit": "4.18.1"
         }
       },
       "Microsoft.AspNetCore.Authentication.JwtBearer": {
@@ -537,6 +640,12 @@
         "dependencies": {
           "OpenTelemetry.Api": "[1.20.0, 2.0.0)"
         }
+      },
+      "System.Security.Cryptography.Pkcs": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.13, )",
+        "resolved": "10.0.13",
+        "contentHash": "a+EovgC1fBnwdlQ6cn3j4JFBfKqiFaFvoAhjisOoSvazLAcIznaBzPQP0oYnvccmeXfqUH1KebVZOxSeH6rMaw=="
       },
       "Testcontainers.PostgreSql": {
         "type": "CentralTransitive",

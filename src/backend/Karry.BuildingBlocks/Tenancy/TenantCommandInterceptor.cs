@@ -17,8 +17,10 @@ namespace Karry.BuildingBlocks.Tenancy;
 /// </list>
 /// The value is a <see cref="Guid"/> formatted by .NET ("D": hex digits and dashes), so it cannot carry SQL.
 /// Without a tenant nothing is set: RLS then returns no rows and refuses writes (fail closed).
+/// Npgsql reuses one transaction object for consecutive transactions on a connection, so "already set" is forgotten
+/// whenever a transaction starts or is attached (P1.8 finding: the second save of a unit of work was refused).
 /// </summary>
-public sealed class TenantCommandInterceptor(ITenantContext tenant) : DbCommandInterceptor
+public sealed class TenantCommandInterceptor(ITenantContext tenant) : DbCommandInterceptor, IDbTransactionInterceptor
 {
     public const string SettingName = "app.tenant_id";
 
@@ -63,6 +65,18 @@ public sealed class TenantCommandInterceptor(ITenantContext tenant) : DbCommandI
         return result;
     }
 
+    public DbTransaction TransactionStarted(DbConnection connection, TransactionEndEventData eventData, DbTransaction result) => Forget(result);
+
+    public ValueTask<DbTransaction> TransactionStartedAsync(
+        DbConnection connection, TransactionEndEventData eventData, DbTransaction result, CancellationToken cancellationToken = default) =>
+        ValueTask.FromResult(Forget(result));
+
+    public DbTransaction TransactionUsed(DbConnection connection, TransactionEventData eventData, DbTransaction result) => Forget(result);
+
+    public ValueTask<DbTransaction> TransactionUsedAsync(
+        DbConnection connection, TransactionEventData eventData, DbTransaction result, CancellationToken cancellationToken = default) =>
+        ValueTask.FromResult(Forget(result));
+
     /// <summary>The statement that sets the tenant for the current transaction.</summary>
     public static string SetLocalStatement(Guid tenantId) => $"SET LOCAL {SettingName} = '{tenantId:D}';\n";
 
@@ -102,6 +116,13 @@ public sealed class TenantCommandInterceptor(ITenantContext tenant) : DbCommandI
             await using var set = SetCommand(command, current.Value);
             await set.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    /// <summary>A new transaction (possibly a recycled object) has no tenant yet.</summary>
+    private DbTransaction Forget(DbTransaction transaction)
+    {
+        preparedTransactions.Remove(transaction);
+        return transaction;
     }
 
     /// <summary>True the first time a transaction is seen (it then needs its SET LOCAL).</summary>

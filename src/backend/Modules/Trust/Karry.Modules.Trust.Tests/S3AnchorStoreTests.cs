@@ -50,7 +50,9 @@ public sealed class S3AnchorStoreTests(SeaweedFs seaweed) : IClassFixture<Seawee
 {
     private static readonly TenantId Tenant = new(Guid.Parse("01970000-0000-7000-8000-00000000000a"));
 
-    private readonly FakeTimeProvider clock = new(new DateTimeOffset(2026, 10, 23, 9, 0, 0, TimeSpan.Zero));
+    // The real S3 server checks retain-until dates against its own clock: a fixed date here would turn into a date in the
+    // past one day later and every put would be refused (P1.8 finding). Start at the real time, whole seconds.
+    private readonly FakeTimeProvider clock = new(DateTimeOffset.FromUnixTimeSeconds(DateTimeOffset.UtcNow.ToUnixTimeSeconds()));
 
     [Fact]
     public async Task An_anchor_is_stored_under_compliance_retention_and_cannot_be_deleted()

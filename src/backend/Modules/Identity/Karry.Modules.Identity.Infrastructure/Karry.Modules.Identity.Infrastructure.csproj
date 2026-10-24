@@ -1,5 +1,15 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
+  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports (Keycloak admin API, e-mail). -->
+  <ItemGroup>
+    <!-- `dotnet ef migrations add` only; not shipped. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- Invitation e-mails over SMTP (Mailpit locally). -->
+    <PackageReference Include="MailKit" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The Keycloak adapter and the sender are tested directly against Keycloak and Mailpit. -->
+    <InternalsVisibleTo Include="Karry.Modules.Identity.Tests" />
+  </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Identity.Application/Karry.Modules.Identity.Application.csproj" />
   </ItemGroup>

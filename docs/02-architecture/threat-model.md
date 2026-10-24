@@ -4,7 +4,7 @@ area: architecture
 tags: [security, threat-model, stride, tenancy, sync, signatures, ledger, fraud]
 source: "Phase 0 WP-P0-18"
 status: draft
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # Threat Model v1 (STRIDE)
@@ -88,6 +88,8 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | R-02 | IndexedDB on a stolen unlocked tablet is readable | Evaluate app-level encryption of cached reference data with a PIN-derived key (Phase 2 spike) |
 | R-03 | Legal weight of signatures differs by country | WP-P0-06 legal memo; QTSP integration for specific documents if required |
 | R-04 | Collusion across several roles | Statistical anomaly detection independent of approvals; telematics cross-check (Phase 9) |
+| R-10 | The `karry-identity` service-account secret can manage users, organizations and clients of the realm (needed for invitations, deactivation and per-tenant redirect URIs) | Secret only in the vault (P1.17), never in config outside local; least-privilege role list pinned by `RealmConfigurationTests`; admin events on in Keycloak |
+| R-09 | An invitation link is forwarded or intercepted before the invitee uses it | Single use, 7 days, token only in the URL fragment, hash-only storage; the invitee chooses the password; privileged roles must also enrol a second factor; resend rotates (P1.9 UI) |
 | R-08 | The anchor signing key is a software key until KMS (P1.17); locally it lives in `~/.karry/` (mode 600) | KMS-held key in the environments (P1.17); key id in every anchor allows rotation (`TrustedPublicKeys`) |
 | R-07 | The anonymous branding endpoint `GET /api/v1/tenancy/public/{slug}` confirms whether a company uses Karry (slug enumeration) | By design (login page branding); returns only slug and name; rate limiting per IP in P1.18 |
 | R-06 | A change reaches `main` without green checks (no server-side branch protection on a private repo without a paid plan) | `tools/ci/merge_guard.py` as the only merge path (unit-tested), CODEOWNERS, owner approval for sensitive areas; revisit when the team grows |

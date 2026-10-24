@@ -4,7 +4,7 @@ area: architecture
 tags: [api, rest, openapi, errors, idempotency]
 source: "MASTER_PLAN.md §18"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # API Design Standards
@@ -38,6 +38,8 @@ last_updated: 2026-10-21
 **Authentication and tenant (P1.5).** Module endpoints (`/api/v1/{module}/…`) require a bearer token and a tenant **by default**. The tenant comes only from the validated token's `tenant_id` claim (exactly one UUID), never from a header, path or body. No or invalid token → **401**; a valid token without exactly one tenant → **403 `tenant.missing`**. Both are answered before the endpoint runs. An endpoint opts out explicitly with `.AllowAnonymous()` (public) and/or `.AllowWithoutTenant()` (platform operator, branding lookup), and the opt-out is reviewed.
 
 **Tenant address (P1.5).** When `Tenancy:BaseDomain` is set (e.g. `karry.app`), a request on `https://<slug>.karry.app` must carry a token of *that* tenant, otherwise **403 `tenant.host_mismatch`** (also for an unknown slug). Platform addresses (`api`, `www` and the other reserved names, multi-label hosts) are not tenant addresses and are not checked.
+
+**Identity endpoints (P1.8).** Under `/api/v1/identity`: `POST /invitations` (Tenant Admin, `Idempotency-Key`; 201 with `userId`, `invitationId`, `expiresAt`, `delivered`; 409 `identity.user_exists` / `identity.account_exists`); `POST /invitations/accept` (anonymous: the token is the credential and names the tenant; 204, 404 `identity.invitation_invalid` for any unknown token, 409 `identity.invitation_used`, 422 `identity.invitation_expired`, 400 `identity.password_rejected` from Keycloak's policy); `POST /field-users` (employee ID + PIN; the PIN is never returned); `POST /users/{id}/deactivate` (idempotent, 422 `identity.cannot_deactivate_self`); `GET /users` (cursor pagination on the UUIDv7 key); `GET /users/{id}`; `GET /me`. A token of a deactivated user gets 401 `auth.revoked` on every tenant endpoint. Until P1.9, user management requires an active Tenant Admin (403 `identity.admin_required`). `POST /api/v1/tenancy/tenants` accepts an optional `admin` (first Tenant Admin, invited by e-mail) and reports `adminInvitation`.
 
 **Tenancy endpoints (P1.5).** `POST /api/v1/tenancy/tenants` (platform operator, `Idempotency-Key` required; 201 created, **200 for the same slug and name again**, 409 `tenant.slug_taken`, 400 `tenant.slug_invalid` / `tenant.slug_reserved` / `tenant.name_invalid`); `GET /api/v1/tenancy/current` (the caller's company); `GET /api/v1/tenancy/public/{slug}` (anonymous branding for the login page, 404 `tenant.not_found`).
 

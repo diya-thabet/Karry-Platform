@@ -9,6 +9,9 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Identity.Api/Karry.Modules.Identity.Api.csproj" />
+    <!-- Provisioning invites the first administrator; identity changes are ledgered by the real Trust module. -->
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

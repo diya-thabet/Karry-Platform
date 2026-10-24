@@ -89,8 +89,13 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && for _ in 1 2; do DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development dotnet Karry.Host.dll seed-demo >/dev/null || exit 1; done) || fail "Karry.Host seed-demo"
     demo="$(psql_su "SELECT string_agg(slug, ',' ORDER BY slug) FROM tenancy.tenants WHERE slug LIKE 'demo-carriere-%'")"
     if [[ "$demo" == "demo-carriere-a,demo-carriere-b" ]]; then pass "seed-demo twice: exactly the 2 demo tenants"; else fail "seed-demo (got '$demo')"; fi
-    ledger="$(psql_su "SELECT string_agg(seq::text || ':' || event_type, ',') FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a'")"
-    if [[ "$ledger" == "1:tenancy.tenant_provisioned.v1" ]]; then pass "audit ledger: demo tenant A opened with entry 1"; else fail "audit ledger (got '$ledger')"; fi
+    ledger="$(psql_su "SELECT event_type FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a' AND seq = 1")"
+    if [[ "$ledger" == "tenancy.tenant_provisioned.v1" ]]; then pass "audit ledger: demo tenant A opened with entry 1"; else fail "audit ledger (got '$ledger')"; fi
+    # P1.8: one user per default role in each demo tenant (PLT-02 AC2), active, with their creation in the ledger.
+    users="$(psql_su "SELECT count(*) FILTER (WHERE u.status = 'Active') || '/' || count(*) FROM identity.users u JOIN tenancy.tenants t ON t.id = u.tenant_id WHERE t.slug = 'demo-carriere-a'")"
+    if [[ "$users" == "12/12" ]]; then pass "seed-demo: 12 active demo users (one per default role)"; else fail "seed-demo users (got '$users')"; fi
+    identity_events="$(psql_su "SELECT count(*) FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a' AND e.event_type LIKE 'identity.%'")"
+    if [[ "$identity_events" -ge 12 ]]; then pass "audit ledger: identity events recorded ($identity_events)"; else fail "audit ledger identity events (got '$identity_events')"; fi
 
     # WORM anchoring (US-P1-AUD-02): one run, then the verifier checks the chain against the anchor in SeaweedFS.
     dotnet build "$root/src/backend/Karry.Workers" -c Release >/dev/null && dotnet build "$root/tools/ledger-verifier/Karry.LedgerVerifier" -c Release >/dev/null
@@ -99,6 +104,22 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     else
       fail "Karry.Workers anchor-now"
     fi
+    # Outbox dispatchers (P1.8): Tenancy's tenant_provisioned sets the tenant up in Keycloak (organization, app addresses).
+    if (cd "$root/src/backend/Karry.Workers/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development dotnet Karry.Workers.dll dispatch-now >/dev/null); then
+      pass "Karry.Workers dispatch-now: every outbox drained"
+    else
+      fail "Karry.Workers dispatch-now"
+    fi
+    orgs="$(python3 - <<'PY' || true
+import json, urllib.parse, urllib.request
+token = json.load(urllib.request.urlopen(urllib.request.Request(
+    "http://127.0.0.1:8080/realms/karry/protocol/openid-connect/token",
+    urllib.parse.urlencode({"grant_type": "client_credentials", "client_id": "karry-identity", "client_secret": "identity-local-only"}).encode())))["access_token"]
+request = urllib.request.Request("http://127.0.0.1:8080/admin/realms/karry/organizations", headers={"Authorization": "Bearer " + token})
+print(",".join(sorted(o["alias"] for o in json.load(urllib.request.urlopen(request)) if o["alias"].startswith("demo-carriere-"))))
+PY
+)"
+    if [[ "$orgs" == "demo-carriere-a,demo-carriere-b" ]]; then pass "keycloak organizations for both demo tenants"; else fail "keycloak organizations (got '$orgs')"; fi
     tenant_a="$(psql_su "SELECT id FROM tenancy.tenants WHERE slug = 'demo-carriere-a'")"
     verify="$(Trust__Anchoring__ServiceUrl=http://127.0.0.1:8333 Trust__Anchoring__Bucket=karry-anchors \
       Trust__Anchoring__AccessKey=karry-local-access Trust__Anchoring__SecretKey=karry-local-secret-only-for-dev \
