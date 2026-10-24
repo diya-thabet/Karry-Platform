@@ -31,18 +31,20 @@ public sealed record InvitedUser(Guid UserId, Guid InvitationId, DateTimeOffset 
 
 /// <summary>
 /// Invites an office user (US-P1-IAM-03 AC1): the Karry user and invitation, a disabled Keycloak account carrying the
-/// tenant (and <c>mfa-required</c> for privileged roles), then the link by e-mail or phone. Only a Tenant Admin may
-/// invite (the full permission model arrives in P1.9). The token exists only in the delivered link.
+/// tenant (and <c>mfa-required</c> for privileged roles), then the link by e-mail or phone. The caller holds
+/// <c>identity.users.manage</c> (endpoint) and may give these roles (<see cref="UserAdministration.CheckGrant"/>).
+/// The token exists only in the delivered link.
 /// </summary>
 public sealed class InviteUserHandler(
     IIdentityStore store, IIdentityProvider provider, IInvitationSender sender, ITenantDirectory tenants,
-    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock)
+    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock, UserAdministration administration)
 {
-    public async Task<Result<InvitedUser>> HandleAsync(InviteUser command, string? callerSubject, CancellationToken cancellationToken)
+    public async Task<Result<InvitedUser>> HandleAsync(InviteUser command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var allowed = await Callers.RequireTenantAdminAsync(store, callerSubject, cancellationToken).ConfigureAwait(false);
-        return allowed.IsSuccess ? await InviteAsync(command, callerSubject, cancellationToken).ConfigureAwait(false) : allowed.Error;
+        return administration.CheckGrant(command.Roles) is { } refused
+            ? refused
+            : await InviteAsync(command, administration.Subject, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Without the caller check: the first administrator of a tenant, invited by the platform.</summary>
@@ -80,17 +82,5 @@ public sealed class InviteUserHandler(
             new InvitationMessage(invitation.Channel, user.Email ?? user.Phone!, user.DisplayName, company.Name, link, invitation.ExpiresAt),
             cancellationToken).ConfigureAwait(false);
         return new InvitedUser(user.Id.Value, invitation.Id.Value, invitation.ExpiresAt, delivered);
-    }
-}
-
-/// <summary>The P1.8 caller rule: user administration is for active Tenant Admins (replaced by permissions in P1.9).</summary>
-internal static class Callers
-{
-    public static async Task<Result<UserAccount>> RequireTenantAdminAsync(IIdentityStore store, string? subject, CancellationToken cancellationToken)
-    {
-        var caller = string.IsNullOrEmpty(subject) ? null : await store.FindBySubjectAsync(subject, cancellationToken).ConfigureAwait(false);
-        return caller is { Status: UserStatus.Active } && caller.HasRole(Roles.TenantAdmin)
-            ? caller
-            : Error.Forbidden("identity.admin_required", "Only a tenant administrator can manage users.");
     }
 }

@@ -169,11 +169,11 @@ public sealed class IdentityApiTests(IdentityHost host) : IClassFixture<Identity
     }
 
     [Fact]
-    public async Task An_active_user_without_the_tenant_admin_role_cannot_manage_users()
+    public async Task An_active_user_without_a_user_permission_cannot_manage_users()
     {
         var (tenant, admin) = await TenantWithAdminAsync();
-        var email = $"manager-{Guid.NewGuid():N}@example.test";
-        await InviteAsync(admin, tenant, email, "site-manager");
+        var email = $"planner-{Guid.NewGuid():N}@example.test";
+        await InviteAsync(admin, tenant, email, "maintenance-planner");
         await AcceptAsync(host.Sender.TokenFor(email), Password);
         var manager = TestTokens.ForTenant(tenant, await SubjectAsync(email));
 

@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-24
 ---
 
 # Default Role & Permission Matrix
@@ -38,3 +38,27 @@ Legend: **F** full, **R** read, **W** create/edit own, **A** approve, **M** mask
 | Audit log / integrity check | — | — | — | — | — | R (S) | — | R (S) | — | R | R | F |
 
 \* configurable per tenant. All roles can be cloned and customised (US-P1-IAM-05).
+
+## As implemented (P1.9)
+
+The matrix above is the target for the whole product. In code it is the union of what each module declares
+([ADR-0022](../../adr/0022-authorization-engine.md)): a permission names the default roles that hold it, and the role's
+**assignment** gives the scope (tenant-wide, a site, a warehouse). A module brings its rows when it is built.
+
+| Permission | Kind | Privileged | Default roles | Matrix row |
+|---|---|---|---|---|
+| `identity.users.read` | site | no | Tenant Admin, Executive, Site Manager | Users, roles, masking, policies |
+| `identity.users.manage` | site | yes | Tenant Admin, Site Manager | Users (S) |
+| `identity.roles.read` | tenant | no | Tenant Admin, Executive | Users, roles, masking, policies |
+| `identity.roles.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F) |
+| `audit.ledger.verify` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check |
+
+Rules that apply to every permission:
+
+- **Kind** says which assignments grant it: *tenant* only from tenant-wide roles; *site* from tenant-wide roles (every
+  site) or site roles (that site); *warehouse* also from warehouse roles. A site manager of site A sees the users who
+  hold a role on site A, and manages the users whose roles are all on their sites.
+- **Granting roles** (threat T-13): only within the caller's sites; never a privileged permission the caller lacks
+  there; a privileged role (second factor) only by someone who holds everything it contains. Nobody will be able to change their own
+  roles (role-assignment endpoint, later in P1.9).
+- **Second factor:** Tenant Admin, Executive, Finance and Controller (US-P1-IAM-02).

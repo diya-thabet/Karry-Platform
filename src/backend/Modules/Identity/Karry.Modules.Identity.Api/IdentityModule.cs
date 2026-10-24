@@ -1,12 +1,14 @@
 using System.Security.Claims;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Domain;
 using Karry.Modules.Identity.Infrastructure;
+using Karry.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -24,6 +26,8 @@ public sealed class IdentityModule : IModule
     private const int MaxPageSize = 200;
 
     public string Name => "identity";
+
+    public IReadOnlyList<PermissionDefinition> Permissions => IdentityPermissions.All;
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -44,6 +48,7 @@ public sealed class IdentityModule : IModule
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapPost("/invitations", InviteAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
             .Validate<InviteUser>()
             .RequireIdempotencyKey()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -63,6 +68,7 @@ public sealed class IdentityModule : IModule
             .WithName("AcceptInvitation");
 
         endpoints.MapPost("/field-users", CreateFieldUserAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
             .Validate<CreateFieldUser>()
             .RequireIdempotencyKey()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -72,6 +78,7 @@ public sealed class IdentityModule : IModule
             .WithName("CreateFieldUser");
 
         endpoints.MapPost("/users/{id:guid}/deactivate", DeactivateAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -79,18 +86,21 @@ public sealed class IdentityModule : IModule
             .WithName("DeactivateUser");
 
         endpoints.MapGet("/users", ListAsync)
+            .RequirePermission(IdentityPermissions.UsersRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("ListUsers");
 
         endpoints.MapGet("/users/{id:guid}", GetAsync)
+            .RequirePermission(IdentityPermissions.UsersRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetUser");
 
-        // The signed-in user's own profile (portal header, MFA hint). 404 when the token has no Karry user.
+        // The signed-in user's own profile (portal header, MFA hint): every member, about themselves only.
         endpoints.MapGet("/me", MeAsync)
+            .AllowAnyTenantMember()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetCurrentUser");
@@ -98,14 +108,25 @@ public sealed class IdentityModule : IModule
 
     private static string? Subject(ClaimsPrincipal user) => user.FindFirst("sub")?.Value;
 
+    /// <summary>Users holding a role on one of these sites (a site-scoped caller's list, US-P1-IAM-06 AC2).</summary>
+    private static IQueryable<UserAccount> OnSites(IdentityDbContext db, Guid[] sites, Guid? after) => after is { } cursor
+        ? db.Users.FromSql($"""
+            SELECT *, xmin FROM identity.users WHERE id > {cursor}
+              AND EXISTS (SELECT 1 FROM jsonb_array_elements(roles) AS r WHERE (r->>'siteId')::uuid = ANY({sites}))
+            """)
+        : db.Users.FromSql($"""
+            SELECT *, xmin FROM identity.users
+            WHERE EXISTS (SELECT 1 FROM jsonb_array_elements(roles) AS r WHERE (r->>'siteId')::uuid = ANY({sites}))
+            """);
+
     private static UserResponse ToResponse(UserAccount u) =>
         new(u.Id.Value, u.Kind.ToString().ToLowerInvariant(), u.Status.ToString().ToLowerInvariant(), u.FirstName, u.LastName, u.Email, u.Phone, u.EmployeeId,
             [.. u.Roles.Select(r => new RoleAssignmentDto(r.Role, r.SiteId))], u.RequiresMfa, u.CreatedAt, u.DeactivatedAt);
 
     private static async Task<Results<Created<InvitedUser>, ProblemHttpResult>> InviteAsync(
-        InviteUser request, ClaimsPrincipal caller, [FromServices] InviteUserHandler handler, CancellationToken cancellationToken)
+        InviteUser request, [FromServices] InviteUserHandler handler, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, Subject(caller), cancellationToken).ConfigureAwait(false);
+        var result = await handler.HandleAsync(request, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess
             ? TypedResults.Created($"/api/v1/identity/users/{result.Value.UserId}", result.Value)
             : result.Error.ToProblem();
@@ -119,10 +140,9 @@ public sealed class IdentityModule : IModule
     }
 
     private static async Task<Results<Created<UserResponse>, ProblemHttpResult>> CreateFieldUserAsync(
-        CreateFieldUser request, ClaimsPrincipal caller, [FromServices] CreateFieldUserHandler handler, [FromServices] IdentityDbContext db,
-        CancellationToken cancellationToken)
+        CreateFieldUser request, [FromServices] CreateFieldUserHandler handler, [FromServices] IdentityDbContext db, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(request, Subject(caller), cancellationToken).ConfigureAwait(false);
+        var result = await handler.HandleAsync(request, cancellationToken).ConfigureAwait(false);
         if (!result.IsSuccess)
         {
             return result.Error.ToProblem();
@@ -133,47 +153,35 @@ public sealed class IdentityModule : IModule
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeactivateAsync(
-        Guid id, ClaimsPrincipal caller, [FromServices] DeactivateUserHandler handler, CancellationToken cancellationToken)
+        Guid id, [FromServices] DeactivateUserHandler handler, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, Subject(caller), cancellationToken).ConfigureAwait(false);
+        var result = await handler.HandleAsync(id, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
     }
 
-    private static async Task<Results<Ok<UserPage>, ProblemHttpResult>> ListAsync(
-        ClaimsPrincipal caller, [FromServices] IIdentityStore store, [FromServices] IdentityDbContext db,
+    private static async Task<Ok<UserPage>> ListAsync(
+        [FromServices] UserAdministration administration, [FromServices] IdentityDbContext db,
         [FromQuery] Guid? cursor, [FromQuery] int? limit, CancellationToken cancellationToken)
     {
-        var allowed = await RequireAdminAsync(store, caller, cancellationToken).ConfigureAwait(false);
-        if (allowed is not null)
-        {
-            return allowed;
-        }
-
         var size = Math.Clamp(limit ?? 50, 1, MaxPageSize);
-        // Keyset pagination on the UUIDv7 key (creation order). The cursor condition is SQL (EF cannot compare a
-        // value-converted ID; xmin, the concurrency token, is a system column that * does not return); the query filter
-        // and row-level security still apply on top of it.
-        var users = cursor is { } after
-            ? db.Users.FromSql($"SELECT *, xmin FROM identity.users WHERE id > {after}")
-            : db.Users;
+        var scope = administration.Access.ScopeOf(IdentityPermissions.UsersRead);
+        // Keyset pagination on the UUIDv7 key (creation order). The cursor and site conditions are SQL (EF cannot
+        // compare a value-converted ID or look into the roles document; xmin, the concurrency token, is a system column
+        // that * does not return); the query filter and row-level security still apply on top of it.
+        var users = scope.TenantWide
+            ? cursor is { } after ? db.Users.FromSql($"SELECT *, xmin FROM identity.users WHERE id > {after}") : db.Users
+            : OnSites(db, [.. scope.Sites], cursor);
         var page = await users.AsNoTracking().OrderBy(u => u.Id).Take(size + 1).ToListAsync(cancellationToken).ConfigureAwait(false);
         var items = page.Take(size).Select(ToResponse).ToList();
         return TypedResults.Ok(new UserPage(items, page.Count > size ? items[^1].Id : null));
     }
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> GetAsync(
-        Guid id, ClaimsPrincipal caller, [FromServices] IIdentityStore store, CancellationToken cancellationToken)
+        Guid id, [FromServices] UserAdministration administration, [FromServices] IIdentityStore store, CancellationToken cancellationToken)
     {
-        var allowed = await RequireAdminAsync(store, caller, cancellationToken).ConfigureAwait(false);
-        if (allowed is not null)
-        {
-            return allowed;
-        }
-
+        // Out of the caller's scope answers like a missing user (US-P1-IAM-06 AC2).
         var user = id == Guid.Empty ? null : await store.FindUserAsync(new UserId(id), cancellationToken).ConfigureAwait(false);
-        return user is null
-            ? SharedKernel.Results.Error.NotFound("identity.user_not_found", "No such user in this company.").ToProblem()
-            : TypedResults.Ok(ToResponse(user));
+        return user is not null && administration.CanSee(user) ? TypedResults.Ok(ToResponse(user)) : UserAdministration.NotFound.ToProblem();
     }
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> MeAsync(
@@ -183,14 +191,6 @@ public sealed class IdentityModule : IModule
         return user is null
             ? SharedKernel.Results.Error.NotFound("identity.user_not_found", "This account has no Karry user in this company.").ToProblem()
             : TypedResults.Ok(ToResponse(user));
-    }
-
-    private static async Task<ProblemHttpResult?> RequireAdminAsync(IIdentityStore store, ClaimsPrincipal caller, CancellationToken cancellationToken)
-    {
-        var user = Subject(caller) is { } subject ? await store.FindBySubjectAsync(subject, cancellationToken).ConfigureAwait(false) : null;
-        return user is { Status: UserStatus.Active } && user.HasRole(Roles.TenantAdmin)
-            ? null
-            : SharedKernel.Results.Error.Forbidden("identity.admin_required", "Only a tenant administrator can manage users.").ToProblem();
     }
 }
 

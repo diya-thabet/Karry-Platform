@@ -5,6 +5,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text.Json;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -224,8 +225,8 @@ public sealed class TenantResolutionTests : IAsyncLifetime
 
         public void MapEndpoints(IEndpointRouteBuilder endpoints)
         {
-            endpoints.MapGet("/notes", async (CountingDbContext db) => await db.OutboxMessages.CountAsync());
-            endpoints.MapGet("/whoami", (ITenantContext tenant) => tenant.Current?.ToString());
+            endpoints.MapGet("/notes", async (CountingDbContext db) => await db.OutboxMessages.CountAsync()).AllowAnyTenantMember();
+            endpoints.MapGet("/whoami", (ITenantContext tenant) => tenant.Current?.ToString()).AllowAnyTenantMember();
             endpoints.MapGet("/platform", () => "ok").AllowWithoutTenant();
         }
     }

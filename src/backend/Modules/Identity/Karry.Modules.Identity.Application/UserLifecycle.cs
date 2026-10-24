@@ -64,16 +64,17 @@ public sealed class AcceptInvitationHandler(IIdentityStore store, IIdentityProvi
 public sealed record CreateFieldUser(string? FirstName, string? LastName, string? EmployeeId, string? Pin, IReadOnlyList<RoleAssignment>? Roles);
 
 /// <summary>A field user with employee ID and PIN (US-P1-IAM-03 AC2); enrolled on a tablet by QR in P1.15.</summary>
-public sealed class CreateFieldUserHandler(IIdentityStore store, ITenantContext tenant, TimeProvider clock)
+public sealed class CreateFieldUserHandler(IIdentityStore store, ITenantContext tenant, TimeProvider clock, UserAdministration administration)
 {
-    public async Task<Result<Guid>> HandleAsync(CreateFieldUser command, string? callerSubject, CancellationToken cancellationToken)
+    public async Task<Result<Guid>> HandleAsync(CreateFieldUser command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        var allowed = await Callers.RequireTenantAdminAsync(store, callerSubject, cancellationToken).ConfigureAwait(false);
-        if (!allowed.IsSuccess)
+        if (administration.CheckGrant(command.Roles) is { } refused)
         {
-            return allowed.Error;
+            return refused;
         }
+
+        var callerSubject = administration.Subject;
 
         var current = tenant.Current ?? throw new InvalidOperationException("Creating a user needs a tenant.");
         var user = UserAccount.CreateFieldUser(clock, current, command.FirstName, command.LastName, command.EmployeeId, command.Pin, command.Roles, callerSubject);
@@ -90,25 +91,27 @@ public sealed class CreateFieldUserHandler(IIdentityStore store, ITenantContext 
 /// <summary>
 /// Deactivates a leaver (US-P1-IAM-03 AC3, TC-P1-IAM-007): Karry first (the API refuses the user's tokens within the
 /// revocation cache time), then Keycloak (account disabled, sessions ended). Idempotent: repeating it re-applies the
-/// Keycloak part, so a failure there is fixed by retrying. An administrator cannot deactivate themselves.
+/// Keycloak part, so a failure there is fixed by retrying. An administrator cannot deactivate themselves. A user
+/// outside the caller's scope is "not found" (US-P1-IAM-06 AC2): its existence is not revealed.
 /// </summary>
-public sealed class DeactivateUserHandler(IIdentityStore store, IIdentityProvider provider, IRevocationCache revocations, ITenantContext tenant, TimeProvider clock)
+public sealed class DeactivateUserHandler(
+    IIdentityStore store, IIdentityProvider provider, IRevocationCache revocations, ITenantContext tenant, TimeProvider clock, UserAdministration administration)
 {
-    public async Task<Result<bool>> HandleAsync(Guid userId, string? callerSubject, CancellationToken cancellationToken)
+    public async Task<Result<bool>> HandleAsync(Guid userId, CancellationToken cancellationToken)
     {
-        var allowed = await Callers.RequireTenantAdminAsync(store, callerSubject, cancellationToken).ConfigureAwait(false);
-        if (!allowed.IsSuccess)
-        {
-            return allowed.Error;
-        }
-
+        var callerSubject = administration.Subject;
         var user = userId == Guid.Empty ? null : await store.FindUserAsync(new UserId(userId), cancellationToken).ConfigureAwait(false);
-        if (user is null)
+        if (user is null || !administration.CanSee(user))
         {
-            return Error.NotFound("identity.user_not_found", "No such user in this company.");
+            return UserAdministration.NotFound;
         }
 
-        if (user.Id == allowed.Value.Id)
+        if (!administration.CanManage(user))
+        {
+            return Error.Forbidden("identity.scope_exceeded", "This user also works outside the sites you manage.");
+        }
+
+        if (user.Subject is not null && user.Subject == callerSubject)
         {
             return Error.BusinessRule("identity.cannot_deactivate_self", "You cannot deactivate your own account.");
         }

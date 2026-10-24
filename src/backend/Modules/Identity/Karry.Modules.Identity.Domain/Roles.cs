@@ -1,4 +1,5 @@
 using System.Collections.Frozen;
+using Karry.SharedKernel.Authorization;
 
 namespace Karry.Modules.Identity.Domain;
 
@@ -9,23 +10,23 @@ namespace Karry.Modules.Identity.Domain;
 public sealed record RoleDefinition(string Code, bool Privileged, bool Office);
 
 /// <summary>
-/// The 12 default roles. P1.8 assigns them to users (with a site scope) and derives MFA from them; their permissions,
-/// custom roles and cloning arrive in P1.9 (US-P1-IAM-04/05).
+/// The 12 default roles (codes in <see cref="DefaultRoles"/>). Their permissions are what the modules declare for them
+/// (<c>AuthorizationCatalog</c>, ADR-0022); here: which ones need a second factor and which sign in to the portal.
 /// </summary>
 public static class Roles
 {
-    public const string TenantAdmin = "tenant-admin";
-    public const string Executive = "executive";
-    public const string Finance = "finance";
-    public const string Controller = "controller";
-    public const string SiteManager = "site-manager";
-    public const string MaintenancePlanner = "maintenance-planner";
-    public const string Commercial = "commercial";
-    public const string Storekeeper = "storekeeper";
-    public const string Weighmaster = "weighmaster";
-    public const string FuelAttendant = "fuel-attendant";
-    public const string Mechanic = "mechanic";
-    public const string Operator = "operator";
+    public const string TenantAdmin = DefaultRoles.TenantAdmin;
+    public const string Executive = DefaultRoles.Executive;
+    public const string Finance = DefaultRoles.Finance;
+    public const string Controller = DefaultRoles.Controller;
+    public const string SiteManager = DefaultRoles.SiteManager;
+    public const string MaintenancePlanner = DefaultRoles.MaintenancePlanner;
+    public const string Commercial = DefaultRoles.Commercial;
+    public const string Storekeeper = DefaultRoles.Storekeeper;
+    public const string Weighmaster = DefaultRoles.Weighmaster;
+    public const string FuelAttendant = DefaultRoles.FuelAttendant;
+    public const string Mechanic = DefaultRoles.Mechanic;
+    public const string Operator = DefaultRoles.Operator;
 
     public static readonly FrozenDictionary<string, RoleDefinition> Defaults = new RoleDefinition[]
     {

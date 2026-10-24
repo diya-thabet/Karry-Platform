@@ -1,6 +1,8 @@
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -14,7 +16,17 @@ namespace Karry.Modules.Trust.Api;
 /// <summary>Audit ledger (ADR-0008): written by every module's unit of work; verification and anchoring. Routes under /api/v1/audit.</summary>
 public sealed class TrustModule : IModule
 {
+    /// <summary>Run the integrity check of the tenant's ledger (role matrix row "Audit log / integrity check").</summary>
+    public const string LedgerVerify = "audit.ledger.verify";
+
     public string Name => "audit";
+
+    // Site kind: a controller or site manager of one site may run it; the report holds no site data, only integrity.
+    public IReadOnlyList<PermissionDefinition> Permissions =>
+    [
+        new(LedgerVerify, ScopeKind.Site, privileged: false,
+            DefaultRoles.TenantAdmin, DefaultRoles.Executive, DefaultRoles.Finance, DefaultRoles.Controller, DefaultRoles.SiteManager),
+    ];
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -31,8 +43,9 @@ public sealed class TrustModule : IModule
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Integrity check of the caller's tenant ledger (US-P1-AUD-03). Restricted to admins/auditors with roles (P1.9).
+        // Integrity check of the caller's tenant ledger (US-P1-AUD-03).
         endpoints.MapPost("/verify", VerifyAsync)
+            .RequirePermission(LedgerVerify)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("VerifyLedger");
