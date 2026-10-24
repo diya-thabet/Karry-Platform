@@ -118,6 +118,10 @@ public sealed class ImportSignInFailuresTests
 
         public Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+        public Task<Invitation?> FindOpenInvitationAsync(UserId user, CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public void Add(Invitation invitation) => throw new NotSupportedException();
+
         public Task<bool> HasAdministratorAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<bool> ExistsAsync(string? email, string? employeeId, CancellationToken cancellationToken) => throw new NotSupportedException();

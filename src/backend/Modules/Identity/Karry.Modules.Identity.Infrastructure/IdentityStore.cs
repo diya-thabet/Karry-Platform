@@ -17,6 +17,12 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
     public Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken) =>
         db.Invitations.SingleOrDefaultAsync(i => i.TokenHash == tokenHash, cancellationToken);
 
+    public Task<Invitation?> FindOpenInvitationAsync(UserId user, CancellationToken cancellationToken) =>
+        db.Invitations.Where(i => i.UserId == user && i.AcceptedAt == null && i.RevokedAt == null)
+            .OrderByDescending(i => i.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+
+    public void Add(Invitation invitation) => db.Invitations.Add(invitation);
+
     public Task<bool> HasAdministratorAsync(CancellationToken cancellationToken) =>
         db.Users.AnyAsync(u => u.Status != UserStatus.Deactivated
             && EF.Functions.JsonContains(u.Roles, $"[{{\"role\":\"{Roles.TenantAdmin}\"}}]"), cancellationToken);

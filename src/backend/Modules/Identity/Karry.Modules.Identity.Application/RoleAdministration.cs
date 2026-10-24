@@ -29,7 +29,7 @@ public sealed record ChangeFieldLevels(IReadOnlyDictionary<string, string>? Fiel
 /// </list>
 /// </summary>
 public sealed class RoleAdministration(
-    IRoleStore store, RoleDirectory directory, ICallerAccess caller, ITenantContext tenant, IAccessCache cache, TimeProvider clock)
+    IRoleStore store, RoleDirectory directory, ICallerAccess caller, ITenantContext tenant, IAccessCache cache, MfaSync mfa, TimeProvider clock)
 {
     public static readonly Error NotFound = Error.NotFound("identity.role_not_found", "No such role in this company.");
 
@@ -69,7 +69,7 @@ public sealed class RoleAdministration(
         }
 
         store.Add(created.Value);
-        return await SavedAsync(created.Value.Code, cancellationToken).ConfigureAwait(false);
+        return await SavedAsync(created.Value.Code, roles, cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<Result<RoleView>> ChangeAsync(string code, ChangeRole command, CancellationToken cancellationToken)
@@ -112,7 +112,7 @@ public sealed class RoleAdministration(
             return changed.Error;
         }
 
-        return changed.Value ? await SavedAsync(code, cancellationToken).ConfigureAwait(false) : current;
+        return changed.Value ? await SavedAsync(code, roles, cancellationToken).ConfigureAwait(false) : current;
     }
 
     public async Task<Result<RoleView>> ChangeFieldLevelsAsync(string code, ChangeFieldLevels command, CancellationToken cancellationToken)
@@ -171,7 +171,7 @@ public sealed class RoleAdministration(
             changed = result.Value;
         }
 
-        return changed ? await SavedAsync(code, cancellationToken).ConfigureAwait(false) : current;
+        return changed ? await SavedAsync(code, roles, cancellationToken).ConfigureAwait(false) : current;
     }
 
     public async Task<Result<bool>> DeleteAsync(string code, CancellationToken cancellationToken)
@@ -214,7 +214,11 @@ public sealed class RoleAdministration(
 
     private TenantId Tenant => tenant.Current ?? throw new InvalidOperationException("Roles need a tenant.");
 
-    private async Task<Result<RoleView>> SavedAsync(string code, CancellationToken cancellationToken)
+    /// <summary>
+    /// Saves, forgets cached access and, when the role became privileged or stopped being so, brings its holders'
+    /// second factor in step (a newly privileged role ends their sessions).
+    /// </summary>
+    private async Task<Result<RoleView>> SavedAsync(string code, TenantRoles before, CancellationToken cancellationToken)
     {
         var saved = await store.SaveAsync(cancellationToken).ConfigureAwait(false);
         if (!saved.IsSuccess)
@@ -223,7 +227,18 @@ public sealed class RoleAdministration(
         }
 
         cache.ForgetTenant(Tenant);
-        return (await directory.LoadAsync(cancellationToken).ConfigureAwait(false)).Find(code)!;
+        var after = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var role = after.Find(code)!;
+        if (before.Find(code) is { } previous && previous.Privileged != role.Privileged)
+        {
+            foreach (var holder in await store.AccountHoldersAsync(code, cancellationToken).ConfigureAwait(false))
+            {
+                await mfa.ApplyAsync(holder, holder.RequiresMfa(before.Lookup), holder.RequiresMfa(after.Lookup), retry: false, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+        }
+
+        return role;
     }
 
     /// <summary>Parsed levels (<c>hidden</c>, <c>masked</c>, <c>read</c>, <c>write</c>); left out: <paramref name="basis"/>.</summary>

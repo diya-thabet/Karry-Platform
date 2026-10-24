@@ -15,8 +15,14 @@ internal sealed class RoleStore(IdentityDbContext db) : IRoleStore
         await db.DefaultRoleSettings.ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public Task<bool> IsHeldAsync(string role, CancellationToken cancellationToken) =>
-        db.Users.AnyAsync(u => u.Status != UserStatus.Deactivated
-            && EF.Functions.JsonContains(u.Roles, System.Text.Json.JsonSerializer.Serialize(new[] { new { role } })), cancellationToken);
+        Holders(role).AnyAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<UserAccount>> AccountHoldersAsync(string role, CancellationToken cancellationToken) =>
+        await Holders(role).Where(u => u.Subject != null).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    private IQueryable<UserAccount> Holders(string role) =>
+        db.Users.Where(u => u.Status != UserStatus.Deactivated
+            && EF.Functions.JsonContains(u.Roles, System.Text.Json.JsonSerializer.Serialize(new[] { new { role } })));
 
     public void Add(CustomRole role) => db.CustomRoles.Add(role);
 

@@ -86,7 +86,8 @@ the OpenAPI contract marks every sensitive property (`x-karry-sensitive`) so con
 **Anti-escalation (T-13).** Nobody changes their own roles; only tenant-wide holders grant tenant-wide assignments; a
 caller cannot grant a role containing a privileged permission they do not hold themselves, nor make a role gain one
 they do not hold tenant-wide; every change of roles, assignments and field levels is ledgered with before/after (codes
-and IDs only). A role change forgets the cached access of the whole tenant at once on the instance that made it (a
+and IDs only). When roles make a second factor required (a user's new roles, or a held custom role that becomes privileged),
+Keycloak's `mfa-required` is set and the user's sessions end; when it is no longer required, it is removed. A role change forgets the cached access of the whole tenant at once on the instance that made it (a
 per-tenant generation in the cache key); other instances follow within the 30 s cache lifetime.
 
 ## Consequences

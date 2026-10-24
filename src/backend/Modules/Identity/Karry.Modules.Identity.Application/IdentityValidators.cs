@@ -37,6 +37,12 @@ public sealed class AcceptInvitationValidator : AbstractValidator<AcceptInvitati
     }
 }
 
+public sealed class ChangeUserRolesValidator : AbstractValidator<ChangeUserRoles>
+{
+    public ChangeUserRolesValidator() =>
+        RuleFor(c => c.Roles).Cascade(CascadeMode.Stop).NotEmpty().Must(r => r!.Count <= 20).WithMessage("At most 20 role assignments.");
+}
+
 public sealed class CreateRoleValidator : AbstractValidator<CreateRole>
 {
     public CreateRoleValidator()

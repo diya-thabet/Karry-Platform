@@ -79,10 +79,14 @@ public sealed class InviteUserHandler(
             return added.Error;
         }
 
-        var link = new Uri(options.Value.PortalFor(company.Slug), $"/invitation#token={Uri.EscapeDataString(token)}");
-        var delivered = await sender.SendAsync(
-            new InvitationMessage(invitation.Channel, user.Email ?? user.Phone!, user.DisplayName, company.Name, link, invitation.ExpiresAt),
-            cancellationToken).ConfigureAwait(false);
+        var delivered = await sender.SendAsync(MessageFor(options.Value, company, user, invitation, token), cancellationToken).ConfigureAwait(false);
         return new InvitedUser(user.Id.Value, invitation.Id.Value, invitation.ExpiresAt, delivered);
+    }
+
+    /// <summary>The message carrying the link (the only copy of the token) to the portal of the user's company.</summary>
+    internal static InvitationMessage MessageFor(IdentityOptions options, TenantSummary company, UserAccount user, Invitation invitation, string token)
+    {
+        var link = new Uri(options.PortalFor(company.Slug), $"/invitation#token={Uri.EscapeDataString(token)}");
+        return new InvitationMessage(invitation.Channel, user.Email ?? user.Phone!, user.DisplayName, company.Name, link, invitation.ExpiresAt);
     }
 }

@@ -26,6 +26,12 @@ public interface IIdentityProvider
     /// <summary>Disables the account and ends all its sessions (refresh tokens die at once).</summary>
     Task DisableAndSignOutAsync(string subject, CancellationToken cancellationToken);
 
+    /// <summary>Gives or takes the realm role <c>mfa-required</c> (second factor at sign-in); idempotent.</summary>
+    Task SetMfaRequiredAsync(string subject, bool required, CancellationToken cancellationToken);
+
+    /// <summary>Ends all sessions of the account (it signs in again, with a second factor if now required).</summary>
+    Task SignOutAsync(string subject, CancellationToken cancellationToken);
+
     /// <summary>The tenant's organization (alias = slug) and its app addresses as allowed redirect URIs.</summary>
     Task EnsureTenantAsync(TenantId tenant, string slug, string name, CancellationToken cancellationToken);
 }
@@ -48,6 +54,12 @@ public interface IIdentityStore
     Task<UserAccount?> FindBySubjectAsync(string subject, CancellationToken cancellationToken);
 
     Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken);
+
+    /// <summary>The user's latest invitation that is neither accepted nor replaced.</summary>
+    Task<Invitation?> FindOpenInvitationAsync(UserId user, CancellationToken cancellationToken);
+
+    /// <summary>Tracks a new invitation of a loaded user (saved by <see cref="SaveAsync"/>).</summary>
+    void Add(Invitation invitation);
 
     Task<bool> HasAdministratorAsync(CancellationToken cancellationToken);
 
@@ -79,6 +91,9 @@ public interface IRoleStore
 
     /// <summary>Some user who is not deactivated holds this role (at any scope).</summary>
     Task<bool> IsHeldAsync(string role, CancellationToken cancellationToken);
+
+    /// <summary>Office users with a Keycloak account, not deactivated, who hold this role (second-factor sync).</summary>
+    Task<IReadOnlyList<UserAccount>> AccountHoldersAsync(string role, CancellationToken cancellationToken);
 
     void Add(CustomRole role);
 

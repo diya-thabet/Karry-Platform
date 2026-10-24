@@ -53,6 +53,9 @@ public sealed class Invitation : AggregateRoot<InvitationId>, ITenantOwned
 
     public DateTimeOffset? AcceptedAt { get; private set; }
 
+    /// <summary>Replaced by a newer invitation: the link works no more (answered like an unknown link).</summary>
+    public DateTimeOffset? RevokedAt { get; private set; }
+
     /// <summary>Lower-case hex SHA-256 of the token (what is stored and looked up).</summary>
     public static string HashToken(string token) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
 
@@ -68,9 +71,16 @@ public sealed class Invitation : AggregateRoot<InvitationId>, ITenantOwned
         return (new Invitation(EntityId.New<InvitationId>(clock), tenant, user, channel, HashToken(token), clock.GetUtcNow()), token);
     }
 
+    internal void Revoke(TimeProvider clock) => RevokedAt ??= clock.GetUtcNow();
+
     internal Result<Invitation> Accept(TimeProvider clock)
     {
         var now = clock.GetUtcNow();
+        if (RevokedAt is not null)
+        {
+            return Error.NotFound("identity.invitation_invalid", "This invitation link is not valid.");
+        }
+
         if (AcceptedAt is not null)
         {
             return Error.Conflict("identity.invitation_used", "This invitation was already used.");

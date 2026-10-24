@@ -28,7 +28,7 @@ public sealed class AcceptInvitationHandler(IIdentityStore store, IIdentityProvi
         tenant.Set(owner);
         var invitation = await store.FindInvitationAsync(Invitation.HashToken(command.Token!), cancellationToken).ConfigureAwait(false);
         var user = invitation is null ? null : await store.FindUserAsync(invitation.UserId, cancellationToken).ConfigureAwait(false);
-        if (invitation is null || user?.Subject is null)
+        if (invitation is null || invitation.RevokedAt is not null || user?.Subject is null)
         {
             return Unknown;
         }
