@@ -8,6 +8,9 @@ public enum ErrorKind
     Conflict,
     Forbidden,
     BusinessRule,
+
+    /// <summary>The caller must authenticate (again) first, e.g. a recent sign-in for a privileged change.</summary>
+    Unauthorized,
 }
 
 /// <summary>
@@ -43,6 +46,8 @@ public sealed record Error
     public static Error Conflict(string code, string message) => new(ErrorKind.Conflict, code, message, null);
 
     public static Error Forbidden(string code, string message) => new(ErrorKind.Forbidden, code, message, null);
+
+    public static Error Unauthorized(string code, string message) => new(ErrorKind.Unauthorized, code, message, null);
 
     /// <summary>A domain rule refused the operation (e.g. "hour meters never go backwards").</summary>
     public static Error BusinessRule(string code, string message) => new(ErrorKind.BusinessRule, code, message, null);

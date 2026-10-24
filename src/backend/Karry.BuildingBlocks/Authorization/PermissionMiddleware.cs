@@ -102,9 +102,7 @@ public sealed partial class PermissionMiddleware(RequestDelegate next, ILogger<P
     /// <summary>401 with the RFC 9470 challenge, so a client knows to re-authenticate (max_age) and retry.</summary>
     private static Task StepUp(HttpContext context, TimeSpan maxAge)
     {
-        var seconds = ((long)maxAge.TotalSeconds).ToString(CultureInfo.InvariantCulture);
-        context.Response.Headers.WWWAuthenticate =
-            $"Bearer error=\"insufficient_user_authentication\", error_description=\"A more recent authentication is required\", max_age={seconds}";
+        context.Response.Headers.WWWAuthenticate = Challenge((long)maxAge.TotalSeconds);
         var problem = TypedResults.Problem(
             title: "Confirm your identity to make this change.",
             statusCode: StatusCodes.Status401Unauthorized,
@@ -112,6 +110,10 @@ public sealed partial class PermissionMiddleware(RequestDelegate next, ILogger<P
             extensions: new Dictionary<string, object?> { ["code"] = StepUpCode, ["maxAge"] = (long)maxAge.TotalSeconds });
         return problem.ExecuteAsync(context);
     }
+
+    /// <summary>The RFC 9470 challenge: the client re-authenticates with <c>max_age</c> and retries.</summary>
+    public static string Challenge(long maxAgeSeconds) =>
+        $"Bearer error=\"insufficient_user_authentication\", error_description=\"A more recent authentication is required\", max_age={maxAgeSeconds.ToString(CultureInfo.InvariantCulture)}";
 
     [LoggerMessage(EventId = 1100, Level = LogLevel.Error, Message = "Endpoint {Endpoint} declares no permission; refused")]
     private static partial void LogUndeclared(ILogger logger, string? endpoint);

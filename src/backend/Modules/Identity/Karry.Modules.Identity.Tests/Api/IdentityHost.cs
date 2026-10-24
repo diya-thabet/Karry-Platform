@@ -78,7 +78,7 @@ public sealed class IdentityHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule(), new ProbeModule()]);
         builder.Services.RemoveAll<IInvitationSender>();
         builder.Services.AddSingleton<IInvitationSender>(Sender);
         app = builder.Build();

@@ -36,7 +36,7 @@ public sealed class DemoUsersSeeder(IIdentityStore store, IIdentityProvider prov
             {
                 var email = demoEmail;
                 var (user, invitation, _) = UserAccount.Invite(clock, tenant, "Demo", label, email, null, roles, actor: "seed-demo").Value;
-                var account = await provider.CreateAccountAsync(new NewAccount(tenant, email, email, user.FirstName, user.LastName, user.RequiresMfa), cancellationToken)
+                var account = await provider.CreateAccountAsync(new NewAccount(tenant, email, email, user.FirstName, user.LastName, user.RequiresMfa(Roles.Find)), cancellationToken)
                     .ConfigureAwait(false);
                 if (!account.IsSuccess)
                 {

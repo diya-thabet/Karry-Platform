@@ -30,7 +30,12 @@ public static class IdentityInfrastructure
         services.AddScoped<IAccessRevocation>(sp => sp.GetRequiredService<RevocationCache>());
         services.AddScoped<IRevocationCache>(sp => sp.GetRequiredService<RevocationCache>());
         services.AddKarryAuthorization();
-        services.AddScoped<IAccessResolver, AccessResolver>();
+        services.AddSingleton<AccessCacheGenerations>();
+        services.AddScoped<AccessResolver>();
+        services.AddScoped<IAccessResolver>(sp => sp.GetRequiredService<AccessResolver>());
+        services.AddScoped<IAccessCache>(sp => sp.GetRequiredService<AccessResolver>());
+        services.AddScoped<IRoleStore, RoleStore>();
+        services.AddScoped<RoleDirectory>();
         services.AddScoped<UserAdministration>();
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up.
@@ -49,6 +54,7 @@ public static class IdentityInfrastructure
         services.AddScoped<AcceptInvitationHandler>();
         services.AddScoped<CreateFieldUserHandler>();
         services.AddScoped<DeactivateUserHandler>();
+        services.AddScoped<RoleAdministration>();
         services.AddScoped<IFirstAdminInvitation, FirstAdminInvitation>();
         services.AddScoped<DemoUsersSeeder>();
         services.AddScoped<ITenantProvisionedHandler, KeycloakTenantSetup>();

@@ -579,7 +579,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 - Quantities as `{ "value", "unit", "state" }`; money as `{ "amount", "currency" }` with string-encoded decimals where precision matters.
 - Times ISO 8601 with offset.
 - Backward compatibility inside a major version: additive changes only. Breaking changes require a new version, a deprecation header and a 6-month sunset. The OpenAPI diff check in CI must pass.
-- Every endpoint: a declared permission (`.RequirePermission`, or a reviewed `.AllowAnyTenantMember()`; ADR-0022), scope filtering with 404 outside the caller's scope, `[Sensitive]` on money/pay fields, entitlement check if plan-gated, rate limit class, audit behaviour, tenant-isolation test.
+- Every endpoint: a declared permission (`.RequirePermission`, or a reviewed `.AllowAnyTenantMember()`; ADR-0022), scope filtering with 404 outside the caller's scope (the addressed resource checked before the body is validated), `[Sensitive]` on money/pay fields, entitlement check if plan-gated, rate limit class, audit behaviour, tenant-isolation test.
 
 ---
 

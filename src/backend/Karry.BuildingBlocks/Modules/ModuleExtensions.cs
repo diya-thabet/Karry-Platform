@@ -49,7 +49,8 @@ public static class ModuleExtensions
             var group = endpoints.MapGroup($"/api/v1/{module.Name}")
                 .WithMetadata(new ModuleMetadata(module.Name), new TenantRequired())
                 .RequireAuthorization()
-                .AddEndpointFilterFactory(SensitiveInputFilter.Create);
+                .AddEndpointFilterFactory(SensitiveInputFilter.Create)
+                .AddEndpointFilter(StepUp.ChallengeFilter);
             module.MapEndpoints(group);
         }
 

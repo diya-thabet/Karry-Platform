@@ -57,13 +57,14 @@ public sealed class UserAdministration(ICallerAccess caller, AuthorizationCatalo
         return scope.TenantWide || (user.Roles.Count > 0 && user.Roles.All(r => r.SiteId is { } site && scope.Sites.Contains(site)));
     }
 
-    /// <summary>Null when the caller may give these role assignments; otherwise the reason.</summary>
-    public Error? CheckGrant(IReadOnlyList<RoleAssignment>? assignments)
+    /// <summary>Null when the caller may give these role assignments (default or custom roles of the tenant); otherwise the reason.</summary>
+    public Error? CheckGrant(TenantRoles roles, IReadOnlyList<RoleAssignment>? assignments)
     {
+        ArgumentNullException.ThrowIfNull(roles);
         var manage = Access.ScopeOf(IdentityPermissions.UsersManage);
         foreach (var assignment in assignments ?? [])
         {
-            if (assignment is null || !Roles.Defaults.TryGetValue(assignment.Role, out var role))
+            if (assignment is null || roles.Find(assignment.Role) is not { } role)
             {
                 continue; // the domain rejects unknown roles with a validation error
             }
@@ -75,7 +76,7 @@ public sealed class UserAdministration(ICallerAccess caller, AuthorizationCatalo
             }
 
             // What this assignment would give, permission by permission, compared with what the caller holds there.
-            var granted = CallerAccess.From(catalog, [ResolvedRoles.Resolve(catalog, assignment)]);
+            var granted = CallerAccess.From(catalog, [roles.Resolve(assignment)]);
             foreach (var code in granted.Granted)
             {
                 var privileged = catalog.Permission(code)!.Privileged || role.Privileged;
@@ -91,22 +92,4 @@ public sealed class UserAdministration(ICallerAccess caller, AuthorizationCatalo
 
     private static bool Contains(ScopeSet holder, ScopeSet given) =>
         holder.TenantWide || (!given.TenantWide && given.Sites.IsSubsetOf(holder.Sites) && given.Warehouses.IsSubsetOf(holder.Warehouses));
-}
-
-/// <summary>Role assignments of a user resolved to permissions and field levels (default roles: the catalogue).</summary>
-public static class ResolvedRoles
-{
-    public static AccessAssignment Resolve(AuthorizationCatalog catalog, RoleAssignment assignment)
-    {
-        ArgumentNullException.ThrowIfNull(catalog);
-        ArgumentNullException.ThrowIfNull(assignment);
-        var fields = catalog.SensitiveFields.ToDictionary(f => f.Code, f => f.DefaultFor(assignment.Role), StringComparer.Ordinal);
-        return new AccessAssignment(assignment.Role, catalog.DefaultPermissionsOf(assignment.Role), fields, assignment.SiteId);
-    }
-
-    public static IReadOnlyList<AccessAssignment> Of(AuthorizationCatalog catalog, UserAccount user)
-    {
-        ArgumentNullException.ThrowIfNull(user);
-        return user.Status == UserStatus.Active ? [.. user.Roles.Select(r => Resolve(catalog, r))] : [];
-    }
 }

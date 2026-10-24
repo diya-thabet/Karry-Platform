@@ -116,6 +116,123 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                     b.ToTable("processed_messages", "identity");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.CustomRole", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("BasedOn")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("based_on");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("FieldLevels")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_levels");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<bool>("Office")
+                        .HasColumnType("boolean")
+                        .HasColumnName("office");
+
+                    b.Property<string>("Permissions")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("permissions");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_roles");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_roles_tenant_id");
+
+                    b.HasIndex("TenantId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_roles_tenant_id_code");
+
+                    b.HasIndex("TenantId", "Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_roles_tenant_id_name");
+
+                    b.ToTable("roles", "identity");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.DefaultRoleSettings", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("FieldLevels")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("field_levels");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("role");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_default_role_settings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_default_role_settings_tenant_id");
+
+                    b.HasIndex("TenantId", "Role")
+                        .IsUnique()
+                        .HasDatabaseName("ix_default_role_settings_tenant_id_role");
+
+                    b.ToTable("default_role_settings", "identity");
+                });
+
             modelBuilder.Entity("Karry.Modules.Identity.Domain.Invitation", b =>
                 {
                     b.Property<Guid>("Id")

@@ -69,3 +69,32 @@ public interface IRevocationCache
 {
     void Forget(TenantId tenant, string subject);
 }
+
+/// <summary>Persistence of the tenant's custom roles and default-role field levels (current tenant only).</summary>
+public interface IRoleStore
+{
+    Task<IReadOnlyList<CustomRole>> CustomRolesAsync(CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<DefaultRoleSettings>> DefaultRoleSettingsAsync(CancellationToken cancellationToken);
+
+    /// <summary>Some user who is not deactivated holds this role (at any scope).</summary>
+    Task<bool> IsHeldAsync(string role, CancellationToken cancellationToken);
+
+    void Add(CustomRole role);
+
+    void Add(DefaultRoleSettings settings);
+
+    void Remove(CustomRole role);
+
+    /// <summary>Saves with the ledger events; Conflict <c>identity.role_exists</c> on a duplicate name, <c>identity.concurrent_change</c> on a race.</summary>
+    Task<Result<bool>> SaveAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>
+/// Forgets the cached access of a tenant's users at once on this instance after a role change (other instances follow
+/// within the 30 s cache lifetime).
+/// </summary>
+public interface IAccessCache
+{
+    void ForgetTenant(TenantId tenant);
+}

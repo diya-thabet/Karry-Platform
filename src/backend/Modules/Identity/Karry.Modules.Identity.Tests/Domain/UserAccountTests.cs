@@ -20,7 +20,7 @@ public sealed class UserAccountTests
         var (user, invitation, token) = Invite(email: "  Amel.Ben@Example.TN ", roles: Admin);
 
         user.Should().BeEquivalentTo(new { Status = UserStatus.Invited, Kind = UserKind.Office, Email = "amel.ben@example.tn", Phone = (string?)null, DisplayName = "Amel Ben Salah" });
-        user.RequiresMfa.Should().BeTrue("tenant admin is privileged");
+        user.RequiresMfa(Roles.Find).Should().BeTrue("tenant admin is privileged");
         invitation.Channel.Should().Be(InvitationChannel.Email);
         invitation.ExpiresAt.Should().Be(clock.GetUtcNow().AddDays(7));
         invitation.TokenHash.Should().Be(Invitation.HashToken(token)).And.NotContain(token);
@@ -119,7 +119,7 @@ public sealed class UserAccountTests
     [Trait("Story", "US-P1-IAM-02")]
     public void Privileged_roles_require_a_second_factor(string role, bool mfa)
     {
-        Invite(roles: [new(role, null)]).User.RequiresMfa.Should().Be(mfa);
+        Invite(roles: [new(role, null)]).User.RequiresMfa(Roles.Find).Should().Be(mfa);
     }
 
     [Fact]

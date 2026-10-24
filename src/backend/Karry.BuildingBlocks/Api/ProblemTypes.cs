@@ -27,6 +27,7 @@ public static class ProblemTypes
         ErrorKind.NotFound => StatusCodes.Status404NotFound,
         ErrorKind.Conflict => StatusCodes.Status409Conflict,
         ErrorKind.BusinessRule => StatusCodes.Status422UnprocessableEntity,
+        ErrorKind.Unauthorized => StatusCodes.Status401Unauthorized,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unmapped error kind."),
     };
 }
