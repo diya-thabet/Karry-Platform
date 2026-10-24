@@ -69,7 +69,8 @@ runs after the permission check, so it reveals nothing to a caller without the p
 **Masking.** A property marked `[Sensitive("code")]` is filtered in the API's JSON contract (System.Text.Json
 contract modifier): READ/WRITE → sent; MASKED → **not sent**, its name listed in the object's `maskedFields` (the UI
 shows `•••` "hidden by policy"); HIDDEN → not sent and not listed. The level is the highest among the caller's roles
-that apply to the object's site (`ISiteScoped`). Export and PDF writers ask the same `CallerAccess`. Because the masked
+that apply to the object's site (`ISiteScoped`); for an object without a site only tenant-wide roles count, so a
+forgotten `ISiteScoped` over-masks instead of leaking. Export and PDF writers ask the same `CallerAccess`. Because the masked
 value is never written (no placeholder in the value's place), a masked field cannot leak through a type confusion, and
 the OpenAPI contract marks every sensitive property (`x-karry-sensitive`) so contract reviews see it.
 

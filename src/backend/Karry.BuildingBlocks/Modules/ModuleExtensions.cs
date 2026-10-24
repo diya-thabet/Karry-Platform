@@ -1,6 +1,7 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -44,10 +45,11 @@ public static class ModuleExtensions
         foreach (var module in modules)
         {
             // Secure by default: every module endpoint needs an authenticated caller and a tenant, unless an endpoint
-            // explicitly opts out (.AllowAnonymous(), .AllowWithoutTenant()).
+            // explicitly opts out (.AllowAnonymous(), .AllowWithoutTenant()); sensitive inputs need the Write level.
             var group = endpoints.MapGroup($"/api/v1/{module.Name}")
                 .WithMetadata(new ModuleMetadata(module.Name), new TenantRequired())
-                .RequireAuthorization();
+                .RequireAuthorization()
+                .AddEndpointFilterFactory(SensitiveInputFilter.Create);
             module.MapEndpoints(group);
         }
 

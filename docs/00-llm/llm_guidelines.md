@@ -262,7 +262,7 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 |---|---|
 | Domain logic / formula | Unit tests + **property-based tests** + golden dataset test if one exists |
 | Application handler (command/query) | Unit tests (with fakes for ports) + integration test through the real database |
-| New/changed API endpoint | Integration test (happy path, validation error, authz denied, not found) + **tenant-isolation test** + OpenAPI contract updated |
+| New/changed API endpoint | Integration test (happy path, validation error, authz denied, not found, out of scope → 404) + **tenant-isolation test** + masking suite stays green (sensitive fields marked) + OpenAPI contract updated |
 | Persistence / migration | Integration test with Testcontainers on real PostgreSQL + extensions; migration up (and down, or expand/contract proof) |
 | Authorization / masking rule | Tests proving allowed **and** denied cases and that masked fields never appear in any output |
 | Frontend component | Vitest + Testing Library tests for behaviour and accessibility (axe) |
@@ -328,6 +328,9 @@ python3 deploy/keycloak/generate_realm.py            # after editing the realm g
 dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests
 # Tenant isolation suite and API contract (the build regenerates src/backend/Karry.Host/openapi/v1.json: commit it)
 dotnet test --project tests/Karry.TenantIsolationTests
+# Authorization: every endpoint declares a permission, masking suite (TC-P1-IAM-005); scope + role matrix (Docker)
+dotnet test --project tests/Karry.AuthorizationTests
+dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests -- --filter-class Karry.Modules.Identity.Tests.Api.AuthorizationTests
 tools/ci/install-tool.sh oasdiff && ~/.local/bin/oasdiff breaking <(git show origin/main:src/backend/Karry.Host/openapi/v1.json) src/backend/Karry.Host/openapi/v1.json --fail-on ERR
 # Mutation testing (Stryker.NET 5, Microsoft Testing Platform runner; config next to the module's tests)
 cd src/backend/Modules/Trust/Karry.Modules.Trust.Tests && dotnet tool restore && dotnet stryker --config-file stryker-config.json
@@ -427,7 +430,8 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 │                 # coverage gate), architecture (+ module template), frontend (frozen install with
 │                 # supply-chain policy, lint, typecheck, test, build), local-stack (TC-P1-PLT-004 + request
 │                 # visible end to end in Grafana), tenant-isolation (every API operation with a foreign
-│                 # tenant's token, TC-P1-TEN-002), openapi-diff (oasdiff: no breaking change),
+│                 # tenant's token, TC-P1-TEN-002), authorization (endpoint declarations, masking
+│                 # suite TC-P1-IAM-005, scope + role-matrix tests), openapi-diff (oasdiff: no breaking change),
 │                 # security (gitleaks, Trivy, Semgrep CE — ADR-0021)
 ├── nightly.yml   # dependency audit with fresh advisory data, suite run twice (flakiness); mutation tests from P1.6
 ├── docs.yml      # link and anchor check, every PR
@@ -435,7 +439,7 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 └── (planned) e2e.yml (P1.15), deploy.yml (P1.17)
 ```
 
-**Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `tenant-isolation`, `openapi-diff`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
+**Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `tenant-isolation`, `authorization`, `openapi-diff`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
 
 ### 9.2 Workflow rules
 
@@ -575,7 +579,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 - Quantities as `{ "value", "unit", "state" }`; money as `{ "amount", "currency" }` with string-encoded decimals where precision matters.
 - Times ISO 8601 with offset.
 - Backward compatibility inside a major version: additive changes only. Breaking changes require a new version, a deprecation header and a 6-month sunset. The OpenAPI diff check in CI must pass.
-- Every endpoint: authorization policy, entitlement check if plan-gated, rate limit class, audit behaviour, tenant-isolation test.
+- Every endpoint: a declared permission (`.RequirePermission`, or a reviewed `.AllowAnyTenantMember()`; ADR-0022), scope filtering with 404 outside the caller's scope, `[Sensitive]` on money/pay fields, entitlement check if plan-gated, rate limit class, audit behaviour, tenant-isolation test.
 
 ---
 

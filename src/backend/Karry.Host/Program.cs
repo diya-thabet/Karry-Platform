@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Observability;
@@ -24,7 +25,7 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddKarryApiConventions();
 builder.Services.AddKarryTenancy(builder.Configuration);
-builder.Services.AddOpenApi("v1");
+builder.Services.AddOpenApi("v1", options => options.AddSensitiveFieldMarks());
 builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
 var app = builder.Build();

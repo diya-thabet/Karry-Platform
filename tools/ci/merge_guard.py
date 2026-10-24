@@ -19,8 +19,8 @@ import sys
 import time
 
 REQUIRED_CHECKS = (
-    "tooling", "backend", "architecture", "frontend", "local-stack", "security", "tenant-isolation", "openapi-diff",
-    "links and anchors",
+    "tooling", "backend", "architecture", "frontend", "local-stack", "security", "tenant-isolation", "authorization",
+    "openapi-diff", "links and anchors",
 )
 
 # Sensitive areas (CODEOWNERS, sub-phases §2.3): Tenancy, Identity, Trust, Billing, Sync, ledger migrations, CI security.

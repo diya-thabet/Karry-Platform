@@ -2,7 +2,7 @@ name: ci
 
 # Product pipeline with quality gates (US-P1-PLT-03, llm_guidelines.md §9).
 # Required checks (tools/ci/merge_guard.py): tooling, backend, architecture, frontend, local-stack, security,
-# tenant-isolation, openapi-diff, docs (links and anchors).
+# tenant-isolation, authorization, openapi-diff, docs (links and anchors).
 
 on:
   pull_request:
@@ -118,6 +118,29 @@ jobs:
       - run: dotnet build tests/Karry.TenantIsolationTests -c Release --no-restore
       - name: Tenant isolation suite (TC-P1-TEN-002)
         run: dotnet test --project tests/Karry.TenantIsolationTests -c Release --no-build
+
+  authorization:
+    # US-P1-IAM-05..07: every endpoint's permission decision, the masking suite (TC-P1-IAM-005) and the scope and
+    # role-matrix tests (TC-P1-IAM-006) on PostgreSQL and Keycloak; a failure blocks the merge.
+    name: authorization
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - run: dotnet restore Karry.slnx --locked-mode
+      - run: dotnet build tests/Karry.AuthorizationTests -c Release --no-restore
+      - run: dotnet build src/backend/Modules/Identity/Karry.Modules.Identity.Tests -c Release --no-restore
+      - name: Endpoint declarations and masking suite (TC-P1-IAM-005)
+        run: dotnet test --project tests/Karry.AuthorizationTests -c Release --no-build
+      - name: Scope and role-matrix tests (TC-P1-IAM-006)
+        run: >-
+          dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests -c Release --no-build
+          -- --filter-class Karry.Modules.Identity.Tests.Api.AuthorizationTests
 
   openapi-diff:
     # Breaking changes to the published API contract fail the PR (api-standards: additive changes only within v1).
