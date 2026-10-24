@@ -7,6 +7,7 @@ using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Trust.Api;
+using Karry.SharedKernel.Authorization;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
@@ -31,6 +32,7 @@ public sealed class VerifyEndpointTests(LedgerDatabase postgres) : IClassFixture
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TrustModule()]);
+        builder.Services.TreatEveryoneAs(DefaultRoles.Controller);
         await using var app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();

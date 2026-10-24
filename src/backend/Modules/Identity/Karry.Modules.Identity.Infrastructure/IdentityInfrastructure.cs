@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -12,7 +13,7 @@ namespace Karry.Modules.Identity.Infrastructure;
 
 public static class IdentityInfrastructure
 {
-    /// <summary>Users and invitations, the Keycloak adapter, messaging and the access-revocation check.</summary>
+    /// <summary>Users and invitations, the Keycloak adapter, messaging, the access-revocation check and role resolution.</summary>
     public static IServiceCollection AddIdentityInfrastructure(this IServiceCollection services, IConfiguration configuration, string connectionString)
     {
         ArgumentNullException.ThrowIfNull(configuration);
@@ -28,6 +29,9 @@ public static class IdentityInfrastructure
         services.AddScoped<RevocationCache>();
         services.AddScoped<IAccessRevocation>(sp => sp.GetRequiredService<RevocationCache>());
         services.AddScoped<IRevocationCache>(sp => sp.GetRequiredService<RevocationCache>());
+        services.AddKarryAuthorization();
+        services.AddScoped<IAccessResolver, AccessResolver>();
+        services.AddScoped<UserAdministration>();
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up.
         services.TryAddSingleton(sp => new KeycloakIdentityProvider(

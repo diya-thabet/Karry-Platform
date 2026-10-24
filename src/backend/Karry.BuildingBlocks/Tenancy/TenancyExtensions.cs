@@ -33,9 +33,12 @@ public static class TenancyExtensions
         return services;
     }
 
-    /// <summary>Authentication, authorization, then tenant resolution; before idempotency and the endpoints.</summary>
+    /// <summary>
+    /// Authentication, authorization, tenant resolution, then the permission check of tenant endpoints (ADR-0022);
+    /// before idempotency and the endpoints.
+    /// </summary>
     public static IApplicationBuilder UseKarryTenancy(this IApplicationBuilder app) =>
-        app.UseAuthentication().UseAuthorization().UseMiddleware<TenantResolutionMiddleware>();
+        app.UseAuthentication().UseAuthorization().UseMiddleware<TenantResolutionMiddleware>().UseKarryAuthorization();
 
     /// <summary>Opts an endpoint out of the module default "tenant required" (operator and public endpoints only).</summary>
     public static TBuilder AllowWithoutTenant<TBuilder>(this TBuilder builder)

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Headers;
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Testing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -77,7 +78,8 @@ public sealed class ApiTokenValidationTests(KeycloakFixture keycloak) : IClassFi
         app.UseKarryTenancy();
         app.MapGet("/whoami", (ITenantContext tenant) => tenant.Current?.ToString() ?? "none")
             .RequireAuthorization()
-            .WithMetadata(new TenantRequired());
+            .WithMetadata(new TenantRequired())
+            .AllowAnyTenantMember();
         await app.StartAsync(Cancel);
         return app;
     }
