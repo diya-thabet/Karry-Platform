@@ -1,11 +1,12 @@
 import { act, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
+import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "./App";
 
 async function renderField(options: { pseudo?: boolean } = {}) {
   const i18n = await createI18n({ language: "fr", pseudo: options.pseudo ?? false });
-  render(<App i18n={i18n} />);
+  render(<App i18n={i18n} auth={await signedInAuth({ givenName: "Karim", familyName: "Trabelsi" })} />);
   return i18n;
 }
 
@@ -17,6 +18,13 @@ describe("field shell (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
     expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Carburant", "Compteur horaire", "Production", "Signaler un problème"]);
     expect(document.documentElement.dataset.theme).toBe("outdoor");
     expect(document.documentElement.dataset.density).toBe("field");
+  });
+
+  it("shows who is signed in with a large sign-out button (US-P1-IAM-01)", async () => {
+    await renderField();
+
+    expect(screen.getByText("Connecté : Karim Trabelsi")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Se déconnecter" })).toBeInTheDocument();
   });
 
   it("shows the synchronization status area (placeholder until the outbox, P1.15)", async () => {

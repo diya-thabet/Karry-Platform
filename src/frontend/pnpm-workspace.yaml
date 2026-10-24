@@ -2,6 +2,7 @@
 packages:
   - apps/*
   - packages/*
+  - e2e
 
 # Supply-chain protections (flagged by Semgrep; llm_guidelines.md §10.2, §18).
 # Do not install versions published less than 7 days ago (most malicious releases are pulled within days).
@@ -65,6 +66,9 @@ catalog:
   # Typed API client (P1.7)
   openapi-typescript: 7.13.0
   openapi-fetch: 0.17.0
+  # Sign-in (P1.8): newest versions published >= 7 days before 2026-10-24
+  oidc-client-ts: 3.5.0
+  "@playwright/test": 1.64.1
 
 # Dependency install scripts are blocked by default (pnpm 12). Each decision is explicit and reviewed:
 allowBuilds:

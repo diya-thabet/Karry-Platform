@@ -315,7 +315,7 @@ pnpm --filter @karry/i18n check:catalogs   # FR/EN complete, valid ICU, same pla
 pnpm --filter @karry/ui exec playwright install chromium && pnpm --filter @karry/ui test:a11y   # axe on every story x theme (TC-P1-OFF-006)
 pnpm --filter @karry/ui storybook                                                                # design system at http://localhost:6006
 pnpm --filter @karry/api-client generate          # after the API contract changed (dotnet build regenerates openapi/v1.json); CI: check:generated
-pnpm --filter @karry/field e2e   # Playwright (from P1.15)
+tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) against the running, seeded local stack (CI: local-stack job)
 # Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
 dotnet tool restore
 dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations

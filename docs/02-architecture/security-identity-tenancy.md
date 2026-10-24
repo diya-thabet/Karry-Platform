@@ -32,6 +32,11 @@ last_updated: 2026-10-24
 - Brute force: temporary lockout after 5 failures (growing wait, max 15 min), same message as a wrong password.
 - MFA: realm role `mfa-required` (set by the Identity module for privileged roles) makes the browser flow ask for
   WebAuthn or TOTP, and forces TOTP enrolment before any token when the user has neither.
+- **Apps** (`@karry/auth`, oidc-client-ts): Authorization Code + PKCE; access, refresh and ID tokens live **in memory
+  only** (never localStorage/sessionStorage; asserted by the browser E2E). Only the sign-in state (PKCE verifier,
+  return path) is in sessionStorage during the redirect and removed on return. A reload re-signs in through the
+  Keycloak session cookie (one redirect, no form); a failed refresh (reuse detected, deactivated account) goes back to
+  Keycloak. The return path is same-app only (no open redirect). `ui_locales` follows the app language.
 - **Users** live in the Identity module (`identity.users`, RLS): office users linked to Keycloak by `sub`, field users
   with employee ID + PIN (PBKDF2-HMAC-SHA256, 600 000 iterations, salted; trivial PINs refused; never returned).
 - **Invitations**: 7 days, single use, only the SHA-256 of the token stored; the link carries the token in the URL

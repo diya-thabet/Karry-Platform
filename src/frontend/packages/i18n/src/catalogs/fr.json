@@ -42,5 +42,7 @@
   "field.action.issue": "Signaler un problème",
   "field.sync.label": "Synchronisation",
   "field.sync.unknown": "État de synchronisation pas encore disponible",
-  "field.sync.pending": "{count, plural, =0 {Tout est envoyé} one {# saisie en attente d’envoi} other {# saisies en attente d’envoi}}"
+  "field.sync.pending": "{count, plural, =0 {Tout est envoyé} one {# saisie en attente d’envoi} other {# saisies en attente d’envoi}}",
+  "common.account.signedInAs": "Connecté : {name}",
+  "common.account.signOut": "Se déconnecter"
 }

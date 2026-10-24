@@ -3,6 +3,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { ApiError } from "@karry/api-client";
+import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, I18nProvider, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "./App";
 import { ErrorDialogProvider } from "./ErrorDialog";
@@ -12,7 +13,8 @@ import { useReportError } from "./reportError";
 async function renderPortal(options: { path?: string; pseudo?: boolean; language?: "fr" | "en" } = {}) {
   const i18n = await createI18n({ language: options.language ?? "fr", pseudo: options.pseudo ?? false });
   const history = createMemoryHistory({ initialEntries: [options.path ?? "/"] });
-  render(<App i18n={i18n} history={history} />);
+  const auth = await signedInAuth();
+  render(<App i18n={i18n} auth={auth} history={history} />);
   await screen.findByRole("navigation");
   return i18n;
 }
@@ -38,6 +40,19 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     expect(screen.getByText("Karry Portal")).toBe(header); // same DOM node: re-rendered, not remounted
     expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
     expect(window.location.href).toBe(href);
+  });
+
+  it("shows who is signed in and signs out through Keycloak (US-P1-IAM-01)", async () => {
+    const i18n = await createI18n({ language: "fr", pseudo: false });
+    const auth = await signedInAuth({ givenName: "Karim", familyName: "Trabelsi" });
+    render(<App i18n={i18n} auth={auth} history={createMemoryHistory({ initialEntries: ["/"] })} />);
+
+    expect(await screen.findByText("Connecté : Karim Trabelsi")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
+
+    await vi.waitFor(() => {
+      expect(auth.signOuts).toBe(1);
+    });
   });
 
   it("navigates between sections and marks the current one", async () => {
