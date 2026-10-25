@@ -274,6 +274,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,
         "code" when template.StartsWith("/api/v1/identity/roles/", StringComparison.Ordinal) => host.ARole,
+        "key" when template.StartsWith("/api/v1/flags/", StringComparison.Ordinal) => "portal.usage-banner", // a real flag, so the change would apply
         _ => null,
     };
 

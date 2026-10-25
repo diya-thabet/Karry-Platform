@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Billing.Infrastructure;
+using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
@@ -22,6 +23,9 @@ builder.Services.AddIdentityInfrastructure(builder.Configuration, connectionStri
 
 // Billing subscribes to tenant provisioning (the trial subscription) and runs the subscription lifecycle.
 builder.Services.AddBillingInfrastructure(connectionString);
+
+// Flags: delivers its events (company flag changes); the evaluation itself runs in the API.
+builder.Services.AddFlagsInfrastructure(connectionString);
 
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
@@ -49,6 +53,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<TenancyDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<IdentityDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<BillingDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FlagsDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
 }
@@ -92,6 +97,7 @@ if (args is ["import-sign-ins", ..])
 builder.Services.AddOutboxDispatcherService<TenancyDbContext>();
 builder.Services.AddOutboxDispatcherService<IdentityDbContext>();
 builder.Services.AddOutboxDispatcherService<BillingDbContext>();
+builder.Services.AddOutboxDispatcherService<FlagsDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {

@@ -36,6 +36,10 @@ catalog:
   eslint-plugin-react-hooks: 7.1.1
   eslint-plugin-react-refresh: 0.5.7
   globals: 17.13.0
+  # Feature flags (P1.10, ADR-0019): OpenFeature web SDK; newest versions published >= 7 days before 2026-10-25
+  "@openfeature/core": 1.12.0
+  "@openfeature/web-sdk": 1.10.0
+  "@openfeature/react-sdk": 1.4.1
   # i18n (P1.7): newest versions published >= 7 days before 2026-10-23
   i18next: 26.4.7
   react-i18next: 17.0.20

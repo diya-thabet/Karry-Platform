@@ -21,6 +21,7 @@ public sealed class EndpointAuthorizationTests
         ["GetCurrentAccess"] = "The caller's own permission codes (which screens to show); the API still checks every call.",
         ["GetCurrentTenant"] = "Name and branding of the caller's own company, shown in every app header.",
         ["GetCurrentEntitlements"] = "Plan code, state and feature codes of the caller's own company (which features to show or lock); the API checks every call.",
+        ["GetCurrentFlags"] = "Feature flag values evaluated for the caller and their own company (which features to show); display only, the API checks every call.",
     };
 
     /// <summary>Endpoints without a tenant: anonymous or for platform operators only.</summary>
@@ -36,6 +37,10 @@ public sealed class EndpointAuthorizationTests
         ["ListTenantInvoices"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
         ["RecordTenantInvoice"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
         ["PayTenantInvoice"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["ListFlags"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
+        ["SetPlatformFlag"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
+        ["ListTenantFlags"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
+        ["SetTenantFlag"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
         ["GetTenantBranding"] = "Anonymous login branding (threat model R-07).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
     };

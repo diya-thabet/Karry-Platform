@@ -167,6 +167,15 @@ catalogs:
     '@eslint/js':
       specifier: 10.0.1
       version: 10.0.1
+    '@openfeature/core':
+      specifier: 1.12.0
+      version: 1.12.0
+    '@openfeature/react-sdk':
+      specifier: 1.4.1
+      version: 1.4.1
+    '@openfeature/web-sdk':
+      specifier: 1.10.0
+      version: 1.10.0
     '@playwright/test':
       specifier: 1.64.1
       version: 1.64.1
@@ -419,6 +428,15 @@ importers:
       '@karry/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@openfeature/core':
+        specifier: 'catalog:'
+        version: 1.12.0
+      '@openfeature/react-sdk':
+        specifier: 'catalog:'
+        version: 1.4.1(@openfeature/web-sdk@1.10.0(@openfeature/core@1.12.0))(react@19.3.1)
+      '@openfeature/web-sdk':
+        specifier: 'catalog:'
+        version: 1.10.0(@openfeature/core@1.12.0)
       '@tanstack/react-query':
         specifier: 'catalog:'
         version: 5.104.3(react@19.3.1)
@@ -1132,6 +1150,20 @@ packages:
     peerDependencies:
       '@emnapi/core': ^1.7.1 || ^2.0.0-alpha.4
       '@emnapi/runtime': ^1.7.1 || ^2.0.0-alpha.4
+
+  '@openfeature/core@1.12.0':
+    resolution: {integrity: sha512-7PCPzyd1OC19begz30+CRknFB0ChtyaZUhk7YWrk+Bov1fpVw0HYkTXtoxxsvPfDZB9P9WsT7uixN+Z8f9+bcA==}
+
+  '@openfeature/react-sdk@1.4.1':
+    resolution: {integrity: sha512-xKpXBXVT0w9CIrhl6IzGkIuxmsqy7At+eYUW1XtaZbk+odKW424ZnmmjqiQMrbu31pfAhQrzww36QokTQaIf7g==}
+    peerDependencies:
+      '@openfeature/web-sdk': ^1.9.0
+      react: '>=16.8.0'
+
+  '@openfeature/web-sdk@1.10.0':
+    resolution: {integrity: sha512-qf+JmJSnaslhegNwoDDLn2Cf72P6cIobuAQPUb61MSkzJOZuVLU6f9pv/90FlLcK6UDtp6od//xZHW712rBrmg==}
+    peerDependencies:
+      '@openfeature/core': ^1.12.0
 
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     resolution: {integrity: sha512-0LC7ye4hvqbIKxAzThzvswgHLFu2AURKzYLeSVvLdu2TBOYWQDmHnTqPLeA597BcUCxiLqLsS4CJ5uoI5WYWCQ==}
@@ -3944,6 +3976,17 @@ snapshots:
       '@emnapi/runtime': 1.9.2
       '@tybys/wasm-util': 0.10.4
     optional: true
+
+  '@openfeature/core@1.12.0': {}
+
+  '@openfeature/react-sdk@1.4.1(@openfeature/web-sdk@1.10.0(@openfeature/core@1.12.0))(react@19.3.1)':
+    dependencies:
+      '@openfeature/web-sdk': 1.10.0(@openfeature/core@1.12.0)
+      react: 19.3.1
+
+  '@openfeature/web-sdk@1.10.0(@openfeature/core@1.12.0)':
+    dependencies:
+      '@openfeature/core': 1.12.0
 
   '@oxc-parser/binding-android-arm-eabi@0.127.0':
     optional: true

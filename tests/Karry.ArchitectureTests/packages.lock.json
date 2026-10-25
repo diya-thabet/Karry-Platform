@@ -451,6 +451,7 @@
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.13, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "Npgsql.OpenTelemetry": "[10.0.3, )",
+          "OpenFeature": "[2.14.1, )",
           "OpenTelemetry.Exporter.OpenTelemetryProtocol": "[1.20.0, )",
           "OpenTelemetry.Extensions.Hosting": "[1.20.0, )",
           "OpenTelemetry.Instrumentation.AspNetCore": "[1.20.0, )",
@@ -463,6 +464,7 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Billing.Api": "[1.0.0, )",
+          "Karry.Modules.Flags.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
           "Karry.Modules.Tenancy.Api": "[1.0.0, )",
           "Karry.Modules.Trust.Api": "[1.0.0, )",
@@ -503,6 +505,43 @@
         "type": "Project",
         "dependencies": {
           "Karry.Modules.Billing.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.flags.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Flags.Application": "[1.0.0, )",
+          "Karry.Modules.Flags.Infrastructure": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
+        }
+      },
+      "karry.modules.flags.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Flags.Contracts": "[1.0.0, )",
+          "Karry.Modules.Flags.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
+        }
+      },
+      "karry.modules.flags.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.flags.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.flags.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Flags.Application": "[1.0.0, )",
+          "Karry.Modules.Flags.Domain": "[1.0.0, )"
         }
       },
       "karry.modules.identity.api": {
@@ -727,6 +766,15 @@
         "dependencies": {
           "Npgsql": "10.0.3",
           "OpenTelemetry.API": "1.15.3"
+        }
+      },
+      "OpenFeature": {
+        "type": "CentralTransitive",
+        "requested": "[2.14.1, )",
+        "resolved": "2.14.1",
+        "contentHash": "ubw4ACEyAcHzeRNepzStTE0DgIJHpsYqRNcvdghUpPFXIf9whYiZlYLgBU6jdI2qdoVMXBrzqP6y9w9iDOuEDQ==",
+        "dependencies": {
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.0"
         }
       },
       "OpenTelemetry.Exporter.OpenTelemetryProtocol": {

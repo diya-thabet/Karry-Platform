@@ -7,6 +7,7 @@ import { I18nProvider, type I18n } from "@karry/i18n";
 import { ThemeProvider, ToastProvider } from "@karry/ui";
 import { ApiProvider } from "./ApiProvider";
 import { ErrorDialogProvider } from "./ErrorDialog";
+import { FlagsProvider } from "./FlagsProvider";
 import { createQueryClient } from "./queryClient";
 import { useReportError } from "./reportError";
 import { createPortalRouter } from "./router";
@@ -30,7 +31,9 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
       <ThemeProvider defaultTheme="light" density="office">
         <ToastProvider label="Notifications">
           <ErrorDialogProvider>
-            <DataLayer history={history} />
+            <FlagsProvider>
+              <DataLayer history={history} />
+            </FlagsProvider>
           </ErrorDialogProvider>
         </ToastProvider>
       </ThemeProvider>

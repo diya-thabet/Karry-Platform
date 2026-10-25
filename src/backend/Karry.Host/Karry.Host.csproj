@@ -18,5 +18,6 @@
     <ProjectReference Include="..\Modules\Trust\Karry.Modules.Trust.Api\Karry.Modules.Trust.Api.csproj" />
     <ProjectReference Include="..\Modules\Identity\Karry.Modules.Identity.Api\Karry.Modules.Identity.Api.csproj" />
     <ProjectReference Include="..\Modules\Billing\Karry.Modules.Billing.Api\Karry.Modules.Billing.Api.csproj" />
+    <ProjectReference Include="..\Modules\Flags\Karry.Modules.Flags.Api\Karry.Modules.Flags.Api.csproj" />
   </ItemGroup>
 </Project>

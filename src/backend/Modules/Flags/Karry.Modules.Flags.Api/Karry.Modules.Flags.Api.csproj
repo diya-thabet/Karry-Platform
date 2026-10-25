@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP endpoints and the IModule entry point that wires the Flags module into the host. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Flags.Application/Karry.Modules.Flags.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Flags.Infrastructure/Karry.Modules.Flags.Infrastructure.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+  </ItemGroup>
+</Project>

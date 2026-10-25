@@ -9,6 +9,11 @@
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Contracts/Karry.Modules.Billing.Contracts.csproj" />
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Domain/Karry.Modules.Billing.Domain.csproj" />
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Infrastructure/Karry.Modules.Billing.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Api/Karry.Modules.Flags.Api.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Application/Karry.Modules.Flags.Application.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Contracts/Karry.Modules.Flags.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Domain/Karry.Modules.Flags.Domain.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Infrastructure/Karry.Modules.Flags.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Api/Karry.Modules.Identity.Api.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Application/Karry.Modules.Identity.Application.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
@@ -27,6 +32,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Tests/Karry.Modules.Billing.Tests.csproj" />
+    <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Tests/Karry.Modules.Flags.Tests.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Tests/Karry.Modules.Identity.Tests.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Tests/Karry.Modules.Tenancy.Tests.csproj" />
     <Project Path="src/backend/Modules/Trust/Karry.Modules.Trust.Tests/Karry.Modules.Trust.Tests.csproj" />

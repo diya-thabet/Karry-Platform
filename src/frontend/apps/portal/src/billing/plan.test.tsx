@@ -55,3 +55,17 @@ describe("Plan & usage (US-P1-BIL-04 AC2, AC3)", () => {
     expect(api.sent.some((s) => s.path.includes("billing/usage"))).toBe(false);
   });
 });
+
+describe("the over-limit banner's kill switch (US-P1-PLT-05, ADR-0019)", () => {
+  it("hides the banner when the flag is off for the company", async () => {
+    await renderAt("/settings/plan", fakeApi({
+      permissions: reader,
+      flags: { "portal.usage-banner": false },
+      usage: [{ metric: "assets", usage: 22, limit: 20, ceiling: 22, state: "blocked" }],
+    }));
+
+    expect(await screen.findByRole("table", { name: "Usage" })).toBeInTheDocument();
+    await new Promise((resolve) => setTimeout(resolve, 50)); // the flag provider has loaded
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+});

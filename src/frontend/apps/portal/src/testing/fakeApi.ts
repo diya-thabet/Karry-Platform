@@ -37,6 +37,8 @@ export function fakeApi(options: {
   failWith?: { status: number; code: string };
   /** Feature codes of the company's plan (default: a Professional trial). */
   features?: string[];
+  /** Flags of `GET /flags` (default: none set, so every flag has its default). */
+  flags?: Record<string, boolean>;
   /** Subscription state in `GET /billing/entitlements` (default: trial). */
   status?: string;
   /** Usage lines of `GET /billing/usage` (default: 3 of 15 office users). */
@@ -57,6 +59,10 @@ export function fakeApi(options: {
         planCode: "professional", planVersion: 1, status: options.status ?? "trial", trialEndsAt: "2026-11-24T08:00:00Z",
         features: options.features ?? ["field-operations", "maintenance"], limits: { "office-users": 15 },
       });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/flags") {
+      return json(200, { flags: options.flags ?? {} });
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/billing/usage") {

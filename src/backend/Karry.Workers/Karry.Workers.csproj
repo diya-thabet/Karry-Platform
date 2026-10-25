@@ -9,5 +9,6 @@
     <ProjectReference Include="../Modules/Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/Identity/Karry.Modules.Identity.Infrastructure/Karry.Modules.Identity.Infrastructure.csproj" />
     <ProjectReference Include="../Modules/Billing/Karry.Modules.Billing.Infrastructure/Karry.Modules.Billing.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Flags\Karry.Modules.Flags.Infrastructure\Karry.Modules.Flags.Infrastructure.csproj" />
   </ItemGroup>
 </Project>
