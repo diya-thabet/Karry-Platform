@@ -119,3 +119,31 @@ public static class AddOns
     public static int LimitIncrease(string addOn, string limit) =>
         addOn == EdgeAgent && limit == Limits.EdgeAgentsPerSite ? 1 : 0;
 }
+
+/// <summary>
+/// What a tenant may use right now (ADR-0023): plan version + add-ons + overrides + subscription state, resolved
+/// by the Billing module. <c>Limits</c>: a limit not present is unlimited; per-site limits are per site, the tenant's
+/// total is the value × <c>Sites</c> (plus <c>ExtraAssets</c> for assets).
+/// </summary>
+public sealed record TenantEntitlements(
+    string PlanCode,
+    int PlanVersion,
+    string Status,
+    DateTimeOffset? TrialEndsAt,
+    IReadOnlySet<string> Features,
+    IReadOnlyDictionary<string, int> Limits,
+    int Sites,
+    int ExtraAssets)
+{
+    public bool Includes(string feature) => Features.Contains(feature);
+
+    /// <summary>The tenant-wide limit of <paramref name="limit"/>, or null when unlimited.</summary>
+    public long? TotalLimit(string limit) => Limits.TryGetValue(limit, out var value)
+        ? limit switch
+        {
+            Entitlements.Limits.AssetsPerSite => ((long)value * Sites) + ExtraAssets,
+            Entitlements.Limits.EdgeAgentsPerSite => (long)value * Sites,
+            _ => value,
+        }
+        : null;
+}

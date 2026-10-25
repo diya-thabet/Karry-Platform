@@ -20,6 +20,7 @@ public sealed class EndpointAuthorizationTests
         ["GetCurrentUser"] = "The caller's own profile only (looked up by the token's subject).",
         ["GetCurrentAccess"] = "The caller's own permission codes (which screens to show); the API still checks every call.",
         ["GetCurrentTenant"] = "Name and branding of the caller's own company, shown in every app header.",
+        ["GetCurrentEntitlements"] = "Plan code, state and feature codes of the caller's own company (which features to show or lock); the API checks every call.",
     };
 
     /// <summary>Endpoints without a tenant: anonymous or for platform operators only.</summary>

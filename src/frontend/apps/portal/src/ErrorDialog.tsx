@@ -8,6 +8,7 @@ import { ReportContext } from "./reportError";
 /** Problems the person can act on get their own words; any other shows the generic text and the support reference. */
 const explained = new Set([
   "auth.step_up_required",
+  "billing.feature_not_in_plan",
   "tenant.host_mismatch",
   "identity.escalation",
   "identity.scope_exceeded",

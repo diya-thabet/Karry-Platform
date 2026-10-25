@@ -53,3 +53,24 @@ export function useAccess(): { loaded: boolean; can: (permission: string) => boo
   const permissions = new Set(query.data?.permissions ?? []);
   return { loaded: query.isSuccess, can: (permission) => permissions.has(permission) };
 }
+
+/**
+ * What the company's plan includes (US-P1-BIL-03 AC2), for showing or locking features. Display only: the API refuses
+ * a feature that is not in the plan (`billing.feature_not_in_plan`). Until it is known, nothing is shown.
+ */
+export function useEntitlements(): { loaded: boolean; includes: (feature: string) => boolean; planCode?: string | undefined } {
+  const api = useApi();
+  const query = useQuery({
+    queryKey: ["billing", "entitlements"],
+    queryFn: async () => (await api.GET("/api/v1/billing/entitlements")).data,
+    staleTime: 60_000,
+  });
+  const features = new Set(query.data?.features ?? []);
+  return { loaded: query.isSuccess, includes: (feature) => features.has(feature), planCode: query.data?.planCode };
+}
+
+/** One feature: whether the plan includes it, once known (US-P1-BIL-03 AC2). */
+export function useEntitlement(feature: string): { loaded: boolean; included: boolean } {
+  const { loaded, includes } = useEntitlements();
+  return { loaded, included: includes(feature) };
+}

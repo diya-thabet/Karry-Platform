@@ -7,7 +7,7 @@ import { Dialog } from "./Dialog";
 import { QuantityInput } from "./QuantityInput";
 import { MaskedValue, SensitiveValue } from "./MaskedValue";
 import { StatusChip } from "./StatusChip";
-import { EmptyState, ErrorState } from "./States";
+import { EmptyState, ErrorState, UpgradeCard } from "./States";
 import { TextField } from "./TextField";
 import { ThemeProvider, useTheme } from "../theme/ThemeProvider";
 
@@ -83,6 +83,16 @@ describe("Dialog", () => {
     expect(dialog.contains(document.activeElement)).toBe(true);
     fireEvent.keyDown(dialog, { key: "Escape" });
     expect(change).toHaveBeenCalledWith(false);
+  });
+});
+
+describe("UpgradeCard", () => {
+  it("names the locked feature as a heading and offers the way to get it", () => {
+    render(<UpgradeCard title="Maintenance is not in your plan" action={<Button>See your plan</Button>}>Plan services with Professional.</UpgradeCard>);
+
+    expect(screen.getByRole("heading", { name: "Maintenance is not in your plan" })).toBeInTheDocument();
+    expect(screen.getByText("Plan services with Professional.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "See your plan" })).toBeInTheDocument();
   });
 });
 

@@ -1532,6 +1532,46 @@
         }
       }
     },
+    "/api/v1/billing/entitlements": {
+      "get": {
+        "tags": [
+          "BillingModule"
+        ],
+        "operationId": "GetCurrentEntitlements",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitlementsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/billing/subscription": {
       "get": {
         "tags": [
@@ -2436,6 +2476,58 @@
           }
         },
         "description": "A new custom role, from scratch or cloned from string? CreateRole.BasedOn (whose content fills what is left out)."
+      },
+      "EntitlementsResponse": {
+        "required": [
+          "planCode",
+          "planVersion",
+          "status",
+          "trialEndsAt",
+          "features",
+          "limits"
+        ],
+        "type": "object",
+        "properties": {
+          "planCode": {
+            "type": "string"
+          },
+          "planVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": "string"
+          },
+          "trialEndsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "limits": {
+            "type": "object",
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
+          }
+        },
+        "description": "What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is\nunlimited). The apps show or lock features with it; the API checks every call."
       },
       "FirstAdmin": {
         "required": [

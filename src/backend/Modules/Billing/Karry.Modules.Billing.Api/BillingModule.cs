@@ -119,6 +119,14 @@ public sealed class BillingModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("PayTenantInvoice");
 
+        // What the caller's company may use: every member's app needs it to show or lock features (US-P1-BIL-03 AC2).
+        // Plan code, state and feature codes only; the API enforces them on every call.
+        endpoints.MapGet("/entitlements", EntitlementsAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("GetCurrentEntitlements");
+
         // The company's own subscription and invoices, read-only ("Plan & usage").
         endpoints.MapGet("/subscription", CurrentSubscriptionAsync)
             .RequirePermission(BillingPermissions.SubscriptionRead)
@@ -132,6 +140,13 @@ public sealed class BillingModule : IModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("ListCurrentInvoices");
+    }
+
+    private static async Task<Ok<EntitlementsResponse>> EntitlementsAsync(
+        [FromServices] ITenantContext tenant, [FromServices] BuildingBlocks.Entitlements.IEntitlementResolver resolver, CancellationToken cancellationToken)
+    {
+        var id = tenant.Current ?? throw new InvalidOperationException("Tenant-scoped endpoint reached without a tenant.");
+        return TypedResults.Ok(EntitlementsResponse.Of(await resolver.ResolveAsync(id, cancellationToken).ConfigureAwait(false)));
     }
 
     private static async Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> CurrentSubscriptionAsync(
@@ -265,5 +280,21 @@ public sealed record InvoiceResponse(Guid Id, string Number, decimal Amount, str
     {
         ArgumentNullException.ThrowIfNull(invoice);
         return new(invoice.Id.Value, invoice.Number, invoice.Amount, invoice.Currency, invoice.IssuedOn, invoice.DueOn, invoice.PaidOn);
+    }
+}
+
+/// <summary>
+/// What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is
+/// unlimited). The apps show or lock features with it; the API checks every call.
+/// </summary>
+public sealed record EntitlementsResponse(string PlanCode, int PlanVersion, string Status, DateTimeOffset? TrialEndsAt, IReadOnlyList<string> Features,
+    IReadOnlyDictionary<string, long> Limits)
+{
+    public static EntitlementsResponse Of(SharedKernel.Entitlements.TenantEntitlements entitlements)
+    {
+        ArgumentNullException.ThrowIfNull(entitlements);
+        return new(entitlements.PlanCode, entitlements.PlanVersion, entitlements.Status, entitlements.TrialEndsAt,
+            [.. entitlements.Features.Order(StringComparer.Ordinal)],
+            entitlements.Limits.Keys.Order(StringComparer.Ordinal).ToDictionary(l => l, l => entitlements.TotalLimit(l)!.Value, StringComparer.Ordinal));
     }
 }

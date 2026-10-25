@@ -1,4 +1,4 @@
-import { AlertOctagon, Copy, Inbox } from "lucide-react";
+import { AlertOctagon, Copy, Inbox, Lock } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "@karry/i18n";
 import { Button } from "./Button";
@@ -46,6 +46,23 @@ export function ErrorState({ correlationId, onRetry }: { correlationId?: string 
         </>
       )}
       {onRetry && <Button onClick={onRetry} className="self-start">{t("common.retry")}</Button>}
+    </section>
+  );
+}
+
+/**
+ * A feature the company's plan does not include (US-P1-BIL-03 AC2): what it brings and how to get it, instead of the
+ * feature. Never shows the feature's data (the API refuses it anyway).
+ */
+export function UpgradeCard({ title, children, action }: { title: ReactNode; children?: ReactNode; action?: ReactNode }) {
+  return (
+    <section className="flex flex-col items-start gap-3 rounded-lg border-[length:var(--karry-border-width)] border-primary bg-surface p-6">
+      <h2 className="flex items-center gap-2 text-lg font-bold text-text">
+        <Lock aria-hidden className="size-5 text-primary" />
+        {title}
+      </h2>
+      {children && <div className="text-text-muted">{children}</div>}
+      {action}
     </section>
   );
 }

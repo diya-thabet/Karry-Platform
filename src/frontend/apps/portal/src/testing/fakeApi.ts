@@ -30,7 +30,14 @@ export function defaultRoles(): Role[] {
  * problem look as in production). `needsStepUp`: while it returns true, writes answer 401 `auth.step_up_required`
  * (wire it to the test session's step-up count).
  */
-export function fakeApi(options: { permissions: string[]; users?: User[]; needsStepUp?: () => boolean; failWith?: { status: number; code: string } }) {
+export function fakeApi(options: {
+  permissions: string[];
+  users?: User[];
+  needsStepUp?: () => boolean;
+  failWith?: { status: number; code: string };
+  /** Feature codes of the company's plan (default: a Professional trial). */
+  features?: string[];
+}) {
   const roles = defaultRoles();
   const users = options.users ?? [];
   const sent: Sent[] = [];
@@ -41,6 +48,13 @@ export function fakeApi(options: { permissions: string[]; users?: User[]; needsS
   const fetch = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
     const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
+    if (request.method === "GET" && url.pathname === "/api/v1/billing/entitlements") {
+      return json(200, {
+        planCode: "professional", planVersion: 1, status: "trial", trialEndsAt: "2026-11-24T08:00:00Z",
+        features: options.features ?? ["field-operations", "maintenance"], limits: { "office-users": 15 },
+      });
+    }
+
     const path = url.pathname.replace("/api/v1/identity", "");
     const body: unknown = ["POST", "PUT"].includes(request.method) ? await request.clone().json().catch(() => null) : null;
     sent.push({ method: request.method, path, body });
