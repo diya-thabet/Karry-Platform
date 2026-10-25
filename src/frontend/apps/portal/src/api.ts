@@ -58,7 +58,7 @@ export function useAccess(): { loaded: boolean; can: (permission: string) => boo
  * What the company's plan includes (US-P1-BIL-03 AC2), for showing or locking features. Display only: the API refuses
  * a feature that is not in the plan (`billing.feature_not_in_plan`). Until it is known, nothing is shown.
  */
-export function useEntitlements(): { loaded: boolean; includes: (feature: string) => boolean; planCode?: string | undefined } {
+export function useEntitlements(): { loaded: boolean; includes: (feature: string) => boolean; planCode?: string | undefined; status?: string | undefined } {
   const api = useApi();
   const query = useQuery({
     queryKey: ["billing", "entitlements"],
@@ -66,7 +66,7 @@ export function useEntitlements(): { loaded: boolean; includes: (feature: string
     staleTime: 60_000,
   });
   const features = new Set(query.data?.features ?? []);
-  return { loaded: query.isSuccess, includes: (feature) => features.has(feature), planCode: query.data?.planCode };
+  return { loaded: query.isSuccess, includes: (feature) => features.has(feature), planCode: query.data?.planCode, status: query.data?.status };
 }
 
 /** One feature: whether the plan includes it, once known (US-P1-BIL-03 AC2). */
@@ -109,3 +109,6 @@ export function useUsage(): { loaded: boolean; items: UsageLine[]; snapshotOn: s
   }));
   return { loaded: query.isSuccess, items, snapshotOn: query.data?.snapshotOn };
 }
+
+/** Subscription states in which only billing, export and the person's own account remain (ADR-0023). */
+export const endedStates = new Set(["cancelled", "expired", "deleted"]);

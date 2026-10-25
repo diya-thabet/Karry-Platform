@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
@@ -45,6 +46,7 @@ public sealed class TrustModule : IModule
     {
         // Integrity check of the caller's tenant ledger (US-P1-AUD-03).
         endpoints.MapPost("/verify", VerifyAsync)
+            .ExportAccess()
             .RequirePermission(LedgerVerify)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

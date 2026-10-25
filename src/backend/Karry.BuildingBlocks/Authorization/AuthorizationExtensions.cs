@@ -26,9 +26,9 @@ public static class AuthorizationExtensions
     private sealed class MaskingRegistered;
 
     /// <summary>
-    /// The permission check, then the plan check (ADR-0023); after tenant resolution (they need the tenant), before
-    /// idempotency.
+    /// The permission check, then the plan check, then the subscription state (ADR-0023); after tenant resolution (they
+    /// need the tenant), before idempotency.
     /// </summary>
     public static IApplicationBuilder UseKarryAuthorization(this IApplicationBuilder app) =>
-        app.UseMiddleware<PermissionMiddleware>().UseMiddleware<Entitlements.EntitlementMiddleware>();
+        app.UseMiddleware<PermissionMiddleware>().UseMiddleware<Entitlements.EntitlementMiddleware>().UseMiddleware<Entitlements.SubscriptionStateMiddleware>();
 }

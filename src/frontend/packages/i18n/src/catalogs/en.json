@@ -184,5 +184,13 @@
   "plans.professional": "Professional",
   "plans.business": "Business",
   "plans.enterprise": "Enterprise",
-  "errors.billing.limit_reached": "Your company has reached its plan limit for this. Remove some or ask Karry to change the plan."
+  "errors.billing.limit_reached": "Your company has reached its plan limit for this. Remove some or ask Karry to change the plan.",
+  "portal.subscription.pastDue": "Your company's payment is overdue. Nothing is blocked yet; office changes pause after 14 days without payment.",
+  "portal.subscription.restricted": "Office changes are paused until the subscription is paid. You can still read everything, and field capture continues.",
+  "portal.subscription.suspended": "The subscription is suspended until it is paid: everything is read-only, field capture included. Your data can still be exported.",
+  "portal.subscription.endedTitle": "Your company's subscription has ended",
+  "portal.subscription.endedBody": "Your data is kept. Contact Karry to export it or to reactivate the subscription.",
+  "errors.billing.subscription_restricted": "Office changes are paused until your company's subscription is paid. Field capture continues.",
+  "errors.billing.subscription_suspended": "Your company's subscription is suspended until it is paid: nothing can be changed. Export stays available.",
+  "errors.billing.subscription_inactive": "Your company's subscription has ended: only billing and export are available."
 }

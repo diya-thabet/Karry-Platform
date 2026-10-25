@@ -2,6 +2,7 @@ import { Link, Outlet } from "@tanstack/react-router";
 import { useAuth } from "@karry/auth";
 import { useTranslation } from "@karry/i18n";
 import { Button, EmptyState, LanguageSwitcher, ThemeSwitcher } from "@karry/ui";
+import { SubscriptionGate, SubscriptionNotice } from "./billing/SubscriptionNotice";
 import { UsageBanner } from "./billing/UsageBanner";
 import { sections, type SectionKey } from "./sections";
 
@@ -21,6 +22,7 @@ export function Layout() {
           <Account />
         </div>
       </header>
+      <SubscriptionNotice />
       <UsageBanner />
       <div className="flex flex-col md:flex-row">
         <nav aria-label={t("portal.nav.label")} className="border-b-[length:var(--karry-border-width)] border-border bg-surface p-4 md:min-h-[calc(100vh-6rem)] md:w-56 md:border-b-0 md:border-r-[length:var(--karry-border-width)]">
@@ -40,7 +42,9 @@ export function Layout() {
           </ul>
         </nav>
         <main className="flex-1 p-6">
-          <Outlet />
+          <SubscriptionGate>
+            <Outlet />
+          </SubscriptionGate>
         </main>
       </div>
     </div>

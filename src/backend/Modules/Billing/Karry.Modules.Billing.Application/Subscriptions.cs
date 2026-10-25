@@ -182,7 +182,7 @@ public sealed record LifecycleRun(int Tenants, int Changed, int Failed);
 /// Applies the time rules of the subscription state machine to every tenant (trial end, unpaid days, retention before
 /// deletion; business model §2.5). Hourly in the workers and idempotent: a missed run catches up on the next.
 /// </summary>
-public sealed partial class AdvanceSubscriptions(IServiceScopeFactory scopes, TimeProvider clock, ILogger<AdvanceSubscriptions> logger)
+public sealed partial class AdvanceSubscriptions(IServiceScopeFactory scopes, TimeProvider clock, IEntitlementCache entitlements, ILogger<AdvanceSubscriptions> logger)
 {
     public async Task<LifecycleRun> RunAsync(CancellationToken cancellationToken)
     {
@@ -204,6 +204,7 @@ public sealed partial class AdvanceSubscriptions(IServiceScopeFactory scopes, Ti
                 if (await store.FindAsync(cancellationToken).ConfigureAwait(false) is { } subscription && subscription.Advance(clock))
                 {
                     await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
+                    entitlements.Forget(tenant); // the state is enforced from the cached entitlements
                     changed++;
                 }
             }

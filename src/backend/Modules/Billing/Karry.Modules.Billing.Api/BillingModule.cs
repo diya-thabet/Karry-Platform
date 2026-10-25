@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Tenancy;
@@ -122,6 +123,7 @@ public sealed class BillingModule : IModule
         // What the caller's company may use: every member's app needs it to show or lock features (US-P1-BIL-03 AC2).
         // Plan code, state and feature codes only; the API enforces them on every call.
         endpoints.MapGet("/entitlements", EntitlementsAsync)
+            .BillingAccess()
             .AllowAnyTenantMember()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -129,6 +131,7 @@ public sealed class BillingModule : IModule
 
         // The company's own subscription and invoices, read-only ("Plan & usage").
         endpoints.MapGet("/subscription", CurrentSubscriptionAsync)
+            .BillingAccess()
             .RequirePermission(BillingPermissions.SubscriptionRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -136,6 +139,7 @@ public sealed class BillingModule : IModule
             .WithName("GetCurrentSubscription");
 
         endpoints.MapGet("/invoices", CurrentInvoicesAsync)
+            .BillingAccess()
             .RequirePermission(BillingPermissions.SubscriptionRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
@@ -143,6 +147,7 @@ public sealed class BillingModule : IModule
 
         // Live usage against the plan's limits, for "Plan & usage" and the over-limit banner (US-P1-BIL-04 AC2, AC3).
         endpoints.MapGet("/usage", CurrentUsageAsync)
+            .BillingAccess()
             .RequirePermission(BillingPermissions.SubscriptionRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

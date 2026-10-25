@@ -184,5 +184,13 @@
   "plans.professional": "Professional",
   "plans.business": "Business",
   "plans.enterprise": "Enterprise",
-  "errors.billing.limit_reached": "Votre entreprise a atteint la limite de son abonnement pour cela. Supprimez-en ou demandez à Karry de changer l’abonnement."
+  "errors.billing.limit_reached": "Votre entreprise a atteint la limite de son abonnement pour cela. Supprimez-en ou demandez à Karry de changer l’abonnement.",
+  "portal.subscription.pastDue": "Le paiement de votre entreprise est en retard. Rien n’est encore bloqué ; les modifications au bureau sont suspendues après 14 jours sans paiement.",
+  "portal.subscription.restricted": "Les modifications au bureau sont suspendues jusqu’au paiement de l’abonnement. Vous pouvez toujours tout consulter, et la saisie terrain continue.",
+  "portal.subscription.suspended": "L’abonnement est suspendu jusqu’à son paiement : tout est en lecture seule, saisie terrain comprise. Vos données restent exportables.",
+  "portal.subscription.endedTitle": "L’abonnement de votre entreprise a pris fin",
+  "portal.subscription.endedBody": "Vos données sont conservées. Contactez Karry pour les exporter ou réactiver l’abonnement.",
+  "errors.billing.subscription_restricted": "Les modifications au bureau sont suspendues jusqu’au paiement de l’abonnement. La saisie terrain continue.",
+  "errors.billing.subscription_suspended": "L’abonnement de votre entreprise est suspendu jusqu’à son paiement : rien ne peut être modifié. L’export reste disponible.",
+  "errors.billing.subscription_inactive": "L’abonnement de votre entreprise a pris fin : seuls l’abonnement et l’export restent disponibles."
 }
