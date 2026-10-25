@@ -61,4 +61,10 @@ Rules that apply to every permission:
 - **Granting roles** (threat T-13): only within the caller's sites; never a privileged permission the caller lacks
   there; a privileged role (second factor) only by someone who holds everything it contains. Nobody will be able to change their own
   roles (role-assignment endpoint, later in P1.9).
-- **Second factor:** Tenant Admin, Executive, Finance and Controller (US-P1-IAM-02).
+- **Second factor:** Tenant Admin, Executive, Finance and Controller (US-P1-IAM-02), and every custom role that is
+  privileged.
+- **Custom roles** (US-P1-IAM-05): created from scratch or by cloning any role, with any declared permissions and a
+  level per sensitive field (a field not set is masked). A custom role is privileged when it holds a privileged
+  permission or shows a sensitive field. Default roles keep their permissions; their field levels are company policy.
+  A role someone holds cannot be deleted. Changes touching privileged rights or showing a field need a sign-in of the
+  last 5 minutes, and a role cannot gain a privileged permission its author lacks company-wide.

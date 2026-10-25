@@ -32,26 +32,28 @@ public sealed record InvitedUser(Guid UserId, Guid InvitationId, DateTimeOffset 
 /// <summary>
 /// Invites an office user (US-P1-IAM-03 AC1): the Karry user and invitation, a disabled Keycloak account carrying the
 /// tenant (and <c>mfa-required</c> for privileged roles), then the link by e-mail or phone. The caller holds
-/// <c>identity.users.manage</c> (endpoint) and may give these roles (<see cref="UserAdministration.CheckGrant"/>).
+/// <c>identity.users.manage</c> (endpoint) and may give these roles (<see cref="UserAdministration.CheckGrant"/>; default or custom roles).
 /// The token exists only in the delivered link.
 /// </summary>
 public sealed class InviteUserHandler(
     IIdentityStore store, IIdentityProvider provider, IInvitationSender sender, ITenantDirectory tenants,
-    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock, UserAdministration administration)
+    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock, UserAdministration administration, RoleDirectory directory)
 {
     public async Task<Result<InvitedUser>> HandleAsync(InviteUser command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        return administration.CheckGrant(command.Roles) is { } refused
+        var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
+        return administration.CheckGrant(roles, command.Roles) is { } refused
             ? refused
-            : await InviteAsync(command, administration.Subject, cancellationToken).ConfigureAwait(false);
+            : await InviteAsync(command, administration.Subject, roles, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Without the caller check: the first administrator of a tenant, invited by the platform.</summary>
-    internal async Task<Result<InvitedUser>> InviteAsync(InviteUser command, string? actor, CancellationToken cancellationToken)
+    internal async Task<Result<InvitedUser>> InviteAsync(InviteUser command, string? actor, TenantRoles? roles, CancellationToken cancellationToken)
     {
         var current = tenant.Current ?? throw new InvalidOperationException("Inviting needs a tenant.");
-        var invited = UserAccount.Invite(clock, current, command.FirstName, command.LastName, command.Email, command.Phone, command.Roles, actor);
+        roles ??= await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
+        var invited = UserAccount.Invite(clock, current, command.FirstName, command.LastName, command.Email, command.Phone, command.Roles, actor, roles.Lookup);
         if (!invited.IsSuccess)
         {
             return invited.Error;
@@ -64,7 +66,7 @@ public sealed class InviteUserHandler(
         // Phone users sign in with their number (digits only: Keycloak usernames do not allow '+').
         var username = user.Email ?? user.Phone!.TrimStart('+');
         var account = await provider.CreateAccountAsync(
-            new NewAccount(current, username, user.Email, user.FirstName, user.LastName, user.RequiresMfa), cancellationToken).ConfigureAwait(false);
+            new NewAccount(current, username, user.Email, user.FirstName, user.LastName, user.RequiresMfa(roles.Lookup)), cancellationToken).ConfigureAwait(false);
         if (!account.IsSuccess)
         {
             return account.Error;

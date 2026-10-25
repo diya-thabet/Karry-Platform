@@ -1,5 +1,7 @@
+using Karry.SharedKernel.Results;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
 
 namespace Karry.BuildingBlocks.Authorization;
 
@@ -85,4 +87,49 @@ public static class AuthorizationEndpointExtensions
     public static TBuilder RequireRecentSignIn<TBuilder>(this TBuilder builder, TimeSpan? maxAge = null)
         where TBuilder : IEndpointConventionBuilder =>
         builder.WithMetadata(new RecentSignInRequirement(maxAge ?? DefaultStepUpWindow));
+}
+
+/// <summary>
+/// Step-up for privileged changes decided by a handler (the change itself tells whether it is privileged): the same
+/// 401 <c>auth.step_up_required</c> as <see cref="AuthorizationEndpointExtensions.RequireRecentSignIn{TBuilder}"/>;
+/// module endpoints add the RFC 9470 challenge header to it.
+/// </summary>
+public static class StepUp
+{
+    public static readonly Error Required = Error.Unauthorized(PermissionMiddleware.StepUpCode, "Confirm your identity to make this change.");
+
+    /// <summary>The caller typed their credentials within <paramref name="maxAge"/> (default 5 minutes).</summary>
+    public static bool IsRecent(ICallerAccess caller, TimeProvider clock, TimeSpan? maxAge = null)
+    {
+        ArgumentNullException.ThrowIfNull(caller);
+        ArgumentNullException.ThrowIfNull(clock);
+        return caller.SignedInAt is { } at && clock.GetUtcNow() - at <= (maxAge ?? AuthorizationEndpointExtensions.DefaultStepUpWindow);
+    }
+
+    /// <summary>Null when the caller signed in recently enough, else <see cref="Required"/>.</summary>
+    public static Error? Check(ICallerAccess caller, TimeProvider clock) => IsRecent(caller, clock) ? null : Required;
+
+    /// <summary>Adds the challenge header (and <c>maxAge</c>) to a step-up problem returned by an endpoint.</summary>
+    public static async ValueTask<object?> ChallengeFilter(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        ArgumentNullException.ThrowIfNull(context);
+        ArgumentNullException.ThrowIfNull(next);
+        var result = await next(context).ConfigureAwait(false);
+        if (UnwrapProblem(result) is { } problem && problem.ProblemDetails.Extensions.TryGetValue("code", out var code)
+            && code as string == PermissionMiddleware.StepUpCode)
+        {
+            var seconds = (long)AuthorizationEndpointExtensions.DefaultStepUpWindow.TotalSeconds;
+            problem.ProblemDetails.Extensions["maxAge"] = seconds;
+            context.HttpContext.Response.Headers.WWWAuthenticate = PermissionMiddleware.Challenge(seconds);
+        }
+
+        return result;
+    }
+
+    private static Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult? UnwrapProblem(object? result) => result switch
+    {
+        Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult problem => problem,
+        INestedHttpResult { Result: Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult problem } => problem,
+        _ => null,
+    };
 }

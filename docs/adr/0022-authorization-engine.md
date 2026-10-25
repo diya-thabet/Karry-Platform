@@ -49,6 +49,12 @@ own rows, and the default roles get its permissions without a data migration.
 **Default and custom roles.** The 12 default roles are defined by the catalogue in code: they cannot be deleted or have
 their permissions edited, so a release that adds permissions reaches every tenant. A tenant customizes by **cloning**
 (custom role = stored permission set). Field levels are tenant configuration for every role, default ones included.
+As built (P1.9 slice 4a): a custom role (`identity.roles`) has the code `custom-<id>`, so renaming it never touches the
+users who hold it; it stores its permissions and the field levels it sets (a field it does not mention gets the field's
+fallback, masked by default). A default role stores only the field levels that differ from the catalogue
+(`identity.default_role_settings`). Permissions a module no longer declares are ignored; a role the tenant no longer
+has grants nothing and counts as privileged for the second factor (fail closed). A custom role is **privileged** when
+it holds a privileged permission or shows a sensitive field (read or write). A role someone holds cannot be deleted.
 
 **Scope comes from the assignment.** A user holds a role tenant-wide, on a site or on a warehouse. A permission of kind
 *tenant* is granted only by tenant-wide assignments; *site* by tenant-wide (all sites) or site assignments (that site);
@@ -64,7 +70,10 @@ per instance like deactivation) is stored for the request in `ICallerAccess`.
 **Step-up.** Privileged changes declare `.RequireRecentSignIn()`: the token's `auth_time` must be at most 5 minutes old,
 else 401 `auth.step_up_required` with the RFC 9470 challenge (`insufficient_user_authentication`, `max_age`). The app
 re-authenticates in a pop-up (Keycloak `max_age=0`) and retries, so the form the admin filled is not lost. The check
-runs after the permission check, so it reveals nothing to a caller without the permission.
+runs after the permission check, so it reveals nothing to a caller without the permission. When only the change itself
+tells whether it is privileged, the handler decides with `StepUp.Check` and returns the same 401; a module-wide endpoint
+filter adds the challenge header. For roles, a privileged change is one that adds or removes a privileged permission,
+raises a field to read or write, or deletes a privileged role.
 
 **Masking.** A property marked `[Sensitive("code")]` is filtered in the API's JSON contract (System.Text.Json
 contract modifier): READ/WRITE → sent; MASKED → **not sent**, its name listed in the object's `maskedFields` (the UI
@@ -75,8 +84,10 @@ value is never written (no placeholder in the value's place), a masked field can
 the OpenAPI contract marks every sensitive property (`x-karry-sensitive`) so contract reviews see it.
 
 **Anti-escalation (T-13).** Nobody changes their own roles; only tenant-wide holders grant tenant-wide assignments; a
-caller cannot grant a role containing a privileged permission they do not hold themselves; every change of roles,
-assignments and field levels is ledgered with before/after (codes and IDs only).
+caller cannot grant a role containing a privileged permission they do not hold themselves, nor make a role gain one
+they do not hold tenant-wide; every change of roles, assignments and field levels is ledgered with before/after (codes
+and IDs only). A role change forgets the cached access of the whole tenant at once on the instance that made it (a
+per-tenant generation in the cache key); other instances follow within the 30 s cache lifetime.
 
 ## Consequences
 

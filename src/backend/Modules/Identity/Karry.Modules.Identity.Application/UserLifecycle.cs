@@ -64,20 +64,21 @@ public sealed class AcceptInvitationHandler(IIdentityStore store, IIdentityProvi
 public sealed record CreateFieldUser(string? FirstName, string? LastName, string? EmployeeId, string? Pin, IReadOnlyList<RoleAssignment>? Roles);
 
 /// <summary>A field user with employee ID and PIN (US-P1-IAM-03 AC2); enrolled on a tablet by QR in P1.15.</summary>
-public sealed class CreateFieldUserHandler(IIdentityStore store, ITenantContext tenant, TimeProvider clock, UserAdministration administration)
+public sealed class CreateFieldUserHandler(
+    IIdentityStore store, ITenantContext tenant, TimeProvider clock, UserAdministration administration, RoleDirectory directory)
 {
     public async Task<Result<Guid>> HandleAsync(CreateFieldUser command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
-        if (administration.CheckGrant(command.Roles) is { } refused)
+        var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
+        if (administration.CheckGrant(roles, command.Roles) is { } refused)
         {
             return refused;
         }
 
-        var callerSubject = administration.Subject;
-
         var current = tenant.Current ?? throw new InvalidOperationException("Creating a user needs a tenant.");
-        var user = UserAccount.CreateFieldUser(clock, current, command.FirstName, command.LastName, command.EmployeeId, command.Pin, command.Roles, callerSubject);
+        var user = UserAccount.CreateFieldUser(
+            clock, current, command.FirstName, command.LastName, command.EmployeeId, command.Pin, command.Roles, administration.Subject, roles.Lookup);
         if (!user.IsSuccess)
         {
             return user.Error;
@@ -147,7 +148,7 @@ public sealed class FirstAdminInvitation(IIdentityStore store, InviteUserHandler
             return new FirstAdminInvitationResult(Invited: false, Delivered: false);
         }
 
-        var invited = await invite.InviteAsync(new InviteUser(firstName, lastName, email, null, [new RoleAssignment(Roles.TenantAdmin, null)]), actor, cancellationToken)
+        var invited = await invite.InviteAsync(new InviteUser(firstName, lastName, email, null, [new RoleAssignment(Roles.TenantAdmin, null)]), actor, null, cancellationToken)
             .ConfigureAwait(false);
         return invited.IsSuccess ? new FirstAdminInvitationResult(Invited: true, invited.Value.Delivered) : invited.Error;
     }

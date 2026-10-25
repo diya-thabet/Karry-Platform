@@ -46,7 +46,12 @@ public sealed class IsolationHost : IAsyncLifetime
         // endpoints really run (and must stay inside B) instead of stopping at "admin required".
         AUser = await SeedUserAsync(A.Id, "Alphauser", "alpha.victim@iso-a.test", subject: null);
         await SeedUserAsync(B.Id, "Bravoadmin", "bravo.admin@iso-b.test", AttackerSubject);
+        // Identity (P1.9): a custom role of A to read, change or delete.
+        ARole = await SeedRoleAsync(A.Id, "Alpharole");
     }
+
+    /// <summary>Code of tenant A's custom role (its name, <c>Alpharole</c>, is a marker too).</summary>
+    public string ARole { get; private set; } = null!;
 
     public const string AttackerSubject = "attacker-b";
 
@@ -94,6 +99,25 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue((object?)subject ?? DBNull.Value);
         await insert.ExecuteNonQueryAsync();
         return new SeededUser(id, lastName, email);
+    }
+
+    private async Task<string> SeedRoleAsync(Guid tenant, string name)
+    {
+        var id = Guid.CreateVersion7();
+        var code = $"custom-{id:N}";
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO identity.roles (id, tenant_id, code, name, office, permissions, field_levels, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, true, '["identity.users.read"]', '{}', now(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(code);
+        insert.Parameters.AddWithValue(name);
+        await insert.ExecuteNonQueryAsync();
+        return code;
     }
 
     private sealed class Factory(string connectionString) : WebApplicationFactory<Program>
@@ -173,7 +197,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
                 $"{operationId} addressed tenant A's resource with tenant B's token");
         }
 
-        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email], $"{operationId} returned tenant A's data to tenant B");
+        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole"],
+            $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
 
@@ -239,6 +264,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "id" when template.StartsWith("/api/v1/identity/users/", StringComparison.Ordinal) => host.AUser.Id.ToString(),
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,
+        "code" when template.StartsWith("/api/v1/identity/roles/", StringComparison.Ordinal) => host.ARole,
         _ => null,
     };
 

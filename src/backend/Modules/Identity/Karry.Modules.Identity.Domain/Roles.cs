@@ -43,7 +43,13 @@ public static class Roles
         new(Mechanic, Privileged: false, Office: false),
         new(Operator, Privileged: false, Office: false),
     }.ToFrozenDictionary(r => r.Code, StringComparer.Ordinal);
+
+    /// <summary>A default role, or null (lookup for code that only knows the default roles).</summary>
+    public static RoleDefinition? Find(string code) => Defaults.GetValueOrDefault(code);
 }
+
+/// <summary>Finds a role (default or custom) by code; null when the tenant has no such role.</summary>
+public delegate RoleDefinition? RoleLookup(string code);
 
 /// <summary>A role held tenant-wide (<see cref="SiteId"/> null) or on one site (US-P1-IAM-03 AC1, US-P1-IAM-06).</summary>
 public sealed record RoleAssignment(string Role, Guid? SiteId);

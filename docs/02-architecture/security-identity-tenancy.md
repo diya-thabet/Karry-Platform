@@ -77,7 +77,7 @@ FieldRule  = (resource.field, READ | WRITE | MASKED | HIDDEN)
 
 - **RBAC** for coarse roles, **ABAC** for scope (tenant → site → warehouse), **field-level masking** applied in the API serialisation layer (never only in UI).
 - Default roles shipped (Operator, Weighmaster, Controller, Storekeeper, Planner, Site Manager, Finance, Executive, Tenant Admin) and fully customisable.
-- Permission changes are themselves ledger events.
+- Permission changes are themselves ledger events (`identity.role_created.v1`, `role_changed.v1`, `role_deleted.v1`, `field_levels_changed.v1`, with before and after).
 - How the engine is built (declarations in code, fail-closed middleware, scope rules, step-up, masking in the JSON contract): [ADR-0022](../adr/0022-authorization-engine.md).
 - Masking is proven by the `ci / authorization` job: the masking suite (TC-P1-IAM-005) checks that every money-like property of the committed contract is marked, that every success response is JSON (so it passes the masking serializer) and, for every API type with sensitive fields, that the host's own serializer never writes a masked or hidden canary value.
 

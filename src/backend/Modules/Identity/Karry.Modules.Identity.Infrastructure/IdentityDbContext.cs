@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Identity.Domain;
+using Karry.SharedKernel.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
@@ -14,12 +15,26 @@ public sealed class ImportCursorRow
     public DateTimeOffset Position { get; set; }
 }
 
-/// <summary>Schema <c>identity</c>: users, invitations and sign-in failures (tenant-owned, row-level security) and importer cursors.</summary>
+/// <summary>
+/// Schema <c>identity</c>: users, invitations, sign-in failures, custom roles and default-role field levels
+/// (tenant-owned, row-level security) and importer cursors.
+/// </summary>
 public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> options) : ModuleDbContext(options)
 {
     public const string SchemaName = "identity";
 
     private static readonly JsonSerializerOptions RolesJson = new(JsonSerializerDefaults.Web);
+
+    /// <summary>Field levels as <c>{"field": "masked"}</c> (lower-case names, like the API and the ledger).</summary>
+    private static readonly Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<IReadOnlyDictionary<string, FieldAccess>, string> FieldLevelsConverter = new(
+        levels => JsonSerializer.Serialize(levels.ToDictionary(l => l.Key, l => l.Value.ToString().ToLowerInvariant()), RolesJson),
+        json => JsonSerializer.Deserialize<Dictionary<string, string>>(json, RolesJson)!
+            .ToDictionary(l => l.Key, l => Enum.Parse<FieldAccess>(l.Value, ignoreCase: true), StringComparer.Ordinal));
+
+    private static readonly ValueComparer<IReadOnlyDictionary<string, FieldAccess>> FieldLevelsComparer = new(
+        (a, b) => a!.Count == b!.Count && a.All(l => b.ContainsKey(l.Key) && b[l.Key] == l.Value),
+        levels => levels.OrderBy(l => l.Key, StringComparer.Ordinal).Aggregate(0, (hash, l) => HashCode.Combine(hash, l.Key, l.Value)),
+        levels => levels.ToDictionary(l => l.Key, l => l.Value, StringComparer.Ordinal));
 
     public override string Schema => SchemaName;
 
@@ -30,6 +45,10 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
     public DbSet<SignInFailure> SignInFailures => Set<SignInFailure>();
 
     public DbSet<ImportCursorRow> ImportCursors => Set<ImportCursorRow>();
+
+    public DbSet<CustomRole> CustomRoles => Set<CustomRole>();
+
+    public DbSet<DefaultRoleSettings> DefaultRoleSettings => Set<DefaultRoleSettings>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,7 +80,6 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             user.HasIndex(u => new { u.TenantId, u.EmployeeId }).IsUnique().HasFilter("employee_id IS NOT NULL");
             user.HasIndex(u => u.Subject).IsUnique().HasFilter("subject IS NOT NULL");
             user.Ignore(u => u.DisplayName);
-            user.Ignore(u => u.RequiresMfa);
             user.Ignore(u => u.DomainEvents);
             user.Ignore(u => u.AggregateKey);
         });
@@ -95,6 +113,42 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             failure.Ignore(f => f.Locked);
             failure.Ignore(f => f.DomainEvents);
             failure.Ignore(f => f.AggregateKey);
+        });
+
+        modelBuilder.Entity<CustomRole>(role =>
+        {
+            role.ToTable("roles");
+            role.HasKey(r => r.Id);
+            role.Property(r => r.Id).HasConversion(id => id.Value, value => new RoleId(value)).ValueGeneratedNever();
+            role.Property(r => r.Code).HasMaxLength(60);
+            role.Property(r => r.Name).HasMaxLength(CustomRole.NameMaxLength);
+            role.Property(r => r.Description).HasMaxLength(CustomRole.DescriptionMaxLength);
+            role.Property(r => r.BasedOn).HasMaxLength(60);
+            role.Property(r => r.Permissions).HasColumnType("jsonb").HasConversion(
+                permissions => JsonSerializer.Serialize(permissions, RolesJson),
+                json => JsonSerializer.Deserialize<List<string>>(json, RolesJson)!,
+                new ValueComparer<IReadOnlyList<string>>(
+                    (a, b) => a!.SequenceEqual(b!), list => list.Aggregate(0, (hash, p) => HashCode.Combine(hash, p)), list => list.ToList()));
+            role.Property(r => r.FieldLevels).HasColumnType("jsonb").HasConversion(FieldLevelsConverter, FieldLevelsComparer);
+            role.Property<uint>("xmin").IsRowVersion();
+            role.HasIndex(r => new { r.TenantId, r.Code }).IsUnique();
+            role.HasIndex(r => new { r.TenantId, r.Name }).IsUnique();
+            role.Ignore(r => r.Content);
+            role.Ignore(r => r.DomainEvents);
+            role.Ignore(r => r.AggregateKey);
+        });
+
+        modelBuilder.Entity<DefaultRoleSettings>(settings =>
+        {
+            settings.ToTable("default_role_settings");
+            settings.HasKey(s => s.Id);
+            settings.Property(s => s.Id).HasConversion(id => id.Value, value => new DefaultRoleSettingsId(value)).ValueGeneratedNever();
+            settings.Property(s => s.Role).HasMaxLength(60);
+            settings.Property(s => s.FieldLevels).HasColumnType("jsonb").HasConversion(FieldLevelsConverter, FieldLevelsComparer);
+            settings.Property<uint>("xmin").IsRowVersion();
+            settings.HasIndex(s => new { s.TenantId, s.Role }).IsUnique();
+            settings.Ignore(s => s.DomainEvents);
+            settings.Ignore(s => s.AggregateKey);
         });
 
         // Platform bookkeeping of the importers (no tenant data): see deploy/database/global-reference-tables.txt.

@@ -93,8 +93,12 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
 
     public IReadOnlyList<RoleAssignment> Roles { get; private set; }
 
-    /// <summary>Some role demands a second factor (Keycloak role <c>mfa-required</c>).</summary>
-    public bool RequiresMfa => Roles.Any(r => Domain.Roles.Defaults[r.Role].Privileged);
+    /// <summary>Some role demands a second factor (Keycloak role <c>mfa-required</c>); unknown roles count as privileged.</summary>
+    public bool RequiresMfa(RoleLookup roles)
+    {
+        ArgumentNullException.ThrowIfNull(roles);
+        return Roles.Any(r => roles(r.Role)?.Privileged ?? true);
+    }
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -105,10 +109,10 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     /// <summary>An office user invited by e-mail or phone; becomes active when the invitation is accepted.</summary>
     public static Result<(UserAccount User, Invitation Invitation, string Token)> Invite(
         TimeProvider clock, TenantId tenant, string? firstName, string? lastName, string? email, string? phone,
-        IReadOnlyList<RoleAssignment>? roles, string? actor)
+        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
-        var common = Validate(firstName, lastName, roles);
+        var common = Validate(firstName, lastName, roles, known ?? Domain.Roles.Find);
         if (!common.IsSuccess)
         {
             return common.Error;
@@ -139,17 +143,18 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     /// <summary>A field user: employee ID + PIN, active at once, no Keycloak account (AC2).</summary>
     public static Result<UserAccount> CreateFieldUser(
         TimeProvider clock, TenantId tenant, string? firstName, string? lastName, string? employeeId, string? pin,
-        IReadOnlyList<RoleAssignment>? roles, string? actor)
+        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known = null)
     {
         ArgumentNullException.ThrowIfNull(clock);
-        var common = Validate(firstName, lastName, roles);
+        var lookup = known ?? Domain.Roles.Find;
+        var common = Validate(firstName, lastName, roles, lookup);
         if (!common.IsSuccess)
         {
             return common.Error;
         }
 
         var (first, last, assignments) = common.Value;
-        if (assignments.Any(a => Domain.Roles.Defaults[a.Role].Office))
+        if (assignments.Any(a => lookup(a.Role)!.Office))
         {
             return Error.Validation("identity.role_needs_account", "Office roles need an invited account with a password, not a PIN.");
         }
@@ -223,7 +228,8 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         return true;
     }
 
-    private static Result<(string First, string Last, List<RoleAssignment> Roles)> Validate(string? firstName, string? lastName, IReadOnlyList<RoleAssignment>? roles)
+    private static Result<(string First, string Last, List<RoleAssignment> Roles)> Validate(
+        string? firstName, string? lastName, IReadOnlyList<RoleAssignment>? roles, RoleLookup known)
     {
         var first = Normalize(firstName);
         var last = Normalize(lastName);
@@ -237,7 +243,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
             return Error.Validation("identity.roles_required", "Give the user at least one role.");
         }
 
-        if (roles.Any(r => r is null || !Domain.Roles.Defaults.ContainsKey(r.Role)))
+        if (roles.Any(r => r is null || known(r.Role) is null))
         {
             return Error.Validation("identity.role_unknown", "Unknown role.");
         }
