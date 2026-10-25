@@ -432,7 +432,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | Allow/deny matrix | For each default role × sample endpoint: allowed and denied cases (table-driven) |
 
 - **Two-reviewer rule:** security review pass.
-- **Done when:** masking suite and scope tests are required checks; threat T-10/T-13 marked verified.
+- **Done when:** masking suite and scope tests are required checks; threat T-10/T-13 marked verified. *(Done 2026-10-25, PRs #50–#55: masking suite TC-P1-IAM-005 in required job `authorization`, scope tests TC-P1-IAM-006 in `backend` and the isolation suite; T-10/T-13 verified in the [threat model](../../02-architecture/threat-model.md); engine in [ADR-0022](../../adr/0022-authorization-engine.md), accepted. As built: default roles keep their catalogue permissions and are cloned to change them; field levels are a per-tenant policy for any role; step-up is decided by the handler from the change.)*
 
 ---
 
