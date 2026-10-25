@@ -1,5 +1,8 @@
+using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Billing.Application;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Tenancy.Application;
+using Karry.Modules.Tenancy.Contracts;
 using Karry.SharedKernel.Tenancy;
 
 namespace Karry.Host;
@@ -7,6 +10,8 @@ namespace Karry.Host;
 /// <summary>
 /// Demo data for local and demo environments: two tenants used by the isolation suite and demos, each with one user
 /// per default role when Keycloak is configured (<c>Identity:Keycloak:BaseUrl</c>; password <c>Identity:DemoPassword</c>).
+/// A demo tenant without a subscription (seeded before Billing existed) gets its trial here, the same way provisioning
+/// starts it.
 /// </summary>
 internal static class DemoSeed
 {
@@ -29,6 +34,14 @@ internal static class DemoSeed
             if (!result.IsSuccess)
             {
                 throw new InvalidOperationException($"Demo tenant {tenant.Slug}: {result.Error.Code}");
+            }
+
+            await using (var billing = services.CreateAsyncScope())
+            {
+                var id = new TenantId(result.Value.Id);
+                billing.ServiceProvider.GetRequiredService<ITenantContext>().Set(id);
+                await billing.ServiceProvider.GetServices<ITenantProvisionedHandler>().OfType<TrialOnProvisioning>().Single()
+                    .HandleAsync(new TenantSummary(id, tenant.Slug, tenant.Name), cancellationToken).ConfigureAwait(false);
             }
 
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
