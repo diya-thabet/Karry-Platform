@@ -25,6 +25,7 @@ public static class IdentityInfrastructure
         services.Configure<MessagingOptions>(configuration.GetSection(MessagingOptions.Section));
 
         services.AddScoped<IIdentityStore, IdentityStore>();
+        services.AddScoped<BuildingBlocks.Entitlements.IUsageSource, OfficeSeats>();
         services.AddMemoryCache();
         services.AddScoped<RevocationCache>();
         services.AddScoped<IAccessRevocation>(sp => sp.GetRequiredService<RevocationCache>());

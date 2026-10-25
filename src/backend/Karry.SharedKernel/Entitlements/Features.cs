@@ -91,6 +91,63 @@ public static class Limits
 /// Add-ons a subscription can carry, with what each one grants (business model §2.3 add-ons). Their prices are on
 /// the manual invoices until the billing provider (Phase 10).
 /// </summary>
+/// <summary>
+/// What usage meters count (US-P1-BIL-04): each module that owns a counted thing reports it (<c>IUsageSource</c>), a
+/// daily snapshot keeps one value per tenant, metric and day. Field users are never counted (unlimited on every plan).
+/// </summary>
+public static class Metrics
+{
+    /// <summary>Office users who are invited or active (an open invitation holds a seat); not field users.</summary>
+    public const string OfficeUsers = "office-users";
+
+    public const string Sites = "sites";
+
+    public const string Assets = "assets";
+
+    public const string StorageBytes = "storage-bytes";
+
+    public static IReadOnlyList<string> All { get; } = [OfficeUsers, Sites, Assets, StorageBytes];
+
+    public static bool IsKnown(string? code) => code is not null && All.Contains(code, StringComparer.Ordinal);
+
+    /// <summary>The plan limit a metric is held against (its tenant-wide total), or null when nothing limits it.</summary>
+    public static string? LimitOf(string metric) => metric switch
+    {
+        OfficeUsers => Limits.OfficeUsers,
+        Assets => Limits.AssetsPerSite,
+        _ => null,
+    };
+}
+
+/// <summary>
+/// Soft limits (business model §2.4, ADR-0023): up to the limit nothing shows; above it the admin sees a banner and
+/// Karry is told, still nothing is blocked; at the ceiling (the limit plus a 10 % grace, at least one) only creating
+/// another counted item is refused. Field capture never is.
+/// </summary>
+public static class SoftLimit
+{
+    public const string Within = "within";
+
+    public const string Over = "over";
+
+    public const string Blocked = "blocked";
+
+    /// <summary>The limit plus 10 % rounded up: 20 → 22, 15 → 17, 3 → 4, 0 → 0.</summary>
+    public static long Ceiling(long limit) => limit + ((limit + 9) / 10);
+
+    /// <summary><see cref="Within"/>, <see cref="Over"/> (banner) or <see cref="Blocked"/> (no more creation); unlimited is always within.</summary>
+    public static string State(long usage, long? limit) => limit switch
+    {
+        null => Within,
+        { } l when usage >= Ceiling(l) => Blocked,
+        { } l when usage > l => Over,
+        _ => Within,
+    };
+
+    /// <summary>Whether one more item may be created at <paramref name="usage"/>.</summary>
+    public static bool AllowsOneMore(long usage, long? limit) => limit is not { } l || usage + 1 <= Ceiling(l);
+}
+
 public static class AddOns
 {
     /// <summary>AI copilot on a plan that does not include it (Professional).</summary>

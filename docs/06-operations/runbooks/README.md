@@ -23,3 +23,5 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-ledger-anchoring-stale](karry-ledger-anchoring-stale.md) | No full ledger anchoring run for 2 h (or worker silent) | page |
 | [karry-database-cpu-high](karry-database-cpu-high.md) | Database CPU > 80 % for 15 min | page |
 | [karry-certificate-expiring-soon](karry-certificate-expiring-soon.md) | TLS certificate expires in < 14 days | ticket |
+| [karry-tenant-over-limit](karry-tenant-over-limit.md) | A company above a plan limit at the last usage snapshot | ticket |
+| [karry-usage-snapshot-stale](karry-usage-snapshot-stale.md) | No complete daily usage snapshot for 26 h (or worker silent) | ticket |

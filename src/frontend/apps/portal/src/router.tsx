@@ -1,4 +1,5 @@
 import { createRootRoute, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
+import { PlanPage } from "./billing/PlanPage";
 import { Layout, NotFound, Section } from "./Layout";
 import { sections } from "./sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
@@ -22,9 +23,10 @@ const role = createRoute({
   },
 });
 const users = createRoute({ getParentRoute: () => root, path: "/settings/users", component: UsersPage });
+const plan = createRoute({ getParentRoute: () => root, path: "/settings/plan", component: PlanPage });
 
 export function createPortalRouter(history?: RouterHistory) {
-  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users]), ...(history ? { history } : {}) });
+  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan]), ...(history ? { history } : {}) });
 }
 
 declare module "@tanstack/react-router" {

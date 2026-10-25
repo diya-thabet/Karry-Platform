@@ -38,6 +38,25 @@ public sealed record Error
     /// <summary>Per-field messages for <see cref="ErrorKind.Validation"/> errors.</summary>
     public IReadOnlyDictionary<string, string[]> FieldErrors { get; }
 
+    /// <summary>
+    /// Extra members of the problem (e.g. <c>metric</c>, <c>limit</c>, <c>usage</c> of <c>billing.limit_reached</c>);
+    /// part of the contract like the code. Values are numbers or strings, never personal data.
+    /// </summary>
+    public IReadOnlyDictionary<string, object> Extensions { get; private init; } = new Dictionary<string, object>();
+
+    /// <summary>A copy with one more problem member. <c>code</c>, <c>traceId</c> and <c>errors</c> are reserved.</summary>
+    public Error With(string name, object value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentNullException.ThrowIfNull(value);
+        if (name is "code" or "traceId" or "errors" or "type" or "title" or "status" or "detail" or "instance")
+        {
+            throw new ArgumentException($"'{name}' is a reserved problem member.", nameof(name));
+        }
+
+        return this with { Extensions = new Dictionary<string, object>(Extensions, StringComparer.Ordinal) { [name] = value } };
+    }
+
     public static Error Validation(string code, string message, IReadOnlyDictionary<string, string[]>? fieldErrors = null) =>
         new(ErrorKind.Validation, code, message, fieldErrors);
 

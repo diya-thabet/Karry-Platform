@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
@@ -8,6 +9,8 @@ using Karry.Modules.Identity.Api;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
+using Karry.SharedKernel.Entitlements;
+using Karry.SharedKernel.Results;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
@@ -34,6 +37,28 @@ public sealed class CapturingSender : IInvitationSender
         Uri.UnescapeDataString(Sent.Last(m => m.Destination == destination).Link.Fragment["#token=".Length..]);
 }
 
+/// <summary>Office-seat limits per tenant for the test host (Billing owns the real guard); a tenant not listed is unlimited.</summary>
+public sealed class SeatLimits
+{
+    public ConcurrentDictionary<Guid, long> ByTenant { get; } = new();
+}
+
+/// <summary>
+/// The soft-limit rule over Identity's real seat meter, with limits from <see cref="SeatLimits"/> instead of a plan:
+/// proves the invitation calls the guard and the meter counts the right users.
+/// </summary>
+internal sealed class SeatLimitGuard(IEnumerable<IUsageSource> sources, ITenantContext tenant, SeatLimits limits) : ILimitGuard
+{
+    public async Task<Error?> CheckCreateAsync(string metric, CancellationToken cancellationToken)
+    {
+        var usage = await sources.Single(s => s.Metric == metric).CountAsync(cancellationToken);
+        long? limit = limits.ByTenant.TryGetValue(tenant.Current!.Value.Value, out var l) ? l : null;
+        return SoftLimit.AllowsOneMore(usage, limit)
+            ? null
+            : Error.Forbidden("billing.limit_reached", "Limit reached.").With("metric", metric).With("limit", limit!.Value).With("usage", usage);
+    }
+}
+
 /// <summary>
 /// Identity, Tenancy and Trust behind the real pipeline, on PostgreSQL with the real roles and a real Keycloak with
 /// the repository realm. Tokens for the API come from the test issuer (the API side of Keycloak tokens is proven by
@@ -51,6 +76,8 @@ public sealed class IdentityHost : IAsyncLifetime
     public HttpClient Client { get; private set; } = null!;
 
     public CapturingSender Sender { get; } = new();
+
+    public SeatLimits SeatLimits { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
 
@@ -81,6 +108,8 @@ public sealed class IdentityHost : IAsyncLifetime
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule(), new ProbeModule()]);
         builder.Services.RemoveAll<IInvitationSender>();
         builder.Services.AddSingleton<IInvitationSender>(Sender);
+        builder.Services.AddSingleton(SeatLimits);
+        builder.Services.AddScoped<ILimitGuard, SeatLimitGuard>();
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();

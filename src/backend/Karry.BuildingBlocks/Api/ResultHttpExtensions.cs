@@ -24,6 +24,11 @@ public static class ResultHttpExtensions
             extensions["errors"] = error.FieldErrors;
         }
 
+        foreach (var (name, value) in error.Extensions)
+        {
+            extensions[name] = value;
+        }
+
         return TypedResults.Problem(
             title: error.Message,
             statusCode: ProblemTypes.StatusFor(error.Kind),

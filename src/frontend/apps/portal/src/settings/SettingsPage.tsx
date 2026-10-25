@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "@karry/i18n";
 import { EmptyState } from "@karry/ui";
-import { useAccess } from "../api";
+import { BillingReadPermission, useAccess } from "../api";
 
 /** Company settings: only the screens the person may use (the API checks every call anyway). */
 export function SettingsPage() {
@@ -10,6 +10,7 @@ export function SettingsPage() {
   const links = [
     { to: "/settings/roles", label: t("portal.roles.title"), hint: t("portal.settings.rolesHint"), permission: "identity.roles.read" },
     { to: "/settings/users", label: t("portal.users.title"), hint: t("portal.settings.usersHint"), permission: "identity.users.read" },
+    { to: "/settings/plan", label: t("portal.plan.title"), hint: t("portal.settings.planHint"), permission: BillingReadPermission },
   ].filter((link) => can(link.permission));
 
   return (

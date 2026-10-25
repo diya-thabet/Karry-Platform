@@ -62,4 +62,19 @@ public sealed class ResultTests
         error.Kind.Should().Be(ErrorKind.Validation);
         error.FieldErrors["code"].Should().Equal("Required.");
     }
+
+    [Fact]
+    [Trait("Story", "US-P1-BIL-04")]
+    public void Extra_problem_members_are_added_to_a_copy_and_reserved_names_are_refused()
+    {
+        var reached = Error.Forbidden("billing.limit_reached", "Limit reached.");
+
+        var detailed = reached.With("metric", "assets").With("limit", 20L);
+
+        detailed.Extensions.Should().BeEquivalentTo(new Dictionary<string, object> { ["metric"] = "assets", ["limit"] = 20L });
+        reached.Extensions.Should().BeEmpty("the original is unchanged");
+        detailed.Code.Should().Be("billing.limit_reached");
+        ((Action)(() => reached.With("code", "x"))).Should().Throw<ArgumentException>();
+        ((Action)(() => reached.With("errors", "x"))).Should().Throw<ArgumentException>();
+    }
 }

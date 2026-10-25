@@ -1,6 +1,8 @@
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Domain;
 using Karry.Modules.Tenancy.Contracts;
+using Karry.SharedKernel.Entitlements;
 using Karry.SharedKernel.Results;
 using Microsoft.Extensions.Options;
 
@@ -33,18 +35,25 @@ public sealed record InvitedUser(Guid UserId, Guid InvitationId, DateTimeOffset 
 /// Invites an office user (US-P1-IAM-03 AC1): the Karry user and invitation, a disabled Keycloak account carrying the
 /// tenant (and <c>mfa-required</c> for privileged roles), then the link by e-mail or phone. The caller holds
 /// <c>identity.users.manage</c> (endpoint) and may give these roles (<see cref="UserAdministration.CheckGrant"/>; default or custom roles).
+/// The plan's office-seat limit is checked first (soft, with its grace: 403 <c>billing.limit_reached</c>, ADR-0023).
 /// The token exists only in the delivered link.
 /// </summary>
 public sealed class InviteUserHandler(
     IIdentityStore store, IIdentityProvider provider, IInvitationSender sender, ITenantDirectory tenants,
-    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock, UserAdministration administration, RoleDirectory directory)
+    ITenantContext tenant, IOptions<IdentityOptions> options, TimeProvider clock, UserAdministration administration, RoleDirectory directory,
+    ILimitGuard limits)
 {
     public async Task<Result<InvitedUser>> HandleAsync(InviteUser command, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(command);
         var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
-        return administration.CheckGrant(roles, command.Roles) is { } refused
-            ? refused
+        if (administration.CheckGrant(roles, command.Roles) is { } refused)
+        {
+            return refused;
+        }
+
+        return await limits.CheckCreateAsync(Metrics.OfficeUsers, cancellationToken).ConfigureAwait(false) is { } full
+            ? full
             : await InviteAsync(command, administration.Subject, roles, cancellationToken).ConfigureAwait(false);
     }
 

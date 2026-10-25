@@ -20,6 +20,12 @@ public static class BillingInfrastructure
         services.AddSingleton<EntitlementCacheGenerations>();
         services.AddSingleton<IEntitlementCache>(sp => sp.GetRequiredService<EntitlementCacheGenerations>());
         services.AddScoped<BuildingBlocks.Entitlements.IEntitlementResolver, EntitlementResolver>();
+        services.AddScoped<IUsageStore, UsageStore>();
+        services.AddScoped<UsageMeter>();
+        services.AddScoped<BuildingBlocks.Entitlements.ILimitGuard, LimitGuard>();
+        services.AddMetrics();
+        services.AddSingleton<UsageMetrics>();
+        services.AddSingleton<SnapshotUsage>();
         return services;
     }
 }

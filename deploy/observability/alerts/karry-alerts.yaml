@@ -6,6 +6,8 @@
 #   http_server_request_duration_seconds_*   ASP.NET Core via OpenTelemetry (karry-api)
 #   karry_outbox_oldest_pending_age_seconds  Karry.BuildingBlocks OutboxMetrics (karry-workers)
 #   karry_ledger_anchor_last_success_seconds  Trust AnchoringMetrics (karry-workers): unix time of the last full run
+#   karry_billing_usage_over_limit           Billing UsageMetrics (karry-workers): tenant metrics above their plan limit
+#   karry_billing_usage_last_success_seconds  Billing UsageMetrics (karry-workers): unix time of the last full snapshot
 #   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
 #                                            exporter relabelled to it (wired with hosting in P1.17)
 #   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
@@ -100,3 +102,33 @@ groups:
           summary: "Certificate of {{ $labels.instance }} expires in {{ $value | printf \"%.1f\" }} days"
           description: "Automatic renewal did not happen. Renew before expiry or every client (portal, field app, edge agents) fails TLS."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-certificate-expiring-soon.md"
+
+  - name: karry-billing
+    rules:
+      - alert: KarryTenantOverLimit
+        # At the last daily usage snapshot a tenant was above a plan limit (US-P1-BIL-04 AC2): Karry tells the
+        # customer about an upgrade. Nothing is blocked until the 10 % grace is used up. The worker log (event 5002)
+        # names the tenants; the metric has no tenant label.
+        expr: max by (job) (karry_billing_usage_over_limit) > 0
+        for: 1h
+        labels:
+          severity: ticket
+        annotations:
+          summary: "{{ $value | printf \"%.0f\" }} tenant limit(s) exceeded at the last usage snapshot"
+          description: "A company uses more than its plan allows. Contact it about an upgrade; creation stops at the limit + 10 %. Worker logs: event 5002."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-tenant-over-limit.md"
+
+      - alert: KarryUsageSnapshotStale
+        # No complete daily usage snapshot for 26 hours, or the worker that takes it is silent: over-limit notices
+        # and the usage history stop (limits are still enforced live).
+        expr: |
+          (time() - max by (job) (karry_billing_usage_last_success_seconds)) > 93600
+          or
+          absent(karry_billing_usage_last_success_seconds)
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "No complete usage snapshot for over 26 hours"
+          description: "The daily usage snapshot failed for a tenant or did not run. Check the worker logs (event 5003)."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-usage-snapshot-stale.md"
