@@ -123,7 +123,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Billing.Contracts": "[1.0.0, )",
-          "Karry.Modules.Billing.Domain": "[1.0.0, )"
+          "Karry.Modules.Billing.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.billing.contracts": {
@@ -142,6 +143,12 @@
         "type": "Project",
         "dependencies": {
           "Karry.Modules.Billing.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.tenancy.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
         }
       },
       "karry.sharedkernel": {

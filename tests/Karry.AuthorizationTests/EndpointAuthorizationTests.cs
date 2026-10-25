@@ -29,6 +29,12 @@ public sealed class EndpointAuthorizationTests
         ["ListPlans"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
         ["GetPlanVersions"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
         ["PublishPlan"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
+        ["GetTenantSubscription"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["ChangeTenantSubscription"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["ActOnTenantSubscription"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["ListTenantInvoices"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["RecordTenantInvoice"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
+        ["PayTenantInvoice"] = "Platform operators only (policy platform-operator): a tenant's subscription and invoices, managed by Karry staff.",
         ["GetTenantBranding"] = "Anonymous login branding (threat model R-07).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
     };

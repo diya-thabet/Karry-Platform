@@ -162,7 +162,8 @@
         "type": "Project",
         "dependencies": {
           "Karry.Modules.Billing.Application": "[1.0.0, )",
-          "Karry.Modules.Billing.Infrastructure": "[1.0.0, )"
+          "Karry.Modules.Billing.Infrastructure": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.billing.application": {
@@ -170,7 +171,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Billing.Contracts": "[1.0.0, )",
-          "Karry.Modules.Billing.Domain": "[1.0.0, )"
+          "Karry.Modules.Billing.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.billing.contracts": {

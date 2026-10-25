@@ -54,9 +54,14 @@ and the state. The state machine of business model §2.5 is implemented as a **c
 not in the table is refused (TC-P1-BIL-006). Operator actions (activate, record a missed payment, record a payment,
 cancel, reactivate) and **time-based** transitions (Trial → Expired at trial end, PastDue → Restricted after 14 days,
 Restricted → Suspended after 30, Suspended → Cancelled after 60, Expired → Deleted after 60, Cancelled → Deleted after
-90) both go through the same domain method; a daily job applies the time-based ones. Every transition is a tenant
-ledger event. Provisioning a tenant creates its subscription (US-P1-TEN-01 AC1): a **30-day trial of Professional**
-unless the operator names a plan. **Deleted** is a state only in P1.10: the crypto-shredding it implies is built with
+90) go through the same state machine; an hourly worker job (`subscription-lifecycle`, also
+`Karry.Workers advance-subscriptions`) applies the time-based ones, several at once when it was down. Each operator
+action works only from its own states, even where the table has the same edge for another reason: *activate* from
+Trial or Expired (within 60 days), *missed payment* from Active, *payment* from PastDue, Restricted or Suspended (a
+no-op when nothing is owed), *cancel* from Active or Suspended. Every transition is a tenant
+ledger event. Provisioning a tenant creates its subscription (US-P1-TEN-01 AC1): a **30-day trial of the newest
+Professional version**, one site, monthly, created by a Tenancy provisioning subscriber in the workers; operators then
+change the terms (plan version, period, sites, extra assets, add-ons, overrides). **Deleted** is a state only in P1.10: the crypto-shredding it implies is built with
 tenant offboarding, never by this job.
 
 **Invoices** (until Phase 10): manual records (number, amount in decimal + currency, issue and due date, paid date)
@@ -90,9 +95,10 @@ do not call the guard.
 
 Endpoints are classified by metadata, not by path: `.FieldCapture()` (sync, capture), `.BillingAccess()`,
 `.ExportAccess()`; everything else is office. GET/HEAD are reads. Anonymous and platform-operator endpoints are not
-subject to a tenant's state. A tenant **without** a subscription (only possible for tenants provisioned before P1.10) is
-treated as Active until the migration's backfill creates one: fail-open here is deliberate, because failing closed would
-lock out every existing tenant on deploy; the backfill runs in the same migration.
+subject to a tenant's state. A tenant **without** a subscription (provisioned before P1.10, or whose provisioning subscriber has
+not run yet) gets the trial terms of the newest Professional version until it has one: failing closed would lock a new
+tenant out during the seconds before its subscription exists. No backfill migration: no production tenant exists before
+P1.17, and local stacks are re-seeded.
 
 **Feature flags** stay as ADR-0019 decides (OpenFeature, DB-backed provider, cached ≤ 60 s, changes ledgered);
 they never gate plans.

@@ -8,19 +8,29 @@ using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Billing.Api;
+using Karry.Modules.Tenancy.Api;
+using Karry.SharedKernel.Authorization;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 
 namespace Karry.Modules.Billing.Tests;
 
 /// <summary>
 /// The Billing module on real PostgreSQL, migrated by the migration runner as <c>karry_owner</c> and used as
-/// <c>karry_app</c>, behind the real pipeline (conventions, tenancy, idempotency) with test-issuer tokens.
+/// <c>karry_app</c>, behind the real pipeline (conventions, tenancy, authorization, idempotency) with test-issuer
+/// tokens. Tenancy provisions tenants (their trial starts from its outbox); every tenant user is a Tenant Admin; the
+/// clock is fake so the lifecycle rules can be run days ahead.
 /// </summary>
 public sealed class BillingHost : IAsyncLifetime
 {
+    public FakeTimeProvider Clock { get; } = new(new DateTimeOffset(2026, 10, 25, 8, 0, 0, TimeSpan.Zero));
+
+    public IServiceProvider Services => app!.Services;
+
     private PostgresServer? server;
     private WebApplication? app;
 
@@ -36,11 +46,13 @@ public sealed class BillingHost : IAsyncLifetime
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Karry"] = Database.App });
+        builder.Services.AddSingleton<TimeProvider>(Clock);
         builder.Services.AddKarryApiConventions();
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new BillingModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new BillingModule(), new Trust.Api.TrustModule()]);
+        builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();

@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Billing.Domain/Karry.Modules.Billing.Domain.csproj" />
     <ProjectReference Include="../Karry.Modules.Billing.Contracts/Karry.Modules.Billing.Contracts.csproj" />
+    <!-- A trial subscription for every provisioned tenant; the tenant list for the lifecycle job. -->
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
   </ItemGroup>
 </Project>

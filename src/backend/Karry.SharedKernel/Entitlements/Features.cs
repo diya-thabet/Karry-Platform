@@ -86,3 +86,36 @@ public static class Limits
 
     public static bool IsKnown(string? code) => code is not null && All.Contains(code, StringComparer.Ordinal);
 }
+
+/// <summary>
+/// Add-ons a subscription can carry, with what each one grants (business model §2.3 add-ons). Their prices are on
+/// the manual invoices until the billing provider (Phase 10).
+/// </summary>
+public static class AddOns
+{
+    /// <summary>AI copilot on a plan that does not include it (Professional).</summary>
+    public const string AiCopilot = "ai-copilot";
+
+    /// <summary>Edge agent licence: one more edge agent per site per unit.</summary>
+    public const string EdgeAgent = "edge-agent";
+
+    /// <summary>Telematics connector (Business).</summary>
+    public const string Telematics = "telematics";
+
+    public static IReadOnlyList<string> All { get; } = [AiCopilot, EdgeAgent, Telematics];
+
+    public static bool IsKnown(string? code) => code is not null && All.Contains(code, StringComparer.Ordinal);
+
+    /// <summary>The features an add-on grants.</summary>
+    public static IReadOnlyList<string> FeaturesOf(string addOn) => addOn switch
+    {
+        AiCopilot => [Features.AiCopilot],
+        EdgeAgent => [Features.EdgeAgent],
+        Telematics => [Features.Telematics],
+        _ => [],
+    };
+
+    /// <summary>How much an add-on raises a limit per unit (only the edge agent does: one per site per unit).</summary>
+    public static int LimitIncrease(string addOn, string limit) =>
+        addOn == EdgeAgent && limit == Limits.EdgeAgentsPerSite ? 1 : 0;
+}

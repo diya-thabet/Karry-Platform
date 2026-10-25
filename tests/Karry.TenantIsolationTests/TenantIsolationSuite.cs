@@ -156,6 +156,12 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         ["ListPlans"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
         ["GetPlanVersions"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
         ["PublishPlan"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
+        ["GetTenantSubscription"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
+        ["ChangeTenantSubscription"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
+        ["ActOnTenantSubscription"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
+        ["ListTenantInvoices"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
+        ["RecordTenantInvoice"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
+        ["PayTenantInvoice"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
         ["GetTenantBranding"] = "Public login branding: slug and name of the company named in the URL, by design (threat model R-07).",
     };
 

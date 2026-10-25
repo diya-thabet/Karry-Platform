@@ -12,6 +12,10 @@ public static class BillingInfrastructure
         services.AddModuleDbContext<BillingDbContext>(connectionString);
         services.AddOutboxDispatcher<BillingDbContext>(eventAssemblies: typeof(Domain.Plan).Assembly);
         services.AddScoped<IPlanStore, PlanStore>();
+        services.AddScoped<ISubscriptionStore, SubscriptionStore>();
+        services.AddScoped<SubscriptionOperations>();
+        services.AddScoped<Tenancy.Contracts.ITenantProvisionedHandler, TrialOnProvisioning>();
+        services.AddSingleton<AdvanceSubscriptions>();
         return services;
     }
 }

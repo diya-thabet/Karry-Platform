@@ -127,5 +127,7 @@
   "roles.weighmaster": "Agent de pont-bascule",
   "roles.fuel-attendant": "Pompiste",
   "roles.mechanic": "Mécanicien",
-  "roles.operator": "Conducteur d’engin"
+  "roles.operator": "Conducteur d’engin",
+  "permissions.billing.subscription.read": "Voir l'abonnement, l'usage et les factures",
+  "modules.billing": "Facturation"
 }
