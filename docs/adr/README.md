@@ -49,4 +49,4 @@ Added in Phase 1 sub-phase P1.9 (authorization):
 | ADR | Title | Status |
 |---|---|---|
 | [0022](0022-authorization-engine.md) | Authorization engine: permissions declared in code, scopes per assignment, masking in the serializer | Accepted |
-| [0023](0023-plans-subscriptions-entitlements.md) | Plans as versioned data, one subscription per tenant, entitlements resolved in-process | Proposed |
+| [0023](0023-plans-subscriptions-entitlements.md) | Plans as versioned data, one subscription per tenant, entitlements resolved in-process | Accepted |

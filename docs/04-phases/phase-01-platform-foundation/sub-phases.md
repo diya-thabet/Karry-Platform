@@ -466,7 +466,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | TC-P1-PLT-009 *(new)* | Feature flag change takes effect without redeploy and is ledgered |
 
 - **Two-reviewer rule:** security review pass (Billing).
-- **Done when:** switching a demo tenant from Professional to Starter shows the upgrade card within 60 s; all tests green.
+- **Done when:** switching a demo tenant from Professional to Starter shows the upgrade card within 60 s; all tests green. *(Done 2026-10-25, PRs #58–#64: TC-P1-BIL-001 … 006 and TC-P1-PLT-009 green in CI; design in [ADR-0023](../../adr/0023-plans-subscriptions-entitlements.md) (accepted, with the Billing security review) and [ADR-0019](../../adr/0019-feature-flags.md). As built: the entitlement cache is forgotten on every subscription change, so the downgrade applies at once; office-seat limit guards invitations; the subscription state is enforced by endpoint kind (`.FieldCapture()`, `.BillingAccess()`, `.ExportAccess()`, `.AccountAccess()`); flags are declared in code.)*
 
 ---
 
