@@ -99,6 +99,8 @@ Usage meter     = { tenant, metric (sites, assets, office_users, ai_tokens, stor
 - Limits are **soft** with a grace margin (e.g., +10 % assets for 30 days, then sales follow-up), never a hard block in the middle of a shift.
 - Plan changes take effect immediately (upgrade) or at period end (downgrade).
 
+**As built (P1.10, [ADR-0023](../adr/0023-plans-subscriptions-entitlements.md)).** Plans live in the `Billing` module as immutable **versions** (`billing.plans`); the table of §2.3 is seeded as version 1 of `starter`, `professional`, `business` and `enterprise` (EUR only, annual = 10 × monthly). These are still the **illustrative** values: the final ones are published as version 2 through `POST /api/v1/billing/plans` (owner input [N-01](../07-management/still_wanted_from_team.md#1-needed-now-)), and subscriptions keep their version until moved. Feature codes (`maintenance`, `plant`, `ai.copilot`, …) and limit codes (`office-users`, `assets-per-site`, `edge-agents-per-site`, `retention-years`) are declared in `Karry.SharedKernel.Entitlements`; a plan naming another code is refused.
+
 ## 2.5 Tenant subscription lifecycle
 
 ```mermaid

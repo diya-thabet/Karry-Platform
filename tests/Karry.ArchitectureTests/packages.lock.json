@@ -462,11 +462,45 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Billing.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
           "Karry.Modules.Tenancy.Api": "[1.0.0, )",
           "Karry.Modules.Trust.Api": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
           "Npgsql": "[10.0.3, )"
+        }
+      },
+      "karry.modules.billing.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Billing.Application": "[1.0.0, )",
+          "Karry.Modules.Billing.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.billing.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Billing.Contracts": "[1.0.0, )",
+          "Karry.Modules.Billing.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.billing.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.billing.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.billing.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Billing.Application": "[1.0.0, )"
         }
       },
       "karry.modules.identity.api": {

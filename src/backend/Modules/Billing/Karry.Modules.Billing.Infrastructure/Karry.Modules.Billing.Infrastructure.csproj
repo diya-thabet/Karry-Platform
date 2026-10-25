@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
+  <ItemGroup>
+    <!-- `dotnet ef migrations add` only; not shipped. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Billing.Application/Karry.Modules.Billing.Application.csproj" />
+  </ItemGroup>
+</Project>

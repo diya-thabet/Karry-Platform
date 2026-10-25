@@ -13,3 +13,4 @@
 tenancy.tenants        | global        | Tenant catalog: slug and name only, needed before a tenant is known (address check, login branding, provisioning)
 platform.idempotency_records | platform-rows | Stored responses of operator requests have no tenant; tenant rows are isolated by RLS
 identity.import_cursors | global        | Importer positions (e.g. time of the last Keycloak event read): one row per source, no tenant data
+billing.plans          | global        | Plan catalogue (features, limits, price book): Karry's own packaging, the same for every tenant, no tenant data
