@@ -3,15 +3,15 @@ title: "ADR-0022: Authorization engine: permissions declared in code, scopes per
 area: adr
 tags: [authorization, rbac, abac, masking, step-up, security]
 source: "Phase 1 sub-phase P1.9"
-status: proposed
-last_updated: 2026-10-24
+status: accepted
+last_updated: 2026-10-25
 ---
 
 # ADR-0022 — Authorization engine: permissions declared in code, scopes per assignment, masking in the serializer
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.9; the owner accepts it with the first P1.9 pull request)
+- **Status:** Accepted (owner approved the P1.9 pull requests #50–#55; built and verified 2026-10-25)
 - **Date:** 2026-10-24
 - **Deciders:** Product owner, software architect
 - **Related:** [ADR-0012](0012-identity-authorization.md) (which this ADR details, not replaces); US-P1-IAM-04 … 07;
