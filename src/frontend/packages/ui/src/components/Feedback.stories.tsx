@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
 import { StatusChip } from "./StatusChip";
-import { EmptyState, ErrorState } from "./States";
+import { EmptyState, ErrorState, UpgradeCard } from "./States";
 
 const meta = { title: "Components/Feedback" } satisfies Meta;
 export default meta;
@@ -19,6 +19,13 @@ export const Statuses: Story = {
   ),
 };
 export const Empty: Story = { render: () => <EmptyState title="Aucun engin" action={<Button>Ajouter un engin</Button>}>Ajoutez votre premier engin.</EmptyState> };
+export const Upgrade: Story = {
+  render: () => (
+    <UpgradeCard title="La maintenance n’est pas incluse dans votre offre" action={<Button>Voir mon offre</Button>}>
+      Planifiez les entretiens et suivez la durée de vie des pièces avec l’offre Professional.
+    </UpgradeCard>
+  ),
+};
 export const ErrorWithReference: Story = { render: () => <ErrorState correlationId="4bf92f3577b34da6a3ce929d0e0e4736" onRetry={() => undefined} /> };
 export const DialogOpen: Story = {
   render: () => (

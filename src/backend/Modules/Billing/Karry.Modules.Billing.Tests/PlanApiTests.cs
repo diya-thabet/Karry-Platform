@@ -51,7 +51,7 @@ public sealed class BillingHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new BillingModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new BillingModule(), new Trust.Api.TrustModule(), new GatedProbeModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin);
         app = builder.Build();
         app.UseKarryApiConventions();

@@ -16,6 +16,10 @@ public static class BillingInfrastructure
         services.AddScoped<SubscriptionOperations>();
         services.AddScoped<Tenancy.Contracts.ITenantProvisionedHandler, TrialOnProvisioning>();
         services.AddSingleton<AdvanceSubscriptions>();
+        services.AddMemoryCache();
+        services.AddSingleton<EntitlementCacheGenerations>();
+        services.AddSingleton<IEntitlementCache>(sp => sp.GetRequiredService<EntitlementCacheGenerations>());
+        services.AddScoped<BuildingBlocks.Entitlements.IEntitlementResolver, EntitlementResolver>();
         return services;
     }
 }

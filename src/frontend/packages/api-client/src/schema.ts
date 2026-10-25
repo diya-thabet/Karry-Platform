@@ -324,6 +324,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetCurrentEntitlements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/subscription": {
         parameters: {
             query?: never;
@@ -490,6 +506,22 @@ export interface components {
             permissions: null | string[];
             fieldLevels: null | {
                 [key: string]: string;
+            };
+        };
+        /**
+         * @description What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is
+         *     unlimited). The apps show or lock features with it; the API checks every call.
+         */
+        EntitlementsResponse: {
+            planCode: string;
+            /** Format: int32 */
+            planVersion: number | string;
+            status: string;
+            /** Format: date-time */
+            trialEndsAt: null | string;
+            features: string[];
+            limits: {
+                [key: string]: number | string;
             };
         };
         FirstAdmin: {
@@ -2050,6 +2082,44 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetCurrentEntitlements: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementsResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

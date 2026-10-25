@@ -39,8 +39,9 @@ public sealed record PayInvoice(DateOnly PaidOn);
 /// What platform operators do with a tenant's subscription until the billing provider (US-P1-BIL-02, ADR-0023):
 /// change its terms, move its state, record invoices and payments. Runs in the tenant's unit of work, so every change
 /// is in that tenant's ledger. A payment on a PastDue, Restricted or Suspended subscription makes it Active again.
+/// Every change forgets the tenant's cached entitlements on this instance (others follow within 60 s).
 /// </summary>
-public sealed class SubscriptionOperations(ISubscriptionStore store, IPlanStore plans, TimeProvider clock)
+public sealed class SubscriptionOperations(ISubscriptionStore store, IPlanStore plans, IEntitlementCache entitlements, TimeProvider clock)
 {
     public static readonly Error NotFound = Error.NotFound("billing.subscription_not_found", "This company has no subscription.");
 
@@ -137,12 +138,14 @@ public sealed class SubscriptionOperations(ISubscriptionStore store, IPlanStore 
         }
 
         await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
+        entitlements.Forget(invoice.TenantId);
         return invoice;
     }
 
     private async Task<Result<Subscription>> SavedAsync(Subscription subscription, CancellationToken cancellationToken)
     {
         await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
+        entitlements.Forget(subscription.TenantId);
         return subscription;
     }
 }

@@ -132,6 +132,33 @@ public sealed class SubscriptionApiTests(BillingHost host) : IClassFixture<Billi
         (await Json(missing)).GetProperty("code").GetString().Should().Be("billing.tenant_not_found");
     }
 
+    [Fact]
+    [Trait("Story", "US-P1-BIL-03")]
+    [Trait("TestCase", "TC-P1-BIL-003")]
+    public async Task Moving_a_tenant_from_Professional_to_Starter_locks_its_maintenance_features_at_once()
+    {
+        var tenant = await ProvisionAsync();
+        var token = TestTokens.ForTenant(tenant);
+
+        (await SendAsync(HttpMethod.Get, "/api/v1/probe/work-orders", token)).StatusCode.Should().Be(HttpStatusCode.OK, "the trial is Professional");
+        var before = await Json(await SendAsync(HttpMethod.Get, "/api/v1/billing/entitlements", token));
+        before.GetProperty("planCode").GetString().Should().Be("professional");
+        before.GetProperty("features").EnumerateArray().Select(f => f.GetString()).Should().Contain("maintenance");
+        before.GetProperty("limits").GetProperty("office-users").GetInt64().Should().Be(15);
+
+        (await SendAsync(HttpMethod.Put, $"/api/v1/billing/tenants/{tenant}/subscription",
+            body: new { planCode = "starter", period = "monthly", sites = 2, extraAssets = 5 })).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var locked = await SendAsync(HttpMethod.Get, "/api/v1/probe/work-orders", token);
+        locked.StatusCode.Should().Be(HttpStatusCode.Forbidden, "the cache is forgotten on the instance that made the change");
+        var problem = await locked.Content.ReadAsStringAsync(Ct);
+        problem.Should().Contain("billing.feature_not_in_plan").And.Contain("maintenance").And.NotContain("WO-1", "no data in the refusal");
+
+        var after = await Json(await SendAsync(HttpMethod.Get, "/api/v1/billing/entitlements", token));
+        after.GetProperty("planCode").GetString().Should().Be("starter");
+        after.GetProperty("limits").GetProperty("assets-per-site").GetInt64().Should().Be((20 * 2) + 5, "the tenant-wide total");
+    }
+
     private async Task<Guid> ProvisionAsync()
     {
         var slug = $"t-{Guid.NewGuid():N}"[..20];

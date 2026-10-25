@@ -67,14 +67,16 @@ tenant offboarding, never by this job.
 **Invoices** (until Phase 10): manual records (number, amount in decimal + currency, issue and due date, paid date)
 attached to the subscription; recording a payment on a PastDue/Restricted/Suspended subscription returns it to Active.
 
-**Entitlements.** `IEntitlements.Current` (BuildingBlocks port, implemented by Billing) resolves plan version +
-add-ons + overrides + state into one immutable `Entitlements` value per tenant, cached **≤ 60 s**; a change forgets the
+**Entitlements.** `IEntitlementResolver` (BuildingBlocks port, implemented by Billing) resolves plan version +
+add-ons + overrides + state into one immutable `TenantEntitlements` value (SharedKernel) per tenant, cached **≤ 60 s**; a change forgets the
 cache at once on the instance that made it (same pattern as ADR-0022's access cache). Endpoints declare
 `.RequiresFeature("<code>")`; without it the API answers **403** `billing.feature_not_in_plan` (extension `feature`).
 403 and not 402: 402 is "reserved for future use" in RFC 9110, poorly supported by clients and proxies, and the problem
 `code` already tells the app to show the upgrade card. The check runs **after** the permission check, so a caller
 without the permission learns nothing about the plan. The apps read `GET /api/v1/billing/entitlements` (any member) for
-`useEntitlement()`; like `/me/access` it only drives what is shown.
+`useEntitlement()`; like `/me/access` it only drives what is shown. Limits in it are tenant-wide totals (per-site limits × sites, plus extra assets);
+a limit left out is unlimited. An unknown feature code in `.RequiresFeature` fails when the endpoint is mapped, and
+without a resolver a gated endpoint is refused (fail closed).
 
 **Usage and limits.** Each module that owns a counted thing reports it through `IUsageSource` (Identity: active office
 users; Organization: sites, P1.11; Assets: assets per site, P1.13; storage later). A daily job stores one snapshot per
