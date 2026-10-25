@@ -3,7 +3,7 @@ title: "ADR-0023: Plans as versioned data, one subscription per tenant, entitlem
 area: adr
 tags: [billing, plans, subscriptions, entitlements, usage, limits, state-machine]
 source: "Phase 1 sub-phase P1.10"
-status: proposed
+status: accepted
 last_updated: 2026-10-25
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-25
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.10; the owner pre-approved merging green P1.10 PRs, 2026-10-25)
+- **Status:** Accepted (owner pre-approved and the agent merged the green P1.10 PRs #58–#64; built and verified 2026-10-25)
 - **Date:** 2026-10-25
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-BIL-01 … 05, US-P1-TEN-01 AC1, US-P1-IAM-03 AC4; [business model §2.3–§2.5](../01-product/business-model-and-pricing.md#23-subscription-plans-illustrative-validated-in-phase-0-with-real-prospects);
@@ -120,6 +120,21 @@ state it changed, like operator changes; other instances follow within 60 s.
 
 **Feature flags** stay as ADR-0019 decides (OpenFeature, DB-backed provider, cached ≤ 60 s, changes ledgered);
 they never gate plans.
+
+## Security review (P1.10 close-out)
+
+Two-reviewer rule for Billing (sub-phases P1.10): each point is enforced by a test, not only by review.
+
+- **Operator endpoints** (plans, subscriptions, invoices, flags) need the `platform-operator` policy and no tenant in the token; a tenant token gets 403. Enforced by the reviewed `WithoutTenant` list (`authorization` job) and the module API tests.
+- **Tenant data** (subscriptions, invoices, usage snapshots, flag overrides) is in RLS tables; operator writes run in the addressed tenant's unit of work. The `tenant-isolation` job calls every operation, including the flag writes, with another tenant's administrator token.
+- **Fail-closed checks:** an unknown feature code fails at mapping; an unknown subscription state refuses the work; a missing resolver refuses. Unit tests plus mutation checks cover this.
+- **No data in refusals:** `billing.feature_not_in_plan` and the subscription refusals carry only codes (TC-P1-BIL-003, TC-P1-BIL-005).
+- **Audit:**
+  - Subscription, invoice and flag-override changes are in the tenant ledger, in the same transaction.
+  - Plan versions are immutable, and platform flag values keep an append-only history (trigger plus REVOKE).
+  - A platform ledger chain is a follow-up.
+- **Money** is `decimal` with an explicit currency, and amounts are never floats.
+- **Field capture** is never stopped by a limit or a subscription state, per the product invariant.
 
 ## Consequences
 
