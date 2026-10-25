@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Tenancy;
@@ -61,6 +62,7 @@ public sealed class TenancyModule : IModule
         // The caller's own company (portal header). Tenant-scoped: the tenant comes from the token only.
         // Name, slug and branding of the caller's own company: every member needs it for the app header.
         endpoints.MapGet("/current", CurrentAsync)
+            .AccountAccess()
             .AllowAnyTenantMember()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)

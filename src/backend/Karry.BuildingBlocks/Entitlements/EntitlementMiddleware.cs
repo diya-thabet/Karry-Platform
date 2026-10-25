@@ -64,9 +64,8 @@ public sealed class EntitlementMiddleware(RequestDelegate next)
         {
             if (entitlements is null || !entitlements.Includes(requirement.Feature))
             {
-                var problem = Error.Forbidden(FeatureNotInPlanCode, "This feature is not included in your company's plan.").ToProblem();
-                problem.ProblemDetails.Extensions["feature"] = requirement.Feature;
-                await problem.ExecuteAsync(context).ConfigureAwait(false);
+                await Error.Forbidden(FeatureNotInPlanCode, "This feature is not included in your company's plan.")
+                    .With("feature", requirement.Feature).ToProblem().ExecuteAsync(context).ConfigureAwait(false);
                 return;
             }
         }

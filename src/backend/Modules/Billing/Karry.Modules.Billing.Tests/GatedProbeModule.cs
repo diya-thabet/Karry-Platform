@@ -39,8 +39,8 @@ internal sealed class GatedProbeModule : IModule
 
         endpoints.MapPost("/assets", CreateAssetAsync).AllowAnyTenantMember().WithName("ProbeCreateAsset");
 
-        // Field capture: never limited, never calls the guard.
-        endpoints.MapPost("/field-readings", () => Results.Ok(new { accepted = true })).AllowAnyTenantMember().WithName("ProbeFieldReading");
+        // Field capture: never limited, never calls the guard; keeps working while the subscription is restricted.
+        endpoints.MapPost("/field-readings", () => Results.Ok(new { accepted = true })).AllowAnyTenantMember().FieldCapture().WithName("ProbeFieldReading");
     }
 
     private static async Task<IResult> CreateAssetAsync([FromServices] ILimitGuard limits, [FromServices] ITenantContext tenant, CancellationToken cancellationToken)

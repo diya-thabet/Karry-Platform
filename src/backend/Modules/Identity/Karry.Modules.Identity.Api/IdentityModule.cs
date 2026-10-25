@@ -2,6 +2,7 @@ using System.Security.Claims;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Tenancy;
@@ -128,6 +129,7 @@ public sealed class IdentityModule : IModule
 
         // The signed-in user's own profile (portal header, MFA hint): every member, about themselves only.
         endpoints.MapGet("/me", MeAsync)
+            .AccountAccess()
             .AllowAnyTenantMember()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -135,6 +137,7 @@ public sealed class IdentityModule : IModule
 
         // The signed-in user's own permissions, so the apps show only what they can use: every member, about themselves.
         endpoints.MapGet("/me/access", CurrentAccess)
+            .AccountAccess()
             .AllowAnyTenantMember()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .WithName("GetCurrentAccess");

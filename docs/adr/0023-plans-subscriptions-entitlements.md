@@ -106,7 +106,17 @@ Endpoints are classified by metadata, not by path: `.FieldCapture()` (sync, capt
 subject to a tenant's state. A tenant **without** a subscription (provisioned before P1.10, or whose provisioning subscriber has
 not run yet) gets the trial terms of the newest Professional version until it has one: failing closed would lock a new
 tenant out during the seconds before its subscription exists. No backfill migration: no production tenant exists before
-P1.17, and local stacks are re-seeded.
+P1.17, and local stacks are re-seeded (`seed-demo` also starts the trial of a demo tenant that has none).
+
+*As built (slice 5):* `SubscriptionStateMiddleware` (BuildingBlocks, chained after the plan check in
+`UseKarryAuthorization`) applies `SubscriptionRules.Refusal(status, access, read)`; the problem carries
+`subscriptionStatus` (not `status`, a reserved problem member). Endpoint kinds: `.FieldCapture()`, `.BillingAccess()`
+(the company's entitlements, subscription, invoices, usage), `.ExportAccess()` (ledger verification now; exports when
+they ship), `.AccountAccess()` (`/me`, `/me/access`, `/tenancy/current`: readable in every state, so the apps start);
+everything else is office. Writes in Restricted are refused for office **and** account work. An unknown state is
+treated as ended (fail closed). Without a registered resolver the state is not enforced (module test hosts); the API
+host's registration is asserted by `EntitlementWiringTests`. The lifecycle job forgets the cache of a tenant whose
+state it changed, like operator changes; other instances follow within 60 s.
 
 **Feature flags** stay as ADR-0019 decides (OpenFeature, DB-backed provider, cached ≤ 60 s, changes ledgered);
 they never gate plans.
