@@ -140,6 +140,21 @@ public sealed class BillingModule : IModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("ListCurrentInvoices");
+
+        // Live usage against the plan's limits, for "Plan & usage" and the over-limit banner (US-P1-BIL-04 AC2, AC3).
+        endpoints.MapGet("/usage", CurrentUsageAsync)
+            .RequirePermission(BillingPermissions.SubscriptionRead)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("GetCurrentUsage");
+    }
+
+    private static async Task<Ok<UsageResponse>> CurrentUsageAsync(
+        [FromServices] UsageMeter meter, [FromServices] IUsageStore snapshots, CancellationToken cancellationToken)
+    {
+        var lines = await meter.CurrentAsync(cancellationToken).ConfigureAwait(false);
+        var day = await snapshots.LatestDayAsync(cancellationToken).ConfigureAwait(false);
+        return TypedResults.Ok(new UsageResponse([.. lines.Select(l => new UsageLineResponse(l.Metric, l.Usage, l.Limit, l.Ceiling, l.State))], day));
     }
 
     private static async Task<Ok<EntitlementsResponse>> EntitlementsAsync(
@@ -298,3 +313,13 @@ public sealed record EntitlementsResponse(string PlanCode, int PlanVersion, stri
             entitlements.Limits.Keys.Order(StringComparer.Ordinal).ToDictionary(l => l, l => entitlements.TotalLimit(l)!.Value, StringComparer.Ordinal));
     }
 }
+
+/// <summary>
+/// The company's usage now. <c>State</c>: within, over (above the limit: banner, nothing blocked) or blocked (at the
+/// ceiling, the limit plus its 10 % grace: no more creation; field capture never). <c>SnapshotOn</c>: the last daily
+/// snapshot.
+/// </summary>
+public sealed record UsageResponse(IReadOnlyList<UsageLineResponse> Items, DateOnly? SnapshotOn);
+
+/// <summary>One metric: the live count, the tenant-wide limit and ceiling (null: unlimited), and its state.</summary>
+public sealed record UsageLineResponse(string Metric, long Usage, long? Limit, long? Ceiling, string State);

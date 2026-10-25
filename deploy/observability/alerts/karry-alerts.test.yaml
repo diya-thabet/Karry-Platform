@@ -222,3 +222,46 @@ tests:
               summary: "Certificate of https://app.karry.example expires in 10.0 days"
               description: "Automatic renewal did not happen. Renew before expiry or every client (portal, field app, edge agents) fails TLS."
               runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-certificate-expiring-soon.md"
+
+  # --- Tenant over its plan limit -----------------------------------------------------------------------------
+  - name: a tenant over its limit for an hour opens a ticket; none over stays quiet
+    interval: 1m
+    input_series:
+      - series: 'karry_billing_usage_over_limit{job="karry-workers"}'
+        values: '0x30 2x90'
+    alert_rule_test:
+      - eval_time: 30m
+        alertname: KarryTenantOverLimit
+        exp_alerts: []
+      - eval_time: 80m
+        alertname: KarryTenantOverLimit
+        exp_alerts: []
+      - eval_time: 95m
+        alertname: KarryTenantOverLimit
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "2 tenant limit(s) exceeded at the last usage snapshot"
+              description: "A company uses more than its plan allows. Contact it about an upgrade; creation stops at the limit + 10 %. Worker logs: event 5002."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-tenant-over-limit.md"
+
+  # --- Usage snapshot stale > 26 h ----------------------------------------------------------------------------
+  - name: a snapshot 27 h old opens a ticket; a recent one stays quiet
+    interval: 1m
+    input_series:
+      # Last full snapshot at t=0; the worker keeps reporting it.
+      - series: 'karry_billing_usage_last_success_seconds{job="karry-workers"}'
+        values: '0x1700'
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: KarryUsageSnapshotStale
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: KarryUsageSnapshotStale
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "No complete usage snapshot for over 26 hours"
+              description: "The daily usage snapshot failed for a tenant or did not run. Check the worker logs (event 5003)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-usage-snapshot-stale.md"
+

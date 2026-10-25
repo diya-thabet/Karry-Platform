@@ -372,6 +372,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/billing/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetCurrentUsage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/tenants/{tenantId}/subscription": {
         parameters: {
             query?: never;
@@ -752,6 +768,27 @@ export interface components {
             name: string;
             /** Format: date-time */
             createdAt: string;
+        };
+        /** @description One metric: the live count, the tenant-wide limit and ceiling (null: unlimited), and its state. */
+        UsageLineResponse: {
+            metric: string;
+            /** Format: int64 */
+            usage: number | string;
+            /** Format: int64 */
+            limit: null | number | string;
+            /** Format: int64 */
+            ceiling: null | number | string;
+            state: string;
+        };
+        /**
+         * @description The company's usage now. `State`: within, over (above the limit: banner, nothing blocked) or blocked (at the
+         *     ceiling, the limit plus its 10 % grace: no more creation; field capture never). `SnapshotOn`: the last daily
+         *     snapshot.
+         */
+        UsageResponse: {
+            items: components["schemas"]["UsageLineResponse"][];
+            /** Format: date */
+            snapshotOn: null | string;
         };
         UserPage: {
             items: components["schemas"]["UserResponse"][];
@@ -2192,6 +2229,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InvoiceListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetCurrentUsage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageResponse"];
                 };
             };
             /** @description Unauthorized */

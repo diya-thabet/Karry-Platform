@@ -284,6 +284,42 @@ namespace Karry.Modules.Billing.Infrastructure.Migrations
                     b.ToTable("subscriptions", "billing");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Billing.Domain.UsageSnapshot", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Metric")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("metric");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<long?>("Limit")
+                        .HasColumnType("bigint")
+                        .HasColumnName("limit");
+
+                    b.Property<DateTimeOffset>("TakenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("taken_at");
+
+                    b.Property<long>("Value")
+                        .HasColumnType("bigint")
+                        .HasColumnName("value");
+
+                    b.HasKey("TenantId", "Metric", "Day")
+                        .HasName("pk_usage_snapshots");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_usage_snapshots_tenant_id");
+
+                    b.ToTable("usage_snapshots", "billing");
+                });
+
             modelBuilder.Entity("Karry.Modules.Billing.Domain.Invoice", b =>
                 {
                     b.HasOne("Karry.Modules.Billing.Domain.Subscription", null)

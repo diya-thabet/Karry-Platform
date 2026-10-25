@@ -10,7 +10,7 @@ namespace Karry.Workers;
 [DisallowConcurrentExecution]
 internal sealed class SubscriptionLifecycleJob(AdvanceSubscriptions lifecycle) : IJob
 {
-    public const string Schedule = "0 20 * * * ?"; // every hour at :20, plus once at start-up (catch-up after downtime)
+    public const string Schedule = "0 20 * * * ?"; // every hour at :20, plus once at start-up (catch-up after downtime; Program.Schedule)
 
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken) =>
         await lifecycle.RunAsync(cancellationToken).ConfigureAwait(false);

@@ -9,6 +9,7 @@ import { ReportContext } from "./reportError";
 const explained = new Set([
   "auth.step_up_required",
   "billing.feature_not_in_plan",
+  "billing.limit_reached",
   "tenant.host_mismatch",
   "identity.escalation",
   "identity.scope_exceeded",

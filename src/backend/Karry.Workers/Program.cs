@@ -62,6 +62,15 @@ if (args is ["advance-subscriptions", ..])
     return run.Failed == 0 ? 0 : 1;
 }
 
+// `Karry.Workers snapshot-usage`: one usage snapshot of every tenant, then exit. Exit 1 if a tenant failed.
+if (args is ["snapshot-usage", ..])
+{
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<SnapshotUsage>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"usage: {run.Tenants} tenants, {run.OverLimit} metric(s) over their limit, {run.Failed} failed");
+    return run.Failed == 0 ? 0 : 1;
+}
+
 // `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
 var keycloak = !string.IsNullOrWhiteSpace(builder.Configuration["Identity:Keycloak:BaseUrl"]);
 if (args is ["import-sign-ins", ..])
@@ -86,25 +95,16 @@ builder.Services.AddOutboxDispatcherService<BillingDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {
-    quartz.ScheduleJob<SubscriptionLifecycleJob>(trigger => trigger
-        .WithIdentity("subscription-lifecycle")
-        .StartNow()
-        .WithCronSchedule(SubscriptionLifecycleJob.Schedule));
-
+    Schedule<SubscriptionLifecycleJob>(quartz, "subscription-lifecycle", SubscriptionLifecycleJob.Schedule);
+    Schedule<UsageSnapshotJob>(quartz, "usage-snapshot", UsageSnapshotJob.Schedule);
     if (anchoring)
     {
-        quartz.ScheduleJob<LedgerAnchoringJob>(trigger => trigger
-            .WithIdentity("ledger-anchoring")
-            .StartNow()
-            .WithCronSchedule(LedgerAnchoringJob.Schedule));
+        Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);
     }
 
     if (keycloak)
     {
-        quartz.ScheduleJob<SignInFailureImportJob>(trigger => trigger
-            .WithIdentity("sign-in-failure-import")
-            .StartNow()
-            .WithCronSchedule(SignInFailureImportJob.Schedule));
+        Schedule<SignInFailureImportJob>(quartz, "sign-in-failure-import", SignInFailureImportJob.Schedule);
     }
 });
 builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
@@ -120,3 +120,15 @@ static async Task<int> DrainAsync<TContext>(OutboxDispatcher<TContext> dispatche
     await dispatcher.DispatchPendingAsync(int.MaxValue, CancellationToken.None).ConfigureAwait(false);
     return await dispatcher.PendingAsync(CancellationToken.None).ConfigureAwait(false);
 }
+
+// A cron schedule plus one run at start-up (catch-up after downtime; the staleness alerts read the first run's time).
+// Two triggers: a cron trigger's first fire is its next cron time, even with StartNow().
+static void Schedule<TJob>(IQuartzBuilder quartz, string name, string cron)
+    where TJob : IJob
+{
+    var job = new JobKey(name);
+    quartz.AddJob<TJob>(options => options.WithIdentity(job));
+    quartz.AddTrigger(trigger => trigger.ForJob(job).WithIdentity($"{name}-schedule").WithCronSchedule(cron));
+    quartz.AddTrigger(trigger => trigger.ForJob(job).WithIdentity($"{name}-start-up").StartNow());
+}
+

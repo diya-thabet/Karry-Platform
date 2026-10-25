@@ -84,7 +84,13 @@ tenant, metric and day. Limits are **soft**: up to the limit + 10 % grace nothin
 limit, an operator notification); beyond it, only **creating** another counted item is refused (403
 `billing.limit_reached`, extensions `metric`, `limit`, `usage`) through `ILimitGuard`, which the creating handler calls
 with the live count. **Field capture is never limited**: field users are unlimited on every plan, and capture endpoints
-do not call the guard.
+do not call the guard. *As built (slice 4):* metric codes in `Karry.SharedKernel.Entitlements.Metrics` (`office-users`, `sites`,
+`assets`, `storage-bytes`; office users = invited or active office accounts, an open invitation holds a seat), the rule
+in `SoftLimit`: ceiling = limit + 10 % rounded up (at least one; 20 → 22), states `within` / `over` / `blocked`.
+`ILimitGuard.CheckCreateAsync(metric)` returns null or the error (problem members via `Error.With`). Snapshots in
+`billing.usage_snapshots` (tenant, metric, UTC day; RLS) daily at 02:30 UTC and at worker start-up; Karry's notice is
+alert `KarryTenantOverLimit` (gauge without tenant label) plus worker log event 5002 naming the tenant.
+`GET /billing/usage` (`billing.subscription.read`) gives the live lines for "Plan & usage" and the banner.
 
 **State enforcement.** One middleware after authentication reads the state from the cached entitlements:
 

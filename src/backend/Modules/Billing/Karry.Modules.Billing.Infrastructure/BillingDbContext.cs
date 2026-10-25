@@ -9,7 +9,7 @@ namespace Karry.Modules.Billing.Infrastructure;
 
 /// <summary>
 /// Schema <c>billing</c>: the plan catalogue (platform data: no tenant_id, no RLS; see global-reference-tables) and,
-/// subscriptions and manual invoices (tenant-owned, row-level security). ADR-0023.
+/// subscriptions, manual invoices and daily usage snapshots (tenant-owned, row-level security). ADR-0023.
 /// </summary>
 public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options) : ModuleDbContext(options)
 {
@@ -28,6 +28,8 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
     public DbSet<Subscription> Subscriptions => Set<Subscription>();
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
+
+    public DbSet<UsageSnapshot> UsageSnapshots => Set<UsageSnapshot>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -88,6 +90,14 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
             invoice.Ignore(i => i.Total);
             invoice.Ignore(i => i.DomainEvents);
             invoice.Ignore(i => i.AggregateKey);
+        });
+
+        modelBuilder.Entity<UsageSnapshot>(snapshot =>
+        {
+            snapshot.ToTable("usage_snapshots");
+            snapshot.HasKey(s => new { s.TenantId, s.Metric, s.Day });
+            snapshot.Property(s => s.Metric).HasMaxLength(40);
+            snapshot.Ignore(s => s.State);
         });
     }
 

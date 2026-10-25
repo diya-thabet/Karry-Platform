@@ -217,6 +217,37 @@ public sealed class IdentityApiTests(IdentityHost host) : IClassFixture<Identity
     }
 
     [Fact]
+    [Trait("Story", "US-P1-BIL-04")]
+    public async Task Office_seats_count_invited_and_active_office_users_and_the_limit_stops_only_new_invitations()
+    {
+        var (tenant, admin) = await TenantWithAdminAsync();
+        host.SeatLimits.ByTenant[tenant] = 2; // ceiling 3 with the 10 % grace (at least one)
+        var second = $"seat-{Guid.NewGuid():N}@example.test";
+        var third = $"seat-{Guid.NewGuid():N}@example.test";
+
+        (await InviteAsync(admin, tenant, second, "operator")).StatusCode.Should().Be(HttpStatusCode.Created, "2 of 2");
+        (await SendAsync(HttpMethod.Post, "/api/v1/identity/field-users", admin,
+            new { firstName = "Field", lastName = "Worker", employeeId = "EMP-900", pin = "804613", roles = new[] { new { role = "operator" } } }))
+            .StatusCode.Should().Be(HttpStatusCode.Created, "field users are never counted or limited");
+        var grace = await InviteAsync(admin, tenant, third, "operator");
+        grace.StatusCode.Should().Be(HttpStatusCode.Created, "3 of 2 is within the grace");
+        (await SeatsAsync(tenant)).Should().Be(3, "the administrator, an open invitation and an accepted one; not the field user");
+
+        var refused = await InviteAsync(admin, tenant, $"seat-{Guid.NewGuid():N}@example.test", "operator");
+        refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        var problem = await refused.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        problem.GetProperty("code").GetString().Should().Be("billing.limit_reached");
+        problem.GetProperty("metric").GetString().Should().Be("office-users");
+        problem.GetProperty("limit").GetInt64().Should().Be(2);
+        problem.GetProperty("usage").GetInt64().Should().Be(3);
+
+        var user = (await grace.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("userId").GetGuid();
+        (await SendAsync(HttpMethod.Post, $"/api/v1/identity/users/{user}/deactivate", admin)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await SeatsAsync(tenant)).Should().Be(2, "a deactivated user frees the seat");
+        (await InviteAsync(admin, tenant, $"seat-{Guid.NewGuid():N}@example.test", "operator")).StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
+    [Fact]
     [Trait("Story", "US-P1-AUD-01")]
     public async Task Identity_changes_are_ledgered_without_personal_data()
     {
@@ -287,6 +318,14 @@ public sealed class IdentityApiTests(IdentityHost host) : IClassFixture<Identity
         second.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
         second.GetProperty("items").EnumerateArray().Select(u => u.GetProperty("id").GetGuid())
             .Should().NotIntersectWith(first.GetProperty("items").EnumerateArray().Select(u => u.GetProperty("id").GetGuid()));
+    }
+
+    private async Task<long> SeatsAsync(Guid tenant)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<Karry.BuildingBlocks.Tenancy.ITenantContext>().Set(new Karry.SharedKernel.Tenancy.TenantId(tenant));
+        return await scope.ServiceProvider.GetServices<Karry.BuildingBlocks.Entitlements.IUsageSource>()
+            .Single(s => s.Metric == Karry.SharedKernel.Entitlements.Metrics.OfficeUsers).CountAsync(Ct);
     }
 
     private static string Slug() => $"id-{Guid.NewGuid():N}"[..20];

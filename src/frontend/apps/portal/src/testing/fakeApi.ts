@@ -37,6 +37,8 @@ export function fakeApi(options: {
   failWith?: { status: number; code: string };
   /** Feature codes of the company's plan (default: a Professional trial). */
   features?: string[];
+  /** Usage lines of `GET /billing/usage` (default: 3 of 15 office users). */
+  usage?: { metric: string; usage: number; limit: number | null; ceiling: number | null; state: string }[];
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -52,6 +54,18 @@ export function fakeApi(options: {
       return json(200, {
         planCode: "professional", planVersion: 1, status: "trial", trialEndsAt: "2026-11-24T08:00:00Z",
         features: options.features ?? ["field-operations", "maintenance"], limits: { "office-users": 15 },
+      });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/billing/usage") {
+      sent.push({ method: "GET", path: url.pathname, body: null });
+      return json(200, { items: options.usage ?? [{ metric: "office-users", usage: 3, limit: 15, ceiling: 17, state: "within" }], snapshotOn: "2026-10-25" });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/billing/subscription") {
+      return json(200, {
+        id: "01970000-0000-7000-8000-0000000000aa", status: "trial", statusSince: "2026-10-25T08:00:00Z", trialEndsAt: "2026-11-24T08:00:00Z",
+        unpaidSince: null, planCode: "professional", planVersion: 1, period: "monthly", sites: 1, extraAssets: 0, addOns: {}, extraFeatures: [], limitOverrides: {},
       });
     }
 

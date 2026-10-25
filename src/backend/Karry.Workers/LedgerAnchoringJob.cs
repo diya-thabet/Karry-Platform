@@ -7,7 +7,7 @@ namespace Karry.Workers;
 [DisallowConcurrentExecution]
 internal sealed class LedgerAnchoringJob(AnchorLedgers anchoring) : IJob
 {
-    public const string Schedule = "0 5 * * * ?"; // every hour at :05, plus once at start-up (catch-up after downtime)
+    public const string Schedule = "0 5 * * * ?"; // every hour at :05, plus once at start-up (catch-up after downtime; Program.Schedule)
 
     public async ValueTask Execute(IJobExecutionContext context, CancellationToken cancellationToken) =>
         await anchoring.RunAsync(cancellationToken).ConfigureAwait(false);

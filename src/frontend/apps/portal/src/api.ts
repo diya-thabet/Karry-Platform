@@ -74,3 +74,38 @@ export function useEntitlement(feature: string): { loaded: boolean; included: bo
   const { loaded, includes } = useEntitlements();
   return { loaded, included: includes(feature) };
 }
+
+/** One metric now; limit and ceiling are null when unlimited. State: within, over or blocked. */
+export interface UsageLine {
+  metric: string;
+  usage: number;
+  limit: number | null;
+  ceiling: number | null;
+  state: string;
+}
+
+export const BillingReadPermission = "billing.subscription.read";
+
+/**
+ * The company's usage against its plan (US-P1-BIL-04), for billing readers only (others never ask). Display only:
+ * the API refuses creation beyond the grace (`billing.limit_reached`).
+ */
+export function useUsage(): { loaded: boolean; items: UsageLine[]; snapshotOn: string | null | undefined } {
+  const api = useApi();
+  const { can } = useAccess();
+  const query = useQuery({
+    queryKey: ["billing", "usage"],
+    queryFn: async () => (await api.GET("/api/v1/billing/usage")).data,
+    enabled: can(BillingReadPermission),
+    staleTime: 60_000,
+  });
+  // 64-bit counts may arrive as JSON strings (OpenAPI int64); they are small enough for a number.
+  const items = (query.data?.items ?? []).map((line) => ({
+    metric: line.metric,
+    usage: Number(line.usage),
+    limit: line.limit == null ? null : Number(line.limit),
+    ceiling: line.ceiling == null ? null : Number(line.ceiling),
+    state: line.state,
+  }));
+  return { loaded: query.isSuccess, items, snapshotOn: query.data?.snapshotOn };
+}
