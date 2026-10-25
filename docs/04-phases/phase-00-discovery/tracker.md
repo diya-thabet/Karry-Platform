@@ -4,7 +4,7 @@ area: phases
 tags: [phase-0, tracker, status, spikes, exit-gate, test-cases]
 source: "Phase 0 execution"
 status: draft
-last_updated: 2026-10-22
+last_updated: 2026-10-25
 ---
 
 # Phase 0 Tracker: Work Packages, Evidence & Exit Gate
@@ -34,7 +34,7 @@ Legend: ✅ done · 🟡 in progress / partially done · ⏳ waiting on owner or
 | WP-P0-13 | Spike: PostgreSQL version & extensions | Agent → owner | 🟡 | ✅ Self-hosted images verified in CI (§2): PG 17.11 and 18.6 both provide PostGIS 3.6.4, TimescaleDB 2.31.0, pgvector 0.8.7, pgcrypto. ⏳ Managed-provider support depends on WP-P0-14 |
 | WP-P0-14 | Hosting & region decision | Owner + architect | ⏳ | Needs target countries (open question 1) |
 | WP-P0-15 | Billing provider decision | Owner | ⏳ | Needs incorporation country (open question 13) |
-| WP-P0-16 | ADRs 0001–0016 | Agent → owner | 🟡 | All 16 written ([ADR index](../../adr/README.md)), status **Proposed**; owner accepts at M0 |
+| WP-P0-16 | ADRs 0001–0016 | Agent → owner | ✅ | Accepted by the owner (D30, 2026-10-22); later ADRs up to 0022 accepted too ([ADR index](../../adr/README.md)) |
 | WP-P0-17 | Backlog P1–P3 ready | Architect + PO | 🟡 | Stories + AC exist ([story index](../story-index.md)); sprint 1–2 refinement after spikes |
 | WP-P0-18 | Threat model v1 | Agent | ✅ | [threat-model.md](../../02-architecture/threat-model.md) (17 threats mapped to stories/tests) |
 | WP-P0-19 | Brand & trademark check | Owner | ⏳ | Question 13 in the legal brief |
@@ -75,7 +75,7 @@ Run on a **real low-end Android tablet** (2 GB RAM, Android 10–12, Chrome), us
 | ≥ 1 signed pilot agreement (LOI) with baseline metrics | ⏳ owner |
 | Formulas signed off by domain expert | ⏳ draft ready |
 | All 4 spikes green, or with mitigations accepted | 🟡 4 answered in CI; managed-provider extension support pending WP-P0-14 |
-| ADRs accepted | ⏳ 16 proposed, awaiting owner |
+| ADRs accepted | ✅ 0001–0022 accepted |
 | Sprint 1–2 backlog meets DoR | 🟡 |
 | Budget and team for P1–P3 confirmed | ⏳ owner |
 

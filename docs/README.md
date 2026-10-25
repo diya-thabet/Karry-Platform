@@ -15,7 +15,7 @@
 | `04-phases/` | Roadmap, conventions, story index, traceability, and **one folder per phase** (plan, later test reports and exit reviews) | [README](04-phases/README.md) |
 | `05-quality/` | Testing strategy, delivery framework (DoR/DoD), cross-cutting acceptance criteria, defect severity, test environments & devices | [README](05-quality/README.md) |
 | `06-operations/` | Infrastructure, DevOps & observability, release management, runbooks | [README](06-operations/README.md) |
-| `07-management/` | Team & governance, risk register, open questions | [README](07-management/README.md) |
+| `07-management/` | Team & governance, risk register, open questions, everything still wanted from the team | [README](07-management/README.md) |
 | `08-user-help/` | End-user help articles in French and English (from Phase 1) | [README](08-user-help/README.md) |
 | `adr/` | Architecture Decision Records (one file per decision) | [README](adr/README.md) |
 
@@ -24,6 +24,7 @@
 | I need… | Go to |
 |---|---|
 | What has been decided, mistakes to avoid, current state, next steps | [00-llm/llm_hands_off.md](00-llm/llm_hands_off.md) |
+| Everything the owner or team still has to give or decide (providers, accounts, prices, hardware, reviews) | [07-management/still_wanted_from_team.md](07-management/still_wanted_from_team.md) |
 | How to work: testing, CI, security, git, Definition of Done | [00-llm/llm_guidelines.md](00-llm/llm_guidelines.md) |
 | **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) (Phase 0), [04-phases/phase-01-platform-foundation/tracker.md](04-phases/phase-01-platform-foundation/tracker.md) (Phase 1) |
 | **Phase 1 step-by-step execution plan** (sub-phases P1.0 – P1.18: order, inputs, tests, done criteria) | [04-phases/phase-01-platform-foundation/sub-phases.md](04-phases/phase-01-platform-foundation/sub-phases.md) |

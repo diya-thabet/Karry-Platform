@@ -249,6 +249,8 @@ Karry-Platform/
 
 ## 7. Open Questions Awaiting the Product Owner
 
+**Everything still wanted from the owner and team (all phases, providers, accounts, data, hardware) is in [still_wanted_from_team.md](../07-management/still_wanted_from_team.md); keep both lists in step.**
+
 Copied from [Open Questions & Next Steps §28](../07-management/open-questions.md#open-questions-for-domain-experts). Remove an item when it is answered and record the answer in [Specification Review & Corrections §3](../03-domain/spec-review-corrections.md) or the relevant doc.
 
 1. Target countries/markets first (drives legal, currency, hosting region, payment provider, languages).
