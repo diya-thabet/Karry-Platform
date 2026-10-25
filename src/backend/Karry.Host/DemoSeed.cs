@@ -1,8 +1,8 @@
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Identity.Application;
-using Karry.Modules.Tenancy.Contracts;
 using Karry.Modules.Tenancy.Application;
+using Karry.Modules.Tenancy.Contracts;
 using Karry.SharedKernel.Tenancy;
 
 namespace Karry.Host;
