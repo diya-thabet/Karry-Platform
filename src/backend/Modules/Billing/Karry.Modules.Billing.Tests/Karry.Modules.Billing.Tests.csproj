@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit and integration tests of the Billing module (test settings come from Directory.Build.props). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Billing.Api/Karry.Modules.Billing.Api.csproj" />
+    <!-- Subscription changes are tenant ledger events: the real Trust module records them. -->
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+</Project>

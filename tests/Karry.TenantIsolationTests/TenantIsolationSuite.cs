@@ -153,6 +153,9 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
     private static readonly Dictionary<string, string> Exemptions = new(StringComparer.Ordinal)
     {
         ["ProvisionTenant"] = "Platform operator only (policy platform-operator); a tenant token is refused with 403.",
+        ["ListPlans"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
+        ["GetPlanVersions"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
+        ["PublishPlan"] = "Plan catalogue: platform data, platform operators only; a tenant token is refused with 403.",
         ["GetTenantBranding"] = "Public login branding: slug and name of the company named in the URL, by design (threat model R-07).",
     };
 

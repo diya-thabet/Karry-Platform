@@ -26,6 +26,9 @@ public sealed class EndpointAuthorizationTests
     private static readonly Dictionary<string, string> WithoutTenant = new(StringComparer.Ordinal)
     {
         ["ProvisionTenant"] = "Platform operators only (policy platform-operator).",
+        ["ListPlans"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
+        ["GetPlanVersions"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
+        ["PublishPlan"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
         ["GetTenantBranding"] = "Anonymous login branding (threat model R-07).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
     };

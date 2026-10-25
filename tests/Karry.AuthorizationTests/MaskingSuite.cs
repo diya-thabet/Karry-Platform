@@ -35,7 +35,11 @@ public sealed partial class MaskingSuite : IDisposable
     };
 
     /// <summary>Contract properties that look sensitive but are not (<c>Schema.property</c> → reason). Adding one is a review.</summary>
-    private static readonly Dictionary<string, string> NotSensitive = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> NotSensitive = new(StringComparer.Ordinal)
+    {
+        ["PlanResponse.prices"] = "Karry's own list price book of a plan (platform data, platform operators only), not a customer's commercial data.",
+        ["PublishPlan.prices"] = "The same price book, sent by a platform operator when publishing a plan version.",
+    };
 
     /// <summary>Success responses that are not JSON (files): each must be written with <see cref="SensitiveExport"/>.</summary>
     private static readonly Dictionary<string, string> ReviewedExports = new(StringComparer.Ordinal);
