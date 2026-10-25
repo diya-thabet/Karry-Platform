@@ -593,6 +593,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 - **Every new alert has a runbook** in `docs/06-operations/runbooks/` (symptom, impact, diagnosis, mitigation, escalation).
 - Health endpoints: liveness (process) and readiness (dependencies) separately.
 - Feature flags and config changes are audited.
+- A new feature flag is declared in `Karry.SharedKernel.Flags.FeatureFlags` (key, description, safe default) and read through `FeatureFlagClient` (.NET) or `useBooleanFlagValue` (portal); never use a flag for plan gating (that is `.RequiresFeature`, ADR-0023) or for permissions ([ADR-0019](../adr/0019-feature-flags.md)).
 - Backups and restore drills follow [Infrastructure, DevOps & Observability §19.4](../06-operations/infrastructure-devops-observability.md#194-backup--dr); never change backup settings without an ADR.
 
 ---

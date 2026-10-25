@@ -14,3 +14,5 @@ tenancy.tenants        | global        | Tenant catalog: slug and name only, nee
 platform.idempotency_records | platform-rows | Stored responses of operator requests have no tenant; tenant rows are isolated by RLS
 identity.import_cursors | global        | Importer positions (e.g. time of the last Keycloak event read): one row per source, no tenant data
 billing.plans          | global        | Plan catalogue (features, limits, price book): Karry's own packaging, the same for every tenant, no tenant data
+flags.platform_flags   | global        | Platform-wide flag values of this environment (kill switches): Karry's own rollout settings, no tenant data
+flags.platform_flag_changes | global   | Append-only history of platform-wide flag changes (who, before, after, when); no tenant data

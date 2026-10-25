@@ -1,3 +1,4 @@
+import { useBooleanFlagValue } from "@openfeature/react-sdk";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "@karry/i18n";
 import { useUsage } from "../api";
@@ -9,8 +10,9 @@ import { useUsage } from "../api";
 export function UsageBanner() {
   const { t } = useTranslation();
   const { items } = useUsage();
+  const shown = useBooleanFlagValue("portal.usage-banner", true); // kill switch (ADR-0019)
   const over = items.filter((line) => line.state !== "within");
-  if (over.length === 0) {
+  if (!shown || over.length === 0) {
     return null;
   }
 
