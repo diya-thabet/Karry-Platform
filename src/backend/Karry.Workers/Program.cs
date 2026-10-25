@@ -1,5 +1,7 @@
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
+using Karry.Modules.Billing.Application;
+using Karry.Modules.Billing.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
@@ -17,6 +19,9 @@ builder.Services.AddTenancyInfrastructure(connectionString);
 builder.Services.AddTrustInfrastructure(connectionString);
 builder.Services.AddTrustAnchoring(builder.Configuration);
 builder.Services.AddIdentityInfrastructure(builder.Configuration, connectionString);
+
+// Billing subscribes to tenant provisioning (the trial subscription) and runs the subscription lifecycle.
+builder.Services.AddBillingInfrastructure(connectionString);
 
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
@@ -43,8 +48,18 @@ if (args is ["dispatch-now", ..])
     var left = 0;
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<TenancyDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<IdentityDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<BillingDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
+}
+
+// `Karry.Workers advance-subscriptions`: one run of the subscription time rules, then exit. Exit 1 if a tenant failed.
+if (args is ["advance-subscriptions", ..])
+{
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<AdvanceSubscriptions>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"subscriptions: {run.Tenants} tenants, {run.Changed} changed, {run.Failed} failed");
+    return run.Failed == 0 ? 0 : 1;
 }
 
 // `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
@@ -63,32 +78,36 @@ if (args is ["import-sign-ins", ..])
     return 0;
 }
 
-// Subscribers of each module's events (ADR-0015): Tenancy's tenant_provisioned sets up the tenant in Keycloak.
+// Subscribers of each module's events (ADR-0015): Tenancy's tenant_provisioned sets up the tenant in Keycloak and
+// starts its trial subscription in Billing.
 builder.Services.AddOutboxDispatcherService<TenancyDbContext>();
 builder.Services.AddOutboxDispatcherService<IdentityDbContext>();
+builder.Services.AddOutboxDispatcherService<BillingDbContext>();
 
-if (anchoring || keycloak)
+builder.Services.AddQuartz(quartz =>
 {
-    builder.Services.AddQuartz(quartz =>
-    {
-        if (anchoring)
-        {
-            quartz.ScheduleJob<LedgerAnchoringJob>(trigger => trigger
-                .WithIdentity("ledger-anchoring")
-                .StartNow()
-                .WithCronSchedule(LedgerAnchoringJob.Schedule));
-        }
+    quartz.ScheduleJob<SubscriptionLifecycleJob>(trigger => trigger
+        .WithIdentity("subscription-lifecycle")
+        .StartNow()
+        .WithCronSchedule(SubscriptionLifecycleJob.Schedule));
 
-        if (keycloak)
-        {
-            quartz.ScheduleJob<SignInFailureImportJob>(trigger => trigger
-                .WithIdentity("sign-in-failure-import")
-                .StartNow()
-                .WithCronSchedule(SignInFailureImportJob.Schedule));
-        }
-    });
-    builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
-}
+    if (anchoring)
+    {
+        quartz.ScheduleJob<LedgerAnchoringJob>(trigger => trigger
+            .WithIdentity("ledger-anchoring")
+            .StartNow()
+            .WithCronSchedule(LedgerAnchoringJob.Schedule));
+    }
+
+    if (keycloak)
+    {
+        quartz.ScheduleJob<SignInFailureImportJob>(trigger => trigger
+            .WithIdentity("sign-in-failure-import")
+            .StartNow()
+            .WithCronSchedule(SignInFailureImportJob.Schedule));
+    }
+});
+builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
 
 using var host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);

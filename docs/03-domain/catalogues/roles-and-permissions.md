@@ -52,6 +52,7 @@ The matrix above is the target for the whole product. In code it is the union of
 | `identity.roles.read` | tenant | no | Tenant Admin, Executive | Users, roles, masking, policies |
 | `identity.roles.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F) |
 | `audit.ledger.verify` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check |
+| `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |
 
 Rules that apply to every permission:
 

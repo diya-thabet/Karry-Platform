@@ -9,6 +9,8 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Billing.Api/Karry.Modules.Billing.Api.csproj" />
+    <!-- Provisioning a tenant starts its trial: the real Tenancy module provisions, its outbox fans out. -->
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <!-- Subscription changes are tenant ledger events: the real Trust module records them. -->
     <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />

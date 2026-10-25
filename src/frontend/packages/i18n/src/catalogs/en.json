@@ -127,5 +127,7 @@
   "roles.weighmaster": "Weighbridge operator",
   "roles.fuel-attendant": "Fuel attendant",
   "roles.mechanic": "Mechanic",
-  "roles.operator": "Machine operator"
+  "roles.operator": "Machine operator",
+  "permissions.billing.subscription.read": "See the plan, usage and invoices",
+  "modules.billing": "Billing"
 }

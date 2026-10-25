@@ -116,6 +116,70 @@ namespace Karry.Modules.Billing.Infrastructure.Migrations
                     b.ToTable("processed_messages", "billing");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Billing.Domain.Invoice", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(19, 4)
+                        .HasColumnType("numeric(19,4)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character(3)")
+                        .HasColumnName("currency")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("DueOn")
+                        .HasColumnType("date")
+                        .HasColumnName("due_on");
+
+                    b.Property<DateOnly>("IssuedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("issued_on");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("number");
+
+                    b.Property<DateOnly?>("PaidOn")
+                        .HasColumnType("date")
+                        .HasColumnName("paid_on");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_invoices");
+
+                    b.HasIndex("SubscriptionId")
+                        .HasDatabaseName("ix_invoices_subscription_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_invoices_tenant_id");
+
+                    b.HasIndex("TenantId", "Number")
+                        .IsUnique()
+                        .HasDatabaseName("ix_invoices_tenant_id_number");
+
+                    b.ToTable("invoices", "billing");
+                });
+
             modelBuilder.Entity("Karry.Modules.Billing.Domain.Plan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -165,6 +229,69 @@ namespace Karry.Modules.Billing.Infrastructure.Migrations
                         .HasDatabaseName("ix_plans_code_version");
 
                     b.ToTable("plans", "billing");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Billing.Domain.Subscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset>("StatusSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("status_since");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Terms")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("terms");
+
+                    b.Property<DateTimeOffset?>("TrialEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trial_ends_at");
+
+                    b.Property<DateTimeOffset?>("UnpaidSince")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("unpaid_since");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_subscriptions");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_subscriptions_tenant_id");
+
+                    b.ToTable("subscriptions", "billing");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Billing.Domain.Invoice", b =>
+                {
+                    b.HasOne("Karry.Modules.Billing.Domain.Subscription", null)
+                        .WithMany()
+                        .HasForeignKey("SubscriptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invoices_subscriptions_subscription_id");
                 });
 #pragma warning restore 612, 618
         }
