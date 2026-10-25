@@ -9,7 +9,7 @@
 | Project | Karry Platform: Enterprise Quarry & Mining Management SaaS |
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
-| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.8 ✅; P1.9 authorization in progress, slices 1–4a built). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
+| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.8 ✅; P1.9 authorization in progress, slices 1–5 built). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
 | Last updated | 2026-10-24 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
@@ -240,7 +240,7 @@ Karry-Platform/
 | Phase | Status |
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
-| P1 Foundation | **P1.0–P1.8 ✅**, **P1.9 🟡** (#50–#52 merged; #53 and slice 4b open; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
+| P1 Foundation | **P1.0–P1.8 ✅**, **P1.9 🟡** (#50–#54 merged; slice 5 portal UI in review; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
 | P2–P11 | Not started |
 
 ---
@@ -268,8 +268,7 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 8. Next Steps (prioritised)
 
-1. **Finish P1.9 authorization.** State: #50, #51, #52 merged with owner approval. #53 (slice 4a, custom roles) and the slice 4b PR (role assignments, MFA sync, invitation resend; stacked on #53) need owner approval. Remaining:
-   - **slice 5** portal UI: roles, permission matrix, field levels, assignments, step-up pop-up, `•••` component, tenant-mismatch notice;
+1. **Finish P1.9 authorization.** State: #50–#54 merged (the owner lets the agent merge green PRs through the merge guard with `--owner-approved`). Slice 5 (portal UI: roles, permissions by module, field levels, assignments, step-up pop-up, `•••` component, tenant-mismatch notice) is built. Remaining:
    - **close-out**: threat model T-10/T-13, ADR-0022 accepted, tracker, sub-phases as built.
    The owner was told the default role matrix was applied as documented; they did not ask for changes. Later: the TypeScript RFC 8785 canonicalizer must pass `tests/vectors/rfc8785.json` (P1.15).
 **Owner inputs from P1.8:** the e-mail sender domain for invitations (SPF/DKIM; Mailpit locally) and an SMS/WhatsApp provider (phone invitations are previewed in Mailpit until then, refused elsewhere).
@@ -322,14 +321,16 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
   - #51 permissions on every endpoint, site scopes, anti-escalation.
   - #52 field masking, masking suite, required job `authorization`.
   - #53 custom roles and field levels, with step-up on privileged changes.
-- **Verification:** `dotnet test --solution Karry.slnx -c Release` → 492/492 on #53; format and links clean; 30 mutation checks caught across the slices.
-- **Not done:** UI and close-out remain (§8). Slice 4b built (502 tests, 9 mutation checks caught). #51/#52 were blocked by Actions billing until the owner made the repository public, then merged.
+- **Verification:** `dotnet test --solution Karry.slnx -c Release` → 492/492 on #53, 504/504 on slice 5; portal 20/20, ui 54 unit + 79 a11y story checks; format and links clean; 30 mutation checks caught across the slices.
+  - #54 role assignments, MFA sync, invitation resend (502 tests, 9 mutation checks caught).
+  - Slice 5: portal settings screens, `GET /me/access`, step-up pop-up and retry, `MaskedValue`.
+- **Not done:** close-out remains (§8). #51/#52 were blocked by Actions billing until the owner made the repository public, then merged.
 - **Decisions:** ADR-0022 (proposed) extended with custom roles, step-up decided by handlers, and the per-tenant access-cache generation.
 - **Mistakes / lessons:**
   - The first sensitive-input filter enumerated a DbSet. It was found by a test and replaced by static type analysis.
   - Body validation answered 400 before 404 for another tenant's role code. Found by the isolation suite; the addressed resource is now checked first.
-- **Next:** owner approval of #53 and slice 4b, then slice 5 (portal UI).
-- **Commits/PR:** #50–#53.
+- **Next:** P1.9 close-out.
+- **Commits/PR:** #50–#54, slice 5 PR.
 
 ### 2026-10-24 — P1.8 identity and authentication (agent)
 - **Goal:** sub-phase P1.8 ("go").

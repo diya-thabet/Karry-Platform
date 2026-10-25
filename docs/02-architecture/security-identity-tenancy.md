@@ -33,6 +33,7 @@ last_updated: 2026-10-24
 - MFA: realm role `mfa-required` (set by the Identity module for privileged roles) makes the browser flow ask for
   WebAuthn or TOTP, and forces TOTP enrolment before any token when the user has neither.
 - **Apps** (`@karry/auth`, oidc-client-ts): Authorization Code + PKCE; access, refresh and ID tokens live **in memory
+- **Step-up in the apps (P1.9):** on 401 `auth.step_up_required` the portal opens a sign-in pop-up (`max_age=0`, `prompt=login`; `@karry/auth` `stepUp()`, callback at `/auth/popup`) and retries the request once; a closed pop-up leaves the change unsaved and shows the error. Masked values render as `•••` with a lock (`MaskedValue` / `SensitiveValue` in `@karry/ui`), never as an empty field.
   only** (never localStorage/sessionStorage; asserted by the browser E2E). Only the sign-in state (PKCE verifier,
   return path) is in sessionStorage during the redirect and removed on return. A reload re-signs in through the
   Keycloak session cookie (one redirect, no form); a failed refresh (reuse detected, deactivated account) goes back to

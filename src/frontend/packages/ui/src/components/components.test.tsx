@@ -5,6 +5,7 @@ import { Button } from "./Button";
 import { DataTable } from "./DataTable";
 import { Dialog } from "./Dialog";
 import { QuantityInput } from "./QuantityInput";
+import { MaskedValue, SensitiveValue } from "./MaskedValue";
 import { StatusChip } from "./StatusChip";
 import { EmptyState, ErrorState } from "./States";
 import { TextField } from "./TextField";
@@ -143,5 +144,27 @@ describe("ThemeProvider", () => {
     fireEvent.click(screen.getByRole("button", { name: "light" }));
     expect(document.documentElement.dataset.theme).toBe("outdoor");
     expect(document.documentElement.style.getPropertyValue("--karry-text")).toBe("#000000");
+  });
+});
+
+describe("masking (US-P1-IAM-07 AC2)", () => {
+  it("shows ••• with the reason for screen readers and as a tooltip", () => {
+    render(<MaskedValue label="Hidden by policy" />);
+
+    const masked = screen.getByTitle("Hidden by policy");
+    expect(masked).toHaveTextContent("•••");
+    expect(within(masked).getByText("Hidden by policy")).toHaveClass("sr-only");
+  });
+
+  it("shows the value when sent, ••• when masked and nothing when hidden", () => {
+    const { container, rerender } = render(<SensitiveValue object={{}} field="unitPrice" value={18.5} label="Hidden by policy">18.50</SensitiveValue>);
+    expect(container).toHaveTextContent("18.50");
+
+    rerender(<SensitiveValue object={{ maskedFields: ["unitPrice"] }} field="unitPrice" value={undefined} label="Hidden by policy">18.50</SensitiveValue>);
+    expect(container).toHaveTextContent("•••");
+    expect(container).not.toHaveTextContent("18.50");
+
+    rerender(<SensitiveValue object={{ maskedFields: [] }} field="unitPrice" value={undefined} label="Hidden by policy">18.50</SensitiveValue>);
+    expect(container).toBeEmptyDOMElement();
   });
 });

@@ -54,6 +54,22 @@ public sealed class AuthorizationTests(IdentityHost host) : IClassFixture<Identi
     }
 
     [Fact]
+    [Trait("Story", "US-P1-IAM-04")]
+    public async Task Every_member_reads_their_own_permissions_for_the_navigation()
+    {
+        var tenant = await api.TenantAsync();
+        var manager = await api.MemberAsync(tenant, (Roles.SiteManager, SiteA));
+        var operatorToken = await api.MemberAsync(tenant, (Roles.Operator, null));
+
+        var managerAccess = await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, "/api/v1/identity/me/access", manager), HttpStatusCode.OK);
+        var operatorAccess = await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, "/api/v1/identity/me/access", operatorToken), HttpStatusCode.OK);
+
+        managerAccess.GetProperty("permissions").EnumerateArray().Select(p => p.GetString()).Should()
+            .Contain(["identity.users.read", "identity.users.manage"]).And.NotContain("identity.roles.read");
+        operatorAccess.GetProperty("permissions").EnumerateArray().Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task A_token_of_no_karry_user_is_denied_everything_but_the_company_name()
     {
         var tenant = await api.TenantAsync();

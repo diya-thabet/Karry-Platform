@@ -3,18 +3,20 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { ApiError } from "@karry/api-client";
+import { AuthProvider } from "@karry/auth";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, I18nProvider, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "./App";
 import { ErrorDialogProvider } from "./ErrorDialog";
 import { createQueryClient } from "./queryClient";
 import { useReportError } from "./reportError";
+import { fakeApi } from "./testing/fakeApi";
 
 async function renderPortal(options: { path?: string; pseudo?: boolean; language?: "fr" | "en" } = {}) {
   const i18n = await createI18n({ language: options.language ?? "fr", pseudo: options.pseudo ?? false });
   const history = createMemoryHistory({ initialEntries: [options.path ?? "/"] });
   const auth = await signedInAuth();
-  render(<App i18n={i18n} auth={auth} history={history} />);
+  render(<App i18n={i18n} auth={auth} api={fakeApi({ permissions: [] }).client} history={history} />);
   await screen.findByRole("navigation");
   return i18n;
 }
@@ -45,7 +47,7 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
   it("shows who is signed in and signs out through Keycloak (US-P1-IAM-01)", async () => {
     const i18n = await createI18n({ language: "fr", pseudo: false });
     const auth = await signedInAuth({ givenName: "Karim", familyName: "Trabelsi" });
-    render(<App i18n={i18n} auth={auth} history={createMemoryHistory({ initialEntries: ["/"] })} />);
+    render(<App i18n={i18n} auth={auth} api={fakeApi({ permissions: [] }).client} history={createMemoryHistory({ initialEntries: ["/"] })} />);
 
     expect(await screen.findByText("Connecté : Karim Trabelsi")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
@@ -116,7 +118,8 @@ describe("error dialog (US-P1-OPS-01 AC3)", () => {
 
   it("shows the support reference of a failed API call", async () => {
     const i18n = await createI18n({ language: "en" });
-    render(<I18nProvider i18n={i18n}><ErrorDialogProvider><Harness /></ErrorDialogProvider></I18nProvider>);
+    const auth = await signedInAuth();
+    render(<AuthProvider auth={auth}><I18nProvider i18n={i18n}><ErrorDialogProvider><Harness /></ErrorDialogProvider></I18nProvider></AuthProvider>);
 
     const dialog = await screen.findByRole("dialog", { name: "Something went wrong" });
     expect(within(dialog).getByTestId("correlation-id")).toHaveTextContent("4bf92f3577b34da6a3ce929d0e0e4736");

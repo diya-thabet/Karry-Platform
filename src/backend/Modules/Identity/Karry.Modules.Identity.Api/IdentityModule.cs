@@ -133,6 +133,12 @@ public sealed class IdentityModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetCurrentUser");
 
+        // The signed-in user's own permissions, so the apps show only what they can use: every member, about themselves.
+        endpoints.MapGet("/me/access", CurrentAccess)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .WithName("GetCurrentAccess");
+
         endpoints.MapGet("/permissions", PermissionCatalog)
             .RequirePermission(IdentityPermissions.RolesRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -335,6 +341,9 @@ public sealed class IdentityModule : IModule
             : TypedResults.Ok(ToResponse(user, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)));
     }
 
+    private static Ok<AccessResponse> CurrentAccess([FromServices] ICallerAccess caller) =>
+        TypedResults.Ok(new AccessResponse([.. caller.Current.Granted.Order(StringComparer.Ordinal)]));
+
     private static Ok<PermissionCatalogResponse> PermissionCatalog([FromServices] AuthorizationCatalog catalog) =>
         TypedResults.Ok(new PermissionCatalogResponse(
             [.. catalog.Permissions.OrderBy(p => p.Code, StringComparer.Ordinal)
@@ -403,3 +412,6 @@ public sealed record SensitiveFieldResponse(string Code, string Module, string F
 
 /// <summary>What roles can contain: every permission and sensitive field the modules declare.</summary>
 public sealed record PermissionCatalogResponse(IReadOnlyList<PermissionResponse> Permissions, IReadOnlyList<SensitiveFieldResponse> SensitiveFields);
+
+/// <summary>The permissions the caller holds at some scope (display only: every call is still checked).</summary>
+public sealed record AccessResponse(IReadOnlyList<string> Permissions);
