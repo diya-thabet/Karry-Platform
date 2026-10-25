@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-24
+last_updated: 2026-10-25
 ---
 
 # Architecture Decision Records (ADR) Index
