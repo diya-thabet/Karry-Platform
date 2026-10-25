@@ -807,6 +807,36 @@
         }
       }
     },
+    "/api/v1/identity/me/access": {
+      "get": {
+        "tags": [
+          "IdentityModule"
+        ],
+        "operationId": "GetCurrentAccess",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/identity/permissions": {
       "get": {
         "tags": [
@@ -1357,6 +1387,21 @@
             ]
           }
         }
+      },
+      "AccessResponse": {
+        "required": [
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "description": "The permissions the caller holds at some scope (display only: every call is still checked)."
       },
       "AdminInvitationResponse": {
         "required": [

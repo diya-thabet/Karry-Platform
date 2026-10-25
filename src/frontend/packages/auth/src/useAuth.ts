@@ -3,7 +3,12 @@ import type { AuthUser } from "./auth";
 import { AuthContext } from "./context";
 
 /** The signed-in user (re-renders when it changes) and the session's actions. */
-export function useAuth(): { user: AuthUser | null; signOut: () => Promise<void>; getAccessToken: () => Promise<string | undefined> } {
+export function useAuth(): {
+  user: AuthUser | null;
+  signOut: () => Promise<void>;
+  getAccessToken: () => Promise<string | undefined>;
+  stepUp: () => Promise<boolean>;
+} {
   const auth = useContext(AuthContext);
   if (!auth) {
     throw new Error("useAuth must be used inside <AuthProvider>.");
@@ -13,5 +18,10 @@ export function useAuth(): { user: AuthUser | null; signOut: () => Promise<void>
     (listener) => auth.subscribe(listener),
     () => auth.user?.subject ?? null,
   );
-  return { user: user === null ? null : auth.user, signOut: () => auth.signOut(), getAccessToken: () => auth.getAccessToken() };
+  return {
+    user: user === null ? null : auth.user,
+    signOut: () => auth.signOut(),
+    getAccessToken: () => auth.getAccessToken(),
+    stepUp: () => auth.stepUp(),
+  };
 }

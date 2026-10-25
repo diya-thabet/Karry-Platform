@@ -9,6 +9,7 @@ export { QuantityInput, type MaterialState, type QuantityInputProps } from "./co
 export { SelectField, type SelectOption } from "./components/SelectField";
 export { Dialog } from "./components/Dialog";
 export { StatusChip, type Status } from "./components/StatusChip";
+export { MaskedValue, SensitiveValue, type MaybeMasked } from "./components/MaskedValue";
 export { EmptyState, ErrorState } from "./components/States";
 export { DataTable, type Column } from "./components/DataTable";
 export { ListDetailPage } from "./components/ListDetailPage";

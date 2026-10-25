@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { createApiClient } from "@karry/api-client";
 import { createAuth } from "@karry/auth";
 import { createI18n, resolveLanguage } from "@karry/i18n";
 import { initErrorTracking } from "@karry/observability";
@@ -27,6 +28,9 @@ const auth = createAuth({
 });
 await auth.start();
 
+// Same origin as the app (the ingress, or Vite's /api proxy locally); the token comes from the session in memory.
+const api = createApiClient({ baseUrl: "", getAccessToken: () => auth.getAccessToken() });
+
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("Missing #root element");
@@ -34,6 +38,6 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <App i18n={i18n} auth={auth} />
+    <App i18n={i18n} auth={auth} api={api} />
   </StrictMode>,
 );

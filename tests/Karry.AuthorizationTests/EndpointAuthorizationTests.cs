@@ -18,6 +18,7 @@ public sealed class EndpointAuthorizationTests
     private static readonly Dictionary<string, string> AnyMember = new(StringComparer.Ordinal)
     {
         ["GetCurrentUser"] = "The caller's own profile only (looked up by the token's subject).",
+        ["GetCurrentAccess"] = "The caller's own permission codes (which screens to show); the API still checks every call.",
         ["GetCurrentTenant"] = "Name and branding of the caller's own company, shown in every app header.",
     };
 

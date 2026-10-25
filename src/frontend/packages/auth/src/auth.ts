@@ -10,6 +10,8 @@ export interface AuthOptions {
   origin?: string;
   /** Path Keycloak redirects back to. Default `/auth/callback`. */
   callbackPath?: string;
+  /** Path of the step-up pop-up's return. Default `/auth/popup`. */
+  popupPath?: string;
   /** Language of the login page (`ui_locales`), read when the redirect happens. */
   language?: () => string;
 }
@@ -26,7 +28,15 @@ export interface AuthUser {
 /** What {@link Auth} needs from oidc-client-ts (a seam for tests). */
 export type SignInManager = Pick<
   UserManager,
-  "signinRedirect" | "signinRedirectCallback" | "signinSilent" | "signoutRedirect" | "getUser" | "removeUser" | "events"
+  | "signinRedirect"
+  | "signinRedirectCallback"
+  | "signinSilent"
+  | "signinPopup"
+  | "signinPopupCallback"
+  | "signoutRedirect"
+  | "getUser"
+  | "removeUser"
+  | "events"
 >;
 
 /** Browser globals the flow touches (a seam for tests). */
@@ -50,6 +60,7 @@ export function signInSettings(options: AuthOptions, environment: AuthEnvironmen
     authority: options.authority,
     client_id: options.clientId,
     redirect_uri: `${origin}${options.callbackPath ?? "/auth/callback"}`,
+    popup_redirect_uri: `${origin}${options.popupPath ?? "/auth/popup"}`,
     post_logout_redirect_uri: `${origin}/`,
     response_type: "code",
     scope: "openid",
@@ -79,7 +90,7 @@ export class Auth {
   constructor(
     private readonly manager: SignInManager,
     private readonly environment: AuthEnvironment,
-    private readonly options: Pick<AuthOptions, "callbackPath" | "language">,
+    private readonly options: Pick<AuthOptions, "callbackPath" | "popupPath" | "language">,
   ) {
     manager.events.addUserLoaded((user) => {
       this.set(user);
@@ -99,6 +110,12 @@ export class Auth {
   /** Signed in: the user. Otherwise the browser is on its way to Keycloak (the promise then never settles). */
   async start(): Promise<AuthUser> {
     const { location } = this.environment;
+    if (location.pathname === (this.options.popupPath ?? "/auth/popup")) {
+      // Inside the step-up pop-up: hand the result to the opener, which closes this window.
+      await this.manager.signinPopupCallback(location.href);
+      return new Promise<AuthUser>(() => undefined);
+    }
+
     if (location.pathname === (this.options.callbackPath ?? "/auth/callback")) {
       try {
         const user = await this.manager.signinRedirectCallback(location.href);
@@ -133,6 +150,22 @@ export class Auth {
 
     this.set(user);
     return user.access_token;
+  }
+
+  /**
+   * Step-up (US-P1-IAM-05 AC3): the person types their password (and second factor) again in a pop-up, so the page
+   * and the form they filled stay as they are; the new tokens carry a fresh `auth_time`. False when they closed the
+   * pop-up or the browser blocked it.
+   */
+  async stepUp(): Promise<boolean> {
+    try {
+      const language = this.options.language?.();
+      const user = await this.manager.signinPopup({ max_age: 0, prompt: "login", ...(language ? { ui_locales: language } : {}) });
+      this.set(user);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Ends the Keycloak session and returns to the app's start page (which signs in again). */

@@ -62,6 +62,7 @@ describe("signInSettings", () => {
 
     expect(settings.response_type).toBe("code");
     expect(settings.redirect_uri).toBe("https://acme.karry.test/auth/callback");
+    expect(settings.popup_redirect_uri).toBe("https://acme.karry.test/auth/popup");
     expect(settings.post_logout_redirect_uri).toBe("https://acme.karry.test/");
     expect(settings.userStore).toBeInstanceOf(WebStorageStateStore);
     expect((settings.userStore as unknown as { _store: unknown })._store).toBeInstanceOf(InMemoryWebStorage);
@@ -149,6 +150,38 @@ describe("Auth", () => {
     expect(manager.signoutRedirect).toHaveBeenCalledWith({ id_token_hint: "id-token" });
     expect(auth.user).toBeNull();
     expect(changes).toHaveBeenCalled();
+  });
+
+  it("steps up in a pop-up that forces a new sign-in in the app language, and keeps the new tokens (US-P1-IAM-05 AC3)", async () => {
+    const fresh = user();
+    const { manager } = fakeManager({ signinPopup: vi.fn(() => Promise.resolve(fresh)) });
+    const auth = new Auth(manager, environment("/auth/callback?code=abc&state=xyz"), { language: () => "fr" });
+    await auth.start();
+
+    await expect(auth.stepUp()).resolves.toBe(true);
+
+    expect(manager.signinPopup).toHaveBeenCalledWith({ max_age: 0, prompt: "login", ui_locales: "fr" });
+    await expect(auth.getAccessToken()).resolves.toBe(fresh.access_token);
+  });
+
+  it("reports a step-up that was closed or blocked", async () => {
+    const { manager } = fakeManager({ signinPopup: vi.fn(() => Promise.reject(new Error("Popup closed by user"))) });
+    const auth = new Auth(manager, environment("/auth/callback?code=abc&state=xyz"), {});
+    await auth.start();
+
+    await expect(auth.stepUp()).resolves.toBe(false);
+    expect(auth.user).not.toBeNull();
+  });
+
+  it("inside the step-up pop-up, hands the result to the opener and never redirects", async () => {
+    const { manager } = fakeManager({ signinPopupCallback: vi.fn(() => Promise.resolve(undefined)) });
+    const auth = new Auth(manager, environment("/auth/popup?code=abc&state=xyz"), {});
+
+    void auth.start();
+    await vi.waitFor(() => {
+      expect(manager.signinPopupCallback).toHaveBeenCalledWith("https://acme.karry.test/auth/popup?code=abc&state=xyz");
+    });
+    expect(manager.signinRedirect).not.toHaveBeenCalled();
   });
 });
 

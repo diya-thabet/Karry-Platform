@@ -9,7 +9,9 @@ function base64url(value: unknown): string {
  * A signed-in session for component tests (no Keycloak): the user is "signed in" through the real callback path of
  * {@link Auth}. `signOuts` counts sign-out requests.
  */
-export async function signedInAuth(person: Partial<AuthUser> & { givenName?: string; familyName?: string } = {}): Promise<Auth & { signOuts: number }> {
+export async function signedInAuth(
+  person: Partial<AuthUser> & { givenName?: string; familyName?: string; stepUp?: boolean } = {},
+): Promise<Auth & { signOuts: number; stepUps: number }> {
   const subject = person.subject ?? "test-user";
   const user = new User({
     access_token: `${base64url({ alg: "none" })}.${base64url({ sub: subject, tenant_id: person.tenantId ?? "0192f0c1-a2b3-7c4d-8e9f-001122334455" })}.test`,
@@ -20,11 +22,16 @@ export async function signedInAuth(person: Partial<AuthUser> & { givenName?: str
     expires_at: Math.floor(Date.now() / 1000) + 300,
   });
   const noop = () => () => undefined;
-  const counter = { signOuts: 0 };
+  const counter = { signOuts: 0, stepUps: 0 };
   const manager = {
     signinRedirect: () => Promise.resolve(),
     signinRedirectCallback: () => Promise.resolve(user),
     signinSilent: () => Promise.resolve(user),
+    signinPopup: () => {
+      counter.stepUps++;
+      return person.stepUp === false ? Promise.reject(new Error("Popup closed")) : Promise.resolve(user);
+    },
+    signinPopupCallback: () => Promise.resolve(),
     signoutRedirect: () => {
       counter.signOuts++;
       return Promise.resolve();
@@ -40,5 +47,6 @@ export async function signedInAuth(person: Partial<AuthUser> & { givenName?: str
   };
   const auth = new Auth(manager, environment, {});
   await auth.start();
-  return Object.defineProperty(auth, "signOuts", { get: () => counter.signOuts }) as Auth & { signOuts: number };
+  Object.defineProperty(auth, "signOuts", { get: () => counter.signOuts });
+  return Object.defineProperty(auth, "stepUps", { get: () => counter.stepUps }) as Auth & { signOuts: number; stepUps: number };
 }
