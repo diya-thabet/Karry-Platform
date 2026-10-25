@@ -55,6 +55,9 @@ public static class IdentityInfrastructure
         services.AddScoped<CreateFieldUserHandler>();
         services.AddScoped<DeactivateUserHandler>();
         services.AddScoped<RoleAdministration>();
+        services.AddScoped<MfaSync>();
+        services.AddScoped<ChangeUserRolesHandler>();
+        services.AddScoped<ResendInvitationHandler>();
         services.AddScoped<IFirstAdminInvitation, FirstAdminInvitation>();
         services.AddScoped<DemoUsersSeeder>();
         services.AddScoped<ITenantProvisionedHandler, KeycloakTenantSetup>();

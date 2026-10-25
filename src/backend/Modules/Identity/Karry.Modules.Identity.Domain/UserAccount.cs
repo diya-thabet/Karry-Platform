@@ -45,6 +45,14 @@ public sealed record FieldUserCreated(Guid UserId, IReadOnlyList<RoleAssignment>
 [EventType("identity.user_deactivated.v1")]
 public sealed record UserDeactivated(Guid UserId, string? Actor) : DomainEvent;
 
+/// <summary>A user's role assignments changed (US-P1-IAM-06 AC1); before and after for the ledger (T-13).</summary>
+[EventType("identity.user_roles_changed.v1")]
+public sealed record UserRolesChanged(Guid UserId, IReadOnlyList<RoleAssignment> Before, IReadOnlyList<RoleAssignment> After, string? Actor) : DomainEvent;
+
+/// <summary>A new invitation link replaced the previous one, which no longer works.</summary>
+[EventType("identity.invitation_reissued.v1")]
+public sealed record InvitationReissued(Guid UserId, Guid InvitationId, Guid ReplacedInvitationId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
+
 /// <summary>
 /// A person of a tenant (US-P1-IAM-03). Office users are linked to a Keycloak account by its subject (the token's
 /// <c>sub</c>); field users are identified by employee ID and PIN. Never deleted: deactivation keeps the name for
@@ -213,6 +221,58 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         return this;
     }
 
+    /// <summary>
+    /// Replaces the role assignments (same rules as at creation: known roles, field users only field roles). False
+    /// (and no event) when they are the same; a deactivated user keeps theirs.
+    /// </summary>
+    public Result<bool> ChangeRoles(TimeProvider clock, IReadOnlyList<RoleAssignment>? roles, RoleLookup known, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(known);
+        if (Status == UserStatus.Deactivated)
+        {
+            return Error.BusinessRule("identity.user_deactivated", "A deactivated user's roles cannot change.");
+        }
+
+        var checkedRoles = ValidateRoles(roles, known);
+        if (!checkedRoles.IsSuccess)
+        {
+            return checkedRoles.Error;
+        }
+
+        var after = checkedRoles.Value;
+        if (Kind == UserKind.Field && after.Any(a => known(a.Role)!.Office))
+        {
+            return Error.Validation("identity.role_needs_account", "Office roles need an invited account with a password, not a PIN.");
+        }
+
+        if (after.Count == Roles.Count && after.All(Roles.Contains))
+        {
+            return false;
+        }
+
+        var before = Roles;
+        Roles = after;
+        Raise(new UserRolesChanged(Id.Value, before, after, actor) { OccurredAt = clock.GetUtcNow() });
+        return true;
+    }
+
+    /// <summary>A new invitation for an invited user (resend, US-P1-IAM-03): the previous link stops working.</summary>
+    public Result<(Invitation Invitation, string Token)> Reinvite(TimeProvider clock, Invitation previous, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(previous);
+        if (Status != UserStatus.Invited || previous.UserId != Id)
+        {
+            return Error.BusinessRule("identity.not_invited", "This user already accepted their invitation or was deactivated.");
+        }
+
+        previous.Revoke(clock);
+        var (invitation, token) = Invitation.Issue(clock, TenantId, Id, previous.Channel);
+        Raise(new InvitationReissued(Id.Value, invitation.Id.Value, previous.Id.Value, invitation.ExpiresAt, actor) { OccurredAt = invitation.CreatedAt });
+        return (invitation, token);
+    }
+
     /// <summary>Idempotent: deactivating a deactivated user changes nothing and raises nothing.</summary>
     public bool Deactivate(TimeProvider clock, string? actor)
     {
@@ -238,6 +298,12 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
             return Error.Validation("identity.name_invalid", $"First and last name are required (1–{NameMaxLength} characters).");
         }
 
+        var checkedRoles = ValidateRoles(roles, known);
+        return checkedRoles.IsSuccess ? (first, last, checkedRoles.Value) : checkedRoles.Error;
+    }
+
+    private static Result<List<RoleAssignment>> ValidateRoles(IReadOnlyList<RoleAssignment>? roles, RoleLookup known)
+    {
         if (roles is not { Count: > 0 })
         {
             return Error.Validation("identity.roles_required", "Give the user at least one role.");
@@ -253,7 +319,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
             return Error.Validation("identity.site_invalid", "A site scope must name a site.");
         }
 
-        return (first, last, roles.Distinct().ToList());
+        return roles.Distinct().ToList();
     }
 
     private static Result<(string? Email, string? Phone)> Contact(string? email, string? phone)

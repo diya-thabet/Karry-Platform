@@ -91,13 +91,33 @@ internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<Keycloa
 
         if (account.MfaRequired)
         {
-            using var role = await SendAsync(HttpMethod.Get, $"roles/{Options.MfaRole}", null, cancellationToken).ConfigureAwait(false);
-            var representation = await Ensure(role, "read role").Content.ReadFromJsonAsync<JsonObject>(cancellationToken).ConfigureAwait(false);
-            using var mapped = await SendAsync(HttpMethod.Post, $"users/{subject}/role-mappings/realm", new[] { representation }, cancellationToken).ConfigureAwait(false);
-            Ensure(mapped, "map role");
+            await SetMfaRequiredAsync(subject, required: true, cancellationToken).ConfigureAwait(false);
         }
 
         return subject;
+    }
+
+    public async Task SetMfaRequiredAsync(string subject, bool required, CancellationToken cancellationToken)
+    {
+        using var role = await SendAsync(HttpMethod.Get, $"roles/{Options.MfaRole}", null, cancellationToken).ConfigureAwait(false);
+        var representation = await Ensure(role, "read role").Content.ReadFromJsonAsync<JsonObject>(cancellationToken).ConfigureAwait(false);
+        // POST adds, DELETE removes the mapping; both succeed when it is already as asked (idempotent). An account
+        // removed from Keycloak has nothing to sync (like deactivation).
+        using var mapped = await SendAsync(required ? HttpMethod.Post : HttpMethod.Delete, $"users/{subject}/role-mappings/realm",
+            new[] { representation }, cancellationToken).ConfigureAwait(false);
+        if (mapped.StatusCode != HttpStatusCode.NotFound)
+        {
+            Ensure(mapped, required ? "map role" : "unmap role");
+        }
+    }
+
+    public async Task SignOutAsync(string subject, CancellationToken cancellationToken)
+    {
+        using var logout = await SendAsync(HttpMethod.Post, $"users/{subject}/logout", null, cancellationToken).ConfigureAwait(false);
+        if (logout.StatusCode != HttpStatusCode.NotFound)
+        {
+            Ensure(logout, "end sessions");
+        }
     }
 
     public async Task<Result<string>> ActivateAsync(string subject, string password, CancellationToken cancellationToken)

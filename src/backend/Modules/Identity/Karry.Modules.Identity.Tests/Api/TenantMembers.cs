@@ -79,6 +79,19 @@ public sealed class TenantMembers(IdentityHost host)
         return events;
     }
 
+    /// <summary>Keycloak ID of the account with this username (e-mail).</summary>
+    public async Task<string> AccountIdAsync(string username)
+    {
+        using var response = await host.Keycloak.AdminAsync(HttpMethod.Get, $"users?username={Uri.EscapeDataString(username)}&exact=true", cancellationToken: Ct);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct))[0].GetProperty("id").GetString()!;
+    }
+
+    public async Task<List<string>> RealmRolesAsync(string accountId)
+    {
+        using var response = await host.Keycloak.AdminAsync(HttpMethod.Get, $"users/{accountId}/role-mappings/realm", cancellationToken: Ct);
+        return [.. (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).EnumerateArray().Select(r => r.GetProperty("name").GetString()!)];
+    }
+
     public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? token, object? body = null)
     {
         using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));

@@ -46,6 +46,7 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IValidator<InviteUser>, InviteUserValidator>();
         services.AddScoped<IValidator<CreateFieldUser>, CreateFieldUserValidator>();
         services.AddScoped<IValidator<AcceptInvitation>, AcceptInvitationValidator>();
+        services.AddScoped<IValidator<ChangeUserRoles>, ChangeUserRolesValidator>();
         services.AddScoped<IValidator<CreateRole>, CreateRoleValidator>();
         services.AddScoped<IValidator<ChangeRole>, ChangeRoleValidator>();
         services.AddScoped<IValidator<ChangeFieldLevels>, ChangeFieldLevelsValidator>();
@@ -90,6 +91,27 @@ public sealed class IdentityModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("DeactivateUser");
+
+        // Privileged role changes answer 401 auth.step_up_required unless the sign-in is recent (US-P1-IAM-05 AC3).
+        endpoints.MapPut("/users/{id:guid}/roles", ChangeRolesAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
+            .AddEndpointFilter(AddressedUserVisible)
+            .Validate<ChangeUserRoles>()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("ChangeUserRoles");
+
+        endpoints.MapPost("/users/{id:guid}/invitation", ResendInvitationAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
+            .RequireIdempotencyKey()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("ResendInvitation");
 
         endpoints.MapGet("/users", ListAsync)
             .RequirePermission(IdentityPermissions.UsersRead)
@@ -197,6 +219,35 @@ public sealed class IdentityModule : IModule
         return http.GetRouteValue("code") is string code && roles.Find(code) is not null
             ? await next(context).ConfigureAwait(false)
             : RoleAdministration.NotFound.ToProblem();
+    }
+
+    /// <summary>The addressed user first (before the body is validated): one outside the caller's sites or company is "not found".</summary>
+    private static async ValueTask<object?> AddressedUserVisible(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var http = context.HttpContext;
+        var user = http.GetRouteValue("id") is string text && Guid.TryParse(text, out var id) && id != Guid.Empty
+            ? await http.RequestServices.GetRequiredService<IIdentityStore>().FindUserAsync(new UserId(id), http.RequestAborted).ConfigureAwait(false)
+            : null;
+        return user is not null && http.RequestServices.GetRequiredService<UserAdministration>().CanSee(user)
+            ? await next(context).ConfigureAwait(false)
+            : UserAdministration.NotFound.ToProblem();
+    }
+
+    private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> ChangeRolesAsync(
+        Guid id, ChangeUserRoles request, [FromServices] ChangeUserRolesHandler handler, [FromServices] RoleDirectory roles,
+        CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(id, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Ok(ToResponse(result.Value, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)))
+            : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<InvitedUser>, ProblemHttpResult>> ResendInvitationAsync(
+        Guid id, [FromServices] ResendInvitationHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(id, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
     }
 
     private static UserResponse ToResponse(UserAccount u, TenantRoles roles) =>

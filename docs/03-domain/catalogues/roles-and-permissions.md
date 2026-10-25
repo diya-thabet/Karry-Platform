@@ -59,8 +59,8 @@ Rules that apply to every permission:
   site) or site roles (that site); *warehouse* also from warehouse roles. A site manager of site A sees the users who
   hold a role on site A, and manages the users whose roles are all on their sites.
 - **Granting roles** (threat T-13): only within the caller's sites; never a privileged permission the caller lacks
-  there; a privileged role (second factor) only by someone who holds everything it contains. Nobody will be able to change their own
-  roles (role-assignment endpoint, later in P1.9).
+  there; a privileged role (second factor) only by someone who holds everything it contains. Nobody changes their own
+  roles; giving or taking a privileged role needs a sign-in of the last 5 minutes.
 - **Second factor:** Tenant Admin, Executive, Finance and Controller (US-P1-IAM-02), and every custom role that is
   privileged.
 - **Custom roles** (US-P1-IAM-05): created from scratch or by cloning any role, with any declared permissions and a
