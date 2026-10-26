@@ -108,7 +108,8 @@ This amends ADR-0023, where sites were bought but not limited.
 The portal map picker uses **MapLibre GL JS** (technology stack) with a configurable style URL (`VITE_MAP_STYLE_URL`).
 The tile provider is an owner decision (hosting, cost); until then the default is MapLibre's public demo style for
 development only. Numeric latitude and longitude fields are always available: they are the accessible path (keyboard,
-screen readers) and the offline one.
+screen readers) and the offline one. The map code is a separate chunk loaded only when a site page opens; where WebGL
+is missing the page says so and keeps the fields.
 
 ## Consequences
 
