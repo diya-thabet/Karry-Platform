@@ -56,3 +56,9 @@ Added in Phase 1 sub-phase P1.11 (organization):
 | ADR | Title | Status |
 |---|---|---|
 | [0024](0024-sites-geometry-and-shift-time.md) | Sites as PostGIS geometry, shift time computed with NodaTime in the site's time zone | Accepted |
+
+Added in Phase 1 sub-phase P1.12 (materials and units):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0025](0025-units-engine-and-materials.md) | Units engine in the shared kernel, materials in their own module, swell derived from densities | Proposed |

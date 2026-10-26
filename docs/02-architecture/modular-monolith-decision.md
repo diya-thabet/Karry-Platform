@@ -19,7 +19,7 @@ This is the professional choice for Karry. Below is why, what it means concretel
 
 ## 3.2 What "modular monolith" means here (it is not a "big ball of mud")
 
-- One .NET solution, **one deployable API image**, but internally split into ~17 **modules** (Tenancy, Assets, FieldOps, Fuel, Verification, Trust, Weighbridge, Maintenance, Inventory, Plant, Finance, Weather, Analytics, AiCopilot, Notifications, Billing, Organization).
+- One .NET solution, **one deployable API image**, but internally split into ~18 **modules** (Tenancy, Assets, Materials ([ADR-0025](../adr/0025-units-engine-and-materials.md)), FieldOps, Fuel, Verification, Trust, Weighbridge, Maintenance, Inventory, Plant, Finance, Weather, Analytics, AiCopilot, Notifications, Billing, Organization).
 - Each module has its own **database schema**, its own domain model, and a **public contract** project. Modules **never** read another module's tables and never reference another module's internals. Architecture tests in CI fail the build if they do.
 - Modules communicate in two ways only:
   1. **Synchronous in-process calls** through the other module's public contract interface (like a service API, but a method call).

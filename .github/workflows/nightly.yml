@@ -64,6 +64,7 @@ jobs:
   mutation:
     # Stryker.NET 5 with the Microsoft Testing Platform runner. Trust.Domain (hashing, chain verification, anchors) and
     # Trust.Application (anchoring, verification against anchors); the tests use real PostgreSQL (Docker on the runner).
+    # The units engine (P1.12) is pure: only SharedKernel's Units folder is mutated.
     name: mutation
     runs-on: ubuntu-24.04
     timeout-minutes: 60
@@ -82,6 +83,10 @@ jobs:
       - name: Trust.Application (break below 75 %)
         if: always()
         run: dotnet stryker --config-file stryker-config.application.json --output "$RUNNER_TEMP/stryker/application"
+      - name: Units engine in SharedKernel (break below 70 %)
+        if: always()
+        working-directory: tests/Karry.SharedKernel.UnitTests
+        run: dotnet stryker --config-file stryker-config.units.json --output "$RUNNER_TEMP/stryker/units"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
