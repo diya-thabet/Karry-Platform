@@ -22,6 +22,7 @@ public static class OrganizationInfrastructure
         services.AddScoped<ShiftInstances>();
         services.AddScoped<ShiftOperations>();
         services.AddScoped<GenerateShiftInstances>();
+        services.AddScoped<DemoSitesSeeder>();
         services.TryAddSingleton<ShiftMetrics>();
         services.AddScoped<IUsageSource, ActiveSites>();
         services.AddScoped<ISiteDirectory, SiteDirectory>();
