@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
 import { PlanPage } from "./billing/PlanPage";
 import { Layout, NotFound, Section } from "./Layout";
+import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
 import { sections } from "./sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { CompanyPage } from "./settings/CompanyPage";
@@ -27,6 +28,16 @@ const role = createRoute({
 const users = createRoute({ getParentRoute: () => root, path: "/settings/users", component: UsersPage });
 const plan = createRoute({ getParentRoute: () => root, path: "/settings/plan", component: PlanPage });
 const company = createRoute({ getParentRoute: () => root, path: "/settings/company", component: CompanyPage });
+const materials = createRoute({ getParentRoute: () => root, path: "/settings/materials", component: MaterialsPage });
+const newMaterial = createRoute({ getParentRoute: () => root, path: "/settings/materials/new", component: () => <MaterialPage /> });
+const material = createRoute({
+  getParentRoute: () => root,
+  path: "/settings/materials/$materialId",
+  component: function Material() {
+    const { materialId } = material.useParams();
+    return <MaterialPage key={materialId} materialId={materialId} />;
+  },
+});
 const sites = createRoute({ getParentRoute: () => root, path: "/sites", component: SitesPage });
 const newSite = createRoute({ getParentRoute: () => root, path: "/sites/new", component: () => <SitePage /> });
 const site = createRoute({
@@ -39,7 +50,12 @@ const site = createRoute({
 });
 
 export function createPortalRouter(history?: RouterHistory) {
-  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan, company, sites, newSite, site]), ...(history ? { history } : {}) });
+  return createRouter({
+    routeTree: root.addChildren([
+      ...routes, settings, roles, newRole, role, users, plan, company, materials, newMaterial, material, sites, newSite, site,
+    ]),
+    ...(history ? { history } : {}),
+  });
 }
 
 declare module "@tanstack/react-router" {

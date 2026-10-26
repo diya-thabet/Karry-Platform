@@ -4,7 +4,7 @@ import { createI18n, I18nProvider } from "@karry/i18n";
 import { Button } from "./Button";
 import { DataTable } from "./DataTable";
 import { Dialog } from "./Dialog";
-import { QuantityInput } from "./QuantityInput";
+import { QuantityInput, type MaterialState } from "./QuantityInput";
 import { MaskedValue, SensitiveValue } from "./MaskedValue";
 import { StatusChip } from "./StatusChip";
 import { EmptyState, ErrorState, UpgradeCard } from "./States";
@@ -56,12 +56,16 @@ describe("TextField", () => {
 });
 
 describe("QuantityInput", () => {
-  function Harness() {
-    const [value, setValue] = useState("");
-    return <QuantityInput label="Fuel" value={value} onValueChange={setValue} unit="L" unitLabel="litres" state="LOOSE" stateLabel="Loose" />;
-  }
+  const litres = [{ value: "l", symbol: "L", label: "litres" }];
+  const units = [{ value: "m3", symbol: "m³", label: "cubic metres", hasState: true }, { value: "t", symbol: "t", label: "tonnes" }];
+  const states = [{ value: "bank", label: "Bank" }, { value: "loose", label: "Loose" }] as const;
 
   it("keeps the typed text exactly, opens a decimal keypad and always shows the unit", () => {
+    function Harness() {
+      const [value, setValue] = useState("");
+      return <QuantityInput label="Fuel" value={value} onValueChange={setValue} units={litres} unit="l" />;
+    }
+
     render(<Harness />);
     const input = screen.getByRole("textbox", { name: "Fuel" });
 
@@ -69,7 +73,54 @@ describe("QuantityInput", () => {
     expect(input).toHaveValue("12,50");
     expect(input).toHaveAttribute("inputmode", "decimal");
     expect(screen.getByLabelText("litres")).toHaveTextContent("L");
-    expect(screen.getByText("Loose")).toHaveAttribute("data-material-state", "LOOSE");
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+  });
+
+  it("toggles the unit and, for m³ only, the material state (US-P1-UNI-01 AC4)", () => {
+    const changes: string[] = [];
+    function Harness() {
+      const [unit, setUnit] = useState("m3");
+      const [state, setState] = useState<MaterialState>("loose");
+      return (
+        <QuantityInput label="Load" value="10" units={units} unit={unit} onUnitChange={(u) => { changes.push(u); setUnit(u); }} unitGroupLabel="Unit"
+          states={states} state={state} onStateChange={(s) => { changes.push(s); setState(s); }} stateGroupLabel="State" />
+      );
+    }
+
+    render(<Harness />);
+    const unitGroup = screen.getByRole("group", { name: "Unit" });
+    expect(within(unitGroup).getByRole("button", { name: "cubic metres" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(screen.getByRole("group", { name: "State" })).getByRole("button", { name: "Loose" })).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Bank" }));
+    fireEvent.click(within(unitGroup).getByRole("button", { name: "tonnes" }));
+
+    expect(changes).toEqual(["bank", "t"]);
+    expect(within(unitGroup).getByRole("button", { name: "tonnes" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("group", { name: "State" })).not.toBeInTheDocument();
+  });
+
+  it("shows a fixed state without a toggle when it cannot be changed", () => {
+    render(<QuantityInput label="Load" value="10" units={units.slice(0, 1)} unit="m3" states={states} state="loose" />);
+
+    expect(screen.getByText("Loose")).toHaveAttribute("data-material-state", "loose");
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
+  });
+
+  it("reveals the factors used on tap", () => {
+    render(
+      <QuantityInput label="In tonnes" value="16.48" readOnly units={units} unit="t" factorsLabel="Factors used"
+        factors={[{ name: "density.loose", label: "Loose density", value: "1.6 t/m³" }, { name: "moisture", label: "Moisture", value: "3 %" }]} />,
+    );
+    const button = screen.getByRole("button", { name: "Factors used" });
+
+    expect(button).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByText("Loose density")).not.toBeInTheDocument();
+    fireEvent.click(button);
+    expect(button).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Loose density").nextSibling).toHaveTextContent("1.6 t/m³");
+    expect(screen.getByText("Moisture")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "In tonnes" })).toHaveAttribute("readonly");
   });
 });
 
