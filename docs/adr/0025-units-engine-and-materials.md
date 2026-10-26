@@ -3,7 +3,7 @@ title: "ADR-0025: Units engine in the shared kernel, materials in their own modu
 area: adr
 tags: [units, quantity, density, swell-factor, materials, conversion, mutation-testing]
 source: "Phase 1 sub-phase P1.12"
-status: proposed
+status: accepted
 last_updated: 2026-10-26
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-26
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.12; the owner pre-approved merging green PRs, 2026-10-25)
+- **Status:** Accepted (owner pre-approved and the agent merged the green P1.12 PRs #73–#76; built and verified 2026-10-26)
 - **Date:** 2026-10-26
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-UNI-01, US-P1-AST-04; [ADR-0010](0010-material-state.md) (material state, accepted);
@@ -80,3 +80,19 @@ state and effective dates. Building it raises four questions ADR-0010 left open:
   whose ratio is exactly 1.60.
 - ⚠ Valid ranges (density 1.2–3.2 t/m³, moisture 0–0.25, swell 0.10–0.80) come from the draft formula handbook. They
   change only with the domain expert's sign-off (WP-P0-04).
+
+## As built (P1.12 close-out)
+
+- **Engine:** `Karry.SharedKernel.Units` as decided; Stryker score 91.10 % (nightly, break below 70 %). GE-01 … GE-03
+  exact, TC-P1-UNI-001 and TC-P1-UNI-003 as unit tests.
+- **Materials module:** schema `materials` with RLS; density versions as a `jsonb` list (decimals as strings, so no
+  precision is lost). Codes are unique per company and fixed once created; materials are archived, never deleted.
+  `materials.catalog.read` for every role, `materials.catalog.manage` (privileged, step-up) for the Tenant Admin.
+  Conversions: `POST /materials/{id}/conversions` with the version valid on a date (TC-P1-UNI-002); nothing is stored.
+- **Company clock:** "today" for density versions is the company's, through `TenantSummary.TimeZone` (Tenancy contract).
+- **Portal:** `QuantityInput` in `@karry/ui` with the unit toggle, the state toggle (m³ only, the states the material
+  has) and the factors used on tap. Settings → Materials shows moisture and swell in percent; typing a swell fills the
+  loose density (decision 3). Conversions are always computed by the API, never in the browser.
+- **Demo data:** `seed-demo` creates 4 materials for company A and 2 for company B, with densities from 1 January.
+- **Tests:** the isolation suite attacks another company's material and its future version. Mutation checks caught
+  beyond Stryker: 4 across the sub-phase.

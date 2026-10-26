@@ -44,6 +44,10 @@ lacks the realm: `docker compose -f deploy/docker/compose.yaml down -v` once.
 `LAV-SUD` (3 × 8 h, Monday to Saturday), company B the quarry `CAR-KAK`; each with its country's fixed public holidays
 for this year and the next. The sites bought are raised to match. Locations are illustrative.
 
+**Demo materials** (same command), with densities from 1 January: company A has limestone `CAL-BRUT` and the products
+`0/31.5`, `G-4/6` and `S-0/4`, company B granite `GRA-BRUT` and `0/31.5`. The values are typical, not measured; see them
+and convert quantities in the portal under Settings → Materials.
+
 Database roles come from [`deploy/database/roles.sql`](deploy/database/roles.sql) on the first start of the stack. A stack created before P1.5 lacks `karry_owner`: recreate it once with `docker compose -f deploy/docker/compose.yaml down -v`.
 
 Local services (bound to `127.0.0.1` only; development credentials are in [`deploy/docker/compose.yaml`](deploy/docker/compose.yaml)):

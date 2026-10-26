@@ -96,6 +96,9 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     if [[ "$sites" == "demo-carriere-a:CAR-NORD,demo-carriere-a:LAV-SUD,demo-carriere-b:CAR-KAK" ]]; then pass "seed-demo: 3 demo sites"; else fail "seed-demo sites (got '$sites')"; fi
     shifts="$(psql_su "SELECT count(DISTINCT site_id) FROM organization.shift_instances i JOIN tenancy.tenants t ON t.id = i.tenant_id WHERE t.slug LIKE 'demo-carriere-%'")"
     if [[ "$shifts" == "3" ]]; then pass "seed-demo: coming shifts stored for every demo site"; else fail "seed-demo shifts (got '$shifts')"; fi
+    # P1.12: demo materials with their densities, once (A: 4, B: 2).
+    materials="$(psql_su "SELECT string_agg(t.slug || ':' || count, ',' ORDER BY t.slug) FROM (SELECT tenant_id, count(*) FROM materials.materials GROUP BY tenant_id) m JOIN tenancy.tenants t ON t.id = m.tenant_id WHERE t.slug LIKE 'demo-carriere-%'")"
+    if [[ "$materials" == "demo-carriere-a:4,demo-carriere-b:2" ]]; then pass "seed-demo: 6 demo materials"; else fail "seed-demo materials (got '$materials')"; fi
     # P1.8: one user per default role in each demo tenant (PLT-02 AC2), active, with their creation in the ledger.
     users="$(psql_su "SELECT count(*) FILTER (WHERE u.status = 'Active') || '/' || count(*) FROM identity.users u JOIN tenancy.tenants t ON t.id = u.tenant_id WHERE t.slug = 'demo-carriere-a'")"
     if [[ "$users" == "12/12" ]]; then pass "seed-demo: 12 active demo users (one per default role)"; else fail "seed-demo users (got '$users')"; fi
