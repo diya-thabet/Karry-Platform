@@ -52,6 +52,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tenancy/public/{slug}/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetTenantLogo"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["UpdateTenantSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tenancy/settings/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SetTenantLogo"];
+        post?: never;
+        delete: operations["RemoveTenantLogo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identity/invitations": {
         parameters: {
             query?: never;
@@ -658,6 +706,8 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        /** Format: binary */
+        IFormFile: string;
         InviteUser: {
             firstName: null | string;
             lastName: null | string;
@@ -863,9 +913,12 @@ export interface components {
                 [key: string]: number | string;
             };
         };
+        /** @description Public sign-in branding: no data beyond what the sign-in page shows. */
         TenantBrandingResponse: {
             slug: string;
             name: string;
+            primaryColour: null | string;
+            logoUrl: null | string;
         };
         TenantFlagListResponse: {
             items: components["schemas"]["TenantFlagResponse"][];
@@ -878,6 +931,7 @@ export interface components {
             /** Format: date-time */
             changedAt: string;
         };
+        /** @description The caller's company with its settings (US-P1-TEN-04); `LogoUrl` is null without a logo. */
         TenantResponse: {
             /** Format: uuid */
             id: string;
@@ -885,6 +939,28 @@ export interface components {
             name: string;
             /** Format: date-time */
             createdAt: string;
+            legalName: string;
+            primaryColour: null | string;
+            language: string;
+            currency: string;
+            unitSystem: string;
+            timeZone: string;
+            /** Format: int32 */
+            fiscalYearStartMonth: number | string;
+            logoUrl: null | string;
+            /** Format: date-time */
+            settingsChangedAt: null | string;
+        };
+        /** @description New settings, every field given (a full replacement). */
+        UpdateTenantSettings: {
+            legalName: null | string;
+            primaryColour: null | string;
+            language: null | string;
+            currency: null | string;
+            unitSystem: null | string;
+            timeZone: null | string;
+            /** Format: int32 */
+            fiscalYearStartMonth: number | string;
         };
         /** @description One metric: the live count, the tenant-wide limit and ceiling (null: unlimited), and its state. */
         UsageLineResponse: {
@@ -1081,6 +1157,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantBrandingResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTenantLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UpdateTenantSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateTenantSettings"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetTenantLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "image/png": components["schemas"]["IFormFile"];
+                "image/jpeg": components["schemas"]["IFormFile"];
+                "image/webp": components["schemas"]["IFormFile"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveTenantLogo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TenantResponse"];
                 };
             };
             /** @description Not Found */

@@ -9,6 +9,7 @@ using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Tenancy.Api;
+using Karry.SharedKernel.Authorization;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
@@ -24,6 +25,9 @@ namespace Karry.Modules.Tenancy.Tests;
 public sealed class TenancyHost : IAsyncLifetime
 {
     public const string BaseDomain = "karry.test";
+
+    /// <summary>Token subject of an Executive (reads, never changes settings); every other subject is a Tenant Admin.</summary>
+    public const string Executive = "executive-1";
 
     private PostgresServer? server;
     private WebApplication? app;
@@ -49,6 +53,7 @@ public sealed class TenancyHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new Trust.Api.TrustModule()]);
+        builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, new Dictionary<string, string> { [Executive] = DefaultRoles.Executive });
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();

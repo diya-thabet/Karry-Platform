@@ -3,6 +3,7 @@ import { PlanPage } from "./billing/PlanPage";
 import { Layout, NotFound, Section } from "./Layout";
 import { sections } from "./sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
+import { CompanyPage } from "./settings/CompanyPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { UsersPage } from "./settings/UsersPage";
 
@@ -24,9 +25,10 @@ const role = createRoute({
 });
 const users = createRoute({ getParentRoute: () => root, path: "/settings/users", component: UsersPage });
 const plan = createRoute({ getParentRoute: () => root, path: "/settings/plan", component: PlanPage });
+const company = createRoute({ getParentRoute: () => root, path: "/settings/company", component: CompanyPage });
 
 export function createPortalRouter(history?: RouterHistory) {
-  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan]), ...(history ? { history } : {}) });
+  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan, company]), ...(history ? { history } : {}) });
 }
 
 declare module "@tanstack/react-router" {

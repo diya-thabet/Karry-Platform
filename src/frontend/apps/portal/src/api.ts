@@ -112,3 +112,21 @@ export function useUsage(): { loaded: boolean; items: UsageLine[]; snapshotOn: s
 
 /** Subscription states in which only billing, export and the person's own account remain (ADR-0023). */
 export const endedStates = new Set(["cancelled", "expired", "deleted"]);
+
+export const SettingsManagePermission = "tenancy.settings.manage";
+
+export const currentTenantKey = ["tenancy", "current"] as const;
+
+/**
+ * The signed-in person's company and its settings (US-P1-TEN-04). Saving settings refreshes this query, so a change
+ * shows at once without signing in again.
+ */
+export function useCurrentTenant() {
+  const api = useApi();
+  const query = useQuery({
+    queryKey: currentTenantKey,
+    queryFn: async () => (await api.GET("/api/v1/tenancy/current")).data ?? null,
+  });
+  return { loaded: query.isSuccess, tenant: query.data ?? null };
+}
+

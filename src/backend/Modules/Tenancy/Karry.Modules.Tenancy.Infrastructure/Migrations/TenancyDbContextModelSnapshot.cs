@@ -126,11 +126,47 @@ namespace Karry.Modules.Tenancy.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<int>("FiscalYearStartMonth")
+                        .HasColumnType("integer")
+                        .HasColumnName("fiscal_year_start_month");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("language");
+
+                    b.Property<string>("LegalName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("legal_name");
+
+                    b.Property<string>("LogoSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("logo_sha256");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("name");
+
+                    b.Property<string>("PrimaryColour")
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)")
+                        .HasColumnName("primary_colour");
+
+                    b.Property<DateTimeOffset?>("SettingsChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("settings_changed_at");
 
                     b.Property<string>("Slug")
                         .IsRequired()
@@ -144,6 +180,18 @@ namespace Karry.Modules.Tenancy.Infrastructure.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("status");
 
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.Property<string>("UnitSystem")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("unit_system");
+
                     b.HasKey("Id")
                         .HasName("pk_tenants");
 
@@ -151,7 +199,47 @@ namespace Karry.Modules.Tenancy.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_tenants_slug");
 
-                    b.ToTable("tenants", "tenancy");
+                    b.ToTable("tenants", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenants_fiscal_year_start_month", "fiscal_year_start_month BETWEEN 1 AND 12");
+                        });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Tenancy.Domain.TenantLogo", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("content");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("content_type");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.HasKey("TenantId")
+                        .HasName("pk_tenant_logos");
+
+                    b.ToTable("tenant_logos", "tenancy", t =>
+                        {
+                            t.HasCheckConstraint("ck_tenant_logos_size", "octet_length(content) <= 262144");
+                        });
                 });
 #pragma warning restore 612, 618
         }

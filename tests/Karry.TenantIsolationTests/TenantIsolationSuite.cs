@@ -162,7 +162,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         ["ListTenantInvoices"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
         ["RecordTenantInvoice"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
         ["PayTenantInvoice"] = "Platform operators only (policy platform-operator); a tenant token is refused with 403 (tested in Billing).",
-        ["GetTenantBranding"] = "Public login branding: slug and name of the company named in the URL, by design (threat model R-07).",
+        ["GetTenantBranding"] = "Public login branding: slug, name, colour and logo address of the company named in the URL, by design (threat model R-07).",
+        ["GetTenantLogo"] = "Public login branding: the logo of the company named in the URL, by design (threat model R-07).",
     };
 
     private static readonly JsonElement Contract = JsonDocument.Parse(File.ReadAllText(

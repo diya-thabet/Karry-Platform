@@ -42,6 +42,7 @@ public sealed class EndpointAuthorizationTests
         ["ListTenantFlags"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
         ["SetTenantFlag"] = "Platform operators only (policy platform-operator): flag values platform-wide and per tenant, set by Karry staff (ADR-0019).",
         ["GetTenantBranding"] = "Anonymous login branding (threat model R-07).",
+        ["GetTenantLogo"] = "Anonymous login branding (threat model R-07): the company logo, an image only (type read from the content, nosniff).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
     };
 
