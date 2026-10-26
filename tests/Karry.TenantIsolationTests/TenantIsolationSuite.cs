@@ -51,7 +51,12 @@ public sealed class IsolationHost : IAsyncLifetime
         // Organization (P1.11): a site of A to read, change, archive or restore.
         ASite = await SeedSiteAsync(A.Id, "Alphasite");
         await SeedShiftsAsync(A.Id, ASite);
+        // Materials (P1.12): a material of A with a future density version (on AShiftDate) to change or remove.
+        AMaterial = await SeedMaterialAsync(A.Id, "Alphamaterial");
     }
+
+    /// <summary>ID of tenant A's material (its name, <c>Alphamaterial</c>, and code, <c>ALPHA-MAT</c>, are markers too).</summary>
+    public Guid AMaterial { get; private set; }
 
     /// <summary>Date of tenant A's future pattern version and non-working day (their names, <c>Alphashift</c> and <c>Alphaday</c>, are markers).</summary>
     public const string AShiftDate = "2099-01-01";
@@ -119,6 +124,25 @@ public sealed class IsolationHost : IAsyncLifetime
             """
             INSERT INTO organization.sites (id, tenant_id, code, name, type, address_line, city, country, location, time_zone, status, created_at, changed_at)
             VALUES ($1, $2, 'ALPHA-SITE', $3, 'Quarry', 'Route 1', 'Tunis', 'TN', ST_SetSRID(ST_MakePoint(10.0, 36.8), 4326), 'Africa/Tunis', 'Active', now(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(name);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedMaterialAsync(Guid tenant, string name)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            $$"""
+            INSERT INTO materials.materials (id, tenant_id, code, name, kind, density_versions, status, created_at, changed_at)
+            VALUES ($1, $2, 'ALPHA-MAT', $3, 'Product',
+                    '[{"EffectiveFrom":"2026-01-01","Bank":null,"Loose":"1.5","Compacted":null,"Moisture":"0.02"},{"EffectiveFrom":"{{AShiftDate}}","Bank":null,"Loose":"1.6","Compacted":null,"Moisture":"0.02"}]',
+                    'Active', now(), now())
             """, connection);
         insert.Parameters.AddWithValue(id);
         insert.Parameters.AddWithValue(tenant);
@@ -262,7 +286,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
                 $"{operationId} addressed tenant A's resource with tenant B's token");
         }
 
-        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday"],
+        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
+            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -329,6 +354,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "id" when template.StartsWith("/api/v1/identity/users/", StringComparison.Ordinal) => host.AUser.Id.ToString(),
         "siteId" => host.ASite.ToString(),
         "effectiveFrom" or "date" when template.StartsWith("/api/v1/organization/sites/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
+        "materialId" => host.AMaterial.ToString(),
+        "effectiveFrom" when template.StartsWith("/api/v1/materials/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,
         "code" when template.StartsWith("/api/v1/identity/roles/", StringComparison.Ordinal) => host.ARole,

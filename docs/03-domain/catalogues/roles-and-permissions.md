@@ -55,6 +55,8 @@ The matrix above is the target for the whole product. In code it is the union of
 | `organization.sites.read` | site | no | all 12 default roles (a site role: only its sites) | Every row that works on a site (P1.11: sites list and details) |
 | `organization.sites.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): create, change, archive and restore sites (each site is billed) |
 | `organization.shifts.manage` | site | no | Tenant Admin, Site Manager (their sites) | Shift patterns and non-working days of a site (US-P1-ORG-02) |
+| `materials.catalog.read` | tenant | no | all 12 default roles | Materials, their density versions and conversions (US-P1-AST-04, US-P1-UNI-01) |
+| `materials.catalog.manage` | tenant | yes | Tenant Admin | Create, change, archive materials and set density versions (they change invoiced volumes) |
 | `tenancy.settings.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): company settings and logo (P1.11; every member reads them) |
 | `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |
 

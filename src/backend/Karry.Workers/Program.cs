@@ -5,6 +5,7 @@ using Karry.Modules.Billing.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
+using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
@@ -31,6 +32,9 @@ builder.Services.AddFlagsInfrastructure(connectionString);
 
 // Organization: delivers its events (site and shift changes) and generates the shift instances (daily job).
 builder.Services.AddOrganizationInfrastructure(connectionString);
+
+// Materials: delivers its events (material and density changes).
+builder.Services.AddMaterialsInfrastructure(connectionString);
 
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
@@ -60,6 +64,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<BillingDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FlagsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<OrganizationDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
 }
@@ -114,6 +119,7 @@ builder.Services.AddOutboxDispatcherService<IdentityDbContext>();
 builder.Services.AddOutboxDispatcherService<BillingDbContext>();
 builder.Services.AddOutboxDispatcherService<FlagsDbContext>();
 builder.Services.AddOutboxDispatcherService<OrganizationDbContext>();
+builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {

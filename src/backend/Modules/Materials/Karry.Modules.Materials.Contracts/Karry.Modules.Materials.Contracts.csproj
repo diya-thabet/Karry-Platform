@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Public surface of the Materials module: integration events, DTOs, query interfaces. The ONLY project other modules may reference. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../Karry.SharedKernel/Karry.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

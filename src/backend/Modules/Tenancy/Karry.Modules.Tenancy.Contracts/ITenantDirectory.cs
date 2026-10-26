@@ -2,8 +2,11 @@ using Karry.SharedKernel.Tenancy;
 
 namespace Karry.Modules.Tenancy.Contracts;
 
-/// <summary>A tenant as other modules see it: its address label and display name.</summary>
-public sealed record TenantSummary(TenantId Id, string Slug, string Name);
+/// <summary>
+/// A tenant as other modules see it: its address label, display name and IANA time zone (the company's clock, for
+/// "today" when nothing more local applies, e.g. a material's density version).
+/// </summary>
+public sealed record TenantSummary(TenantId Id, string Slug, string Name, string TimeZone = "UTC");
 
 /// <summary>The list of tenants, for platform jobs that work tenant by tenant (ledger anchoring, usage snapshots).</summary>
 public interface ITenantDirectory

@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP endpoints and the IModule entry point that wires the Materials module into the host. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Materials.Application/Karry.Modules.Materials.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Materials.Infrastructure/Karry.Modules.Materials.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
