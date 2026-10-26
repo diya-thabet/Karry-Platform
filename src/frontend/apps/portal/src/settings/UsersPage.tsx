@@ -4,6 +4,7 @@ import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, ListDetailPage, SelectField, StatusChip, useToast } from "@karry/ui";
 import { useAccess, useApi, useWithStepUp } from "../api";
+import { useSites } from "../sites/api";
 import { roleName } from "./labels";
 
 type User = components["schemas"]["UserResponse"];
@@ -13,8 +14,8 @@ const usersKey = ["identity", "users"] as const;
 
 /**
  * People of the company and their roles (US-P1-IAM-06 AC1): the list shows those the person may see (their sites);
- * the detail changes a user's roles. Site scopes are kept as they are; choosing sites arrives with the sites screen
- * (P1.11). Giving or taking a privileged role asks the person to confirm their identity.
+ * the detail changes a user's roles, each across the company or on one site (P1.11). Giving or taking a privileged
+ * role asks the person to confirm their identity.
  */
 export function UsersPage() {
   const { t } = useTranslation();
@@ -70,6 +71,18 @@ function UserRoles({ user }: { user: User }) {
   const roles = useQuery({ queryKey: ["identity", "roles"], queryFn: async () => (await api.GET("/api/v1/identity/roles")).data?.items ?? [], enabled: can("identity.roles.read") });
   const [assignments, setAssignments] = useState<Assignment[]>(user.roles);
   const manage = can("identity.users.manage");
+  const sites = useSites(true);
+  const companyWide = "company";
+  const siteLabel = (id: string) => {
+    const site = sites.data?.find((s) => s.id === id);
+    return site ? `${site.code} · ${site.name}` : t("portal.users.scope.site", { site: id.slice(-6) });
+  };
+  // A site that is archived or out of the person's sight stays selectable for the assignment that already has it.
+  const scopeOptions = (current: string | null) => [
+    { value: companyWide, label: t("portal.users.scope.company") },
+    ...(sites.data ?? []).filter((s) => s.status === "active" || s.id === current).map((s) => ({ value: s.id, label: siteLabel(s.id) })),
+    ...(current && !sites.data?.some((s) => s.id === current) ? [{ value: current, label: siteLabel(current) }] : []),
+  ];
   // Without identity.roles.read the choice is the default roles (their names are translated in the app).
   const choices = (roles.data ?? []).filter((r) => r.office || user.kind === "field");
 
@@ -103,9 +116,15 @@ function UserRoles({ user }: { user: User }) {
               disabled={!manage}
               onValueChange={(role) => { setAssignments(assignments.map((a, i) => (i === index ? { ...a, role } : a))); }}
             />
-            <span className="pb-2 text-text-muted">
-              {assignment.siteId ? t("portal.users.scope.site", { site: assignment.siteId.slice(-6) }) : t("portal.users.scope.company")}
-            </span>
+            <SelectField
+              label={t("portal.users.where")}
+              options={scopeOptions(assignment.siteId ?? null)}
+              value={assignment.siteId ?? companyWide}
+              disabled={!manage}
+              onValueChange={(where) => {
+                setAssignments(assignments.map((a, i) => (i === index ? { ...a, siteId: where === companyWide ? null : where } : a)));
+              }}
+            />
             {manage && assignments.length > 1 && (
               <Button type="button" variant="secondary" onClick={() => { setAssignments(assignments.filter((_, i) => i !== index)); }}>
                 {t("portal.users.removeRole")}

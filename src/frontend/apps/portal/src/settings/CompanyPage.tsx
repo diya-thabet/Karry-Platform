@@ -5,12 +5,10 @@ import type { components } from "@karry/api-client";
 import { supportedLanguages, useTranslation } from "@karry/i18n";
 import { Button, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
 import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../api";
+import { currencies } from "../currencies";
 
 type Tenant = components["schemas"]["TenantResponse"];
 type Settings = components["schemas"]["UpdateTenantSettings"];
-
-/** Currencies the API accepts (Karry.SharedKernel.Monetary.Currency). */
-const currencies = ["AED", "CAD", "CHF", "DZD", "EGP", "EUR", "GBP", "LYD", "MAD", "QAR", "SAR", "TND", "USD", "XAF", "XOF"];
 
 const months = Array.from({ length: 12 }, (_, index) => index + 1);
 const logoTypes = "image/png,image/jpeg,image/webp";

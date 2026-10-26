@@ -22,6 +22,7 @@
     "@openfeature/web-sdk": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
+    "maplibre-gl": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"
   },
@@ -30,6 +31,7 @@
     "@testing-library/dom": "catalog:",
     "@testing-library/jest-dom": "catalog:",
     "@testing-library/react": "catalog:",
+    "@types/geojson": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

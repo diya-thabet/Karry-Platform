@@ -6,10 +6,11 @@ import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { CompanyPage } from "./settings/CompanyPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { UsersPage } from "./settings/UsersPage";
+import { SitePage, SitesPage } from "./sites/SitesPages";
 
 const root = createRootRoute({ component: Layout, notFoundComponent: NotFound });
 const routes = sections
-  .filter((section) => section.path !== "/settings")
+  .filter((section) => section.path !== "/settings" && section.path !== "/sites")
   .map((section) => createRoute({ getParentRoute: () => root, path: section.path, component: () => <Section titleKey={section.key} /> }));
 
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
@@ -26,9 +27,19 @@ const role = createRoute({
 const users = createRoute({ getParentRoute: () => root, path: "/settings/users", component: UsersPage });
 const plan = createRoute({ getParentRoute: () => root, path: "/settings/plan", component: PlanPage });
 const company = createRoute({ getParentRoute: () => root, path: "/settings/company", component: CompanyPage });
+const sites = createRoute({ getParentRoute: () => root, path: "/sites", component: SitesPage });
+const newSite = createRoute({ getParentRoute: () => root, path: "/sites/new", component: () => <SitePage /> });
+const site = createRoute({
+  getParentRoute: () => root,
+  path: "/sites/$siteId",
+  component: function Site() {
+    const { siteId } = site.useParams();
+    return <SitePage key={siteId} siteId={siteId} />;
+  },
+});
 
 export function createPortalRouter(history?: RouterHistory) {
-  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan, company]), ...(history ? { history } : {}) });
+  return createRouter({ routeTree: root.addChildren([...routes, settings, roles, newRole, role, users, plan, company, sites, newSite, site]), ...(history ? { history } : {}) });
 }
 
 declare module "@tanstack/react-router" {
