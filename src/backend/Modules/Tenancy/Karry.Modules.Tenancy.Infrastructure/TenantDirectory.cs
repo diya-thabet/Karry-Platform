@@ -11,5 +11,5 @@ internal sealed class TenantDirectory(TenancyDbContext db) : ITenantDirectory
 
     public async Task<TenantSummary?> FindAsync(TenantId tenant, CancellationToken cancellationToken) =>
         await db.Tenants.AsNoTracking().Where(t => t.Id == tenant)
-            .Select(t => new TenantSummary(t.Id, t.Slug.Value, t.Name)).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+            .Select(t => new TenantSummary(t.Id, t.Slug.Value, t.Name, t.TimeZone)).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 }

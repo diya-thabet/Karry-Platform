@@ -58,7 +58,7 @@ state and effective dates. Building it raises four questions ADR-0010 left open:
    - The portal lets a person type the swell factor and computes the loose density from it, so the AC1 inputs are
      all there. There is still one source of truth, and a state change through mass always agrees with
      `V_loose = V_bank × (1 + s)`.
-4. **Densities are versioned by effective date** (ADR-0010). A conversion at a date uses the version valid on that
+4. **Densities are versioned by effective date** (ADR-0010), on the company's clock (its settings' time zone, read through the Tenancy contract `TenantSummary.TimeZone`): materials are the same for every site. A conversion at a date uses the version valid on that
    date (TC-P1-UNI-002). Versions are never edited after their date, as with shift patterns (ADR-0024).
 
 ## Options considered

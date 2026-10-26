@@ -724,6 +724,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/materials": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMaterials"];
+        put?: never;
+        post: operations["CreateMaterial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{materialId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMaterial"];
+        put: operations["ChangeMaterial"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{materialId}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ArchiveMaterial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{materialId}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RestoreMaterial"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{materialId}/densities/{effectiveFrom}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SetDensityVersion"];
+        post?: never;
+        delete: operations["RemoveDensityVersion"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/materials/{materialId}/conversions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ConvertQuantity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -792,6 +888,32 @@ export interface components {
         ChangeUserRoles: {
             roles: null | components["schemas"]["RoleAssignment"][];
         };
+        ConversionFactorResponse: {
+            name: string;
+            /** Format: double */
+            value: number | string;
+            unit: string;
+        };
+        /**
+         * @description Converts `Quantity` to `Unit` (and `State` for m³) with the densities valid on `On` (default: the
+         *     company's today); `Moisture` replaces the material's default (a measured sample).
+         */
+        ConversionInput: {
+            quantity: null | components["schemas"]["QuantityInput"];
+            unit: null | string;
+            state: null | string;
+            /** Format: date */
+            on: null | string;
+            /** Format: double */
+            moisture: null | number | string;
+        };
+        /** @description The converted quantity (full precision: round only for display), the factors used and the version's date. */
+        ConversionResponse: {
+            result: components["schemas"]["QuantityResponse"];
+            factors: components["schemas"]["ConversionFactorResponse"][];
+            /** Format: date */
+            densitiesFrom: string;
+        };
         CreateFieldUser: {
             firstName: null | string;
             lastName: null | string;
@@ -815,6 +937,32 @@ export interface components {
             flags: {
                 [key: string]: boolean;
             };
+        };
+        /** @description Densities as the API receives them (t/m³; moisture as a mass fraction). */
+        DensityInput: {
+            /** Format: double */
+            bank: null | number | string;
+            /** Format: double */
+            loose: null | number | string;
+            /** Format: double */
+            compacted: null | number | string;
+            /** Format: double */
+            moisture: null | number | string;
+        };
+        /** @description Densities in t/m³ from `EffectiveFrom`; `Swell` = bank / loose − 1 when both are known. */
+        DensityVersionResponse: {
+            /** Format: date */
+            effectiveFrom: string;
+            /** Format: double */
+            bank: null | number | string;
+            /** Format: double */
+            loose: null | number | string;
+            /** Format: double */
+            compacted: null | number | string;
+            /** Format: double */
+            moisture: number | string;
+            /** Format: double */
+            swell: null | number | string;
         };
         /**
          * @description What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is
@@ -925,6 +1073,38 @@ export interface components {
             /** Format: double */
             longitude: number | string;
         };
+        MaterialChangeInput: {
+            name: null | string;
+            kind: null | string;
+        };
+        /** @description A new material with its first densities; `EffectiveFrom` defaults to the company's today (any date is allowed). */
+        MaterialInput: {
+            code: null | string;
+            name: null | string;
+            kind: null | string;
+            densities: null | components["schemas"]["DensityInput"];
+            /** Format: date */
+            effectiveFrom: null | string;
+        };
+        MaterialListResponse: {
+            items: components["schemas"]["MaterialResponse"][];
+        };
+        /** @description A material; `Densities` lists its versions, oldest first (each valid until the next one). */
+        MaterialResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            name: string;
+            kind: string;
+            densities: components["schemas"]["DensityVersionResponse"][];
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            changedAt: string;
+            /** Format: date-time */
+            archivedAt: null | string;
+        };
         NonWorkingDayInput: {
             kind: null | string;
             name: null | string;
@@ -1019,6 +1199,20 @@ export interface components {
                 [key: string]: number | string;
             };
             prices: null | components["schemas"]["PlanPriceDto"][];
+        };
+        /** @description A quantity as the API receives it: `{value, unit, state}`. */
+        QuantityInput: {
+            /** Format: double */
+            value: null | number | string;
+            unit: null | string;
+            state: null | string;
+        };
+        /** @description A quantity on the wire: `State` is bank, loose or compacted for m³ and null otherwise. */
+        QuantityResponse: {
+            /** Format: double */
+            value: number | string;
+            unit: string;
+            state: null | string;
         };
         RecordInvoice: {
             number: string;
@@ -4056,6 +4250,353 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ShiftInstanceListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMaterials: {
+        parameters: {
+            query?: {
+                includeArchived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialListResponse"];
+                };
+            };
+        };
+    };
+    CreateMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangeMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MaterialChangeInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ArchiveMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RestoreMaterial: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MaterialResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetDensityVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+                effectiveFrom: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DensityInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DensityVersionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RemoveDensityVersion: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+                effectiveFrom: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ConvertQuantity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                materialId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConversionInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConversionResponse"];
                 };
             };
             /** @description Bad Request */
