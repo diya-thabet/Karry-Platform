@@ -525,7 +525,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | Frontend | `QuantityInput` toggle and factor display (Vitest) |
 
 - **Mutation:** Stryker on the units engine in nightly, score ≥ 70 %.
-- **Done when:** engine and materials API green; golden examples pass; mutation score recorded.
+- **Done when:** engine and materials API green; golden examples pass; mutation score recorded. *(Done 2026-10-26, PRs #73–#76: GE-01 … GE-03, TC-P1-UNI-001 … 003 green in CI; Stryker on the units engine 91.10 % (nightly, break below 70 %); design in [ADR-0025](../../adr/0025-units-engine-and-materials.md) (accepted). As built: the engine is in `Karry.SharedKernel.Units`; materials have their own `Materials` module (not Assets); the swell factor is derived from bank and loose densities, and the portal fills the loose density from a typed swell; density versions follow the company's clock; conversions are computed by the API only; `seed-demo` adds 6 demo materials. Ranges stay draft until the formula handbook is signed off.)*
 
 ---
 
