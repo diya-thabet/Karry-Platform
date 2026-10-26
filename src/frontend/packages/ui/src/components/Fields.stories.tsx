@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
-import { QuantityInput } from "./QuantityInput";
+import { QuantityInput, type MaterialState, type QuantityInputProps } from "./QuantityInput";
 import { SelectField } from "./SelectField";
 import { TextField } from "./TextField";
 
@@ -14,17 +14,32 @@ export const TextWithHelpAndError: Story = {
 };
 export const TextDisabled: Story = { render: () => <TextField label="Site" defaultValue="Carrière Nord" disabled /> };
 
-function Quantity(props: { unit: string; unitLabel: string; state?: "LOOSE"; error?: string }) {
+const tonnes = [{ value: "t", symbol: "t", label: "tonnes" }];
+const volumeOrMass = [{ value: "m3", symbol: "m³", label: "mètres cubes", hasState: true }, { value: "t", symbol: "t", label: "tonnes" }];
+const states = [{ value: "bank", label: "En place" }, { value: "loose", label: "Foisonné" }, { value: "compacted", label: "Compacté" }] as const;
+
+function Quantity(props: { units?: QuantityInputProps["units"]; unit?: string; error?: string }) {
   const [value, setValue] = useState("12,5");
   return (
-    <QuantityInput label="Quantité chargée" value={value} onValueChange={setValue} unit={props.unit} unitLabel={props.unitLabel}
-      {...(props.state ? { state: props.state, stateLabel: "Foisonné (LOOSE)" } : {})} {...(props.error ? { error: props.error } : {})} />
+    <QuantityInput label="Quantité chargée" value={value} onValueChange={setValue} units={props.units ?? tonnes} unit={props.unit ?? "t"}
+      {...(props.error ? { error: props.error } : {})} />
   );
 }
 
-export const QuantityTonnes: Story = { render: () => <Quantity unit="t" unitLabel="tonnes" /> };
-export const QuantityVolumeLoose: Story = { render: () => <Quantity unit="m³" unitLabel="mètres cubes" state="LOOSE" /> };
-export const QuantityWithError: Story = { render: () => <Quantity unit="t" unitLabel="tonnes" error="Doit être un nombre positif." /> };
+/** Unit and state toggle, and the factors behind the converted value on tap (US-P1-UNI-01 AC4). */
+function Toggled() {
+  const [unit, setUnit] = useState("m3");
+  const [state, setState] = useState<MaterialState>("loose");
+  return (
+    <QuantityInput label="Chargement" value={unit === "t" ? "16,48" : "10"} readOnly units={volumeOrMass} unit={unit} onUnitChange={setUnit}
+      unitGroupLabel="Unité" states={states} state={state} onStateChange={setState} stateGroupLabel="État" factorsLabel="Facteurs utilisés"
+      factors={unit === "t" ? [{ name: "density.loose", label: "Densité foisonnée", value: "1,6 t/m³" }, { name: "moisture", label: "Humidité", value: "3 %" }] : undefined} />
+  );
+}
+
+export const QuantityTonnes: Story = { render: () => <Quantity /> };
+export const QuantityVolumeToggle: Story = { render: () => <Toggled /> };
+export const QuantityWithError: Story = { render: () => <Quantity error="Doit être un nombre positif." /> };
 
 export const Select: Story = {
   render: () => {
@@ -42,7 +57,7 @@ export const FieldControls: Story = {
   render: () => (
     <div className="flex flex-col gap-4">
       <TextField label="Compteur horaire" inputMode="decimal" />
-      <Quantity unit="L" unitLabel="litres" />
+      <Quantity units={[{ value: "l", symbol: "L", label: "litres" }]} unit="l" />
     </div>
   ),
 };

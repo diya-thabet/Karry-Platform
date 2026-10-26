@@ -8,6 +8,11 @@ type SiteInput = components["schemas"]["SiteInput"];
 type ShiftPattern = components["schemas"]["ShiftPatternResponse"];
 type NonWorkingDay = components["schemas"]["NonWorkingDayResponse"];
 type ShiftInstance = components["schemas"]["ShiftInstanceResponse"];
+type Material = components["schemas"]["MaterialResponse"];
+type MaterialInput = components["schemas"]["MaterialInput"];
+type DensityVersion = components["schemas"]["DensityVersionResponse"];
+type DensityInput = components["schemas"]["DensityInput"];
+type ConversionInput = components["schemas"]["ConversionInput"];
 
 export interface Sent {
   method: string;
@@ -64,6 +69,8 @@ export function fakeApi(options: {
   days?: Record<string, NonWorkingDay[]>;
   /** What `GET /sites/{id}/shift-instances` answers for every site. */
   instances?: ShiftInstance[];
+  /** Materials of `GET /materials` (default: none). */
+  materials?: Material[];
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -77,6 +84,7 @@ export function fakeApi(options: {
   const sites: Site[] = [...(options.sites ?? [])];
   const patterns: Record<string, ShiftPattern[]> = { ...options.patterns };
   const days: Record<string, NonWorkingDay[]> = { ...options.days };
+  const materials: Material[] = [...(options.materials ?? [])];
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
     tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
@@ -143,6 +151,11 @@ export function fakeApi(options: {
     const organization = organizationRoute(request.method, url, body);
     if (organization) {
       return organization;
+    }
+
+    const material = materialsRoute(request.method, url, body);
+    if (material) {
+      return material;
     }
 
     const roleMatch = /^\/roles\/([^/]+)(\/field-levels)?$/.exec(path);
@@ -255,11 +268,68 @@ export function fakeApi(options: {
     }
   }
 
+  function materialsRoute(method: string, url: URL, body: unknown): Response | null {
+    const match = /^\/api\/v1\/materials(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const [, id, part, key] = match;
+    if (!id) {
+      if (method === "GET") {
+        const all = url.searchParams.get("includeArchived") === "true";
+        return json(200, { items: materials.filter((m) => all || m.status === "active") });
+      }
+
+      const input = body as MaterialInput;
+      const created = material({
+        id: `0192f0c1-0000-7000-8000-${String(materials.length + 1).padStart(12, "0")}`, code: (input.code ?? "").toUpperCase(), name: input.name ?? "",
+        kind: input.kind ?? "raw-rock", densities: [versionFrom(input.effectiveFrom ?? "2026-10-26", input.densities)],
+      });
+      materials.push(created);
+      return json(201, created);
+    }
+
+    const index = materials.findIndex((m) => m.id === id);
+    const found = materials[index];
+    if (!found) {
+      return problem(404, "materials.material_not_found");
+    }
+
+    const save = (next: Material) => {
+      materials[index] = { ...next, changedAt: `2026-10-26T09:00:${String(index).padStart(2, "0")}Z` };
+      return json(200, materials[index]);
+    };
+    switch (true) {
+      case part === undefined && method === "GET":
+        return json(200, found);
+      case part === undefined && method === "PUT":
+        return save({ ...found, ...(body as { name: string; kind: string }) });
+      case part === "archive":
+        return save({ ...found, status: "archived", archivedAt: "2026-10-26T09:00:00Z" });
+      case part === "restore":
+        return save({ ...found, status: "active", archivedAt: null });
+      case part === "densities" && method === "PUT": {
+        const version = versionFrom(key ?? "", body as DensityInput);
+        save({ ...found, densities: [...found.densities.filter((v) => v.effectiveFrom !== key), version].sort((a, b) => a.effectiveFrom.localeCompare(b.effectiveFrom)) });
+        return json(200, version);
+      }
+      case part === "densities" && method === "DELETE":
+        save({ ...found, densities: found.densities.filter((v) => v.effectiveFrom !== key) });
+        return new Response(null, { status: 204 });
+      case part === "conversions":
+        return json(200, convert(found, body as ConversionInput));
+      default:
+        return problem(404, "test.unknown_route");
+    }
+  }
+
   const client: ApiClient = createApiClient({ baseUrl: "http://api.test", getAccessToken: () => "test-token", fetch });
   return {
     client,
     sent,
-    writes: () => sent.filter((s) => s.method !== "GET"),
+    /** Changes sent (a conversion is a POST but stores nothing). */
+    writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };
 }
 
@@ -295,4 +365,52 @@ export function site(overrides: Partial<Site> = {}): Site {
     }),
     ...overrides,
   };
+}
+
+function versionFrom(effectiveFrom: string, input: DensityInput | null | undefined): DensityVersion {
+  const value = (x: number | string | null | undefined) => (x === null || x === undefined ? null : Number(x));
+  const bank = value(input?.bank);
+  const loose = value(input?.loose);
+  return {
+    effectiveFrom, bank, loose, compacted: value(input?.compacted), moisture: value(input?.moisture) ?? 0,
+    swell: bank !== null && loose !== null ? Math.round((bank / loose - 1) * 1e6) / 1e6 : null,
+  };
+}
+
+/** A material as the API answers it: 0/31.5 with 2.2 bank, 1.6 loose, 3 % moisture from 1 January 2026. */
+export function material(overrides: Partial<Material> = {}): Material {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000006001", code: "0/31.5", name: "Grave 0/31.5", kind: "product",
+    densities: [versionFrom("2026-01-01", { bank: 2.2, loose: 1.6, compacted: null, moisture: 0.03 })],
+    status: "active", createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null, ...overrides,
+  };
+}
+
+/** The engine's formula (M = V × ρ_state × (1 + w)) in floating point: enough for screens, not for golden values. */
+function convert(found: Material, input: ConversionInput) {
+  const on = input.on ?? "2026-10-26";
+  const version = found.densities.filter((v) => v.effectiveFrom <= on).at(-1);
+  if (!version) {
+    return null;
+  }
+
+  const perTonne: Record<string, number> = { t: 1, kg: 0.001, st: 0.90718474 };
+  const density = (state: string | null) => Number(version[state as "bank" | "loose" | "compacted"]);
+  const w = Number(input.moisture ?? version.moisture);
+  const quantity = input.quantity;
+  const value = Number(quantity?.value);
+  const factors: { name: string; value: number; unit: string }[] = [];
+  let tonnes = value * (perTonne[quantity?.unit ?? ""] ?? 1);
+  if (quantity?.unit === "m3") {
+    factors.push({ name: `density.${quantity.state ?? ""}`, value: density(quantity.state), unit: "t/m3" });
+    tonnes = value * density(quantity.state) * (1 + w);
+  }
+
+  if (input.unit !== "m3") {
+    factors.push({ name: "moisture", value: w, unit: "fraction" });
+    return { result: { value: tonnes / (perTonne[input.unit ?? ""] ?? 1), unit: input.unit, state: null }, factors, densitiesFrom: version.effectiveFrom };
+  }
+
+  factors.push({ name: `density.${input.state ?? ""}`, value: density(input.state), unit: "t/m3" }, { name: "moisture", value: w, unit: "fraction" });
+  return { result: { value: tonnes / (density(input.state) * (1 + w)), unit: "m3", state: input.state }, factors, densitiesFrom: version.effectiveFrom };
 }

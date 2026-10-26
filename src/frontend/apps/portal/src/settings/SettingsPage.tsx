@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "@karry/i18n";
 import { BillingReadPermission, useAccess } from "../api";
+import { MaterialsReadPermission } from "../materials/api";
 
 /** Settings: the company's (read-only without the permission) and only the other screens the person may use (the API checks every call anyway). */
 export function SettingsPage() {
@@ -10,6 +11,7 @@ export function SettingsPage() {
     { to: "/settings/company", label: t("portal.company.title"), hint: t("portal.settings.companyHint"), permission: null },
     { to: "/settings/roles", label: t("portal.roles.title"), hint: t("portal.settings.rolesHint"), permission: "identity.roles.read" },
     { to: "/settings/users", label: t("portal.users.title"), hint: t("portal.settings.usersHint"), permission: "identity.users.read" },
+    { to: "/settings/materials", label: t("portal.materials.title"), hint: t("portal.settings.materialsHint"), permission: MaterialsReadPermission },
     { to: "/settings/plan", label: t("portal.plan.title"), hint: t("portal.settings.planHint"), permission: BillingReadPermission },
   ].filter((link) => link.permission === null || can(link.permission));
 

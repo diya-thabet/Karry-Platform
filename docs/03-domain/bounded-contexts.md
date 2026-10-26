@@ -86,7 +86,7 @@ flowchart LR
 ## 9.3 Core shared value objects (SharedKernel)
 
 - `TenantId`, `SiteId`, typed IDs (UUIDv7 for time-ordered keys generated offline).
-- `Quantity { value: decimal, unit: Unit, state?: MaterialState }` — units: `M3`, `T` (metric tonne), `ST` (short ton), `L`, `KM`, `H`, `DAY`, `PCS`.
+- `Quantity { value: decimal, unit: Unit, state?: MaterialState }`: unit codes `m3` (always with a state: `bank`, `loose`, `compacted`), `t` (metric tonne), `kg`, `st` (short ton), `l`, `km`, `h`, `day`, `pcs`; built in `Karry.SharedKernel.Units` ([ADR-0025](../adr/0025-units-engine-and-materials.md)).
 - `Money { amount: decimal, currency: CurrencyCode }`.
 - `MeterValue { value, meterType: HOURS|KM, meterId }`.
 - `GeoPoint { lat, lon, accuracyM }`.

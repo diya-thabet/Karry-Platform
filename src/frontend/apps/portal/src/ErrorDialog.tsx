@@ -57,6 +57,22 @@ const explained = new Set([
   "organization.day_name_invalid",
   "organization.date_in_past",
   "organization.range_invalid",
+  "materials.code_invalid",
+  "materials.material_code_taken",
+  "materials.name_invalid",
+  "materials.kind_invalid",
+  "materials.density_required",
+  "materials.density_invalid",
+  "materials.moisture_invalid",
+  "materials.swell_invalid",
+  "materials.material_archived",
+  "materials.date_in_past",
+  "materials.density_version_not_found",
+  "materials.last_density_version",
+  "materials.no_density_version",
+  "units.not_convertible",
+  "units.density_missing",
+  "units.quantity_invalid",
 ]);
 
 /**
