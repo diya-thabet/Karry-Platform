@@ -10,7 +10,7 @@ namespace Karry.Modules.Organization.Infrastructure;
 
 public static class OrganizationInfrastructure
 {
-    /// <summary>Site storage (PostGIS), the site meter and the directory other modules read.</summary>
+    /// <summary>Site storage (PostGIS), shifts and their generator, the site meter and the directory other modules read.</summary>
     public static IServiceCollection AddOrganizationInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -18,6 +18,11 @@ public static class OrganizationInfrastructure
         services.AddOutboxDispatcher<OrganizationDbContext>(eventAssemblies: typeof(Domain.Site).Assembly);
         services.AddScoped<ISiteStore, SiteStore>();
         services.AddScoped<SiteOperations>();
+        services.AddScoped<IShiftStore, ShiftStore>();
+        services.AddScoped<ShiftInstances>();
+        services.AddScoped<ShiftOperations>();
+        services.AddScoped<GenerateShiftInstances>();
+        services.TryAddSingleton<ShiftMetrics>();
         services.AddScoped<IUsageSource, ActiveSites>();
         services.AddScoped<ISiteDirectory, SiteDirectory>();
         return services;

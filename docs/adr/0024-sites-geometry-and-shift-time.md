@@ -85,14 +85,22 @@ This amends ADR-0023, where sites were bought but not limited.
 - **An instance belongs to the date it starts on.** A night shift starting on 31 December is a 31 December shift.
 - **Effective-dated patterns.** A site's pattern has versions with `effectiveFrom` (a local date). The pattern for a
   date is the newest version effective on or before it; a change never rewrites past instances.
-- A pattern lists its shifts (code, name, start, end) and the weekdays they run on.
+- A pattern lists its shifts (code, name, start, end) and the weekdays they run on. Two shifts of a version never run
+  at the same time on the wall clock (checked over the week, across midnight and from Sunday to Monday), so a field
+  entry belongs to exactly one shift.
+- **Only the future changes.** A version starts after the site's today (the site's first version may start on any
+  date); a version in effect is never changed or removed. Non-working days change from the site's today on.
 - **Calendars:** non-working days per site (date, kind `public-holiday` / `closure` / `other`, name). A non-working
   day has no instances.
 - **Generation:**
   - A daily Quartz job (with the start-up trigger of P1.10) writes the next 30 days into
     `organization.shift_instances` (RLS, idempotent by site, date and shift code). It removes future instances a
-    change made invalid; it never touches one that has started.
-  - `GET /sites/{id}/shift-instances?from&to` computes any range of up to 366 days from the rules, without storing it.
+    change made invalid; it never touches one that has started. A pattern, non-working day or site change (time
+    zone, archive, restore) applies the same rule to its site in the same transaction, so the stored days are right
+    at once; the job moves the window forward and catches up after downtime (`Karry.Workers generate-shifts`, alert
+    `KarryShiftInstancesStale`).
+  - `GET /sites/{id}/shift-instances?from&to` computes any range of up to 366 days from the rules, without storing it
+    (by default the next 30 days).
   - The field app (P1.15) syncs the stored instances.
 
 ### Map

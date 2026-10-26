@@ -874,7 +874,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
-          "Karry.Modules.Organization.Domain": "[1.0.0, )"
+          "Karry.Modules.Organization.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.organization.contracts": {

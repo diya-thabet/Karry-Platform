@@ -8,6 +8,8 @@
 #   karry_ledger_anchor_last_success_seconds  Trust AnchoringMetrics (karry-workers): unix time of the last full run
 #   karry_billing_usage_over_limit           Billing UsageMetrics (karry-workers): tenant metrics above their plan limit
 #   karry_billing_usage_last_success_seconds  Billing UsageMetrics (karry-workers): unix time of the last full snapshot
+#   karry_organization_shifts_last_success_seconds  Organization ShiftMetrics (karry-workers): unix time of the last full
+#                                            shift generation
 #   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
 #                                            exporter relabelled to it (wired with hosting in P1.17)
 #   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
@@ -132,3 +134,18 @@ groups:
           summary: "No complete usage snapshot for over 26 hours"
           description: "The daily usage snapshot failed for a tenant or did not run. Check the worker logs (event 5003)."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-usage-snapshot-stale.md"
+
+      - alert: KarryShiftInstancesStale
+        # No complete daily shift generation for 26 hours, or the worker is silent: the stored shifts of the next
+        # 30 days stop moving forward, and field devices run out of shifts to attach entries to.
+        expr: |
+          (time() - max by (job) (karry_organization_shifts_last_success_seconds)) > 93600
+          or
+          absent(karry_organization_shifts_last_success_seconds)
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "No complete shift generation for over 26 hours"
+          description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"

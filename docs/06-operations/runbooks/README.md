@@ -25,3 +25,4 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-certificate-expiring-soon](karry-certificate-expiring-soon.md) | TLS certificate expires in < 14 days | ticket |
 | [karry-tenant-over-limit](karry-tenant-over-limit.md) | A company above a plan limit at the last usage snapshot | ticket |
 | [karry-usage-snapshot-stale](karry-usage-snapshot-stale.md) | No complete daily usage snapshot for 26 h (or worker silent) | ticket |
+| [karry-shift-instances-stale](karry-shift-instances-stale.md) | No complete daily shift generation for 26 h (or worker silent) | ticket |

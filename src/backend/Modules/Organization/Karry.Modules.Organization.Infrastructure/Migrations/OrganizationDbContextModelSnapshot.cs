@@ -118,6 +118,166 @@ namespace Karry.Modules.Organization.Infrastructure.Migrations
                     b.ToTable("processed_messages", "organization");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.NonWorkingDay", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_non_working_days");
+
+                    b.HasIndex("SiteId")
+                        .HasDatabaseName("ix_non_working_days_site_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_non_working_days_tenant_id");
+
+                    b.HasIndex("TenantId", "SiteId", "Date")
+                        .IsUnique()
+                        .HasDatabaseName("ix_non_working_days_tenant_id_site_id_date");
+
+                    b.ToTable("non_working_days", "organization");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.ShiftInstance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date")
+                        .HasColumnName("date");
+
+                    b.Property<DateTimeOffset>("EndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ends_at");
+
+                    b.Property<string>("ShiftCode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("shift_code");
+
+                    b.Property<string>("ShiftName")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("shift_name");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<DateTimeOffset>("StartsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("starts_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TimeZone")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("time_zone");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shift_instances");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_shift_instances_tenant_id");
+
+                    b.HasIndex("SiteId", "StartsAt")
+                        .HasDatabaseName("ix_shift_instances_site_id_starts_at");
+
+                    b.HasIndex("TenantId", "SiteId", "Date", "ShiftCode")
+                        .IsUnique()
+                        .HasDatabaseName("ix_shift_instances_tenant_id_site_id_date_shift_code");
+
+                    b.ToTable("shift_instances", "organization", t =>
+                        {
+                            t.HasCheckConstraint("ck_shift_instances_order", "ends_at > starts_at");
+                        });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.ShiftPattern", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effective_from");
+
+                    b.Property<string>("Shifts")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("shifts");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_shift_patterns");
+
+                    b.HasIndex("SiteId")
+                        .HasDatabaseName("ix_shift_patterns_site_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_shift_patterns_tenant_id");
+
+                    b.HasIndex("TenantId", "SiteId", "EffectiveFrom")
+                        .IsUnique()
+                        .HasDatabaseName("ix_shift_patterns_tenant_id_site_id_effective_from");
+
+                    b.ToTable("shift_patterns", "organization");
+                });
+
             modelBuilder.Entity("Karry.Modules.Organization.Domain.Site", b =>
                 {
                     b.Property<Guid>("Id")
@@ -228,6 +388,36 @@ namespace Karry.Modules.Organization.Infrastructure.Migrations
 
                             t.HasCheckConstraint("ck_sites_boundary_valid", "boundary IS NULL OR ST_IsValid(boundary)");
                         });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.NonWorkingDay", b =>
+                {
+                    b.HasOne("Karry.Modules.Organization.Domain.Site", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_non_working_days_sites_site_id");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.ShiftInstance", b =>
+                {
+                    b.HasOne("Karry.Modules.Organization.Domain.Site", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shift_instances_sites_site_id");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Organization.Domain.ShiftPattern", b =>
+                {
+                    b.HasOne("Karry.Modules.Organization.Domain.Site", null)
+                        .WithMany()
+                        .HasForeignKey("SiteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_shift_patterns_sites_site_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -18,8 +18,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Karry.Modules.Organization.Api;
 
 /// <summary>
-/// The company's structure (US-P1-ORG-01, ADR-0024): sites with their map pin and boundary. Routes under
-/// <c>/api/v1/organization</c>.
+/// The company's structure (US-P1-ORG-01/02, ADR-0024): sites with their map pin and boundary, their shift pattern
+/// versions, non-working days and shift instances. Routes under <c>/api/v1/organization</c>.
 /// </summary>
 public sealed class OrganizationModule : IModule
 {
@@ -77,6 +77,107 @@ public sealed class OrganizationModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("RestoreSite");
+
+        // Shift patterns (US-P1-ORG-02 AC1): versions by the local date they start on; only future ones change.
+        endpoints.MapGet("/sites/{siteId:guid}/shift-patterns", ListShiftPatternsAsync)
+            .RequirePermission(OrganizationPermissions.SitesRead)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListShiftPatterns");
+
+        endpoints.MapPut("/sites/{siteId:guid}/shift-patterns/{effectiveFrom}", SetShiftPatternAsync)
+            .RequirePermission(OrganizationPermissions.ShiftsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("SetShiftPattern");
+
+        endpoints.MapDelete("/sites/{siteId:guid}/shift-patterns/{effectiveFrom}", RemoveShiftPatternAsync)
+            .RequirePermission(OrganizationPermissions.ShiftsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("RemoveShiftPattern");
+
+        // Non-working days (US-P1-ORG-02 AC2): public holidays, closures; no shift starts on them. Listed by range
+        // (by default the year from the site's today).
+        endpoints.MapGet("/sites/{siteId:guid}/non-working-days", ListNonWorkingDaysAsync)
+            .RequirePermission(OrganizationPermissions.SitesRead)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListNonWorkingDays");
+
+        endpoints.MapPut("/sites/{siteId:guid}/non-working-days/{date}", SetNonWorkingDayAsync)
+            .RequirePermission(OrganizationPermissions.ShiftsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("SetNonWorkingDay");
+
+        endpoints.MapDelete("/sites/{siteId:guid}/non-working-days/{date}", RemoveNonWorkingDayAsync)
+            .RequirePermission(OrganizationPermissions.ShiftsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("RemoveNonWorkingDay");
+
+        // Shift instances of any range up to a year, computed from the rules (US-P1-ORG-02 AC3); by default the next
+        // 30 days from the site's today.
+        endpoints.MapGet("/sites/{siteId:guid}/shift-instances", ComputeShiftInstancesAsync)
+            .RequirePermission(OrganizationPermissions.SitesRead)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ComputeShiftInstances");
+    }
+
+    private static async Task<Results<Ok<ShiftPatternListResponse>, ProblemHttpResult>> ListShiftPatternsAsync(
+        Guid siteId, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken)
+    {
+        var result = await shifts.PatternsAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new ShiftPatternListResponse([.. result.Value.Select(ShiftPatternResponse.From)])) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<ShiftPatternResponse>, ProblemHttpResult>> SetShiftPatternAsync(
+        Guid siteId, DateOnly effectiveFrom, ShiftPatternInput request, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken)
+    {
+        var result = await shifts.SetPatternAsync(new SiteId(siteId), effectiveFrom, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(ShiftPatternResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemoveShiftPatternAsync(
+        Guid siteId, DateOnly effectiveFrom, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken)
+    {
+        var result = await shifts.RemovePatternAsync(new SiteId(siteId), effectiveFrom, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<NonWorkingDayListResponse>, ProblemHttpResult>> ListNonWorkingDaysAsync(
+        Guid siteId, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken, DateOnly? from = null, DateOnly? to = null)
+    {
+        var result = await shifts.NonWorkingDaysAsync(new SiteId(siteId), from, to, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new NonWorkingDayListResponse([.. result.Value.Select(NonWorkingDayResponse.From)])) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<NonWorkingDayResponse>, ProblemHttpResult>> SetNonWorkingDayAsync(
+        Guid siteId, DateOnly date, NonWorkingDayInput request, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken)
+    {
+        var result = await shifts.SetNonWorkingDayAsync(new SiteId(siteId), date, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(NonWorkingDayResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> RemoveNonWorkingDayAsync(
+        Guid siteId, DateOnly date, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken)
+    {
+        var result = await shifts.RemoveNonWorkingDayAsync(new SiteId(siteId), date, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<ShiftInstanceListResponse>, ProblemHttpResult>> ComputeShiftInstancesAsync(
+        Guid siteId, [FromServices] ShiftOperations shifts, CancellationToken cancellationToken, DateOnly? from = null, DateOnly? to = null)
+    {
+        var result = await shifts.ComputeAsync(new SiteId(siteId), from, to, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new ShiftInstanceListResponse([.. result.Value.Select(ShiftInstanceResponse.From)])) : result.Error.ToProblem();
     }
 
     private static async Task<Ok<SiteListResponse>> ListSitesAsync(
@@ -138,3 +239,43 @@ public sealed record AddressResponse(string Line, string City, string? Region, s
 public sealed record LocationResponse(double Latitude, double Longitude);
 
 public sealed record PolygonResponse(string Type, IReadOnlyList<IReadOnlyList<IReadOnlyList<double>>> Coordinates);
+
+public sealed record ShiftPatternListResponse(IReadOnlyList<ShiftPatternResponse> Items);
+
+/// <summary>A pattern version: its shifts from <c>EffectiveFrom</c> (a local date of the site) until the next version.</summary>
+public sealed record ShiftPatternResponse(Guid Id, DateOnly EffectiveFrom, IReadOnlyList<ShiftResponse> Shifts, DateTimeOffset ChangedAt)
+{
+    public static ShiftPatternResponse From(ShiftPattern pattern)
+    {
+        ArgumentNullException.ThrowIfNull(pattern);
+        return new(pattern.Id.Value, pattern.EffectiveFrom,
+            [.. ShiftRules.Snapshot(pattern.Shifts).Select(s => new ShiftResponse(s.Code, s.Name, s.Start, s.End, s.Days))], pattern.ChangedAt);
+    }
+}
+
+/// <summary>A shift: "HH:mm" on the site's clock (an end not after the start is the next day), days "mon".."sun".</summary>
+public sealed record ShiftResponse(string Code, string Name, string Start, string End, IReadOnlyList<string> Days);
+
+public sealed record NonWorkingDayListResponse(IReadOnlyList<NonWorkingDayResponse> Items);
+
+/// <summary>A non-working day; <c>Kind</c> is "public-holiday", "closure" or "other".</summary>
+public sealed record NonWorkingDayResponse(DateOnly Date, string Kind, string Name)
+{
+    public static NonWorkingDayResponse From(NonWorkingDay day)
+    {
+        ArgumentNullException.ThrowIfNull(day);
+        return new(day.Date, ShiftRules.KindCode(day.Kind), day.Name);
+    }
+}
+
+public sealed record ShiftInstanceListResponse(IReadOnlyList<ShiftInstanceResponse> Items);
+
+/// <summary>A shift on a date (the local date it starts on), as UTC instants; its real length follows clock changes.</summary>
+public sealed record ShiftInstanceResponse(DateOnly Date, string Code, string Name, DateTimeOffset StartsAt, DateTimeOffset EndsAt, string TimeZone, int LengthMinutes)
+{
+    public static ShiftInstanceResponse From(ComputedShift shift)
+    {
+        ArgumentNullException.ThrowIfNull(shift);
+        return new(shift.Date, shift.Code, shift.Name, shift.StartsAt, shift.EndsAt, shift.TimeZone, (int)shift.Length.TotalMinutes);
+    }
+}

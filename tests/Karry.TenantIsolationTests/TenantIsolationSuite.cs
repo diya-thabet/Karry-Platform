@@ -50,7 +50,11 @@ public sealed class IsolationHost : IAsyncLifetime
         ARole = await SeedRoleAsync(A.Id, "Alpharole");
         // Organization (P1.11): a site of A to read, change, archive or restore.
         ASite = await SeedSiteAsync(A.Id, "Alphasite");
+        await SeedShiftsAsync(A.Id, ASite);
     }
+
+    /// <summary>Date of tenant A's future pattern version and non-working day (their names, <c>Alphashift</c> and <c>Alphaday</c>, are markers).</summary>
+    public const string AShiftDate = "2099-01-01";
 
     /// <summary>ID of tenant A's site (its name, <c>Alphasite</c>, is a marker too).</summary>
     public Guid ASite { get; private set; }
@@ -121,6 +125,35 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(name);
         await insert.ExecuteNonQueryAsync();
         return id;
+    }
+
+    private async Task SeedShiftsAsync(Guid tenant, Guid site)
+    {
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var batch = new NpgsqlBatch(connection)
+        {
+            BatchCommands =
+            {
+                new NpgsqlBatchCommand(
+                    $$"""
+                    INSERT INTO organization.shift_patterns (id, tenant_id, site_id, effective_from, shifts, created_at, changed_at)
+                    VALUES ($1, $2, $3, '{{AShiftDate}}', '[{"Code":"ALPHA","Name":"Alphashift","Start":"06:00","End":"18:00","Days":["mon"]}]', now(), now())
+                    """)
+                {
+                    Parameters = { new() { Value = Guid.CreateVersion7() }, new() { Value = tenant }, new() { Value = site } },
+                },
+                new NpgsqlBatchCommand(
+                    $"""
+                    INSERT INTO organization.non_working_days (id, tenant_id, site_id, date, kind, name, changed_at)
+                    VALUES ($1, $2, $3, '{AShiftDate}', 'Closure', 'Alphaday', now())
+                    """)
+                {
+                    Parameters = { new() { Value = Guid.CreateVersion7() }, new() { Value = tenant }, new() { Value = site } },
+                },
+            },
+        };
+        await batch.ExecuteNonQueryAsync();
     }
 
     private async Task<string> SeedRoleAsync(Guid tenant, string name)
@@ -229,7 +262,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
                 $"{operationId} addressed tenant A's resource with tenant B's token");
         }
 
-        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE"],
+        body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -295,6 +328,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
     {
         "id" when template.StartsWith("/api/v1/identity/users/", StringComparison.Ordinal) => host.AUser.Id.ToString(),
         "siteId" => host.ASite.ToString(),
+        "effectiveFrom" or "date" when template.StartsWith("/api/v1/organization/sites/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,
         "code" when template.StartsWith("/api/v1/identity/roles/", StringComparison.Ordinal) => host.ARole,
