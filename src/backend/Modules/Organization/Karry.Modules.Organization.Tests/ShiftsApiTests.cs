@@ -215,9 +215,9 @@ public sealed class ShiftsApiTests(OrganizationHost host) : IClassFixture<Organi
         var (_, token, site) = await SiteAsync();
         await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{site}/shift-patterns/{Iso(Today().AddDays(-1))}", token, TwoTwelves);
         await ScalarAsync<int>($"DELETE FROM organization.shift_instances WHERE site_id = '{site}' AND date > '{Iso(Today().AddDays(1))}' RETURNING 1");
-        var started = DateTimeOffset.UtcNow.AddHours(-1);
+        var started = DateTimeOffset.UtcNow.AddHours(-1); // under way now, whatever the time of day the test runs
         await ScalarAsync<int>(
-            $"UPDATE organization.shift_instances SET starts_at = '{started:O}', shift_name = 'Changée' WHERE site_id = '{site}' AND date = '{Iso(Today())}' AND shift_code = 'DAY' RETURNING 1");
+            $"UPDATE organization.shift_instances SET starts_at = '{started:O}', ends_at = '{started.AddHours(2):O}', shift_name = 'Changée' WHERE site_id = '{site}' AND date = '{Iso(Today())}' AND shift_code = 'DAY' RETURNING 1");
 
         var run = await host.Services.GetRequiredService<GenerateShiftInstances>().RunAsync(Ct);
 

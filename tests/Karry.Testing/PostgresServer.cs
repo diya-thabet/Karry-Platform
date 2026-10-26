@@ -37,7 +37,9 @@ public sealed class PostgresServer : IAsyncDisposable
             return new PostgresServer(external, null);
         }
 
-        var container = new PostgreSqlBuilder(Image).Build();
+        // No TimescaleDB background workers: tests run no TimescaleDB jobs, and its scheduler would otherwise hold a
+        // session in every test database (load) and in the extensions template (copying a database with sessions fails).
+        var container = new PostgreSqlBuilder(Image).WithCommand("-c", "timescaledb.max_background_workers=0").Build();
         await container.StartAsync().ConfigureAwait(false);
         return new PostgresServer(container.GetConnectionString(), container);
     }
@@ -89,7 +91,7 @@ public sealed class PostgresServer : IAsyncDisposable
     {
         var extensions = await File.ReadAllTextAsync(Path.Combine(database, "extensions.sql")).ConfigureAwait(false);
         var hash = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(extensions)))[..12];
-        var template = $"karry_extensions_{hash}";
+        var template = $"karry_extensions_v2_{hash}"; // v2: built with the sessions ended (P1.11 fix)
 
         await using var server = new NpgsqlConnection(serverConnectionString);
         await server.OpenAsync().ConfigureAwait(false);
@@ -133,17 +135,13 @@ public sealed class PostgresServer : IAsyncDisposable
                     await command.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
-                // TimescaleDB starts a background scheduler in each database that has the extension; a template must have
-                // no sessions, or copying it fails ("source database is being accessed by other users").
-                await using (var close = new NpgsqlCommand(
-                    $"ALTER DATABASE {building} WITH ALLOW_CONNECTIONS false IS_TEMPLATE true; " +
-                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = @building AND pid <> pg_backend_pid();", server))
+                // A template must have no sessions, or copying it fails ("source database is being accessed by other users").
+                await using (var close = new NpgsqlCommand($"ALTER DATABASE {building} WITH ALLOW_CONNECTIONS false IS_TEMPLATE true", server))
                 {
-                    close.Parameters.AddWithValue("building", building);
                     await close.ExecuteNonQueryAsync().ConfigureAwait(false);
                 }
 
-                await WaitUntilNoSessionsAsync(server, building).ConfigureAwait(false);
+                await EndSessionsAsync(server, building).ConfigureAwait(false);
                 await using var rename = new NpgsqlCommand($"ALTER DATABASE {building} RENAME TO {template}", server);
                 await rename.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
@@ -157,11 +155,14 @@ public sealed class PostgresServer : IAsyncDisposable
         return template;
     }
 
-    private static async Task WaitUntilNoSessionsAsync(NpgsqlConnection server, string name)
+    // Ends the sessions on a database and waits until none is left (ending them again on each try: a background worker
+    // may come back once before it sees the database closed).
+    private static async Task EndSessionsAsync(NpgsqlConnection server, string name)
     {
-        for (var attempt = 0; attempt < 100; attempt++)
+        for (var attempt = 0; attempt < 300; attempt++)
         {
-            await using var sessions = new NpgsqlCommand("SELECT count(*) FROM pg_stat_activity WHERE datname = @name", server);
+            await using var sessions = new NpgsqlCommand(
+                "SELECT count(pg_terminate_backend(pid)) FROM pg_stat_activity WHERE datname = @name AND pid <> pg_backend_pid()", server);
             sessions.Parameters.AddWithValue("name", name);
             if ((long)(await sessions.ExecuteScalarAsync().ConfigureAwait(false))! == 0)
             {
@@ -171,7 +172,12 @@ public sealed class PostgresServer : IAsyncDisposable
             await Task.Delay(100).ConfigureAwait(false);
         }
 
-        throw new InvalidOperationException($"Database {name} still has sessions after 10 seconds.");
+        var left = new NpgsqlCommand("SELECT string_agg(coalesce(backend_type, '?') || ':' || coalesce(application_name, ''), ', ') FROM pg_stat_activity WHERE datname = @name", server);
+        await using (left)
+        {
+            left.Parameters.AddWithValue("name", name);
+            throw new InvalidOperationException($"Database {name} still has sessions after 30 seconds: {await left.ExecuteScalarAsync().ConfigureAwait(false)}.");
+        }
     }
 
     public static string RepositoryRoot()
