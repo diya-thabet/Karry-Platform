@@ -22,7 +22,7 @@ docker compose -f deploy/docker/compose.yaml up -d --wait    # 1. PostgreSQL, Ke
 dotnet build Karry.slnx                                        # 2. build the backend
 dotnet test --solution Karry.slnx                              # 3. backend tests (Testcontainers needs Docker)
 dotnet run --project src/backend/Karry.Host -- migrate         # 4. apply database migrations (as karry_owner)
-dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: demo tenants demo-carriere-a / -b, one user per role
+dotnet run --project src/backend/Karry.Host -- seed-demo       #    optional: demo tenants demo-carriere-a / -b, their sites and shifts, one user per role
 dotnet run --project src/backend/Karry.Workers                 #    optional: outbox dispatchers + ledger anchoring (or `-- dispatch-now`)
 dotnet run --project src/backend/Karry.Host                    # 5. API on http://localhost:5000 (/health/ready)
 cd src/frontend && corepack enable && pnpm install             # 6. frontend dependencies
@@ -39,6 +39,10 @@ Both apps sign in with Keycloak (the API must run for the login page's company n
 set up an authenticator app at first sign-in. Field roles have employee IDs `DEMO-<ROLE>` and PIN `804613`. The
 Keycloak realm and login theme are code in [`deploy/keycloak`](deploy/keycloak/README.md); a stack created before P1.8
 lacks the realm: `docker compose -f deploy/docker/compose.yaml down -v` once.
+
+**Demo sites** (same command): company A has the quarry `CAR-NORD` (2 × 12 h, with a boundary) and the sand-washing plant
+`LAV-SUD` (3 × 8 h, Monday to Saturday), company B the quarry `CAR-KAK`; each with its country's fixed public holidays
+for this year and the next. The sites bought are raised to match. Locations are illustrative.
 
 Database roles come from [`deploy/database/roles.sql`](deploy/database/roles.sql) on the first start of the stack. A stack created before P1.5 lacks `karry_owner`: recreate it once with `docker compose -f deploy/docker/compose.yaml down -v`.
 

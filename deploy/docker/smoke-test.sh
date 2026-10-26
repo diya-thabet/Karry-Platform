@@ -91,6 +91,11 @@ if [[ "${SKIP_HOST:-0}" != "1" ]]; then
     if [[ "$demo" == "demo-carriere-a,demo-carriere-b" ]]; then pass "seed-demo twice: exactly the 2 demo tenants"; else fail "seed-demo (got '$demo')"; fi
     ledger="$(psql_su "SELECT event_type FROM audit.ledger_entries e JOIN tenancy.tenants t ON t.id = e.tenant_id WHERE t.slug = 'demo-carriere-a' AND seq = 1")"
     if [[ "$ledger" == "tenancy.tenant_provisioned.v1" ]]; then pass "audit ledger: demo tenant A opened with entry 1"; else fail "audit ledger (got '$ledger')"; fi
+    # P1.11: demo sites with shifts and holidays, once (A: 2 sites, B: 1), the shifts of the coming days stored.
+    sites="$(psql_su "SELECT string_agg(t.slug || ':' || s.code, ',' ORDER BY t.slug, s.code) FROM organization.sites s JOIN tenancy.tenants t ON t.id = s.tenant_id WHERE t.slug LIKE 'demo-carriere-%'")"
+    if [[ "$sites" == "demo-carriere-a:CAR-NORD,demo-carriere-a:LAV-SUD,demo-carriere-b:CAR-KAK" ]]; then pass "seed-demo: 3 demo sites"; else fail "seed-demo sites (got '$sites')"; fi
+    shifts="$(psql_su "SELECT count(DISTINCT site_id) FROM organization.shift_instances i JOIN tenancy.tenants t ON t.id = i.tenant_id WHERE t.slug LIKE 'demo-carriere-%'")"
+    if [[ "$shifts" == "3" ]]; then pass "seed-demo: coming shifts stored for every demo site"; else fail "seed-demo shifts (got '$shifts')"; fi
     # P1.8: one user per default role in each demo tenant (PLT-02 AC2), active, with their creation in the ledger.
     users="$(psql_su "SELECT count(*) FILTER (WHERE u.status = 'Active') || '/' || count(*) FROM identity.users u JOIN tenancy.tenants t ON t.id = u.tenant_id WHERE t.slug = 'demo-carriere-a'")"
     if [[ "$users" == "12/12" ]]; then pass "seed-demo: 12 active demo users (one per default role)"; else fail "seed-demo users (got '$users')"; fi
