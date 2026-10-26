@@ -89,14 +89,14 @@ describe("QuantityInput", () => {
 
     render(<Harness />);
     const unitGroup = screen.getByRole("group", { name: "Unit" });
-    expect(within(unitGroup).getByRole("button", { name: "cubic metres" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(unitGroup).getByRole("button", { name: "m³ cubic metres" })).toHaveAttribute("aria-pressed", "true");
     expect(within(screen.getByRole("group", { name: "State" })).getByRole("button", { name: "Loose" })).toHaveAttribute("aria-pressed", "true");
 
     fireEvent.click(screen.getByRole("button", { name: "Bank" }));
-    fireEvent.click(within(unitGroup).getByRole("button", { name: "tonnes" }));
+    fireEvent.click(within(unitGroup).getByRole("button", { name: "t tonnes" }));
 
     expect(changes).toEqual(["bank", "t"]);
-    expect(within(unitGroup).getByRole("button", { name: "tonnes" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(unitGroup).getByRole("button", { name: "t tonnes" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("group", { name: "State" })).not.toBeInTheDocument();
   });
 

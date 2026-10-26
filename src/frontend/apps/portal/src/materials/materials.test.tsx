@@ -143,7 +143,7 @@ describe("conversions (US-P1-UNI-01 AC4)", () => {
     expect(screen.getByText("Moisture", { selector: "dt" }).nextSibling).toHaveTextContent("3 %");
 
     // to m³ in the bank: 16.48 / (2.2 × 1.03) = 7.273
-    fireEvent.click(within(screen.getByRole("group", { name: "Unit of Result" })).getByRole("button", { name: "cubic metres" }));
+    fireEvent.click(within(screen.getByRole("group", { name: "Unit of Result" })).getByRole("button", { name: "m³ cubic metres" }));
     fireEvent.click(within(screen.getByRole("group", { name: "State of Result" })).getByRole("button", { name: "Bank" }));
     await waitFor(() => { expect(result).toHaveValue("7.273"); });
 

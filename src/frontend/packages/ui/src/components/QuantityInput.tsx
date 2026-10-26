@@ -60,7 +60,8 @@ function Toggle<T extends string>(props: { label: string | undefined; options: r
           type="button"
           className={toggleClasses}
           aria-pressed={option.value === props.selected}
-          aria-label={option.name}
+          // Spoken as "m³ cubic metres": the name keeps the visible symbol, for voice control (WCAG 2.5.3).
+          aria-label={option.name === option.text ? undefined : `${option.text} ${option.name}`}
           disabled={props.disabled}
           onClick={() => { props.onSelect?.(option.value); }}
         >
