@@ -5,6 +5,7 @@ using Karry.Modules.Billing.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
+using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
@@ -28,7 +29,7 @@ builder.Services.AddBillingInfrastructure(connectionString);
 // Flags: delivers its events (company flag changes); the evaluation itself runs in the API.
 builder.Services.AddFlagsInfrastructure(connectionString);
 
-// Organization: delivers its events (site changes); shift instances are generated here from P1.11.
+// Organization: delivers its events (site and shift changes) and generates the shift instances (daily job).
 builder.Services.AddOrganizationInfrastructure(connectionString);
 
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
@@ -81,6 +82,15 @@ if (args is ["snapshot-usage", ..])
     return run.Failed == 0 ? 0 : 1;
 }
 
+// `Karry.Workers generate-shifts`: one run of the shift generator, then exit. Exit 1 if a tenant failed.
+if (args is ["generate-shifts", ..])
+{
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<GenerateShiftInstances>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"shifts: {run.Tenants} tenants, {run.Sites} sites, {run.Added} added, {run.Changed} changed, {run.Removed} removed, {run.Failed} failed");
+    return run.Failed == 0 ? 0 : 1;
+}
+
 // `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
 var keycloak = !string.IsNullOrWhiteSpace(builder.Configuration["Identity:Keycloak:BaseUrl"]);
 if (args is ["import-sign-ins", ..])
@@ -109,6 +119,7 @@ builder.Services.AddQuartz(quartz =>
 {
     Schedule<SubscriptionLifecycleJob>(quartz, "subscription-lifecycle", SubscriptionLifecycleJob.Schedule);
     Schedule<UsageSnapshotJob>(quartz, "usage-snapshot", UsageSnapshotJob.Schedule);
+    Schedule<ShiftInstanceJob>(quartz, "shift-instances", ShiftInstanceJob.Schedule);
     if (anchoring)
     {
         Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);

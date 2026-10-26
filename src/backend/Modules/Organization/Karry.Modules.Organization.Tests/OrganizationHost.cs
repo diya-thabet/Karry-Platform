@@ -47,6 +47,9 @@ public sealed class OrganizationHost : IAsyncLifetime
     public const string Operator = "operator-1";
     public const string Executive = "executive-1";
 
+    /// <summary>Site manager of the site in <see cref="SiteOf"/> and, across the company, an executive (reads every site).</summary>
+    public const string ManagerAndExecutive = "manager-executive-1";
+
     private PostgresServer? server;
     private WebApplication? app;
 
@@ -55,6 +58,7 @@ public sealed class OrganizationHost : IAsyncLifetime
         [SiteManager] = DefaultRoles.SiteManager,
         [Operator] = DefaultRoles.Operator,
         [Executive] = DefaultRoles.Executive,
+        [ManagerAndExecutive] = DefaultRoles.SiteManager,
     };
 
     public ConcurrentDictionary<string, Guid> SiteOf { get; } = new();
@@ -64,6 +68,8 @@ public sealed class OrganizationHost : IAsyncLifetime
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
+
+    public IServiceProvider Services => app!.Services;
 
     public async ValueTask InitializeAsync()
     {
@@ -78,7 +84,7 @@ public sealed class OrganizationHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new Trust.Api.TrustModule()]);
-        builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
+        builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf, new Dictionary<string, string> { [ManagerAndExecutive] = DefaultRoles.Executive });
         builder.Services.AddSingleton(Limits);
         builder.Services.AddScoped<ILimitGuard, SiteLimitGuard>();
         app = builder.Build();

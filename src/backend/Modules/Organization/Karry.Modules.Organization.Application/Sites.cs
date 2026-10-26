@@ -19,12 +19,16 @@ public static class OrganizationPermissions
     /// <summary>Create, change, archive and restore sites (US-P1-ORG-01).</summary>
     public const string SitesManage = "organization.sites.manage";
 
+    /// <summary>Set a site's shift patterns and non-working days (US-P1-ORG-02); a site manager on their sites.</summary>
+    public const string ShiftsManage = "organization.shifts.manage";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(SitesRead, ScopeKind.Site, privileged: false,
             Roles.TenantAdmin, Roles.Executive, Roles.Finance, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner, Roles.Commercial,
             Roles.Storekeeper, Roles.Weighmaster, Roles.FuelAttendant, Roles.Mechanic, Roles.Operator),
         new(SitesManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
+        new(ShiftsManage, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.SiteManager),
     ];
 }
 
@@ -53,8 +57,11 @@ public interface ISiteStore
     Task<bool> TrySaveAsync(Site site, CancellationToken cancellationToken);
 }
 
-/// <summary>US-P1-ORG-01: sites, each change in the company's ledger; creating or restoring one follows the site limit (soft limit).</summary>
-public sealed class SiteOperations(ISiteStore store, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+/// <summary>
+/// US-P1-ORG-01: sites, each change in the company's ledger; creating or restoring one follows the site limit (soft
+/// limit). A change of the site's clock, an archive or a restore updates its stored shift instances in the same transaction.
+/// </summary>
+public sealed class SiteOperations(ISiteStore store, ShiftInstances shifts, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
 {
     public static readonly Error NotFound = Error.NotFound("organization.site_not_found", "No such site in this company.");
 
@@ -116,6 +123,7 @@ public sealed class SiteOperations(ISiteStore store, ILimitGuard limits, ICaller
 
         if (changed.Value)
         {
+            await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
             await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
         }
 
@@ -127,6 +135,7 @@ public sealed class SiteOperations(ISiteStore store, ILimitGuard limits, ICaller
         var site = await GetAsync(id, cancellationToken).ConfigureAwait(false);
         if (site.IsSuccess && site.Value.Archive(clock, caller.Subject))
         {
+            await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
             await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
         }
 
@@ -147,6 +156,7 @@ public sealed class SiteOperations(ISiteStore store, ILimitGuard limits, ICaller
         }
 
         site.Value.Restore(clock, caller.Subject);
+        await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
         await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
         return site;
     }

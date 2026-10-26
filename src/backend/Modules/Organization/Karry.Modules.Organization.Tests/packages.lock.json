@@ -8,6 +8,12 @@
         "resolved": "9.6.0",
         "contentHash": "8kdtgI+tZIgP46ncnk650/dU4JSrn+n2Dkic8FvjIFn72P6Nv1Afyr5F8F3PsokHg1GBSBVo1/Z+eZOrU5esSA=="
       },
+      "CsCheck": {
+        "type": "Direct",
+        "requested": "[4.9.1, )",
+        "resolved": "4.9.1",
+        "contentHash": "rEmuFiG19sF8U4Ef/S79cu9HW4pUGraoCTkmYs0z7SvsGqGAVO3wCjxQPS0KQvPa1g2/w1wBbnAP6cDZKBFEcA=="
+      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Direct",
         "requested": "[10.0.13, )",
@@ -418,7 +424,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
-          "Karry.Modules.Organization.Domain": "[1.0.0, )"
+          "Karry.Modules.Organization.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.organization.contracts": {

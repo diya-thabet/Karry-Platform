@@ -265,3 +265,23 @@ tests:
               description: "The daily usage snapshot failed for a tenant or did not run. Check the worker logs (event 5003)."
               runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-usage-snapshot-stale.md"
 
+
+  # --- Shift generation stale > 26 h ---------------------------------------------------------------------------
+  - name: a shift generation 27 h old opens a ticket; a recent one stays quiet
+    interval: 1m
+    input_series:
+      # Last full generation at t=0; the worker keeps reporting it.
+      - series: 'karry_organization_shifts_last_success_seconds{job="karry-workers"}'
+        values: '0x1700'
+    alert_rule_test:
+      - eval_time: 25h
+        alertname: KarryShiftInstancesStale
+        exp_alerts: []
+      - eval_time: 27h
+        alertname: KarryShiftInstancesStale
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "No complete shift generation for over 26 hours"
+              description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"
