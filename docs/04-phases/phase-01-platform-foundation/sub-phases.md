@@ -4,7 +4,7 @@ area: phases
 tags: [phase-1, sub-phases, execution-plan, sequencing, definition-of-done, ci, tenancy, identity, billing, ledger, pwa]
 source: "Phase 1 plan (plan.md) broken into executable steps"
 status: baseline
-last_updated: 2026-10-25
+last_updated: 2026-10-26
 ---
 
 # Phase 1 Execution Plan: Sub-Phases P1.0 – P1.18
@@ -491,7 +491,7 @@ A sub-phase is ✅ only when **all** of these are true:
   | Integration | Site boundary polygon validated (closed, non-self-intersecting); site count updates usage meter |
   | Isolation | New endpoints automatically covered by the isolation suite (count increase checked in CI) |
 
-- **Done when:** a demo tenant has 2 sites with shifts and holidays; tests green.
+- **Done when:** a demo tenant has 2 sites with shifts and holidays; tests green. *(Done 2026-10-26, PRs #66–#71: TC-P1-ORG-003 and TC-P1-TEN-007 green in CI; design in [ADR-0024](../../adr/0024-sites-geometry-and-shift-time.md) (accepted). As built: `seed-demo` gives company A the quarry `CAR-NORD` (2 × 12 h) and the sand-washing plant `LAV-SUD` (3 × 8 h) with Tunisian public holidays, checked by the CI smoke test; the map picker is MapLibre GL JS with its style URL in `VITE_MAP_STYLE_URL` (provider: owner item N-14); shift patterns stay data, so open question 7 changes seed data, not code.)*
 
 ---
 
