@@ -9,6 +9,8 @@
 
   var STORAGE_KEY = "karry.login.appOrigin";
   var SLUG = /^[a-z0-9](?:[a-z0-9-]{1,61}[a-z0-9])?$/;
+  var COLOUR = /^#[0-9A-F]{6}$/;
+  var LOGO = /^\/api\/v1\/tenancy\/public\/[a-z0-9-]+\/logo\?v=[0-9a-f]+$/;
 
   function remember(origin) {
     try {
@@ -46,13 +48,27 @@
     return labels.length >= minimum && SLUG.test(labels[0]) ? labels[0] : null;
   }
 
-  function show(branding) {
+  // Name, logo and colour (US-P1-TEN-04). Only values of the expected shape are used: the colour becomes a CSS variable
+  // (it is checked for contrast with white text by the API), the logo an image from the app origin.
+  function show(origin, branding) {
     if (!branding || typeof branding.name !== "string") {
       return;
     }
     document.documentElement.setAttribute("data-karry-tenant", branding.slug);
+    if (typeof branding.primaryColour === "string" && COLOUR.test(branding.primaryColour)) {
+      document.documentElement.style.setProperty("--karry-brand", branding.primaryColour);
+      document.documentElement.setAttribute("data-karry-brand", "");
+    }
     var header = document.getElementById("kc-header-wrapper");
     if (header && !header.querySelector(".karry-tenant-name")) {
+      if (typeof branding.logoUrl === "string" && LOGO.test(branding.logoUrl)) {
+        var logo = document.createElement("img");
+        logo.className = "karry-tenant-logo";
+        logo.setAttribute("data-testid", "tenant-logo");
+        logo.alt = "";
+        logo.src = origin + branding.logoUrl;
+        header.appendChild(logo);
+      }
       var name = document.createElement("span");
       name.className = "karry-tenant-name";
       name.setAttribute("data-testid", "tenant-name");
@@ -80,6 +96,8 @@
     });
 
   document.addEventListener("DOMContentLoaded", function () {
-    branding.then(show);
+    branding.then(function (value) {
+      show(origin, value);
+    });
   });
 })();

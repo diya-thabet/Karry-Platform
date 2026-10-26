@@ -2,6 +2,7 @@ import { createApiClient, type ApiClient, type components } from "@karry/api-cli
 
 type Role = components["schemas"]["RoleResponse"];
 type User = components["schemas"]["UserResponse"];
+type Tenant = components["schemas"]["TenantResponse"];
 
 export interface Sent {
   method: string;
@@ -35,18 +36,36 @@ export function fakeApi(options: {
   users?: User[];
   needsStepUp?: () => boolean;
   failWith?: { status: number; code: string };
+  /** Every write answers this problem (reads still work). */
+  refuseWrites?: { status: number; code: string };
   /** Feature codes of the company's plan (default: a Professional trial). */
   features?: string[];
   /** Flags of `GET /flags` (default: none set, so every flag has its default). */
   flags?: Record<string, boolean>;
   /** Subscription state in `GET /billing/entitlements` (default: trial). */
   status?: string;
+  /**
+   * The company of `GET /tenancy/current` (default: Carrière A with the default settings, except its language: none
+   * unless given, so the test's own language stays).
+   */
+  tenant?: Partial<Tenant>;
   /** Usage lines of `GET /billing/usage` (default: 3 of 15 office users). */
   usage?: { metric: string; usage: number; limit: number | null; ceiling: number | null; state: string }[];
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
   const sent: Sent[] = [];
+  let tenant: Tenant = {
+    id: "0192f0c1-0000-7000-8000-0000000000a1", slug: "carriere-a", name: "Carrière A", createdAt: "2026-10-01T08:00:00Z",
+    legalName: "Carrière A", primaryColour: null, language: "none", currency: "EUR", unitSystem: "metric", timeZone: "UTC",
+    fiscalYearStartMonth: 1, logoUrl: null, settingsChangedAt: null, ...options.tenant,
+  };
+  let changes = 0;
+  const changed = (next: Partial<Tenant>) => {
+    changes += 1;
+    tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
+    return tenant;
+  };
 
   const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
   const problem = (status: number, code: string) => json(status, { type: `https://karry.app/problems/${code}`, title: code, status, code, traceId: "trace-1" });
@@ -59,6 +78,10 @@ export function fakeApi(options: {
         planCode: "professional", planVersion: 1, status: options.status ?? "trial", trialEndsAt: "2026-11-24T08:00:00Z",
         features: options.features ?? ["field-operations", "maintenance"], limits: { "office-users": 15 },
       });
+    }
+
+    if (url.pathname === "/api/v1/tenancy/current" && request.method === "GET") {
+      return json(200, tenant);
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/flags") {
@@ -78,14 +101,27 @@ export function fakeApi(options: {
     }
 
     const path = url.pathname.replace("/api/v1/identity", "");
-    const body: unknown = ["POST", "PUT"].includes(request.method) ? await request.clone().json().catch(() => null) : null;
+    const isJson = request.headers.get("Content-Type")?.includes("json") ?? false;
+    const body: unknown = ["POST", "PUT"].includes(request.method) && isJson ? await request.clone().json().catch(() => null) : null;
     sent.push({ method: request.method, path, body });
     if (options.failWith) {
       return problem(options.failWith.status, options.failWith.code);
     }
 
+    if (request.method !== "GET" && options.refuseWrites) {
+      return problem(options.refuseWrites.status, options.refuseWrites.code);
+    }
+
     if (request.method !== "GET" && options.needsStepUp?.() === true) {
       return problem(401, "auth.step_up_required");
+    }
+
+    if (url.pathname === "/api/v1/tenancy/settings" && request.method === "PUT") {
+      return json(200, changed(body as Partial<Tenant>));
+    }
+
+    if (url.pathname === "/api/v1/tenancy/settings/logo") {
+      return json(200, changed({ logoUrl: request.method === "PUT" ? `/api/v1/tenancy/public/${tenant.slug}/logo?v=${String(changes)}` : null }));
     }
 
     const roleMatch = /^\/roles\/([^/]+)(\/field-levels)?$/.exec(path);

@@ -185,6 +185,177 @@
         }
       }
     },
+    "/api/v1/tenancy/public/{slug}/logo": {
+      "get": {
+        "tags": [
+          "TenancyModule"
+        ],
+        "operationId": "GetTenantLogo",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenancy/settings": {
+      "put": {
+        "tags": [
+          "TenancyModule"
+        ],
+        "operationId": "UpdateTenantSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTenantSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/tenancy/settings/logo": {
+      "put": {
+        "tags": [
+          "TenancyModule"
+        ],
+        "operationId": "SetTenantLogo",
+        "requestBody": {
+          "content": {
+            "image/png": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            },
+            "image/jpeg": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "TenancyModule"
+        ],
+        "operationId": "RemoveTenantLogo",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/identity/invitations": {
       "post": {
         "tags": [
@@ -3006,6 +3177,10 @@
           }
         }
       },
+      "IFormFile": {
+        "type": "string",
+        "format": "binary"
+      },
       "InviteUser": {
         "required": [
           "firstName",
@@ -3822,7 +3997,9 @@
       "TenantBrandingResponse": {
         "required": [
           "slug",
-          "name"
+          "name",
+          "primaryColour",
+          "logoUrl"
         ],
         "type": "object",
         "properties": {
@@ -3831,8 +4008,21 @@
           },
           "name": {
             "type": "string"
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
-        }
+        },
+        "description": "Public sign-in branding: no data beyond what the sign-in page shows."
       },
       "TenantFlagListResponse": {
         "required": [
@@ -3884,7 +4074,16 @@
           "id",
           "slug",
           "name",
-          "createdAt"
+          "createdAt",
+          "legalName",
+          "primaryColour",
+          "language",
+          "currency",
+          "unitSystem",
+          "timeZone",
+          "fiscalYearStartMonth",
+          "logoUrl",
+          "settingsChangedAt"
         ],
         "type": "object",
         "properties": {
@@ -3901,8 +4100,110 @@
           "createdAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "legalName": {
+            "type": "string"
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": "string"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "unitSystem": {
+            "type": "string"
+          },
+          "timeZone": {
+            "type": "string"
+          },
+          "fiscalYearStartMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "logoUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "settingsChangedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
-        }
+        },
+        "description": "The caller's company with its settings (US-P1-TEN-04); `LogoUrl` is null without a logo."
+      },
+      "UpdateTenantSettings": {
+        "required": [
+          "legalName",
+          "primaryColour",
+          "language",
+          "currency",
+          "unitSystem",
+          "timeZone",
+          "fiscalYearStartMonth"
+        ],
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "primaryColour": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "currency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "unitSystem": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "timeZone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "fiscalYearStartMonth": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "New settings, every field given (a full replacement)."
       },
       "UsageLineResponse": {
         "required": [

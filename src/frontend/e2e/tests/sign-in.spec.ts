@@ -27,6 +27,7 @@ test.describe("sign-in (US-P1-IAM-01, US-P1-IAM-02)", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "fr");
     await expect(page.getByRole("heading", { name: "Connectez-vous à Karry" })).toBeVisible();
     await expect(page.getByTestId("tenant-name")).toHaveText("Carrière Démo A");
+    await expect(page.locator("#kc-login")).toHaveCSS("background-color", "rgb(31, 78, 121)"); // the company's colour (US-P1-TEN-04)
 
     await signIn(page, "site-manager@demo-carriere-a.karry.test");
 

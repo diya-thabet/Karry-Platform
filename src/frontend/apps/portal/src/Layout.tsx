@@ -4,6 +4,7 @@ import { useTranslation } from "@karry/i18n";
 import { Button, EmptyState, LanguageSwitcher, ThemeSwitcher } from "@karry/ui";
 import { SubscriptionGate, SubscriptionNotice } from "./billing/SubscriptionNotice";
 import { UsageBanner } from "./billing/UsageBanner";
+import { CompanyBrand, CompanyLanguage, CompanyStripe } from "./CompanyBrand";
 import { sections, type SectionKey } from "./sections";
 
 /** Portal layout: header with switchers, main navigation (permission- and plan-driven from P1.9/P1.10), content. */
@@ -11,11 +12,10 @@ export function Layout() {
   const { t } = useTranslation();
   return (
     <div className="min-h-screen bg-background text-text">
+      <CompanyLanguage />
+      <CompanyStripe />
       <header className="flex flex-wrap items-end justify-between gap-4 border-b-[length:var(--karry-border-width)] border-border bg-surface px-6 py-4">
-        <div>
-          <p className="text-2xl font-bold">{t("portal.title")}</p>
-          <p className="text-text-muted">{t("portal.subtitle")}</p>
-        </div>
+        <CompanyBrand />
         <div className="flex flex-wrap items-end gap-4">
           <LanguageSwitcher />
           <ThemeSwitcher />

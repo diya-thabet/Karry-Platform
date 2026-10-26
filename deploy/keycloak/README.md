@@ -52,6 +52,11 @@ client before rendering, then `karry-branding.js` takes the slug from that origi
 `GET <app origin>/api/v1/tenancy/public/<slug>` (anonymous, CORS `*`, no credentials). The origin is remembered for
 the tab (`sessionStorage`, branding only, never a token) so pages rendered after a form post keep the branding.
 
+The branding carries the company name, its colour and its logo address (US-P1-TEN-04, P1.11). The script uses only
+values of the expected shape: the colour (`#RRGGBB`, accepted by the API only with at least 4.5:1 contrast against
+white) becomes the `--karry-brand` CSS variable of the main button, the logo an image from the app origin
+(`/api/v1/tenancy/public/<slug>/logo?v=…`). The browser E2E checks the button colour of demo tenant A.
+
 ## Changing the realm
 
 - Edit `generate_realm.py`, run `python3 deploy/keycloak/generate_realm.py`; `RealmConfigurationTests` (static) and

@@ -23,10 +23,11 @@ describe("settings (US-P1-IAM-04/05/06/07)", () => {
     expect(screen.queryByRole("link", { name: "Roles" })).not.toBeInTheDocument();
   });
 
-  it("tells a person without any setting that there is nothing to change", async () => {
+  it("shows everyone the company settings, and nothing else without a permission", async () => {
     await renderAt("/settings", fakeApi({ permissions: [] }), { language: "en" });
 
-    expect(await screen.findByText("There are no settings you can change.")).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Company" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "People" })).not.toBeInTheDocument();
   });
 
   it("lists default roles by their translated name and offers a new role only to role managers", async () => {
@@ -129,7 +130,7 @@ describe("settings (US-P1-IAM-04/05/06/07)", () => {
     const untranslated: string[] = [];
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent?.trim() ?? "";
-      const hidden = node.parentElement?.closest("[aria-hidden=true], script, style, option, select") !== null;
+      const hidden = node.parentElement?.closest("[aria-hidden=true], [translate=no], script, style, option, select") !== null;
       // Codes of fields a module declares without translations are shown as they are (by design).
       if (text !== "" && !hidden && !text.includes(pseudoOpen) && !text.includes(pseudoClose) && !text.startsWith("probe.")) {
         untranslated.push(text);

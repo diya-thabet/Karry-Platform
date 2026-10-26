@@ -10,6 +10,7 @@ using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Tenancy.Application;
 using Karry.Modules.Tenancy.Domain;
 using Karry.Modules.Tenancy.Infrastructure;
+using Karry.SharedKernel.Authorization;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -23,10 +24,12 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Karry.Modules.Tenancy.Api;
 
-/// <summary>Tenant catalog and provisioning (US-P1-TEN-01). Routes under <c>/api/v1/tenancy</c>.</summary>
+/// <summary>Tenant catalog, provisioning and company settings (US-P1-TEN-01, TEN-04). Routes under <c>/api/v1/tenancy</c>.</summary>
 public sealed class TenancyModule : IModule
 {
     public string Name => "tenancy";
+
+    public IReadOnlyList<PermissionDefinition> Permissions => TenancyPermissions.All;
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -69,14 +72,42 @@ public sealed class TenancyModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetCurrentTenant");
 
-        // Login page branding before sign-in (name now; logo and colour with tenant settings, P1.11). The Keycloak
-        // login page reads it from another origin (deploy/keycloak/themes/karry): public data, CORS for any origin.
+        // Login page branding before sign-in: name, colour and logo address. The Keycloak login page reads it from
+        // another origin (deploy/keycloak/themes/karry): public data, CORS for any origin.
         endpoints.MapGet("/public/{slug}", BrandingAsync)
             .AllowAnonymous()
             .AllowWithoutTenant()
             .AllowPublicCrossOrigin()
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetTenantBranding");
+
+        endpoints.MapGet("/public/{slug}/logo", LogoAsync)
+            .AllowAnonymous()
+            .AllowWithoutTenant()
+            .AllowPublicCrossOrigin()
+            .Produces(StatusCodes.Status200OK, contentType: "image/png", additionalContentTypes: ["image/jpeg", "image/webp"])
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetTenantLogo");
+
+        // The company's settings (US-P1-TEN-04): a full replacement, audited, seen by every member at their next read.
+        endpoints.MapPut("/settings", UpdateSettingsAsync)
+            .RequirePermission(TenancyPermissions.SettingsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("UpdateTenantSettings");
+
+        // The logo as the request body (PNG, JPEG or WebP, at most 256 KB); its type is read from the content.
+        endpoints.MapPut("/settings/logo", SetLogoAsync)
+            .RequirePermission(TenancyPermissions.SettingsManage)
+            .Accepts<IFormFile>("image/png", "image/jpeg", "image/webp")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("SetTenantLogo");
+
+        endpoints.MapDelete("/settings/logo", RemoveLogoAsync)
+            .RequirePermission(TenancyPermissions.SettingsManage)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("RemoveTenantLogo");
     }
 
     private static async Task<Results<Created<ProvisionedTenantResponse>, Ok<ProvisionedTenantResponse>, ProblemHttpResult>> ProvisionAsync(
@@ -121,29 +152,103 @@ public sealed class TenancyModule : IModule
         [FromServices] ITenantContext tenant, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
     {
         var id = tenant.Current ?? throw new InvalidOperationException("Tenant-scoped endpoint reached without a tenant.");
-        var current = await db.Tenants.AsNoTracking().Where(t => t.Id == id)
-            .Select(t => new TenantResponse(t.Id.Value, t.Slug.Value, t.Name, t.CreatedAt))
-            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        var current = await db.Tenants.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id, cancellationToken).ConfigureAwait(false);
         return current is null
             ? SharedKernel.Results.Error.NotFound("tenant.not_found", "The company of this account does not exist.").ToProblem()
-            : TypedResults.Ok(current);
+            : TypedResults.Ok(TenantResponse.From(current));
     }
+
+    private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> UpdateSettingsAsync(
+        UpdateTenantSettings request, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings,
+        CancellationToken cancellationToken)
+    {
+        var result = await settings.UpdateAsync(Own(tenant), request, caller.FindFirst("sub")?.Value, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> SetLogoAsync(
+        HttpRequest request, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings,
+        CancellationToken cancellationToken)
+    {
+        // One byte more than allowed is enough to refuse; a larger body is never read into memory.
+        var buffer = new byte[TenantLogo.MaxBytes + 1];
+        var length = 0;
+        int read;
+        while (length < buffer.Length && (read = await request.Body.ReadAsync(buffer.AsMemory(length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            length += read;
+        }
+
+        var result = await settings.SetLogoAsync(Own(tenant), buffer.AsMemory(0, length), caller.FindFirst("sub")?.Value, cancellationToken)
+            .ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> RemoveLogoAsync(
+        ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings, CancellationToken cancellationToken)
+    {
+        var result = await settings.RemoveLogoAsync(Own(tenant), caller.FindFirst("sub")?.Value, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<IResult> LogoAsync(string slug, HttpContext context, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
+    {
+        var valid = TenantSlug.Create(slug);
+        var tenant = valid.IsSuccess
+            ? await db.Tenants.AsNoTracking().Where(t => t.Slug == valid.Value).Select(t => (TenantId?)t.Id)
+                .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            : null;
+        var logo = tenant is { } id
+            ? await db.Logos.AsNoTracking().SingleOrDefaultAsync(l => l.TenantId == id.Value, cancellationToken).ConfigureAwait(false)
+            : null;
+        if (logo is null)
+        {
+            return SharedKernel.Results.Error.NotFound("tenant.logo_not_found", "This company has no logo.").ToProblem();
+        }
+
+        // Served as an image only: never sniffed into something else, no active content even if opened directly.
+        context.Response.Headers.CacheControl = "public, max-age=300";
+        context.Response.Headers.ContentSecurityPolicy = "default-src 'none'";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        return TypedResults.File(logo.Content, logo.ContentType, entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{logo.Sha256}\""));
+    }
+
+    private static TenantId Own(ITenantContext tenant) =>
+        tenant.Current ?? throw new InvalidOperationException("Tenant-scoped endpoint reached without a tenant.");
 
     private static async Task<Results<Ok<TenantBrandingResponse>, ProblemHttpResult>> BrandingAsync(
         string slug, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
     {
         var valid = TenantSlug.Create(slug);
         var tenant = valid.IsSuccess
-            ? await db.Tenants.AsNoTracking().Where(t => t.Slug == valid.Value)
-                .Select(t => new TenantBrandingResponse(t.Slug.Value, t.Name)).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+            ? await db.Tenants.AsNoTracking().SingleOrDefaultAsync(t => t.Slug == valid.Value, cancellationToken).ConfigureAwait(false)
             : null;
         return tenant is null
             ? SharedKernel.Results.Error.NotFound("tenant.not_found", "No company uses this address.").ToProblem()
-            : TypedResults.Ok(tenant);
+            : TypedResults.Ok(new TenantBrandingResponse(tenant.Slug.Value, tenant.Name, tenant.PrimaryColour, TenantResponse.LogoAddress(tenant)));
     }
 }
 
-public sealed record TenantResponse(Guid Id, string Slug, string Name, DateTimeOffset CreatedAt);
+/// <summary>The caller's company with its settings (US-P1-TEN-04); <c>LogoUrl</c> is null without a logo.</summary>
+public sealed record TenantResponse(
+    Guid Id, string Slug, string Name, DateTimeOffset CreatedAt, string LegalName, string? PrimaryColour, string Language, string Currency,
+    string UnitSystem, string TimeZone, int FiscalYearStartMonth, string? LogoUrl, DateTimeOffset? SettingsChangedAt)
+{
+    public static TenantResponse From(Tenant tenant)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        return new(tenant.Id.Value, tenant.Slug.Value, tenant.Name, tenant.CreatedAt, tenant.LegalName, tenant.PrimaryColour, tenant.Language,
+            tenant.Currency, tenant.UnitSystem.ToString().ToLowerInvariant(), tenant.TimeZone, tenant.FiscalYearStartMonth, LogoAddress(tenant),
+            tenant.SettingsChangedAt);
+    }
+
+    /// <summary>Public address of the logo; the fingerprint in it changes with the image, so caches never show an old one.</summary>
+    public static string? LogoAddress(Tenant tenant)
+    {
+        ArgumentNullException.ThrowIfNull(tenant);
+        return tenant.LogoSha256 is { } sha ? $"/api/v1/tenancy/public/{tenant.Slug.Value}/logo?v={sha[..12]}" : null;
+    }
+}
 
 /// <summary>The provisioned tenant; <c>AdminInvitation</c> is the outcome of the first administrator invitation when one was requested.</summary>
 public sealed record ProvisionedTenantResponse(Guid Id, string Slug, string Name, DateTimeOffset CreatedAt, AdminInvitationResponse? AdminInvitation);
@@ -151,4 +256,5 @@ public sealed record ProvisionedTenantResponse(Guid Id, string Slug, string Name
 /// <summary><c>Invited</c> is false when the tenant already had an administrator, or on <c>Error</c>.</summary>
 public sealed record AdminInvitationResponse(bool Invited, bool Delivered, string? Error);
 
-public sealed record TenantBrandingResponse(string Slug, string Name);
+/// <summary>Public sign-in branding: no data beyond what the sign-in page shows.</summary>
+public sealed record TenantBrandingResponse(string Slug, string Name, string? PrimaryColour, string? LogoUrl);

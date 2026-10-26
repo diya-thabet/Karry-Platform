@@ -11,20 +11,27 @@ namespace Karry.Testing;
 /// </summary>
 public static class TestAccess
 {
-    public static IServiceCollection TreatEveryoneAs(this IServiceCollection services, string role)
+    public static IServiceCollection TreatEveryoneAs(this IServiceCollection services, string role) =>
+        services.TreatEveryoneAs(role, new Dictionary<string, string>(StringComparer.Ordinal));
+
+    /// <summary>As above, except the token subjects in <paramref name="bySubject"/>, who hold their own default role.</summary>
+    public static IServiceCollection TreatEveryoneAs(this IServiceCollection services, string role, IReadOnlyDictionary<string, string> bySubject)
     {
         services.RemoveAll<IAccessResolver>();
-        services.AddSingleton<IAccessResolver>(sp => new DefaultRoleResolver(sp.GetRequiredService<AuthorizationCatalog>(), role));
+        services.AddSingleton<IAccessResolver>(sp => new DefaultRoleResolver(sp.GetRequiredService<AuthorizationCatalog>(), role, bySubject));
         return services;
     }
 
-    private sealed class DefaultRoleResolver(AuthorizationCatalog catalog, string role) : IAccessResolver
+    private sealed class DefaultRoleResolver(AuthorizationCatalog catalog, string role, IReadOnlyDictionary<string, string> bySubject) : IAccessResolver
     {
-        public ValueTask<IReadOnlyList<AccessAssignment>> AssignmentsAsync(TenantId tenant, string subject, CancellationToken cancellationToken) =>
-            ValueTask.FromResult<IReadOnlyList<AccessAssignment>>(
+        public ValueTask<IReadOnlyList<AccessAssignment>> AssignmentsAsync(TenantId tenant, string subject, CancellationToken cancellationToken)
+        {
+            var held = bySubject.GetValueOrDefault(subject, role);
+            return ValueTask.FromResult<IReadOnlyList<AccessAssignment>>(
             [
-                new(role, catalog.DefaultPermissionsOf(role),
-                    catalog.SensitiveFields.ToDictionary(f => f.Code, f => f.DefaultFor(role), StringComparer.Ordinal)),
+                new(held, catalog.DefaultPermissionsOf(held),
+                    catalog.SensitiveFields.ToDictionary(f => f.Code, f => f.DefaultFor(held), StringComparer.Ordinal)),
             ]);
+        }
     }
 }

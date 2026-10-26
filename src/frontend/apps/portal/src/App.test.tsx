@@ -79,7 +79,7 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     const untranslated: string[] = [];
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       const text = node.textContent?.trim() ?? "";
-      const hidden = node.parentElement?.closest("[aria-hidden=true], script, style, option, select") !== null;
+      const hidden = node.parentElement?.closest("[aria-hidden=true], [translate=no], script, style, option, select") !== null;
       if (text !== "" && !hidden && !text.includes(pseudoOpen) && !text.includes(pseudoClose)) {
         untranslated.push(text);
       }

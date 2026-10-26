@@ -1,8 +1,23 @@
-/* Karry login: tenant name under the product name (tenant logo and colour arrive with tenant settings, P1.11). */
+/* Karry login: tenant logo and name under the product name, tenant colour on the main button (US-P1-TEN-04). */
+.karry-tenant-logo {
+  display: block;
+  max-height: 3rem;
+  max-width: 12rem;
+  margin: 0.5rem auto 0;
+  object-fit: contain;
+}
+
 .karry-tenant-name {
   display: block;
   margin-top: 0.25rem;
   font-size: 1rem;
   font-weight: 400;
   opacity: 0.85;
+}
+
+/* The API only accepts colours with at least 4.5:1 contrast against white, so the white button text stays readable. */
+:root[data-karry-brand] #kc-login,
+:root[data-karry-brand] .pf-v5-c-button.pf-m-primary {
+  background-color: var(--karry-brand);
+  border-color: var(--karry-brand);
 }
