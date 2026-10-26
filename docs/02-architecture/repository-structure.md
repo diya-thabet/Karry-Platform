@@ -4,7 +4,7 @@ area: architecture
 tags: [repository, monorepo, folders]
 source: "MASTER_PLAN.md §26"
 status: baseline
-last_updated: 2026-10-24
+last_updated: 2026-10-26
 ---
 
 # Repository Structure
@@ -79,7 +79,7 @@ karry-platform/
 │   └── load/                           k6
 ├── deploy/
 │   ├── docker/                         compose.yaml (local stack incl. Grafana LGTM), smoke-test.sh (TC-P1-PLT-004)
-│   ├── database/                       roles.sql (karry_owner / karry_app, privileges; used by local stack, tests, environments), global-reference-tables.txt (tables without tenant RLS, with reasons; migration linter)
+│   ├── database/                       extensions.sql (PostGIS, TimescaleDB, pgvector, pgcrypto; created by an administrator before migrations) and roles.sql (karry_owner / karry_app, privileges); both used by the local stack, tests and environments, global-reference-tables.txt (tables without tenant RLS, with reasons; migration linter)
 │   ├── observability/                  prometheus.yaml, alerts/ (rules + promtool tests), dashboards/ (generate.py → JSON), verify_stack.py
 │   ├── helm/
 │   └── infra/                          OpenTofu

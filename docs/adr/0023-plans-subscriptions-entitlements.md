@@ -4,7 +4,7 @@ area: adr
 tags: [billing, plans, subscriptions, entitlements, usage, limits, state-machine]
 source: "Phase 1 sub-phase P1.10"
 status: accepted
-last_updated: 2026-10-25
+last_updated: 2026-10-26
 ---
 
 # ADR-0023 — Plans as versioned data, one subscription per tenant, entitlements resolved in-process
@@ -135,6 +135,12 @@ Two-reviewer rule for Billing (sub-phases P1.10): each point is enforced by a te
   - A platform ledger chain is a follow-up.
 - **Money** is `decimal` with an explicit currency, and amounts are never floats.
 - **Field capture** is never stopped by a limit or a subscription state, per the product invariant.
+
+## Amendment (P1.11, ADR-0024)
+
+The `sites` metric (active sites, counted by the Organization module) is held against the number of sites bought in
+the subscription (`TenantEntitlements.MetricLimit`), under the same soft-limit rule; before P1.11 sites were bought but
+not limited.
 
 ## Consequences
 

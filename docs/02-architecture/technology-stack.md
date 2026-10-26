@@ -4,7 +4,7 @@ area: architecture
 tags: [stack, dotnet, react, postgresql, keycloak, python]
 source: "MASTER_PLAN.md §7"
 status: baseline
-last_updated: 2026-10-24
+last_updated: 2026-10-26
 ---
 
 # Technology Stack
@@ -79,6 +79,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | OpenTelemetry.Extensions.Hosting, .Instrumentation.AspNetCore/.Http/.Runtime, .Exporter.OpenTelemetryProtocol/.InMemory | 1.20.0 (P1.4; 1.20.1 was < 7 days old on 2026-10-23) | Npgsql.OpenTelemetry | 10.0.3 |
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
 | Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
+| NodaTime (company and site time zones, shift time; ADR-0024, P1.11) | 3.3.5 (3.3.6 < 7 days on 2026-10-26) | NetTopologySuite / Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite (site geometry in PostGIS; ADR-0024, P1.11) | 2.6.0 / 10.0.3 |
 | xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak runs from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |
 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | ~~TngTech.ArchUnitNET.xUnitV3~~ (not used: type rules are plain reflection, P1.5) | n/a |
 | AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |

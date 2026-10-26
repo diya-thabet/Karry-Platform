@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Commands, queries, handlers and ports (interfaces) of Organization. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Organization.Domain/Karry.Modules.Organization.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

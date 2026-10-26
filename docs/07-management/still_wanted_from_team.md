@@ -4,7 +4,7 @@ area: management
 tags: [owner, inputs, decisions, providers, accounts, hardware, questions, checklist]
 source: "collected 2026-10-25 from the hand-off log, Phase 0/1 trackers, sub-phase cards and phase plans P2–P10"
 status: live
-last_updated: 2026-10-25
+last_updated: 2026-10-26
 ---
 
 # Still Wanted From the Team
@@ -59,6 +59,7 @@ Legend: 🔴 needed now / blocks the next step · 🟠 needed within Phase 1 · 
 | N-11 | **Billing provider** (WP-P0-15): Stripe, Paddle / Lemon Squeezy (Merchant of Record) or a regional one; payment methods (card, SEPA, mobile money) | Phase 10 (checkout); choice earlier helps P1.10 | Subscriptions stay managed by Karry staff; no self-service payment |
 | N-12 | **Tax jurisdictions** to support at launch (VAT/TVA rules, tax ID formats) | Phase 10 | Invoices only in the pilot country |
 | N-13 | **GitHub plan**: decided **no paid plan** (2026-10-22); the merge guard is the permanent merge path. Tell the agent if this changes | Informational | none |
+| N-14 | **Map tile provider** for the portal map picker (MapTiler, Stadia Maps or self-hosted tiles; ADR-0024): account and style URL for `VITE_MAP_STYLE_URL` | P1.17 (production) | Development uses MapLibre's public demo style; latitude and longitude fields always work |
 
 ## 4. Data, reviews and sign-offs
 

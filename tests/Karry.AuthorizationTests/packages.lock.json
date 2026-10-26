@@ -547,6 +547,24 @@
         "resolved": "0.11.6",
         "contentHash": "f33RkDtZO8VlGXCtmQIviOtxgnUdym9xx/b1p9h91CRGOsJFxCFOFK1FDbVt1OCf1aWwYejUFa2MOQyFWTFjbA=="
       },
+      "NetTopologySuite.IO.PostGis": {
+        "type": "Transitive",
+        "resolved": "2.1.0",
+        "contentHash": "3W8XTFz8iP6GQ5jDXK1/LANHiU+988k1kmmuPWNKcJLpmSg6CvFpbTpz+s4+LBzkAp64wHGOldSlkSuzYfrIKA==",
+        "dependencies": {
+          "NetTopologySuite": "[2.0.0, 3.0.0-A)"
+        }
+      },
+      "Npgsql.NetTopologySuite": {
+        "type": "Transitive",
+        "resolved": "10.0.3",
+        "contentHash": "roOLWX0vokdN5cdRAwOfCWqhGFztsj2PYcvmFsPBoaSdwkboSkviaOu6hxjcX/+xAKUWUS4Al6VmwNlRQzun4g==",
+        "dependencies": {
+          "NetTopologySuite": "2.6.0",
+          "NetTopologySuite.IO.PostGIS": "2.1.0",
+          "Npgsql": "10.0.3"
+        }
+      },
       "OpenTelemetry": {
         "type": "Transitive",
         "resolved": "1.20.0",
@@ -712,6 +730,7 @@
           "Karry.Modules.Billing.Api": "[1.0.0, )",
           "Karry.Modules.Flags.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
+          "Karry.Modules.Organization.Api": "[1.0.0, )",
           "Karry.Modules.Tenancy.Api": "[1.0.0, )",
           "Karry.Modules.Trust.Api": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
@@ -823,6 +842,44 @@
         "dependencies": {
           "Karry.Modules.Identity.Application": "[1.0.0, )",
           "MailKit": "[4.18.1, )"
+        }
+      },
+      "karry.modules.organization.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Organization.Application": "[1.0.0, )",
+          "Karry.Modules.Organization.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.organization.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Organization.Contracts": "[1.0.0, )",
+          "Karry.Modules.Organization.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.organization.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.organization.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )",
+          "NetTopologySuite": "[2.6.0, )",
+          "NodaTime": "[3.3.5, )"
+        }
+      },
+      "karry.modules.organization.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Organization.Application": "[1.0.0, )",
+          "Karry.Modules.Organization.Domain": "[1.0.0, )",
+          "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": "[10.0.3, )"
         }
       },
       "karry.modules.tenancy.api": {
@@ -998,6 +1055,12 @@
           "Microsoft.Extensions.Logging": "10.0.13"
         }
       },
+      "NetTopologySuite": {
+        "type": "CentralTransitive",
+        "requested": "[2.6.0, )",
+        "resolved": "2.6.0",
+        "contentHash": "1B1OTacTd4QtFyBeuIOcThwSSLUdRZU3bSFIwM8vk36XiZlBMi3K36u74e4OqwwHRHUuJC1PhbDx4hyI266X1Q=="
+      },
       "NodaTime": {
         "type": "CentralTransitive",
         "requested": "[3.3.5, )",
@@ -1022,6 +1085,16 @@
           "Microsoft.EntityFrameworkCore": "[10.0.4, 11.0.0)",
           "Microsoft.EntityFrameworkCore.Relational": "[10.0.4, 11.0.0)",
           "Npgsql": "10.0.3"
+        }
+      },
+      "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": {
+        "type": "CentralTransitive",
+        "requested": "[10.0.3, )",
+        "resolved": "10.0.3",
+        "contentHash": "t0cNHEzU1rCHLbuBa1e2r+H7X/2XQ2pF32iKk4JpMKN5r21FSikQ2WGyZf/artiGAFd2rkjaddYGZat3Kp6Apg==",
+        "dependencies": {
+          "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.3",
+          "Npgsql.NetTopologySuite": "10.0.3"
         }
       },
       "Npgsql.OpenTelemetry": {
