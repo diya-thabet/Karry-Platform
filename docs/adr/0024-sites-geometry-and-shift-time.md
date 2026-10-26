@@ -3,7 +3,7 @@ title: "ADR-0024: Sites as PostGIS geometry, shift time computed with NodaTime i
 area: adr
 tags: [organization, sites, postgis, geometry, shifts, calendars, time-zones, dst, nodatime, maps]
 source: "Phase 1 sub-phase P1.11"
-status: proposed
+status: accepted
 last_updated: 2026-10-26
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-26
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.11; the owner pre-approved merging green PRs, 2026-10-25)
+- **Status:** Accepted (owner pre-approved and the agent merged the green P1.11 PRs #66–#71; built and verified 2026-10-26)
 - **Date:** 2026-10-26
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-ORG-01, US-P1-ORG-02, US-P1-TEN-04; [ADR-0004](0004-multi-tenancy-rls.md) (RLS),
@@ -110,6 +110,21 @@ The tile provider is an owner decision (hosting, cost); until then the default i
 development only. Numeric latitude and longitude fields are always available: they are the accessible path (keyboard,
 screen readers) and the offline one. The map code is a separate chunk loaded only when a site page opens; where WebGL
 is missing the page says so and keeps the fields.
+
+## As built (P1.11 close-out)
+
+- **Geometry:** pin `geometry(Point, 4326)`, optional boundary `geometry(Polygon, 4326)`: one closed, simple ring of 4–500
+  points, at most 200 km². The application checks it with NetTopologySuite and the database checks `ST_IsValid` again.
+  PostGIS is created by the environment (`deploy/database/extensions.sql`), never by a migration.
+- **Shift time:** pattern versions with an effective date; only dates after the site's today change, except a site's
+  first pattern. The 30 coming days of instances are stored in the same transaction as each change and refreshed by a
+  daily job (alert `KarryShiftInstancesStale`). Any range up to 366 days is computed on request. The NodaTime resolver
+  moves a start in a spring gap forward and takes the earlier offset in an autumn overlap.
+- **Tests:** property tests over random zones, dates, patterns and holidays (TC-P1-ORG-003). The isolation suite attacks
+  sites, patterns and days of another company. 26 mutation checks were caught across the sub-phase.
+- **Test servers:** TimescaleDB background workers are off in test databases (`timescaledb.max_background_workers=0`).
+  Its scheduler kept sessions open on the template database (#69).
+- **Portal:** the map is a lazy chunk; the latitude and longitude fields remain the accessible and offline path.
 
 ## Consequences
 
