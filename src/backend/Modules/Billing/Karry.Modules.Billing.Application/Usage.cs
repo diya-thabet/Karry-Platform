@@ -58,7 +58,7 @@ public sealed class UsageMeter(IEnumerable<IUsageSource> sources, IEntitlementRe
 
     private static UsageLine Line(string metric, long usage, TenantEntitlements entitlements)
     {
-        var limit = Metrics.LimitOf(metric) is { } code ? entitlements.TotalLimit(code) : null;
+        var limit = entitlements.MetricLimit(metric);
         return new UsageLine(metric, usage, limit, limit is { } l ? SoftLimit.Ceiling(l) : null, SoftLimit.State(usage, limit));
     }
 }

@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Billing.Api;
 using Karry.Modules.Flags.Api;
 using Karry.Modules.Identity.Api;
+using Karry.Modules.Organization.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
 
@@ -19,5 +20,6 @@ internal static class ModuleCatalog
         new TrustModule(),
         new BillingModule(),
         new FlagsModule(),
+        new OrganizationModule(),
     ];
 }

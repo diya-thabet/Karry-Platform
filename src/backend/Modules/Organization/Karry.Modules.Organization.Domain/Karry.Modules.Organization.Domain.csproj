@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Sites, shift patterns, calendars and their rules (ADR-0024): NodaTime for wall-clock time, NetTopologySuite for geometry. -->
+  <ItemGroup>
+    <PackageReference Include="NetTopologySuite" />
+    <PackageReference Include="NodaTime" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../Karry.SharedKernel/Karry.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

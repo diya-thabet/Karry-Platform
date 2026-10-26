@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-25
+last_updated: 2026-10-26
 ---
 
 # Architecture Decision Records (ADR) Index
@@ -50,3 +50,9 @@ Added in Phase 1 sub-phase P1.9 (authorization):
 |---|---|---|
 | [0022](0022-authorization-engine.md) | Authorization engine: permissions declared in code, scopes per assignment, masking in the serializer | Accepted |
 | [0023](0023-plans-subscriptions-entitlements.md) | Plans as versioned data, one subscription per tenant, entitlements resolved in-process | Accepted |
+
+Added in Phase 1 sub-phase P1.11 (organization):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0024](0024-sites-geometry-and-shift-time.md) | Sites as PostGIS geometry, shift time computed with NodaTime in the site's time zone | Proposed |

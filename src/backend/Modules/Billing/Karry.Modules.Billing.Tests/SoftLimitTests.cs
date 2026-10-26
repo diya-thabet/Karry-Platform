@@ -41,7 +41,19 @@ public sealed class SoftLimitTests
     {
         Metrics.LimitOf(Metrics.OfficeUsers).Should().Be(Limits.OfficeUsers);
         Metrics.LimitOf(Metrics.Assets).Should().Be(Limits.AssetsPerSite);
-        Metrics.LimitOf(Metrics.Sites).Should().BeNull("sites are bought, not limited");
+        Metrics.LimitOf(Metrics.Sites).Should().BeNull("sites have no plan limit: they are bought");
         Metrics.LimitOf(Metrics.StorageBytes).Should().BeNull();
+    }
+
+    [Fact]
+    public void Sites_are_held_against_the_sites_bought_and_assets_against_the_plan_per_site()
+    {
+        var entitlements = new TenantEntitlements("professional", 1, "active", null, new HashSet<string>(),
+            new Dictionary<string, int> { [Limits.AssetsPerSite] = 50, [Limits.OfficeUsers] = 15 }, Sites: 3, ExtraAssets: 10);
+
+        entitlements.MetricLimit(Metrics.Sites).Should().Be(3, "ADR-0024: the sites bought");
+        entitlements.MetricLimit(Metrics.Assets).Should().Be(160);
+        entitlements.MetricLimit(Metrics.OfficeUsers).Should().Be(15);
+        entitlements.MetricLimit(Metrics.StorageBytes).Should().BeNull();
     }
 }

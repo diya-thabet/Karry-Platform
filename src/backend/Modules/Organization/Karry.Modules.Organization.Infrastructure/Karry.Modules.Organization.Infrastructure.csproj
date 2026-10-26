@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Persistence (EF Core mappings with PostGIS through NetTopologySuite, migrations), adapters implementing Application ports. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Organization.Application/Karry.Modules.Organization.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Organization.Domain/Karry.Modules.Organization.Domain.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

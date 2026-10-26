@@ -194,6 +194,14 @@ public sealed record TenantEntitlements(
 {
     public bool Includes(string feature) => Features.Contains(feature);
 
+    /// <summary>
+    /// The limit a usage metric is held against: the sites bought for <see cref="Metrics.Sites"/> (ADR-0024), else the
+    /// tenant-wide total of its plan limit (<see cref="Metrics.LimitOf"/>); null when nothing limits it.
+    /// </summary>
+    public long? MetricLimit(string metric) => metric == Metrics.Sites
+        ? Sites
+        : Metrics.LimitOf(metric) is { } limit ? TotalLimit(limit) : null;
+
     /// <summary>The tenant-wide limit of <paramref name="limit"/>, or null when unlimited.</summary>
     public long? TotalLimit(string limit) => Limits.TryGetValue(limit, out var value)
         ? limit switch
