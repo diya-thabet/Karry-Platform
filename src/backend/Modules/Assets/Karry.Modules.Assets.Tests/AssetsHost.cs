@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Api;
 using Karry.Modules.Organization.Api;
@@ -67,6 +68,8 @@ public sealed class AssetsHost : IAsyncLifetime
 
     public AssetLimits Limits { get; } = new();
 
+    public InMemoryObjectStore Files { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -85,6 +88,7 @@ public sealed class AssetsHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
+        builder.Services.AddSingleton<IObjectStore>(Files);
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new AssetsModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         builder.Services.AddSingleton(Limits);

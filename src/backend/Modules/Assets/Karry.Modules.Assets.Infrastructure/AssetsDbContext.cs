@@ -46,6 +46,12 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
             asset.HasIndex(a => new { a.TenantId, a.SiteId });
             asset.Property(a => a.LabelToken).HasMaxLength(AssetLabels.TokenLength).IsFixedLength();
             asset.HasIndex(a => a.LabelToken).IsUnique();
+            asset.OwnsOne(a => a.Photo, photo =>
+            {
+                photo.Property(p => p.Sha256).HasColumnName("photo_sha256").HasMaxLength(64).IsFixedLength();
+                photo.Property(p => p.ContentType).HasColumnName("photo_content_type").HasMaxLength(20);
+                photo.Property(p => p.Bytes).HasColumnName("photo_bytes");
+            });
             asset.Property<string>(SearchText)
                 .HasComputedColumnSql(
                     "lower(code || ' ' || name || ' ' || coalesce(make, '') || ' ' || coalesce(model, '') || ' ' || coalesce(serial_number, '') || ' ' || coalesce(plate, ''))",

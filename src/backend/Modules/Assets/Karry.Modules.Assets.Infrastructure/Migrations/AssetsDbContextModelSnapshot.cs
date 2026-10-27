@@ -361,6 +361,38 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
 
             modelBuilder.Entity("Karry.Modules.Assets.Domain.Asset", b =>
                 {
+                    b.OwnsOne("Karry.Modules.Assets.Domain.AssetPhoto", "Photo", b1 =>
+                        {
+                            b1.Property<Guid>("AssetId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<int>("Bytes")
+                                .HasColumnType("integer")
+                                .HasColumnName("photo_bytes");
+
+                            b1.Property<string>("ContentType")
+                                .IsRequired()
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("photo_content_type");
+
+                            b1.Property<string>("Sha256")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character(64)")
+                                .HasColumnName("photo_sha256")
+                                .IsFixedLength();
+
+                            b1.HasKey("AssetId");
+
+                            b1.ToTable("assets", "assets");
+
+                            b1.WithOwner()
+                                .HasForeignKey("AssetId")
+                                .HasConstraintName("fk_assets_assets_id");
+                        });
+
                     b.OwnsMany("Karry.Modules.Assets.Domain.SiteAssignment", "Sites", b1 =>
                         {
                             b1.Property<long>("Id")
@@ -401,6 +433,8 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                                 .HasForeignKey("AssetId")
                                 .HasConstraintName("fk_site_assignments_assets_asset_id");
                         });
+
+                    b.Navigation("Photo");
 
                     b.Navigation("Sites");
                 });

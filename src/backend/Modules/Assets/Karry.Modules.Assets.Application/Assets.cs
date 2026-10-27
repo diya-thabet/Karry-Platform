@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Entitlements;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Domain;
 using Karry.Modules.Organization.Contracts;
@@ -88,7 +89,7 @@ public interface IAssetStore
 /// disposed one back, follows the asset limit (soft limit). A site role reads and manages only the assets on its sites.
 /// </summary>
 public sealed class AssetOperations(
-    IAssetStore store, IMeterStore meters, ILabelSheet labels, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+    IAssetStore store, IMeterStore meters, ILabelSheet labels, IObjectStore files, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 200;
@@ -186,6 +187,88 @@ public sealed class AssetOperations(
         asset.Value.ReissueLabel(clock, caller.Subject);
         await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
         return asset;
+    }
+
+    /// <summary>
+    /// Replaces the asset's photo: the new object is stored first, then the asset (ledgered); the old object is removed
+    /// last, so a failure never leaves the asset pointing at nothing.
+    /// </summary>
+    public async Task<Result<Asset>> SetPhotoAsync(AssetId id, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    {
+        var asset = await ManagedAsync(id, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess)
+        {
+            return asset;
+        }
+
+        if (!files.Available)
+        {
+            return AssetPhotos.Unavailable;
+        }
+
+        var photo = AssetPhotos.Create(content.Span);
+        if (!photo.IsSuccess)
+        {
+            return photo.Error;
+        }
+
+        var old = asset.Value.Photo;
+        var changed = asset.Value.SetPhoto(clock, photo.Value, caller.Subject);
+        if (!changed.IsSuccess || !changed.Value)
+        {
+            return changed.IsSuccess ? asset : changed.Error;
+        }
+
+        await files.PutAsync(PhotoKey(id, photo.Value), content.ToArray(), photo.Value.ContentType, cancellationToken).ConfigureAwait(false);
+        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
+        if (old is not null)
+        {
+            await files.DeleteAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
+        }
+
+        return asset;
+    }
+
+    public async Task<Result<Asset>> RemovePhotoAsync(AssetId id, CancellationToken cancellationToken)
+    {
+        var asset = await ManagedAsync(id, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess || asset.Value.Photo is not { } old)
+        {
+            return asset;
+        }
+
+        if (!files.Available)
+        {
+            return AssetPhotos.Unavailable;
+        }
+
+        var removed = asset.Value.SetPhoto(clock, null, caller.Subject);
+        if (!removed.IsSuccess)
+        {
+            return removed.Error;
+        }
+
+        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
+        await files.DeleteAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
+        return asset;
+    }
+
+    /// <summary>The photo of an asset the caller may see.</summary>
+    public async Task<Result<(AssetPhoto Photo, byte[] Content)>> PhotoAsync(AssetId id, CancellationToken cancellationToken)
+    {
+        var asset = await GetAsync(id, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess)
+        {
+            return asset.Error;
+        }
+
+        if (asset.Value.Photo is not { } photo || !files.Available
+            || await files.GetAsync(PhotoKey(id, photo), cancellationToken).ConfigureAwait(false) is not { } stored)
+        {
+            return AssetPhotos.NotFound;
+        }
+
+        return (photo, stored.Content);
     }
 
     /// <summary>The PDF of the labels of assets the caller manages, in the order given.</summary>
@@ -360,6 +443,8 @@ public sealed class AssetOperations(
 
         return asset;
     }
+
+    private string PhotoKey(AssetId id, AssetPhoto photo) => ObjectKeys.ForTenant(Tenant.Value, "assets", AssetPhotos.Key(id, photo));
 
     private TenantId Tenant => tenant.Current ?? throw new InvalidOperationException("Assets need a tenant.");
 }

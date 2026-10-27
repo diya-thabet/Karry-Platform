@@ -76,6 +76,13 @@ thing a quarry fills in. The stories leave five questions open:
    `pg_trgm` is created by the environment (`deploy/database/extensions.sql`), like PostGIS.
 7. **Photos are in object storage**, one current photo per asset, under a key with the company and the asset; the API
    streams them after the same checks as the asset itself.
+   - A shared `IObjectStore` in BuildingBlocks (S3 API; SeaweedFS locally) is configured by the `Storage` section and
+     writes keys `tenants/{tenant}/{module}/...`, so every later module (documents, attachments) uses the same bucket
+     layout. Without a bucket the photo routes answer 422 `assets.photos_unavailable`.
+   - The asset keeps the photo's SHA-256, type and size; the key contains the hash, so a replaced photo never overwrites
+     the one an open page still shows, and the old object is deleted after the asset is saved.
+   - Only JPEG, PNG and WebP up to 5 MB, recognized from their first bytes rather than the declared type (an SVG with
+     script is refused). Served with `nosniff` and `default-src 'none'`.
 
 ## Options considered
 

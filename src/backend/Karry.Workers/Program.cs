@@ -38,7 +38,7 @@ builder.Services.AddOrganizationInfrastructure(connectionString);
 builder.Services.AddMaterialsInfrastructure(connectionString);
 
 // Assets: delivers its events (asset registrations, changes, moves).
-builder.Services.AddAssetsInfrastructure(connectionString);
+builder.Services.AddAssetsInfrastructure(connectionString, builder.Configuration);
 
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
