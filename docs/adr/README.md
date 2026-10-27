@@ -61,4 +61,4 @@ Added in Phase 1 sub-phase P1.12 (materials and units):
 
 | ADR | Title | Status |
 |---|---|---|
-| [0025](0025-units-engine-and-materials.md) | Units engine in the shared kernel, materials in their own module, swell derived from densities | Proposed |
+| [0025](0025-units-engine-and-materials.md) | Units engine in the shared kernel, materials in their own module, swell derived from densities | Accepted |

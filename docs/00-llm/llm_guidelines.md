@@ -320,7 +320,7 @@ tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) ag
 dotnet tool restore
 dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations
 dotnet run --project src/backend/Karry.Host -- migrate   # applies all modules' migrations as karry_owner
-dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants + settings, sites with shifts and holidays, one user per role (not in production; idempotent)
+dotnet run --project src/backend/Karry.Host -- seed-demo # demo tenants + settings, sites with shifts and holidays, materials with densities, one user per role (not in production; idempotent)
 dotnet run --project src/backend/Karry.Workers -- dispatch-now # drain every module's outbox once (exit 1 if messages wait for a retry)
 dotnet run --project src/backend/Karry.Workers -- import-sign-ins # Keycloak failed sign-ins and lockouts → tenant ledgers, once
 dotnet run --project src/backend/Karry.Workers -- advance-subscriptions # subscription time rules (trial end, unpaid days), once

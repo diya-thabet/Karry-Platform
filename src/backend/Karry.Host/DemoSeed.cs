@@ -1,6 +1,7 @@
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Identity.Application;
+using Karry.Modules.Materials.Application;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Tenancy.Application;
 using Karry.Modules.Tenancy.Contracts;
@@ -13,7 +14,8 @@ namespace Karry.Host;
 /// per default role when Keycloak is configured (<c>Identity:Keycloak:BaseUrl</c>; password <c>Identity:DemoPassword</c>).
 /// A demo tenant without a subscription (seeded before Billing existed) gets its trial here, the same way provisioning
 /// starts it. Demo companies get settings (legal name, colour, currency, time zone) while they still have the defaults,
-/// and sites with shifts and public holidays while they have none (the sites bought are raised to match).
+/// sites with shifts and public holidays while they have none (the sites bought are raised to match), and materials
+/// with their densities while they have none.
 /// </summary>
 internal static class DemoSeed
 {
@@ -80,6 +82,27 @@ internal static class DemoSeed
         ],
     };
 
+    /// <summary>
+    /// Demo materials (US-P1-AST-04) with densities from 1 January. Company A: limestone and the products of its quarry and
+    /// sand-washing plant; company B: granite. Values are typical ones within the formula handbook's ranges (draft until
+    /// the domain expert signs it off), not measurements.
+    /// </summary>
+    private static readonly Dictionary<string, MaterialInput[]> Materials = new(StringComparer.Ordinal)
+    {
+        ["demo-carriere-a"] =
+        [
+            new("CAL-BRUT", "Calcaire abattu", "raw-rock", new DensityInput(2.56m, 1.60m, null, 0.02m), null),
+            new("0/31.5", "Grave non traitée 0/31.5", "product", new DensityInput(null, 1.65m, 2.20m, 0.04m), null),
+            new("G-4/6", "Gravillon 4/6", "product", new DensityInput(null, 1.50m, null, 0.01m), null),
+            new("S-0/4", "Sable lavé 0/4", "product", new DensityInput(null, 1.55m, 1.80m, 0.08m), null),
+        ],
+        ["demo-carriere-b"] =
+        [
+            new("GRA-BRUT", "Granite abattu", "raw-rock", new DensityInput(2.65m, 1.70m, null, 0.01m), null),
+            new("0/31.5", "Grave 0/31.5", "product", new DensityInput(null, 1.70m, 2.25m, 0.03m), null),
+        ],
+    };
+
     /// <summary>Local-only default (meets the realm's 12-character policy); never used outside seed-demo.</summary>
     public const string DemoPassword = "karry-demo-local-only";
 
@@ -139,6 +162,13 @@ internal static class DemoSeed
                 var seeded = await organization.ServiceProvider.GetRequiredService<DemoSitesSeeder>()
                     .SeedAsync(new TenantId(result.Value.Id), Sites[tenant.Slug], cancellationToken).ConfigureAwait(false);
                 Console.WriteLine($"{tenant.Slug}: {seeded} demo site(s) created");
+            }
+
+            await using (var catalogue = services.CreateAsyncScope())
+            {
+                var seeded = await catalogue.ServiceProvider.GetRequiredService<DemoMaterialsSeeder>()
+                    .SeedAsync(new TenantId(result.Value.Id), Materials[tenant.Slug], cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"{tenant.Slug}: {seeded} demo material(s) created");
             }
 
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();

@@ -16,6 +16,7 @@ public static class MaterialsInfrastructure
         services.AddOutboxDispatcher<MaterialsDbContext>(eventAssemblies: typeof(Domain.Material).Assembly);
         services.AddScoped<IMaterialStore, MaterialStore>();
         services.AddScoped<MaterialOperations>();
+        services.AddScoped<DemoMaterialsSeeder>();
         return services;
     }
 }
