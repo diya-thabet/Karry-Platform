@@ -17,8 +17,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Karry.Modules.Assets.Api;
 
 /// <summary>
-/// The company's machines (US-P1-AST-01, US-P1-AST-02, ADR-0026): the type catalogue and the register, with search,
-/// filters and moves between sites. Routes under <c>/api/v1/assets</c>.
+/// The company's machines (US-P1-AST-01 … 03, ADR-0026): the type catalogue, the register with search, filters and moves
+/// between sites, and the meters with their append-only readings. Routes under <c>/api/v1/assets</c>.
 /// </summary>
 public sealed class AssetsModule : IModule
 {
@@ -86,6 +86,45 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("SetAssetStatus");
+
+        // Meters (US-P1-AST-03): readings are only ever added (TC-P1-AST-002); there is no route to change or remove one.
+        endpoints.MapGet("/{assetId:guid}/meters", ListMetersAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListMeters");
+
+        endpoints.MapPost("/{assetId:guid}/meters", AddMeterAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .RequireIdempotencyKey()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("AddMeter");
+
+        endpoints.MapPost("/{assetId:guid}/meters/{meterId:guid}/status", SetMeterStatusAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("SetMeterStatus");
+
+        endpoints.MapPost("/{assetId:guid}/meters/{meterId:guid}/readings", RecordReadingAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .RequireIdempotencyKey()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("RecordMeterReading");
+
+        endpoints.MapGet("/{assetId:guid}/meters/{meterId:guid}/readings", ListReadingsAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListMeterReadings");
     }
 
     private static Ok<AssetTypeListResponse> ListAssetTypes() =>
@@ -126,6 +165,47 @@ public sealed class AssetsModule : IModule
         Guid assetId, AssetStatusRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
         Respond(await assets.SetStatusAsync(new AssetId(assetId), request.Status, cancellationToken).ConfigureAwait(false));
 
+    private static async Task<Results<Ok<MeterListResponse>, ProblemHttpResult>> ListMetersAsync(
+        Guid assetId, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.ListAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new MeterListResponse([.. result.Value.Select(MeterResponse.From)])) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Created<MeterResponse>, ProblemHttpResult>> AddMeterAsync(
+        Guid assetId, MeterInput request, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.AddAsync(new AssetId(assetId), request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Created($"/api/v1/assets/{assetId}/meters/{result.Value.Id}", MeterResponse.From(result.Value))
+            : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<MeterResponse>, ProblemHttpResult>> SetMeterStatusAsync(
+        Guid assetId, Guid meterId, MeterStatusRequest request, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.SetStatusAsync(new AssetId(assetId), new MeterId(meterId), request.Status, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(MeterResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Created<ReadingResponse>, ProblemHttpResult>> RecordReadingAsync(
+        Guid assetId, Guid meterId, ReadingInput request, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.RecordAsync(new AssetId(assetId), new MeterId(meterId), request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Created($"/api/v1/assets/{assetId}/meters/{meterId}/readings", ReadingResponse.From(result.Value))
+            : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<ReadingListResponse>, ProblemHttpResult>> ListReadingsAsync(
+        Guid assetId, Guid meterId, [FromServices] MeterOperations meters, CancellationToken cancellationToken, Guid? cursor = null, int? limit = null)
+    {
+        var result = await meters.ReadingsAsync(new AssetId(assetId), new MeterId(meterId), cursor, limit, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Ok(new ReadingListResponse([.. result.Value.Items.Select(ReadingResponse.From)], result.Value.NextCursor))
+            : result.Error.ToProblem();
+    }
+
     private static Results<Ok<AssetResponse>, ProblemHttpResult> Respond(Karry.SharedKernel.Results.Result<Asset> result) =>
         result.IsSuccess ? TypedResults.Ok(AssetResponse.From(result.Value)) : result.Error.ToProblem();
 }
@@ -165,3 +245,37 @@ public sealed record AssetResponse(
 }
 
 public sealed record SiteAssignmentResponse(Guid SiteId, DateTimeOffset From);
+
+/// <summary><c>Status</c>: ok or failed (replacement comes with field operations).</summary>
+public sealed record MeterStatusRequest(string? Status);
+
+public sealed record MeterListResponse(IReadOnlyList<MeterResponse> Items);
+
+/// <summary>
+/// A meter: <c>Kind</c> hours or km, counted in <c>Unit</c> (h, km); <c>LastValue</c> and <c>LastReadAt</c> are its
+/// latest reading (the initial one at first); <c>Offset</c> stays 0 until meter replacement (Phase 2).
+/// </summary>
+public sealed record MeterResponse(
+    Guid Id, string Kind, string Unit, decimal InitialReading, DateOnly InstalledOn, string Status, decimal Offset, decimal LastValue, DateTimeOffset LastReadAt,
+    DateTimeOffset CreatedAt)
+{
+    public static MeterResponse From(Meter meter)
+    {
+        ArgumentNullException.ThrowIfNull(meter);
+        return new(meter.Id.Value, AssetRules.MeterKindCode(meter.Kind), MeterRules.UnitCode(meter.Kind), meter.InitialReading, meter.InstalledOn,
+            MeterRules.StatusCode(meter.Status), meter.Offset, meter.LastValue, meter.LastReadAt, meter.CreatedAt);
+    }
+}
+
+/// <summary>A page of readings, newest first; <c>NextCursor</c> is null on the last page.</summary>
+public sealed record ReadingListResponse(IReadOnlyList<ReadingResponse> Items, Guid? NextCursor);
+
+/// <summary>A reading: the value shown at <c>ReadAt</c>, received at <c>RecordedAt</c> from <c>RecordedBy</c> (a user subject).</summary>
+public sealed record ReadingResponse(Guid Id, decimal Value, DateTimeOffset ReadAt, DateTimeOffset RecordedAt, string? RecordedBy)
+{
+    public static ReadingResponse From(MeterReading reading)
+    {
+        ArgumentNullException.ThrowIfNull(reading);
+        return new(reading.Id, reading.Value, reading.ReadAt, reading.RecordedAt, reading.RecordedBy);
+    }
+}

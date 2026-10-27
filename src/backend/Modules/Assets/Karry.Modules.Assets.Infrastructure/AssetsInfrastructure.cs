@@ -9,7 +9,7 @@ namespace Karry.Modules.Assets.Infrastructure;
 
 public static class AssetsInfrastructure
 {
-    /// <summary>Asset storage and operations, the asset meter; the outbox delivers the module's events.</summary>
+    /// <summary>Asset and meter storage and operations, the asset meter; the outbox delivers the module's events.</summary>
     public static IServiceCollection AddAssetsInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -17,6 +17,8 @@ public static class AssetsInfrastructure
         services.AddOutboxDispatcher<AssetsDbContext>(eventAssemblies: typeof(Domain.Asset).Assembly);
         services.AddScoped<IAssetStore, AssetStore>();
         services.AddScoped<AssetOperations>();
+        services.AddScoped<IMeterStore, MeterStore>();
+        services.AddScoped<MeterOperations>();
         services.AddScoped<IUsageSource, CountedAssets>();
         return services;
     }

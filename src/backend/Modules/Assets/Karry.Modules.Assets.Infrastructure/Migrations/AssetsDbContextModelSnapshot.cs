@@ -226,6 +226,128 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.Meter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("asset_id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("InitialReading")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("initial_reading");
+
+                    b.Property<DateOnly>("InstalledOn")
+                        .HasColumnType("date")
+                        .HasColumnName("installed_on");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<DateTimeOffset>("LastReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_read_at");
+
+                    b.Property<decimal>("LastValue")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("last_value");
+
+                    b.Property<decimal>("Offset")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("offset");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meters");
+
+                    b.HasIndex("AssetId")
+                        .HasDatabaseName("ix_meters_asset_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_meters_tenant_id");
+
+                    b.ToTable("meters", "assets", t =>
+                        {
+                            t.HasCheckConstraint("ck_meters_values", "initial_reading >= 0 AND last_value >= initial_reading");
+                        });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.MeterReading", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("MeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meter_id");
+
+                    b.Property<DateTimeOffset>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<string>("RecordedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("Value")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meter_readings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_meter_readings_tenant_id");
+
+                    b.HasIndex("MeterId", "ReadAt", "Id")
+                        .HasDatabaseName("ix_meter_readings_meter_id_read_at_id");
+
+                    b.ToTable("meter_readings", "assets");
+                });
+
             modelBuilder.Entity("Karry.Modules.Assets.Domain.Asset", b =>
                 {
                     b.OwnsMany("Karry.Modules.Assets.Domain.SiteAssignment", "Sites", b1 =>
@@ -270,6 +392,26 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                         });
 
                     b.Navigation("Sites");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.Meter", b =>
+                {
+                    b.HasOne("Karry.Modules.Assets.Domain.Asset", null)
+                        .WithMany()
+                        .HasForeignKey("AssetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_meters_assets_asset_id");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.MeterReading", b =>
+                {
+                    b.HasOne("Karry.Modules.Assets.Domain.Meter", null)
+                        .WithMany()
+                        .HasForeignKey("MeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_meter_readings_meters_meter_id");
                 });
 #pragma warning restore 612, 618
         }
