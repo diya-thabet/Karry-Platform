@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Karry.SharedKernel.Domain;
 using Karry.SharedKernel.Identity;
@@ -36,6 +37,8 @@ public enum MaterialStatus
 /// </summary>
 public sealed record DensityVersion(DateOnly EffectiveFrom, decimal? Bank, decimal? Loose, decimal? Compacted, decimal Moisture)
 {
+    /// <summary>Derived, so never serialized: its swell can have 28 digits (2.65 / 1.70 − 1), which the ledger refuses as a number.</summary>
+    [JsonIgnore]
     public MaterialDensities Densities => new(Bank, Loose, Compacted, Moisture);
 }
 
