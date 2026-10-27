@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Assets.Application;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Materials.Application;
@@ -14,8 +15,8 @@ namespace Karry.Host;
 /// per default role when Keycloak is configured (<c>Identity:Keycloak:BaseUrl</c>; password <c>Identity:DemoPassword</c>).
 /// A demo tenant without a subscription (seeded before Billing existed) gets its trial here, the same way provisioning
 /// starts it. Demo companies get settings (legal name, colour, currency, time zone) while they still have the defaults,
-/// sites with shifts and public holidays while they have none (the sites bought are raised to match), and materials
-/// with their densities while they have none.
+/// sites with shifts and public holidays while they have none (the sites bought are raised to match), materials with
+/// their densities and machines with meters while they have none.
 /// </summary>
 internal static class DemoSeed
 {
@@ -103,6 +104,50 @@ internal static class DemoSeed
         ],
     };
 
+    private static readonly Dictionary<string, decimal> Hours = new(StringComparer.Ordinal) { ["hours"] = 9.5m };
+    private static readonly Dictionary<string, decimal> HoursAndKm = new(StringComparer.Ordinal) { ["hours"] = 10.5m, ["km"] = 86.4m };
+    private static readonly Dictionary<string, decimal> Km = new(StringComparer.Ordinal) { ["km"] = 142.0m };
+
+    /// <summary>
+    /// Demo machines (P1.13) with their meters at plausible values on their acquisition date, then one reading an hour
+    /// ago. Company A: the quarry's loading, hauling, drilling and crushing fleet and the washing plant; company B: a
+    /// smaller quarry fleet. Makes and models are common ones in the region; serials and plates are invented.
+    /// </summary>
+    private static readonly Dictionary<string, DemoAsset[]> Assets = new(StringComparer.Ordinal)
+    {
+        ["demo-carriere-a"] =
+        [
+            Machine("CAR-NORD", "PEL-01", "Pelle Caterpillar 336", "excavator", "Caterpillar", "336", "CAT0336GXBR01234", null, 2019, Hours, ("hours", 9850.0m)),
+            Machine("CAR-NORD", "CHG-01", "Chargeuse Volvo L150H", "wheel-loader", "Volvo", "L150H", "VCEL150HE00123456", null, 2020, Hours, ("hours", 7420.0m)),
+            Machine("CAR-NORD", "TOMB-01", "Tombereau Komatsu HD465", "haul-truck", "Komatsu", "HD465-8", "KMTHD465K20456", "152 TU 3245", 2018, HoursAndKm,
+                ("hours", 12310.5m), ("km", 186420.0m)),
+            Machine("CAR-NORD", "FOR-01", "Foreuse Epiroc SmartROC T35", "drill-rig", "Epiroc", "SmartROC T35", "TMG21SRT35009", null, 2021, Hours, ("hours", 5230.0m)),
+            Machine("CAR-NORD", "CON-01", "Concasseur à mâchoires C106", "crusher-jaw", "Metso", "C106", "C106-2017-0451", null, 2017, Hours, ("hours", 21540.0m)),
+            Machine("LAV-SUD", "LAV-01", "Laveur à vis", "washer", "CDE", "ScrewWash", null, null, 2022, Hours, ("hours", 8120.0m)),
+            Machine("LAV-SUD", "CRB-01", "Crible 3 étages", "screen", "Metso", "ES303", "ES303-22-0198", null, 2022, Hours, ("hours", 8095.5m)),
+            Machine("LAV-SUD", "VL-01", "Pick-up Toyota Hilux", "light-vehicle", "Toyota", "Hilux", "AHTKB3CD702345678", "203 TU 7781", 2021, Km, ("km", 98450.0m)),
+        ],
+        ["demo-carriere-b"] =
+        [
+            Machine("CAR-KAK", "PEL-01", "Pelle Komatsu PC350", "excavator", "Komatsu", "PC350LC-8", "KMTPC350A61234", null, 2016, Hours, ("hours", 18760.0m)),
+            Machine("CAR-KAK", "CHG-01", "Chargeuse Caterpillar 966", "wheel-loader", "Caterpillar", "966M", "CAT0966MKXR00456", null, 2018, Hours, ("hours", 14230.5m)),
+            Machine("CAR-KAK", "TOMB-01", "Tombereau Volvo A40G", "haul-truck", "Volvo", "A40G", "VCE0A40GL00321", "RC-4521-A", 2019, HoursAndKm,
+                ("hours", 10980.0m), ("km", 152300.0m)),
+        ],
+    };
+
+    /// <summary>A machine acquired on 1 March of its year, with its meters at the given values on that date.</summary>
+    private static DemoAsset Machine(
+        string site, string code, string name, string type, string make, string model, string? serial, string? plate, int year,
+        Dictionary<string, decimal> worked, params (string Kind, decimal Initial)[] meters)
+    {
+        var acquired = new DateOnly(year, 3, 1);
+        return new DemoAsset(
+            site,
+            new AssetInput(code, name, type, make, model, serial, plate, year, acquired, null, [.. meters.Select(m => new MeterInput(m.Kind, m.Initial, acquired))]),
+            worked);
+    }
+
     /// <summary>Local-only default (meets the realm's 12-character policy); never used outside seed-demo.</summary>
     public const string DemoPassword = "karry-demo-local-only";
 
@@ -169,6 +214,13 @@ internal static class DemoSeed
                 var seeded = await catalogue.ServiceProvider.GetRequiredService<DemoMaterialsSeeder>()
                     .SeedAsync(new TenantId(result.Value.Id), Materials[tenant.Slug], cancellationToken).ConfigureAwait(false);
                 Console.WriteLine($"{tenant.Slug}: {seeded} demo material(s) created");
+            }
+
+            await using (var fleet = services.CreateAsyncScope())
+            {
+                var seeded = await fleet.ServiceProvider.GetRequiredService<DemoAssetsSeeder>()
+                    .SeedAsync(new TenantId(result.Value.Id), Assets[tenant.Slug], cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"{tenant.Slug}: {seeded} demo machine(s) created");
             }
 
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
