@@ -61,6 +61,15 @@ public interface IMaterialStore
 
     /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
     Task<bool> TrySaveAsync(Material material, CancellationToken cancellationToken);
+
+    /// <summary>The materials with these codes (tracked, for an import), archived ones included.</summary>
+    Task<IReadOnlyList<Material>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken);
+
+    /// <summary>Tracks a new material, saved with the next save of the unit of work.</summary>
+    void Add(Material material);
+
+    /// <summary>Saves everything tracked in one transaction (an import); false, with nothing saved, when a code was taken meanwhile.</summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>

@@ -62,6 +62,11 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      `ImportIssue.Error` live in BuildingBlocks. The plan limit is checked once for the file's creations
      (`ILimitGuard.CheckCreateAsync(metric, count)`). A save that hits a concurrent change (unique code, row version)
      writes nothing and reports `imports.data_changed` on row 0.
+   - *As built (slice 4, sites and materials):* the same pattern in Organization and Materials. A site update keeps the
+     boundary (not in the template) and reconciles the site's shift instances at commit; an empty time zone is the
+     company's. A material's different densities become a version only from a future `effectiveFrom`, as through the
+     API; empty densities leave a known material's versions untouched. Archived sites and materials are errors (restored
+     on screen, where the site limit is checked). Tests drive every kind through `Karry.Testing.ImportDriver`.
 
 4. **The flow is upload → validate → preview → commit, run as a job in `Karry.Workers`.**
    - `POST /api/v1/imports?kind=&fileName=` (the body is the `.xlsx`, `Idempotency-Key`) checks the file, stores it and

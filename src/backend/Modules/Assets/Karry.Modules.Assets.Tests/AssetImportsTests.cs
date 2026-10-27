@@ -229,51 +229,19 @@ public sealed class AssetImportsTests(AssetsHost host) : IClassFixture<AssetsHos
         return output.ToArray();
     }
 
+    private ImportDriver Imports => new(host.Client, host.RunImportsAsync);
+
     /// <summary>Uploads and validates; returns the job.</summary>
-    private async Task<Guid> ImportAsync(Guid tenant, string kind, byte[] file)
-    {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/imports?kind={kind}&fileName={kind}.xlsx") { Content = new ByteArrayContent(file) };
-        request.Content.Headers.ContentType = new MediaTypeHeaderValue("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant(tenant, "admin-1"));
-        using var response = await host.Client.SendAsync(request, Ct);
-        response.StatusCode.Should().Be(HttpStatusCode.Accepted, await response.Content.ReadAsStringAsync(Ct));
-        var job = (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
-        await host.RunImportsAsync();
-        return job;
-    }
+    private Task<Guid> ImportAsync(Guid tenant, string kind, byte[] file) => Imports.ImportAsync(tenant, kind, file, Ct);
 
     /// <summary>Uploads, validates (no error expected) and commits; returns the committed job.</summary>
-    private async Task<JsonElement> CommitAsync(Guid tenant, string kind, byte[] file)
-    {
-        var job = await ImportAsync(tenant, kind, file);
-        using var commit = await PostAsync(tenant, $"/api/v1/imports/{job}/commit");
-        commit.StatusCode.Should().Be(HttpStatusCode.OK, await commit.Content.ReadAsStringAsync(Ct));
-        await host.RunImportsAsync();
-        var done = await JobAsync(tenant, job);
-        done.GetProperty("status").GetString().Should().Be("committed");
-        return done;
-    }
+    private Task<JsonElement> CommitAsync(Guid tenant, string kind, byte[] file) => Imports.ImportAndCommitAsync(tenant, kind, file, Ct);
 
-    private async Task<JsonElement> JobAsync(Guid tenant, Guid job)
-    {
-        using var response = await SendAsync(HttpMethod.Get, $"/api/v1/imports/{job}", tenant);
-        return await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-    }
+    private Task<JsonElement> JobAsync(Guid tenant, Guid job) => Imports.JobAsync(tenant, job, Ct);
 
-    private async Task<IReadOnlyList<(int Row, string? Cell, string? Code)>> IssuesAsync(Guid tenant, Guid job, string severity)
-    {
-        using var response = await SendAsync(HttpMethod.Get, $"/api/v1/imports/{job}/issues?severity={severity}&limit=200", tenant);
-        var page = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        return [.. page.GetProperty("items").EnumerateArray().Select(i => (i.GetProperty("row").GetInt32(), i.GetProperty("cell").GetString(), i.GetProperty("code").GetString()))];
-    }
+    private Task<IReadOnlyList<(int Row, string? Cell, string? Code)>> IssuesAsync(Guid tenant, Guid job, string severity) => Imports.IssuesAsync(tenant, job, severity, Ct);
 
-    private async Task<IReadOnlyList<(string? Key, string? Action)>> PreviewAsync(Guid tenant, Guid job)
-    {
-        using var response = await SendAsync(HttpMethod.Get, $"/api/v1/imports/{job}/rows?limit=200", tenant);
-        var page = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-        return [.. page.GetProperty("items").EnumerateArray().Select(r => (r.GetProperty("key").GetString(), r.GetProperty("action").GetString()))];
-    }
+    private Task<IReadOnlyList<(string? Key, string? Action)>> PreviewAsync(Guid tenant, Guid job) => Imports.PreviewAsync(tenant, job, Ct);
 
     private Task<HttpResponseMessage> PostAsync(Guid tenant, string path) => SendAsync(HttpMethod.Post, path, tenant);
 

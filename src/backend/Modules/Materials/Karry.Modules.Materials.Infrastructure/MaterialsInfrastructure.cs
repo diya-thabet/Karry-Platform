@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Imports;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Materials.Application;
@@ -17,6 +18,7 @@ public static class MaterialsInfrastructure
         services.AddScoped<IMaterialStore, MaterialStore>();
         services.AddScoped<MaterialOperations>();
         services.AddScoped<DemoMaterialsSeeder>();
+        services.AddScoped<IImportTarget, MaterialImport>();
         return services;
     }
 }

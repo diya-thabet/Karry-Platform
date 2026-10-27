@@ -31,4 +31,24 @@ internal sealed class MaterialStore(MaterialsDbContext db) : IMaterialStore
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<Material>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken) =>
+        await db.Materials.Where(x => codes.Contains(x.Code)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Material material) => db.Materials.Add(material);
+
+    public async Task<bool> TrySaveAllAsync(CancellationToken cancellationToken)
+    {
+        // One SaveChanges is one transaction: the materials, their outbox rows and ledger entries.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }

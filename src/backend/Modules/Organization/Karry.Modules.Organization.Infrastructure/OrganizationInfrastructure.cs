@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Entitlements;
+using Karry.BuildingBlocks.Imports;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Organization.Application;
@@ -26,6 +27,7 @@ public static class OrganizationInfrastructure
         services.TryAddSingleton<ShiftMetrics>();
         services.AddScoped<IUsageSource, ActiveSites>();
         services.AddScoped<ISiteDirectory, SiteDirectory>();
+        services.AddScoped<IImportTarget, SiteImport>();
         return services;
     }
 }

@@ -131,6 +131,28 @@ public sealed record ImportCommit(ImportValidation Validation, int Created, int 
     public bool Committed => !Validation.HasErrors;
 }
 
+/// <summary>The end of a commit, for the targets: the counts of what was written, or nothing and <c>imports.data_changed</c>.</summary>
+public static class ImportCommits
+{
+    /// <summary>Everything planned was written: the counts come from the plans.</summary>
+    public static ImportCommit Of(ImportValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+        return new ImportCommit(
+            validation,
+            validation.Plans.Count(p => p.Action == ImportAction.Create),
+            validation.Plans.Count(p => p.Action == ImportAction.Update),
+            validation.Plans.Count(p => p.Action == ImportAction.Unchanged));
+    }
+
+    /// <summary>The save failed on a concurrent change (a code taken, a row changed meanwhile): nothing was written.</summary>
+    public static ImportCommit DataChanged(ImportValidation validation)
+    {
+        ArgumentNullException.ThrowIfNull(validation);
+        return new ImportCommit(validation with { Issues = [.. validation.Issues, new ImportIssue(0, null, null, ImportCodes.DataChanged, ImportSeverity.Error)] }, 0, 0, 0);
+    }
+}
+
 /// <summary>
 /// One kind of import (ADR-0027), implemented by the module that owns the data with its own operations, so imported
 /// rows follow the same rules and reach the ledger the same way as through the API. Runs in a scope where the tenant
