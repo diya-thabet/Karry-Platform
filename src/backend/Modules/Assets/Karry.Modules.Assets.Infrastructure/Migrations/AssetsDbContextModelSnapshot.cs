@@ -145,6 +145,13 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("disposed_at");
 
+                    b.Property<string>("LabelToken")
+                        .IsRequired()
+                        .HasMaxLength(26)
+                        .HasColumnType("character(26)")
+                        .HasColumnName("label_token")
+                        .IsFixedLength();
+
                     b.Property<string>("Make")
                         .HasMaxLength(60)
                         .HasColumnType("character varying(60)")
@@ -203,6 +210,10 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_assets");
+
+                    b.HasIndex("LabelToken")
+                        .IsUnique()
+                        .HasDatabaseName("ix_assets_label_token");
 
                     b.HasIndex("SearchText")
                         .HasDatabaseName("ix_assets_search_text");

@@ -83,7 +83,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak runs from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |
 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | ~~TngTech.ArchUnitNET.xUnitV3~~ (not used: type rules are plain reflection, P1.5) | n/a |
 | AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |
-| dotnet-stryker (mutation) | 5.0.0 | | |
+| dotnet-stryker (mutation) | 5.0.0 | QRCoder (asset label QR matrix, MIT; the PDF is our own writer; ADR-0026, P1.13) | 1.8.1 |
 
 **Frontend (npm)**
 

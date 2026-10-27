@@ -58,10 +58,23 @@ public sealed record AssetQuery(string? Text, Guid? SiteId, string? Type, AssetS
 
 public sealed record AssetPage(IReadOnlyList<Asset> Items, string? NextCursor);
 
+/// <summary>Labels to print in this order on A4 sheets; <c>Skip</c> leaves the first labels of a partly used sheet empty.</summary>
+public sealed record LabelSheetInput(IReadOnlyList<Guid>? AssetIds, int? Skip);
+
+/// <summary>Draws the A4 label sheets (ADR-0026: 3 × 8 labels of 70 × 37 mm) as a PDF.</summary>
+public interface ILabelSheet
+{
+    public const int PerPage = 24;
+
+    byte[] Render(IReadOnlyList<Asset> assets, int skip);
+}
+
 /// <summary>Persistence port of assets (the caller's unit of work, RLS).</summary>
 public interface IAssetStore
 {
     Task<Asset?> FindAsync(AssetId id, CancellationToken cancellationToken);
+
+    Task<Asset?> FindByLabelAsync(string token, CancellationToken cancellationToken);
 
     /// <summary>Up to <c>Take</c> assets matching the query, ordered by code.</summary>
     Task<IReadOnlyList<Asset>> SearchAsync(AssetQuery query, CancellationToken cancellationToken);
@@ -75,7 +88,7 @@ public interface IAssetStore
 /// disposed one back, follows the asset limit (soft limit). A site role reads and manages only the assets on its sites.
 /// </summary>
 public sealed class AssetOperations(
-    IAssetStore store, IMeterStore meters, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+    IAssetStore store, IMeterStore meters, ILabelSheet labels, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 200;
@@ -89,6 +102,14 @@ public sealed class AssetOperations(
     public static readonly Error SiteForbidden = Error.Forbidden("assets.site_forbidden", "You do not manage the site this asset is on.");
 
     public static readonly Error LimitInvalid = Error.Validation("assets.limit_invalid", $"A page holds 1 to {MaxLimit} assets.");
+
+    public static readonly Error LabelUnknown = Error.NotFound("assets.label_unknown", "This label belongs to no asset on your sites.");
+
+    public static readonly Error SheetInvalid = Error.Validation(
+        "assets.label_sheet_invalid", $"Print 1 to {MaxLabels} assets, skipping 0 to {ILabelSheet.PerPage - 1} labels of the first sheet.");
+
+    /// <summary>Ten sheets per print.</summary>
+    public const int MaxLabels = 10 * ILabelSheet.PerPage;
 
     public async Task<Result<AssetPage>> SearchAsync(AssetSearch search, CancellationToken cancellationToken)
     {
@@ -130,6 +151,66 @@ public sealed class AssetOperations(
     {
         var asset = await store.FindAsync(id, cancellationToken).ConfigureAwait(false);
         return asset is not null && caller.Current.ScopeOf(AssetsPermissions.RegistryRead).CoversSite(asset.SiteId) ? asset : NotFound;
+    }
+
+    /// <summary>
+    /// The asset a scanned label points at (US-P1-AST-02 AC2, TC-P1-AST-001): only inside the caller's company (RLS) and
+    /// sites; any other label, including a reissued one, is unknown.
+    /// </summary>
+    public async Task<Result<Asset>> ResolveLabelAsync(string? label, CancellationToken cancellationToken)
+    {
+        if (AssetLabels.Token(label) is not { } token
+            || await store.FindByLabelAsync(token, cancellationToken).ConfigureAwait(false) is not { } asset
+            || !caller.Current.ScopeOf(AssetsPermissions.RegistryRead).CoversSite(asset.SiteId))
+        {
+            return LabelUnknown;
+        }
+
+        return asset;
+    }
+
+    /// <summary>A new label for an asset (the old one stops resolving); a disposed asset keeps its label.</summary>
+    public async Task<Result<Asset>> ReissueLabelAsync(AssetId id, CancellationToken cancellationToken)
+    {
+        var asset = await ManagedAsync(id, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess)
+        {
+            return asset;
+        }
+
+        if (asset.Value.Status == AssetStatus.Disposed)
+        {
+            return AssetRules.Disposed;
+        }
+
+        asset.Value.ReissueLabel(clock, caller.Subject);
+        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
+        return asset;
+    }
+
+    /// <summary>The PDF of the labels of assets the caller manages, in the order given.</summary>
+    public async Task<Result<byte[]>> LabelSheetAsync(LabelSheetInput input, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var skip = input.Skip ?? 0;
+        if (input.AssetIds is not { Count: > 0 and <= MaxLabels } ids || skip is < 0 or >= ILabelSheet.PerPage)
+        {
+            return SheetInvalid;
+        }
+
+        var assets = new List<Asset>();
+        foreach (var id in ids)
+        {
+            var asset = await ManagedAsync(new AssetId(id), cancellationToken).ConfigureAwait(false);
+            if (!asset.IsSuccess)
+            {
+                return asset.Error;
+            }
+
+            assets.Add(asset.Value);
+        }
+
+        return labels.Render(assets, skip);
     }
 
     public async Task<Result<Asset>> RegisterAsync(AssetInput input, CancellationToken cancellationToken)

@@ -64,6 +64,9 @@ public sealed class IsolationHost : IAsyncLifetime
     /// <summary>ID of tenant A's asset (its name, <c>Alphamachine</c>, code, <c>ALPHA-PEL</c>, and plate, <c>ALPHA 0001</c>, are markers too).</summary>
     public Guid AAsset { get; private set; }
 
+    /// <summary>The token on tenant A's asset label (<c>KRY1:</c> + token, scanned in B, must be unknown: TC-P1-AST-001).</summary>
+    public const string ALabelToken = "ALPHALABELTQKENAAAAAAAAAAA";
+
     /// <summary>ID of tenant A's material (its name, <c>Alphamaterial</c>, and code, <c>ALPHA-MAT</c>, are markers too).</summary>
     public Guid AMaterial { get; private set; }
 
@@ -147,10 +150,10 @@ public sealed class IsolationHost : IAsyncLifetime
         await using var connection = new NpgsqlConnection(Database.Admin);
         await connection.OpenAsync();
         await using var insert = new NpgsqlCommand(
-            """
+            $$"""
             WITH asset AS (
-              INSERT INTO assets.assets (id, tenant_id, code, name, type, make, model, plate, site_id, status, created_at, changed_at)
-              VALUES ($1, $2, 'ALPHA-PEL', $3, 'excavator', 'Caterpillar', '336', 'ALPHA 0001', $4, 'Active', now(), now())
+              INSERT INTO assets.assets (id, tenant_id, code, name, type, make, model, plate, site_id, status, label_token, created_at, changed_at)
+              VALUES ($1, $2, 'ALPHA-PEL', $3, 'excavator', 'Caterpillar', '336', 'ALPHA 0001', $4, 'Active', '{{ALabelToken}}', now(), now())
               RETURNING id, tenant_id, site_id)
             INSERT INTO assets.site_assignments (tenant_id, asset_id, site_id, "from") SELECT tenant_id, id, site_id, now() FROM asset
             """, connection);
@@ -338,7 +341,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         }
 
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
-            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5"],
+            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -408,6 +411,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "materialId" => host.AMaterial.ToString(),
         "assetId" => host.AAsset.ToString(),
         "meterId" => host.AMeter.ToString(),
+        "label" => "KRY1:" + IsolationHost.ALabelToken,
         "effectiveFrom" when template.StartsWith("/api/v1/materials/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,

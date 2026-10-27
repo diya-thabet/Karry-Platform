@@ -87,6 +87,27 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("SetAssetStatus");
 
+        // QR labels (US-P1-AST-02 AC2, ADR-0026): a scanned label resolves only inside the caller's company and sites.
+        endpoints.MapGet("/labels/{label}", ResolveLabelAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ResolveAssetLabel");
+
+        endpoints.MapPost("/labels/sheet", LabelSheetAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .Produces(StatusCodes.Status200OK, contentType: "application/pdf")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("PrintAssetLabels");
+
+        endpoints.MapPost("/{assetId:guid}/label", ReissueLabelAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("ReissueAssetLabel");
+
         // Meters (US-P1-AST-03): readings are only ever added (TC-P1-AST-002); there is no route to change or remove one.
         endpoints.MapGet("/{assetId:guid}/meters", ListMetersAsync)
             .RequirePermission(AssetsPermissions.RegistryRead)
@@ -165,6 +186,21 @@ public sealed class AssetsModule : IModule
         Guid assetId, AssetStatusRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
         Respond(await assets.SetStatusAsync(new AssetId(assetId), request.Status, cancellationToken).ConfigureAwait(false));
 
+    private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ResolveLabelAsync(
+        string label, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.ResolveLabelAsync(label, cancellationToken).ConfigureAwait(false));
+
+    private static async Task<Results<FileContentHttpResult, ProblemHttpResult>> LabelSheetAsync(
+        LabelSheetInput request, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
+    {
+        var result = await assets.LabelSheetAsync(request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.File(result.Value, "application/pdf", "asset-labels.pdf") : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ReissueLabelAsync(
+        Guid assetId, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.ReissueLabelAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false));
+
     private static async Task<Results<Ok<MeterListResponse>, ProblemHttpResult>> ListMetersAsync(
         Guid assetId, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
     {
@@ -230,16 +266,20 @@ public sealed record AssetTypeResponse(string Code, IReadOnlyList<string> Defaul
 /// <summary>A page of the register, ordered by code; <c>NextCursor</c> is null on the last page.</summary>
 public sealed record AssetListResponse(IReadOnlyList<AssetResponse> Items, string? NextCursor);
 
-/// <summary>An asset; <c>Sites</c> lists its arrivals at sites, oldest first (each stay lasts until the next).</summary>
+/// <summary>
+/// An asset; <c>Sites</c> lists its arrivals at sites, oldest first (each stay lasts until the next). <c>Label</c> is
+/// what its QR label encodes (<c>KRY1:</c> and a random token), for the field app to match a scan offline.
+/// </summary>
 public sealed record AssetResponse(
     Guid Id, string Code, string Name, string Type, string? Make, string? Model, string? SerialNumber, string? Plate, int? Year, DateOnly? AcquiredOn,
-    Guid SiteId, string Status, IReadOnlyList<SiteAssignmentResponse> Sites, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt, DateTimeOffset? DisposedAt)
+    Guid SiteId, string Status, string Label, IReadOnlyList<SiteAssignmentResponse> Sites, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt,
+    DateTimeOffset? DisposedAt)
 {
     public static AssetResponse From(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
         return new(asset.Id.Value, asset.Code, asset.Name, asset.Type, asset.Make, asset.Model, asset.SerialNumber, asset.Plate, asset.Year, asset.AcquiredOn,
-            asset.SiteId, AssetRules.StatusCode(asset.Status), [.. asset.Sites.OrderBy(s => s.From).Select(s => new SiteAssignmentResponse(s.SiteId, s.From))],
+            asset.SiteId, AssetRules.StatusCode(asset.Status), AssetLabels.Text(asset.LabelToken), [.. asset.Sites.OrderBy(s => s.From).Select(s => new SiteAssignmentResponse(s.SiteId, s.From))],
             asset.CreatedAt, asset.ChangedAt, asset.DisposedAt);
     }
 }

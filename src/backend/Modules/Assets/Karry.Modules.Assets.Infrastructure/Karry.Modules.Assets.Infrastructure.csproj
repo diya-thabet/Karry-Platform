@@ -7,5 +7,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- QR matrix of the asset labels (ADR-0026). -->
+    <PackageReference Include="QRCoder" />
   </ItemGroup>
 </Project>

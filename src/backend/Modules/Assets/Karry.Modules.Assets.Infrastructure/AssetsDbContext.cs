@@ -44,6 +44,8 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
             asset.Property(a => a.Plate).HasMaxLength(AssetRules.PlateMaxLength);
             asset.Property(a => a.Status).HasConversion<string>().HasMaxLength(20);
             asset.HasIndex(a => new { a.TenantId, a.SiteId });
+            asset.Property(a => a.LabelToken).HasMaxLength(AssetLabels.TokenLength).IsFixedLength();
+            asset.HasIndex(a => a.LabelToken).IsUnique();
             asset.Property<string>(SearchText)
                 .HasComputedColumnSql(
                     "lower(code || ' ' || name || ' ' || coalesce(make, '') || ' ' || coalesce(model, '') || ' ' || coalesce(serial_number, '') || ' ' || coalesce(plate, ''))",

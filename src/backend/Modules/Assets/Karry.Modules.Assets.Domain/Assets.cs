@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using Karry.SharedKernel.Domain;
 using Karry.SharedKernel.Identity;
@@ -66,6 +67,10 @@ public sealed record AssetChanged(Guid AssetId, AssetSnapshot Before, AssetSnaps
 [EventType("assets.asset_moved.v1")]
 public sealed record AssetMoved(Guid AssetId, string Code, Guid FromSiteId, Guid ToSiteId, string? Actor) : DomainEvent;
 
+/// <summary>A new label token: the printed label before it no longer resolves. The token itself is not in the ledger.</summary>
+[EventType("assets.asset_label_reissued.v1")]
+public sealed record AssetLabelReissued(Guid AssetId, string Code, string? Actor) : DomainEvent;
+
 [EventType("assets.asset_status_changed.v1")]
 public sealed record AssetStatusChanged(Guid AssetId, string Code, string From, string To, string? Actor) : DomainEvent;
 
@@ -84,6 +89,7 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
         Code = code;
         Apply(details);
         SiteId = siteId;
+        LabelToken = AssetLabels.NewToken();
         sites.Add(new SiteAssignment(tenantId, siteId, at));
         Status = AssetStatus.Active;
         CreatedAt = at;
@@ -127,6 +133,9 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
     public IReadOnlyList<SiteAssignment> Sites => sites;
 
     public AssetStatus Status { get; private set; }
+
+    /// <summary>The random token on the asset's QR label (ADR-0026): not derived from the ID, replaced on reissue.</summary>
+    public string LabelToken { get; private set; } = null!;
 
     public DateTimeOffset CreatedAt { get; private set; }
 
@@ -186,6 +195,15 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
         sites.Add(new SiteAssignment(TenantId, siteId, ChangedAt));
         Raise(new AssetMoved(Id.Value, Code, from, siteId, actor) { OccurredAt = ChangedAt });
         return true;
+    }
+
+    /// <summary>A new label token for a lost or damaged label; the old label stops resolving.</summary>
+    public void ReissueLabel(TimeProvider clock, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        LabelToken = AssetLabels.NewToken();
+        ChangedAt = clock.GetUtcNow();
+        Raise(new AssetLabelReissued(Id.Value, Code, actor) { OccurredAt = ChangedAt });
     }
 
     /// <summary>New status; false when unchanged. Leaving <see cref="AssetStatus.Disposed"/> counts the asset again.</summary>
@@ -335,4 +353,54 @@ public static partial class AssetRules
 
     [GeneratedRegex(@"\s+", RegexOptions.CultureInvariant)]
     private static partial Regex Spaces();
+}
+
+/// <summary>
+/// What an asset's QR label encodes (ADR-0026): <c>KRY1:</c> and a 128-bit random token in base32 (26 characters). It
+/// says nothing about the asset or the company; it resolves only inside the company's register.
+/// </summary>
+public static partial class AssetLabels
+{
+    public const string Prefix = "KRY1:";
+    public const int TokenLength = 26;
+
+    private const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+    public static string Text(string token) => Prefix + token;
+
+    /// <summary>The token of a scanned label (with or without the prefix, any case), or null when it cannot be one.</summary>
+    public static string? Token(string? label)
+    {
+        var text = label?.Trim().ToUpperInvariant();
+        if (text is not null && text.StartsWith(Prefix, StringComparison.Ordinal))
+        {
+            text = text[Prefix.Length..];
+        }
+
+        return text is not null && TokenPattern().IsMatch(text) ? text : null;
+    }
+
+    public static string NewToken()
+    {
+        Span<byte> bytes = stackalloc byte[16];
+        RandomNumberGenerator.Fill(bytes);
+        var token = new char[TokenLength];
+        int buffer = 0, bits = 0, i = 0;
+        foreach (var b in bytes)
+        {
+            buffer = (buffer << 8) | b;
+            bits += 8;
+            while (bits >= 5)
+            {
+                token[i++] = Alphabet[(buffer >> (bits - 5)) & 31];
+                bits -= 5;
+            }
+        }
+
+        token[i] = Alphabet[(buffer << (5 - bits)) & 31];
+        return new string(token);
+    }
+
+    [GeneratedRegex("^[A-Z2-7]{26}$", RegexOptions.CultureInvariant)]
+    private static partial Regex TokenPattern();
 }

@@ -4313,6 +4313,160 @@
         }
       }
     },
+    "/api/v1/assets/labels/{label}": {
+      "get": {
+        "tags": [
+          "AssetsModule"
+        ],
+        "operationId": "ResolveAssetLabel",
+        "parameters": [
+          {
+            "name": "label",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assets/labels/sheet": {
+      "post": {
+        "tags": [
+          "AssetsModule"
+        ],
+        "operationId": "PrintAssetLabels",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LabelSheetInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assets/{assetId}/label": {
+      "post": {
+        "tags": [
+          "AssetsModule"
+        ],
+        "operationId": "ReissueAssetLabel",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssetResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/assets/{assetId}/meters": {
       "get": {
         "tags": [
@@ -5049,6 +5203,7 @@
           "acquiredOn",
           "siteId",
           "status",
+          "label",
           "sites",
           "createdAt",
           "changedAt",
@@ -5116,6 +5271,9 @@
           "status": {
             "type": "string"
           },
+          "label": {
+            "type": "string"
+          },
           "sites": {
             "type": "array",
             "items": {
@@ -5138,7 +5296,7 @@
             "format": "date-time"
           }
         },
-        "description": "An asset; `Sites` lists its arrivals at sites, oldest first (each stay lasts until the next)."
+        "description": "An asset; `Sites` lists its arrivals at sites, oldest first (each stay lasts until the next). `Label` is\nwhat its QR label encodes (`KRY1:` and a random token), for the field app to match a scan offline."
       },
       "AssetStatusRequest": {
         "required": [
@@ -5991,6 +6149,35 @@
           }
         },
         "description": "An invoice Karry issued (decimal amount in its currency's minor units; negative for a credit note)."
+      },
+      "LabelSheetInput": {
+        "required": [
+          "assetIds",
+          "skip"
+        ],
+        "type": "object",
+        "properties": {
+          "assetIds": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "skip": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Labels to print in this order on A4 sheets; `Skip` leaves the first labels of a partly used sheet empty."
       },
       "LedgerVerificationReport": {
         "required": [
