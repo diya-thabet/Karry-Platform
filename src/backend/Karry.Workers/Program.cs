@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
+using Karry.Modules.Assets.Infrastructure;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Billing.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
@@ -36,6 +37,9 @@ builder.Services.AddOrganizationInfrastructure(connectionString);
 // Materials: delivers its events (material and density changes).
 builder.Services.AddMaterialsInfrastructure(connectionString);
 
+// Assets: delivers its events (asset registrations, changes, moves).
+builder.Services.AddAssetsInfrastructure(connectionString);
+
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
 // `Karry.Workers anchor-now`: one anchoring run, then exit (manual catch-up, smoke test). Exit 1 if a tenant failed.
@@ -65,6 +69,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FlagsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<OrganizationDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<AssetsDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
 }
@@ -120,6 +125,7 @@ builder.Services.AddOutboxDispatcherService<BillingDbContext>();
 builder.Services.AddOutboxDispatcherService<FlagsDbContext>();
 builder.Services.AddOutboxDispatcherService<OrganizationDbContext>();
 builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
+builder.Services.AddOutboxDispatcherService<AssetsDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {

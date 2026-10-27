@@ -727,6 +727,7 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Assets.Api": "[1.0.0, )",
           "Karry.Modules.Billing.Api": "[1.0.0, )",
           "Karry.Modules.Flags.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
@@ -736,6 +737,44 @@
           "Karry.Modules.Trust.Api": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
           "Npgsql": "[10.0.3, )"
+        }
+      },
+      "karry.modules.assets.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Assets.Application": "[1.0.0, )",
+          "Karry.Modules.Assets.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.assets.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Assets.Contracts": "[1.0.0, )",
+          "Karry.Modules.Assets.Domain": "[1.0.0, )",
+          "Karry.Modules.Organization.Contracts": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "NodaTime": "[3.3.5, )"
+        }
+      },
+      "karry.modules.assets.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.assets.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.assets.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Assets.Application": "[1.0.0, )",
+          "Karry.Modules.Assets.Domain": "[1.0.0, )"
         }
       },
       "karry.modules.billing.api": {
