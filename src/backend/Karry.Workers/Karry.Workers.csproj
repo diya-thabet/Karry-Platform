@@ -12,5 +12,6 @@
     <ProjectReference Include="..\Modules\Flags\Karry.Modules.Flags.Infrastructure\Karry.Modules.Flags.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Organization\Karry.Modules.Organization.Infrastructure\Karry.Modules.Organization.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Materials\Karry.Modules.Materials.Infrastructure\Karry.Modules.Materials.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Assets\Karry.Modules.Assets.Infrastructure\Karry.Modules.Assets.Infrastructure.csproj" />
   </ItemGroup>
 </Project>

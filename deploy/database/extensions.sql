@@ -5,3 +5,5 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS timescaledb;
 CREATE EXTENSION IF NOT EXISTS vector;
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
+-- Asset search (ADR-0026): trigram index on codes, plates, makes and models.
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
