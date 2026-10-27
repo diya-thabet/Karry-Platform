@@ -38,8 +38,8 @@ export function Button({ className, variant, block, asChild = false, loading = f
       type={asChild ? undefined : (type ?? "button")}
       {...props}
     >
-      {loading && <Loader2 aria-hidden className="size-5 animate-spin" />}
-      {children}
+      {/* Slot takes exactly one child: the element it renders as (a link has no loading state). */}
+      {asChild ? children : <>{loading && <Loader2 aria-hidden className="size-5 animate-spin" />}{children}</>}
     </Component>
   );
 }
