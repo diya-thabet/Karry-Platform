@@ -121,7 +121,7 @@ export function AssetsPage() {
             ),
           },
           { key: "type", header: t("portal.assets.type"), cell: (asset) => t(`portal.assets.type.${asset.type}`) },
-          { key: "plate", header: t("portal.assets.plate"), cell: (asset) => <span translate="no">{asset.plate ?? asset.serialNumber ?? "—"}</span> },
+          { key: "plate", header: t("portal.assets.plateOrSerial"), cell: (asset) => <span translate="no">{asset.plate ?? asset.serialNumber ?? "—"}</span> },
           { key: "site", header: t("portal.assets.site"), cell: (asset) => <span translate="no">{name(asset.siteId)}</span> },
           { key: "status", header: t("portal.assets.status"), cell: (asset) => <AssetStatusChip status={asset.status} /> },
         ]}
