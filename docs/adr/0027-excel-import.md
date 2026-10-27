@@ -97,6 +97,15 @@ a validation report with cell references, a preview, an all-or-nothing commit th
 5. **Users are imported in two steps.** The commit creates the Karry users and their invitations in one transaction.
    Their Keycloak accounts and invitation messages are created afterwards by an outbox handler, retried until done,
    because Keycloak is not part of our transaction. An imported user is `invited` until then, as through the API.
+   - *As built (slice 5):* `UserImport` (Identity) saves office users `invited` with an invitation whose token is
+     dropped; `ImportedUserAccounts`, the Identity outbox subscriber of `identity.user_invited`, acts only on an invited
+     user without a Keycloak account (the API links the account before saving, so its invitations are untouched): it
+     creates the account, reissues the invitation (`identity.invitation_reissued`) and delivers it; a Keycloak failure is
+     retried by the outbox; a username owned by someone else is logged and left. Owner decision (2026-10-27): **a file
+     never carries PINs**; imported field users are active without one and an administrator sets it on screen
+     (`PUT /identity/users/{id}/pin`, `identity.user_pin_set`). **Privileged roles cannot be imported**: the worker has no
+     recent sign-in, so they are refused (`identity.role_privileged`) and given on screen with step-up. A known user
+     only gains the row's role (never loses one), so re-importing is harmless.
 
 6. **The file is checked before anything reads it** (security).
    - **Format:** `.xlsx` only, at most 10 MB, recognised by its content (a zip with

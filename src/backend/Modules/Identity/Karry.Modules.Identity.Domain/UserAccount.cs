@@ -50,6 +50,10 @@ public sealed record UserDeactivated(Guid UserId, string? Actor) : DomainEvent;
 public sealed record UserRolesChanged(Guid UserId, IReadOnlyList<RoleAssignment> Before, IReadOnlyList<RoleAssignment> After, string? Actor) : DomainEvent;
 
 /// <summary>A new invitation link replaced the previous one, which no longer works.</summary>
+/// <summary>A field user's PIN was set by an administrator (the PIN itself is never in the ledger).</summary>
+[EventType("identity.user_pin_set.v1")]
+public sealed record UserPinSet(Guid UserId, string? Actor) : DomainEvent;
+
 [EventType("identity.invitation_reissued.v1")]
 public sealed record InvitationReissued(Guid UserId, Guid InvitationId, Guid ReplacedInvitationId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
 
@@ -151,7 +155,58 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     /// <summary>A field user: employee ID + PIN, active at once, no Keycloak account (AC2).</summary>
     public static Result<UserAccount> CreateFieldUser(
         TimeProvider clock, TenantId tenant, string? firstName, string? lastName, string? employeeId, string? pin,
-        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known = null)
+        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known = null) =>
+        NewFieldUser(clock, tenant, firstName, lastName, employeeId, pin, pinRequired: true, roles, actor, known);
+
+    /// <summary>
+    /// A field user without a PIN (Excel import, US-P1-ORG-03: a file never carries PINs): active, but cannot sign in
+    /// until an administrator sets the PIN (<see cref="SetPin"/>).
+    /// </summary>
+    public static Result<UserAccount> CreateFieldUserWithoutPin(
+        TimeProvider clock, TenantId tenant, string? firstName, string? lastName, string? employeeId,
+        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known = null) =>
+        NewFieldUser(clock, tenant, firstName, lastName, employeeId, pin: null, pinRequired: false, roles, actor, known);
+
+    /// <summary>The employee ID as stored (trimmed), or the validation error.</summary>
+    public static Result<string> CheckEmployeeId(string? employeeId)
+    {
+        var employee = (employeeId ?? string.Empty).Trim();
+        return employee.Length is 0 or > EmployeeIdMaxLength || !EmployeeIdPattern().IsMatch(employee)
+            ? Error.Validation("identity.employee_id_invalid", $"The employee ID must be 1–{EmployeeIdMaxLength} letters, digits, '-' or '_'.")
+            : employee;
+    }
+
+    /// <summary>The contact of an office user as stored (e-mail lower-cased, phone E.164), or the validation error.</summary>
+    public static Result<(string? Email, string? Phone)> CheckContact(string? email, string? phone) => Contact(email, phone);
+
+    /// <summary>Sets (or replaces) a field user's PIN; the PIN itself never reaches the ledger.</summary>
+    public Result<bool> SetPin(TimeProvider clock, string? pin, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Kind != UserKind.Field)
+        {
+            return Error.BusinessRule("identity.not_field_user", "Only field users sign in with a PIN; office users have a password.");
+        }
+
+        if (Status == UserStatus.Deactivated)
+        {
+            return Error.BusinessRule("identity.user_deactivated", "A deactivated user cannot get a PIN.");
+        }
+
+        var hash = Pin.Hash(pin);
+        if (!hash.IsSuccess)
+        {
+            return hash.Error;
+        }
+
+        PinHash = hash.Value;
+        Raise(new UserPinSet(Id.Value, actor) { OccurredAt = clock.GetUtcNow() });
+        return true;
+    }
+
+    private static Result<UserAccount> NewFieldUser(
+        TimeProvider clock, TenantId tenant, string? firstName, string? lastName, string? employeeId, string? pin, bool pinRequired,
+        IReadOnlyList<RoleAssignment>? roles, string? actor, RoleLookup? known)
     {
         ArgumentNullException.ThrowIfNull(clock);
         var lookup = known ?? Domain.Roles.Find;
@@ -167,23 +222,29 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
             return Error.Validation("identity.role_needs_account", "Office roles need an invited account with a password, not a PIN.");
         }
 
-        var employee = (employeeId ?? string.Empty).Trim();
-        if (employee.Length is 0 or > EmployeeIdMaxLength || !EmployeeIdPattern().IsMatch(employee))
+        var employee = CheckEmployeeId(employeeId);
+        if (!employee.IsSuccess)
         {
-            return Error.Validation("identity.employee_id_invalid", $"The employee ID must be 1–{EmployeeIdMaxLength} letters, digits, '-' or '_'.");
+            return employee.Error;
         }
 
-        var hash = Pin.Hash(pin);
-        if (!hash.IsSuccess)
+        string? pinHash = null;
+        if (pinRequired)
         {
-            return hash.Error;
+            var hash = Pin.Hash(pin);
+            if (!hash.IsSuccess)
+            {
+                return hash.Error;
+            }
+
+            pinHash = hash.Value;
         }
 
         var user = new UserAccount(EntityId.New<UserId>(clock), tenant, UserKind.Field, first, last, assignments, clock.GetUtcNow())
         {
             Status = UserStatus.Active,
-            EmployeeId = employee,
-            PinHash = hash.Value,
+            EmployeeId = employee.Value,
+            PinHash = pinHash,
         };
         user.Raise(new FieldUserCreated(user.Id.Value, assignments, actor) { OccurredAt = user.CreatedAt });
         return user;

@@ -74,6 +74,19 @@ public interface IIdentityStore
 
     /// <summary>Saves changes to loaded aggregates; Conflict <c>identity.concurrent_change</c> when another request changed them first.</summary>
     Task<Result<bool>> SaveAsync(CancellationToken cancellationToken);
+
+    /// <summary>The users with any of these e-mails (lower-case), phones or employee IDs (tracked, for an import), whatever their status.</summary>
+    Task<IReadOnlyList<UserAccount>> FindForImportAsync(
+        IReadOnlyCollection<string> emails, IReadOnlyCollection<string> phones, IReadOnlyCollection<string> employeeIds, CancellationToken cancellationToken);
+
+    /// <summary>Tracks a new user (and its invitation), saved with the next save of the unit of work.</summary>
+    void Track(UserAccount user, Invitation? invitation);
+
+    /// <summary>
+    /// Saves everything tracked in one transaction (an import); false, with nothing saved, when an e-mail, phone or
+    /// employee ID was taken or a user changed meanwhile.
+    /// </summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>Forgets a cached "is this account revoked" answer at once (the deactivating instance needs no 30 s wait).</summary>
