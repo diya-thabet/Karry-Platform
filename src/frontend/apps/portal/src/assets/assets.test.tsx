@@ -37,6 +37,8 @@ describe("machines (US-P1-AST-01, US-P1-AST-02, US-P1-AST-03)", () => {
     expect(await within(row as HTMLElement).findByText("Carrière Sud")).toBeInTheDocument();
     expect(within(row as HTMLElement).getByText("Haul truck")).toBeInTheDocument();
     expect(within(row as HTMLElement).getByText("123 TU 4567")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Plate or serial" })).toBeInTheDocument();
+    expect(screen.getByText(pel.serialNumber ?? "")).toBeInTheDocument(); // no plate: the serial identifies it
     expect(screen.queryByText("Vieille chargeuse")).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "New machine" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Print labels" })).not.toBeInTheDocument();

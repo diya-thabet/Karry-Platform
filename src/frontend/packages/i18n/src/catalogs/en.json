@@ -452,6 +452,7 @@
   "portal.assets.model": "Model",
   "portal.assets.serialNumber": "Serial number / VIN",
   "portal.assets.plate": "Plate",
+  "portal.assets.plateOrSerial": "Plate or serial",
   "portal.assets.year": "Year",
   "portal.assets.yearInvalid": "Enter a year with 4 digits.",
   "portal.assets.acquiredOn": "Acquired on",
