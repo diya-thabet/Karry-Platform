@@ -55,6 +55,15 @@ public interface ISiteStore
 
     /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
     Task<bool> TrySaveAsync(Site site, CancellationToken cancellationToken);
+
+    /// <summary>The sites with these codes (tracked, for an import), archived ones included.</summary>
+    Task<IReadOnlyList<Site>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken);
+
+    /// <summary>Tracks a new site, saved with the next save of the unit of work.</summary>
+    void Add(Site site);
+
+    /// <summary>Saves everything tracked in one transaction (an import); false, with nothing saved, when a code was taken meanwhile.</summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>

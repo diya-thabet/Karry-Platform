@@ -412,15 +412,6 @@ internal static class ImportSaving
         }
 
         create();
-        if (!await store.TrySaveAllAsync(cancellationToken).ConfigureAwait(false))
-        {
-            return new ImportCommit(validation with { Issues = [.. validation.Issues, new ImportIssue(0, null, null, ImportCodes.DataChanged, ImportSeverity.Error)] }, 0, 0, 0);
-        }
-
-        return new ImportCommit(
-            validation,
-            validation.Plans.Count(p => p.Action == ImportAction.Create),
-            validation.Plans.Count(p => p.Action == ImportAction.Update),
-            validation.Plans.Count(p => p.Action == ImportAction.Unchanged));
+        return await store.TrySaveAllAsync(cancellationToken).ConfigureAwait(false) ? ImportCommits.Of(validation) : ImportCommits.DataChanged(validation);
     }
 }

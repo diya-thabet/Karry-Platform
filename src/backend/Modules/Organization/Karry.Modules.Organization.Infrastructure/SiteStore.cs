@@ -34,6 +34,26 @@ internal sealed class SiteStore(OrganizationDbContext db) : ISiteStore
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<Site>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken) =>
+        await db.Sites.Where(x => codes.Contains(x.Code)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Site site) => db.Sites.Add(site);
+
+    public async Task<bool> TrySaveAllAsync(CancellationToken cancellationToken)
+    {
+        // One SaveChanges is one transaction: the sites, their outbox rows and ledger entries.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }
 
 /// <summary>The site meter (US-P1-ORG-01 AC2): active sites; an archived site frees its place.</summary>

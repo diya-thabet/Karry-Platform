@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Tenancy.Api;
@@ -38,7 +39,7 @@ internal sealed class SiteLimitGuard(IEnumerable<IUsageSource> sources, ITenantC
 }
 
 /// <summary>
-/// Tenancy, Organization and Trust behind the real pipeline, on PostgreSQL (with PostGIS) and the real roles. Every
+/// Tenancy, Organization, Trust and Imports (the Excel import of sites) behind the real pipeline, on PostgreSQL (with PostGIS) and the real roles. Every
 /// caller is a Tenant Admin except the subjects in <see cref="Roles"/>, who hold the site in <see cref="SiteOf"/>.
 /// </summary>
 public sealed class OrganizationHost : IAsyncLifetime
@@ -69,6 +70,9 @@ public sealed class OrganizationHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    /// <summary>The imported files (P1.14).</summary>
+    public InMemoryObjectStore Files { get; } = new();
+
     public IServiceProvider Services => app!.Services;
 
     public async ValueTask InitializeAsync()
@@ -83,7 +87,8 @@ public sealed class OrganizationHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddSingleton<IObjectStore>(Files);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new Trust.Api.TrustModule(), new Imports.Api.ImportsModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf, new Dictionary<string, string> { [ManagerAndExecutive] = DefaultRoles.Executive });
         builder.Services.AddSingleton(Limits);
         builder.Services.AddScoped<ILimitGuard, SiteLimitGuard>();
@@ -97,6 +102,10 @@ public sealed class OrganizationHost : IAsyncLifetime
         await app.StartAsync();
         Client = app.GetTestClient();
     }
+
+    /// <summary>Runs the queued import steps (validation, commit), as the worker does.</summary>
+    public Task RunImportsAsync() =>
+        Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Imports.Infrastructure.ImportsDbContext>>().DispatchPendingAsync(100, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

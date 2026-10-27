@@ -11,6 +11,8 @@
     <ProjectReference Include="../Karry.Modules.Materials.Api/Karry.Modules.Materials.Api.csproj" />
     <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <!-- The materials import runs through the Imports module (P1.14). -->
+    <ProjectReference Include="../../Imports/Karry.Modules.Imports.Api/Karry.Modules.Imports.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>
