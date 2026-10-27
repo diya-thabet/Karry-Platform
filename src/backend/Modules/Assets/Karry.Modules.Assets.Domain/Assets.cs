@@ -71,6 +71,10 @@ public sealed record AssetMoved(Guid AssetId, string Code, Guid FromSiteId, Guid
 [EventType("assets.asset_label_reissued.v1")]
 public sealed record AssetLabelReissued(Guid AssetId, string Code, string? Actor) : DomainEvent;
 
+/// <summary>The asset's photo changed: its SHA-256 fingerprint, or null when it was removed.</summary>
+[EventType("assets.asset_photo_changed.v1")]
+public sealed record AssetPhotoChanged(Guid AssetId, string Code, string? Sha256, string? Actor) : DomainEvent;
+
 [EventType("assets.asset_status_changed.v1")]
 public sealed record AssetStatusChanged(Guid AssetId, string Code, string From, string To, string? Actor) : DomainEvent;
 
@@ -133,6 +137,9 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
     public IReadOnlyList<SiteAssignment> Sites => sites;
 
     public AssetStatus Status { get; private set; }
+
+    /// <summary>The current photo in object storage (<see cref="AssetPhotos.Key"/>), null when there is none.</summary>
+    public AssetPhoto? Photo { get; private set; }
 
     /// <summary>The random token on the asset's QR label (ADR-0026): not derived from the ID, replaced on reissue.</summary>
     public string LabelToken { get; private set; } = null!;
@@ -204,6 +211,26 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
         LabelToken = AssetLabels.NewToken();
         ChangedAt = clock.GetUtcNow();
         Raise(new AssetLabelReissued(Id.Value, Code, actor) { OccurredAt = ChangedAt });
+    }
+
+    /// <summary>The photo becomes <paramref name="photo"/> (null removes it); false when unchanged. A disposed asset keeps its photo.</summary>
+    public Result<bool> SetPhoto(TimeProvider clock, AssetPhoto? photo, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status == AssetStatus.Disposed)
+        {
+            return AssetRules.Disposed;
+        }
+
+        if (photo?.Sha256 == Photo?.Sha256)
+        {
+            return false;
+        }
+
+        Photo = photo;
+        ChangedAt = clock.GetUtcNow();
+        Raise(new AssetPhotoChanged(Id.Value, Code, photo?.Sha256, actor) { OccurredAt = ChangedAt });
+        return true;
     }
 
     /// <summary>New status; false when unchanged. Leaving <see cref="AssetStatus.Disposed"/> counts the asset again.</summary>
@@ -403,4 +430,47 @@ public static partial class AssetLabels
 
     [GeneratedRegex("^[A-Z2-7]{26}$", RegexOptions.CultureInvariant)]
     private static partial Regex TokenPattern();
+}
+
+/// <summary>An asset photo as stored: fingerprint (it names the object), media type and size.</summary>
+public sealed record AssetPhoto(string Sha256, string ContentType, int Bytes);
+
+/// <summary>Asset photos (US-P1-AST-02 AC1): JPEG, PNG or WebP up to 5 MB, the type read from the content, never from the request.</summary>
+public static class AssetPhotos
+{
+    public const int MaxBytes = 5 * 1024 * 1024;
+
+    public static readonly Error TypeUnsupported = Error.Validation("assets.photo_type_unsupported", "A photo is a JPEG, PNG or WebP image.");
+
+    public static readonly Error TooLarge = Error.Validation("assets.photo_too_large", "A photo is at most 5 MB.").With("maxBytes", MaxBytes);
+
+    public static readonly Error NotFound = Error.NotFound("assets.photo_not_found", "This asset has no photo.");
+
+    public static readonly Error Unavailable = Error.BusinessRule("assets.photos_unavailable", "Photo storage is not configured on this server.");
+
+    /// <summary>The object key under the company's prefix: the fingerprint changes with the photo, so a new photo never overwrites the old one.</summary>
+    public static string Key(AssetId asset, AssetPhoto photo) => $"{asset}/photo-{photo.Sha256}";
+
+    public static Result<AssetPhoto> Create(ReadOnlySpan<byte> content)
+    {
+        if (content.Length > MaxBytes)
+        {
+            return TooLarge;
+        }
+
+        if (Sniff(content) is not { } type)
+        {
+            return TypeUnsupported;
+        }
+
+        return new AssetPhoto(Convert.ToHexStringLower(SHA256.HashData(content)), type, content.Length);
+    }
+
+    public static string? Sniff(ReadOnlySpan<byte> content) => content switch
+    {
+        [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, ..] => "image/png",
+        [0xFF, 0xD8, 0xFF, ..] => "image/jpeg",
+        [0x52, 0x49, 0x46, 0x46, _, _, _, _, 0x57, 0x45, 0x42, 0x50, ..] => "image/webp",
+        _ => null,
+    };
 }

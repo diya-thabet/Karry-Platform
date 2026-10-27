@@ -36,7 +36,7 @@ public sealed class AssetsModule : IModule
             return;
         }
 
-        services.AddAssetsInfrastructure(connectionString);
+        services.AddAssetsInfrastructure(connectionString, configuration);
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -86,6 +86,30 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("SetAssetStatus");
+
+        // Photo (US-P1-AST-02 AC1): in object storage, streamed after the same checks as the asset.
+        endpoints.MapPut("/{assetId:guid}/photo", SetPhotoAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .Accepts<IFormFile>("image/jpeg", "image/png", "image/webp")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("SetAssetPhoto");
+
+        endpoints.MapGet("/{assetId:guid}/photo", PhotoAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .Produces(StatusCodes.Status200OK, contentType: "image/jpeg")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetAssetPhoto");
+
+        endpoints.MapDelete("/{assetId:guid}/photo", RemovePhotoAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("RemoveAssetPhoto");
 
         // QR labels (US-P1-AST-02 AC2, ADR-0026): a scanned label resolves only inside the caller's company and sites.
         endpoints.MapGet("/labels/{label}", ResolveLabelAsync)
@@ -186,6 +210,41 @@ public sealed class AssetsModule : IModule
         Guid assetId, AssetStatusRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
         Respond(await assets.SetStatusAsync(new AssetId(assetId), request.Status, cancellationToken).ConfigureAwait(false));
 
+    private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> SetPhotoAsync(
+        Guid assetId, HttpRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
+    {
+        // One byte more than allowed is enough to refuse; a larger body is never read into memory.
+        var buffer = new byte[AssetPhotos.MaxBytes + 1];
+        var length = 0;
+        int read;
+        while (length < buffer.Length && (read = await request.Body.ReadAsync(buffer.AsMemory(length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            length += read;
+        }
+
+        return Respond(await assets.SetPhotoAsync(new AssetId(assetId), buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false));
+    }
+
+    private static async Task<IResult> PhotoAsync(Guid assetId, HttpContext context, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
+    {
+        var result = await assets.PhotoAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        // An image only: never sniffed into something else, no active content even if opened directly; private to the caller.
+        context.Response.Headers.CacheControl = "private, max-age=3600";
+        context.Response.Headers.ContentSecurityPolicy = "default-src 'none'";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        var (photo, content) = result.Value;
+        return TypedResults.File(content, photo.ContentType, entityTag: new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{photo.Sha256}\""));
+    }
+
+    private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> RemovePhotoAsync(
+        Guid assetId, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.RemovePhotoAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false));
+
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ResolveLabelAsync(
         string label, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
         Respond(await assets.ResolveLabelAsync(label, cancellationToken).ConfigureAwait(false));
@@ -272,17 +331,21 @@ public sealed record AssetListResponse(IReadOnlyList<AssetResponse> Items, strin
 /// </summary>
 public sealed record AssetResponse(
     Guid Id, string Code, string Name, string Type, string? Make, string? Model, string? SerialNumber, string? Plate, int? Year, DateOnly? AcquiredOn,
-    Guid SiteId, string Status, string Label, IReadOnlyList<SiteAssignmentResponse> Sites, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt,
+    Guid SiteId, string Status, string Label, AssetPhotoResponse? Photo, IReadOnlyList<SiteAssignmentResponse> Sites, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt,
     DateTimeOffset? DisposedAt)
 {
     public static AssetResponse From(Asset asset)
     {
         ArgumentNullException.ThrowIfNull(asset);
         return new(asset.Id.Value, asset.Code, asset.Name, asset.Type, asset.Make, asset.Model, asset.SerialNumber, asset.Plate, asset.Year, asset.AcquiredOn,
-            asset.SiteId, AssetRules.StatusCode(asset.Status), AssetLabels.Text(asset.LabelToken), [.. asset.Sites.OrderBy(s => s.From).Select(s => new SiteAssignmentResponse(s.SiteId, s.From))],
+            asset.SiteId, AssetRules.StatusCode(asset.Status), AssetLabels.Text(asset.LabelToken),
+            asset.Photo is { } photo ? new AssetPhotoResponse(photo.Sha256, photo.ContentType, photo.Bytes) : null, [.. asset.Sites.OrderBy(s => s.From).Select(s => new SiteAssignmentResponse(s.SiteId, s.From))],
             asset.CreatedAt, asset.ChangedAt, asset.DisposedAt);
     }
 }
+
+/// <summary>The asset's photo, served at <c>GET /{assetId}/photo</c>; <c>Sha256</c> changes with it (use it to refresh a cached image).</summary>
+public sealed record AssetPhotoResponse(string Sha256, string ContentType, int Bytes);
 
 public sealed record SiteAssignmentResponse(Guid SiteId, DateTimeOffset From);
 

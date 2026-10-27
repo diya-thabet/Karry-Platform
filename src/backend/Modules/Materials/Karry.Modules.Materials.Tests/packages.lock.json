@@ -365,6 +365,7 @@
       "karry.buildingblocks": {
         "type": "Project",
         "dependencies": {
+          "AWSSDK.S3": "[4.0.104.4, )",
           "EFCore.NamingConventions": "[10.0.1, )",
           "FluentValidation": "[12.2.0, )",
           "FluentValidation.DependencyInjectionExtensions": "[12.2.0, )",

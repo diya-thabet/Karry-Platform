@@ -425,7 +425,13 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
-        if (method is "POST" or "PUT" or "PATCH")
+        if (method is "PUT" && path.EndsWith("/photo", StringComparison.Ordinal))
+        {
+            // A real image, so only the asset check can refuse it (the photo routes accept images, not JSON).
+            request.Content = new ByteArrayContent([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);
+            request.Content.Headers.ContentType = new MediaTypeHeaderValue("image/png");
+        }
+        else if (method is "POST" or "PUT" or "PATCH")
         {
             request.Content = new StringContent($$"""{"tenantId":"{{host.A.Id}}"}""", Encoding.UTF8, "application/json");
         }

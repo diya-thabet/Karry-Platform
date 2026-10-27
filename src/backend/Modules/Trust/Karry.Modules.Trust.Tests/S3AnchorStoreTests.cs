@@ -1,45 +1,32 @@
 using System.Security.Cryptography;
-using System.Text;
 using Amazon.Runtime;
 using Amazon.S3;
 using Amazon.S3.Model;
-using DotNet.Testcontainers.Builders;
-using DotNet.Testcontainers.Containers;
 using Karry.Modules.Trust.Domain;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.SharedKernel.Tenancy;
+using Karry.Testing;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Karry.Modules.Trust.Tests;
 
-/// <summary>SeaweedFS, the same image as the local stack (ADR-0017), started for the anchor store tests.</summary>
+/// <summary>SeaweedFS for this class's tests (<see cref="SeaweedFsServer"/>).</summary>
 public sealed class SeaweedFs : IAsyncLifetime
 {
-    public const string AccessKey = "anchor-test-access";
-    public const string SecretKey = "anchor-test-secret-only-for-tests";
+    public const string AccessKey = SeaweedFsServer.AccessKey;
+    public const string SecretKey = SeaweedFsServer.SecretKey;
 
-    private IContainer? container;
+    private SeaweedFsServer? server;
 
-    public string ServiceUrl { get; private set; } = string.Empty;
+    public string ServiceUrl => server!.ServiceUrl;
 
-    public async ValueTask InitializeAsync()
-    {
-        var config = $$"""{"identities":[{"name":"test","credentials":[{"accessKey":"{{AccessKey}}","secretKey":"{{SecretKey}}"}],"actions":["Admin","Read","List","Tagging","Write"]}]}""";
-        container = new ContainerBuilder("chrislusf/seaweedfs:4.48")
-            .WithCommand("server", "-dir=/data", "-master.volumeSizeLimitMB=256", "-volume.max=16", "-s3", "-s3.port=8333", "-s3.config=/etc/seaweedfs/s3.json")
-            .WithResourceMapping(Encoding.UTF8.GetBytes(config), "/etc/seaweedfs/s3.json")
-            .WithPortBinding(8333, true)
-            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(r => r.ForPort(8333).ForPath("/healthz")))
-            .Build();
-        await container.StartAsync();
-        ServiceUrl = $"http://{container.Hostname}:{container.GetMappedPublicPort(8333)}";
-    }
+    public async ValueTask InitializeAsync() => server = await SeaweedFsServer.StartAsync();
 
     public async ValueTask DisposeAsync()
     {
-        if (container is not null)
+        if (server is not null)
         {
-            await container.DisposeAsync();
+            await server.DisposeAsync();
         }
     }
 }

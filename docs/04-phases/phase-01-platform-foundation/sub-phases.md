@@ -539,8 +539,8 @@ A sub-phase is ✅ only when **all** of these are true:
 - **What gets built:**
   - `Assets` module:
     - **Machine types:** seeded asset types with default meters and component templates (templates used in Phase 4).
-    - **Registry:** every field in AST-02 AC1, statuses, current site, photo (object storage), and search plus filters (Postgres full-text and trigram).
-    - **QR labels:** a printable PDF A4 sheet containing a signed, tenant-scoped asset reference, not a guessable ID.
+    - **Registry:** every field in AST-02 AC1, statuses, current site, photo (object storage), and search plus filters (trigram; full-text rejected in ADR-0026).
+    - **QR labels:** a printable PDF A4 sheet; each label carries a random token that resolves only inside its company, not a guessable ID (a signed reference was rejected in ADR-0026).
   - **Meters:** 0..n per asset (HOURS, KM) with initial reading and status. History is append-only and ledgered; meter replacement with offset is prepared for Phase 2.
   - Portal screens: asset list/detail, meter tab, label printing.
 - **Tests:**
