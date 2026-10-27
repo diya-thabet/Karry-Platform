@@ -66,6 +66,8 @@ public static class WorkbookInspector
 /// </summary>
 public sealed class WorkbookReader : IWorkbookReader
 {
+    public Result<bool> Check(byte[] file) => WorkbookInspector.Check(file);
+
     public Result<WorkbookContent> Read(byte[] file, IReadOnlyList<ImportColumn> columns)
     {
         ArgumentNullException.ThrowIfNull(columns);

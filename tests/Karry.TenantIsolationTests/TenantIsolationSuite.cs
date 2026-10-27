@@ -56,7 +56,12 @@ public sealed class IsolationHost : IAsyncLifetime
         // Assets (P1.13): a machine of A on its site, to read, change, move or dispose.
         AAsset = await SeedAssetAsync(A.Id, ASite, "Alphamachine");
         AMeter = await SeedMeterAsync(A.Id, AAsset);
+        // Imports (P1.14): a validated import of A without errors (to read, commit or discard), with an issue and a preview row.
+        AImport = await SeedImportAsync(A.Id);
     }
+
+    /// <summary>ID of tenant A's import (its file, <c>Alphaimport.xlsx</c>, and its row key, <c>ALPHA-IMPORT</c>, are markers too).</summary>
+    public Guid AImport { get; private set; }
 
     /// <summary>ID of tenant A's hour meter on its asset, with one reading (value 4242.5, a marker too).</summary>
     public Guid AMeter { get; private set; }
@@ -161,6 +166,27 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(name);
         insert.Parameters.AddWithValue(site);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedImportAsync(Guid tenant)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            WITH job AS (
+              INSERT INTO imports.jobs (id, tenant_id, kind, file_name, size, sha256, requested_by, status, rows, errors, warnings, created, updated, unchanged, uploaded_at, changed_at)
+              VALUES ($1, $2, 'assets', 'Alphaimport.xlsx', 4096, repeat('a', 64), 'admin-a', 'Validated', 1, 0, 1, 0, 0, 0, now(), now())
+              RETURNING id, tenant_id),
+            issue AS (
+              INSERT INTO imports.issues (tenant_id, job_id, sequence, row, "column", cell, code, severity) SELECT tenant_id, id, 1, 1, 'colour', 'C1', 'imports.column_unknown', 'warning' FROM job)
+            INSERT INTO imports.rows (tenant_id, job_id, row, key, action) SELECT tenant_id, id, 2, 'ALPHA-IMPORT', 'create' FROM job
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
         await insert.ExecuteNonQueryAsync();
         return id;
     }
@@ -341,7 +367,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         }
 
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
-            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken],
+            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
+            host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -411,6 +438,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "materialId" => host.AMaterial.ToString(),
         "assetId" => host.AAsset.ToString(),
         "meterId" => host.AMeter.ToString(),
+        "importId" => host.AImport.ToString(),
         "label" => "KRY1:" + IsolationHost.ALabelToken,
         // A template lists the caller's own values (e.g. site codes); B asking for one must never see A's.
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",

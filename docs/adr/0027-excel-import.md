@@ -57,20 +57,30 @@ a validation report with cell references, a preview, an all-or-nothing commit th
    - Importing the same file twice therefore creates nothing the second time.
 
 4. **The flow is upload → validate → preview → commit, run as a job in `Karry.Workers`.**
-   - `POST /api/v1/imports` (multipart, `kind`) stores the file and creates a job (`validating`).
-     `GET /api/v1/imports/{id}` gives the state, progress (rows done / total), counts and the issues (paged).
+   - `POST /api/v1/imports?kind=&fileName=` (the body is the `.xlsx`, `Idempotency-Key`) checks the file, stores it and
+     creates a job (`validating`, 202). `GET /api/v1/imports/{id}` gives the state and counts;
+     `GET /{id}/issues` the problems with their cells and `GET /{id}/rows` the preview (both paged).
      `POST /{id}/commit` asks for the commit (`committing`); `POST /{id}/discard` drops a job that is not committed.
-   - The jobs are rows in `imports.jobs`. A worker in `Karry.Workers` claims the next job with
-     `FOR UPDATE SKIP LOCKED`, so several workers never run the same job and a job survives a restart (it is claimed
-     again). Quartz stays for scheduled work; it runs in memory today, so it is not a queue.
+     The state is the progress: a client polls the job while it is `validating` or `committing`.
+   - The jobs are rows in `imports.jobs` (with their issues and preview in `imports.issues` and `imports.rows`). The
+     steps are queued by the job's own events through the module's **outbox** (ADR-0018): `import_uploaded` starts the
+     validation and `import_commit_requested` the commit. The dispatcher in `Karry.Workers` claims them with
+     `FOR UPDATE SKIP LOCKED`, runs them in the job's tenant, retries a step that fails and claims it again after a
+     restart; so several workers never run the same step and nothing needs a second queue. A step that finds its job
+     already past that state does nothing. Quartz stays for scheduled work (retention).
    - Validation never writes business data. It records the issues and, per row, the planned action
      (`create`, `update`, `unchanged`), which is the preview.
    - **The commit validates again inside the transaction** (the data may have changed since the preview). Any error
      rolls the whole file back and the job returns to `validated` with the new issues. Nothing is committed while one
      error remains (TC-P1-ORG-001).
    - The commit runs in one transaction of the owning module's database context. Entity changes, their outbox rows
-     and their ledger entries commit or roll back together (`ModuleDbContext` joins the open transaction).
-   - A job that stops half-way (worker killed) is claimed again; natural keys make the repeat harmless.
+     and their ledger entries commit or roll back together (`ModuleDbContext` joins the open transaction). The job's
+     result is saved afterwards in the Imports transaction of the outbox step.
+   - A step that stops half-way (worker killed) is claimed again; natural keys make the repeat harmless (a commit
+     repeated after the data was written finds every row `unchanged`).
+   - Every problem is recorded as an issue on row 0 (the file) rather than thrown: kind no longer allowed
+     (`imports.kind_forbidden`), file deleted by retention (`imports.file_deleted`), refused by the scanner
+     (`imports.file_infected`), unreadable or too large once opened. So the same file always gives the same report.
 
 5. **Users are imported in two steps.** The commit creates the Karry users and their invitations in one transaction.
    Their Keycloak accounts and invitation messages are created afterwards by an outbox handler, retried until done,
@@ -85,8 +95,11 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      evaluated, and the cell gets a warning.
    - **Zip bombs:** the entries' declared sizes are summed before opening (at most 100 MB uncompressed, ratio at most
      100 to 1), and the reader stops at 5,000 data rows and 60 columns.
-   - **Malware scanning** is a port (`IFileScanner`). Production uses a ClamAV service before validation; locally and
-     in tests a scanner that accepts everything is registered, and the job records which scanner ran.
+   - The type, size, active-content and zip-bomb checks run at upload (400, nothing stored); the cells are read by the
+     worker.
+   - **Malware scanning** is a port (`IFileScanner`), run by the worker before the file is read. Production uses a
+     ClamAV service; where none is configured `NoFileScanner` accepts every file, and the job and its
+     `import_validated` ledger entry record which scanner ran (`none`).
 
 7. **Formula injection is neutralised wherever we write a spreadsheet** (templates now, exports later).
    `SpreadsheetText.Neutralise` prefixes a cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return with an
@@ -104,14 +117,17 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      SHA-256 on the job.
    - A daily job deletes originals older than 90 days and records it. Production also sets a bucket lifecycle rule
      as a second line.
-   - The job's life is in the company's ledger: `imports.import_uploaded.v1` (kind, file name, size, SHA-256, rows),
-     `import_validated`, `import_committed` (created, updated, unchanged), `import_discarded`, `import_file_deleted`.
-     Created entities are ledgered by their own modules.
+   - The job's life is in the company's ledger: `imports.import_uploaded.v1` (kind, file name, size, SHA-256, actor),
+     `import_validated` (rows, errors, warnings, scanner), `import_commit_requested` (actor), `import_committed`
+     (created, updated, unchanged), `import_discarded`, `import_file_deleted`. Created entities are ledgered by their
+     own modules.
+   - Only the file's name is kept (a path such as `C:\fakepath\flotte.xlsx` becomes `flotte.xlsx`).
 
 10. **Permissions.** `imports.files.manage` (Tenant Admin) uploads, reads, commits and discards. A target also
-    requires its own permission: the job runs with the requester's current access, rebuilt when the job runs, so
-    rights removed after the upload stop the commit. An asset row on a site the requester does not manage is an error
-    on that row.
+    requires its own permission, checked at upload and at the commit request. Each step runs with the access of the
+    person who caused it (the uploader for the validation, whoever asked for the commit for the commit), rebuilt when
+    the step runs, so rights removed in between stop it. `Karry.Workers` therefore knows every module's permission
+    declarations (`WorkerModules`). An asset row on a site the requester does not manage is an error on that row.
 
 ## Options considered
 
@@ -122,8 +138,10 @@ a validation report with cell references, a preview, an all-or-nothing commit th
   as a sequence of single-kind jobs.
 - **Synchronous import in the request.** Rejected: progress could not be shown and a slow file would hit request
   timeouts.
-- **Quartz persistent store as the job queue.** Rejected: it is not configured today and one table with
-  `SKIP LOCKED` is simpler to reason about and to test.
+- **Quartz persistent store as the job queue.** Rejected: it is not configured today.
+- **A job table claimed by its own worker loop (`SKIP LOCKED`).** Rejected during P1.14: row-level security hides the
+  jobs of every company from a worker that has not chosen one, so the loop would need a table outside RLS or a
+  tenant-by-tenant scan. The outbox already claims, retries and sets the tenant, and is tested for crashes.
 - **Rows imported one by one, keeping the good ones.** Rejected by AC3: a half-imported fleet is harder to fix than
   a refused file.
 
@@ -137,3 +155,5 @@ a validation report with cell references, a preview, an all-or-nothing commit th
 - ⚠ Production needs a ClamAV service and a bucket lifecycle rule (operations doc); until then only the structural
   checks run.
 - ⚠ A file is limited to 5,000 rows; larger fleets are split.
+- ⚠ A step that keeps failing (database down) is retried by the outbox and then dead-lettered; its job stays
+  `validating` or `committing` and shows in the outbox lag alert.
