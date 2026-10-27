@@ -5,13 +5,16 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
-    <ProjectReference Include="../Modules/Tenancy/Karry.Modules.Tenancy.Infrastructure/Karry.Modules.Tenancy.Infrastructure.csproj" />
-    <ProjectReference Include="../Modules/Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
-    <ProjectReference Include="../Modules/Identity/Karry.Modules.Identity.Infrastructure/Karry.Modules.Identity.Infrastructure.csproj" />
-    <ProjectReference Include="../Modules/Billing/Karry.Modules.Billing.Infrastructure/Karry.Modules.Billing.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Flags\Karry.Modules.Flags.Infrastructure\Karry.Modules.Flags.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Organization\Karry.Modules.Organization.Infrastructure\Karry.Modules.Organization.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Materials\Karry.Modules.Materials.Infrastructure\Karry.Modules.Materials.Infrastructure.csproj" />
-    <ProjectReference Include="..\Modules\Assets\Karry.Modules.Assets.Infrastructure\Karry.Modules.Assets.Infrastructure.csproj" />
+    <!-- The modules' Api projects for their declarations (the permission catalogue the import runner needs to rebuild a
+         user's access, WorkerModules) and, through them, their infrastructure. -->
+    <ProjectReference Include="../Modules/Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
+    <ProjectReference Include="../Modules/Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <ProjectReference Include="../Modules/Identity/Karry.Modules.Identity.Api/Karry.Modules.Identity.Api.csproj" />
+    <ProjectReference Include="../Modules/Billing/Karry.Modules.Billing.Api/Karry.Modules.Billing.Api.csproj" />
+    <ProjectReference Include="../Modules/Flags/Karry.Modules.Flags.Api/Karry.Modules.Flags.Api.csproj" />
+    <ProjectReference Include="../Modules/Organization/Karry.Modules.Organization.Api/Karry.Modules.Organization.Api.csproj" />
+    <ProjectReference Include="../Modules/Materials/Karry.Modules.Materials.Api/Karry.Modules.Materials.Api.csproj" />
+    <ProjectReference Include="../Modules/Assets/Karry.Modules.Assets.Api/Karry.Modules.Assets.Api.csproj" />
+    <ProjectReference Include="../Modules/Imports/Karry.Modules.Imports.Api/Karry.Modules.Imports.Api.csproj" />
   </ItemGroup>
 </Project>

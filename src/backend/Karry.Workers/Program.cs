@@ -6,6 +6,8 @@ using Karry.Modules.Billing.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
+using Karry.Modules.Imports.Application;
+using Karry.Modules.Imports.Infrastructure;
 using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
@@ -40,6 +42,11 @@ builder.Services.AddMaterialsInfrastructure(connectionString);
 // Assets: delivers its events (asset registrations, changes, moves).
 builder.Services.AddAssetsInfrastructure(connectionString, builder.Configuration);
 
+// Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
+// The runner rebuilds the requester's access, so this host knows every module's permissions.
+builder.Services.AddSingleton(WorkerModules.Catalog);
+builder.Services.AddImportsInfrastructure(connectionString, builder.Configuration);
+
 var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
 
 // `Karry.Workers anchor-now`: one anchoring run, then exit (manual catch-up, smoke test). Exit 1 if a tenant failed.
@@ -70,6 +77,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<OrganizationDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<AssetsDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<ImportsDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
 }
@@ -101,6 +109,15 @@ if (args is ["generate-shifts", ..])
     return run.Failed == 0 ? 0 : 1;
 }
 
+// `Karry.Workers delete-import-files`: one run of the 90-day retention of import files, then exit. Exit 1 if a tenant failed.
+if (args is ["delete-import-files", ..])
+{
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<DeleteExpiredImportFiles>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"import files: {run.Tenants} tenants, {run.Deleted} deleted, {run.Failed} failed");
+    return run.Failed == 0 ? 0 : 1;
+}
+
 // `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
 var keycloak = !string.IsNullOrWhiteSpace(builder.Configuration["Identity:Keycloak:BaseUrl"]);
 if (args is ["import-sign-ins", ..])
@@ -126,12 +143,14 @@ builder.Services.AddOutboxDispatcherService<FlagsDbContext>();
 builder.Services.AddOutboxDispatcherService<OrganizationDbContext>();
 builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
 builder.Services.AddOutboxDispatcherService<AssetsDbContext>();
+builder.Services.AddOutboxDispatcherService<ImportsDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {
     Schedule<SubscriptionLifecycleJob>(quartz, "subscription-lifecycle", SubscriptionLifecycleJob.Schedule);
     Schedule<UsageSnapshotJob>(quartz, "usage-snapshot", UsageSnapshotJob.Schedule);
     Schedule<ShiftInstanceJob>(quartz, "shift-instances", ShiftInstanceJob.Schedule);
+    Schedule<ImportRetentionJob>(quartz, "import-retention", ImportRetentionJob.Schedule);
     if (anchoring)
     {
         Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);

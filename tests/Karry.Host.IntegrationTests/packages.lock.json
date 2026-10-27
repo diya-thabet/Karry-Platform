@@ -971,7 +971,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Imports.Contracts": "[1.0.0, )",
-          "Karry.Modules.Imports.Domain": "[1.0.0, )"
+          "Karry.Modules.Imports.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.imports.contracts": {

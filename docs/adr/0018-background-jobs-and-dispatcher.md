@@ -36,7 +36,10 @@ ADR-0015 chose a transactional outbox but left the dispatcher open ("thin in-hou
 - Outbox dispatch uses an **in-house dispatcher** hosted in `Karry.Workers` (contract and tests in P1.3, TC-P1-PLT-007;
   running there since P1.8 for Tenancy and Identity, `Karry.Workers dispatch-now` drains once). Another module's events
   are consumed through a contract of the publishing module (e.g. `ITenantProvisionedHandler` in Tenancy.Contracts),
-  because modules may not reference each other's domain event types.
+  because modules may not reference each other's domain event types. A host's one event serializer knows the event
+  types of every module it registers (fixed in P1.14: it used to know only the first module's, so later modules'
+  events were dead-lettered as unknown). Import jobs run as outbox steps of the Imports module
+  ([ADR-0027](0027-excel-import.md)).
 - Scheduled work uses **Quartz.NET** with persistent PostgreSQL job store in clustered mode, hosted in `Karry.Workers`.
 - Every job is idempotent, tenant-aware (iterates tenants explicitly, sets tenant context per tenant transaction), emits metrics (last success, duration, lag) and has an alert + runbook when it guards an invariant (anchoring).
 

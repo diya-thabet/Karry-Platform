@@ -27,6 +27,9 @@ public sealed record WorkbookContent(IReadOnlyList<ImportRow> Rows, IReadOnlyLis
 /// <summary>Reads an uploaded workbook after checking it is a plain <c>.xlsx</c> within the limits (ADR-0027 §6).</summary>
 public interface IWorkbookReader
 {
+    /// <summary>The checks of the file itself (type, size, active content, zip bomb), without reading its cells.</summary>
+    Result<bool> Check(byte[] file);
+
     Result<WorkbookContent> Read(byte[] file, IReadOnlyList<ImportColumn> columns);
 }
 
