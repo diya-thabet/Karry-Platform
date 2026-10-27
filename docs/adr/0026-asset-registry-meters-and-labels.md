@@ -3,7 +3,7 @@ title: "ADR-0026: Asset registry with a type catalogue in code, append-only site
 area: adr
 tags: [assets, machines, meters, qr-labels, search, trigram, append-only, usage-meter]
 source: "Phase 1 sub-phase P1.13"
-status: proposed
+status: accepted
 last_updated: 2026-10-27
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-27
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.13 in progress)
+- **Status:** Accepted (P1.13 done, 2026-10-27)
 - **Date:** 2026-10-27
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-AST-01, US-P1-AST-02, US-P1-AST-03; TC-P1-AST-001, TC-P1-AST-002;

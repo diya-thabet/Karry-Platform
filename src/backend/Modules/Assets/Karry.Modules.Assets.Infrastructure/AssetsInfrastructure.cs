@@ -23,6 +23,7 @@ public static class AssetsInfrastructure
         services.AddSingleton<ILabelSheet, LabelSheet>();
         services.AddScoped<IMeterStore, MeterStore>();
         services.AddScoped<MeterOperations>();
+        services.AddScoped<DemoAssetsSeeder>();
         services.AddScoped<IUsageSource, CountedAssets>();
         return services;
     }

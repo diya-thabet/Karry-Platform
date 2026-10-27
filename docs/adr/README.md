@@ -67,4 +67,4 @@ Added in Phase 1 sub-phase P1.13 (assets and meters):
 
 | ADR | Title | Status |
 |---|---|---|
-| [0026](0026-asset-registry-meters-and-labels.md) | Asset registry with a type catalogue in code, append-only site and meter history, random label tokens | Proposed |
+| [0026](0026-asset-registry-meters-and-labels.md) | Asset registry with a type catalogue in code, append-only site and meter history, random label tokens | Accepted |
