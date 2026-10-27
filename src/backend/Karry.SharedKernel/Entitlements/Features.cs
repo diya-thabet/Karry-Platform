@@ -145,7 +145,10 @@ public static class SoftLimit
     };
 
     /// <summary>Whether one more item may be created at <paramref name="usage"/>.</summary>
-    public static bool AllowsOneMore(long usage, long? limit) => limit is not { } l || usage + 1 <= Ceiling(l);
+    public static bool AllowsOneMore(long usage, long? limit) => Allows(usage, limit, 1);
+
+    /// <summary>Whether <paramref name="count"/> more items may be created at <paramref name="usage"/> (all of them within the grace).</summary>
+    public static bool Allows(long usage, long? limit, int count) => limit is not { } l || usage + count <= Ceiling(l);
 }
 
 public static class AddOns

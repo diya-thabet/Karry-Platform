@@ -55,6 +55,55 @@ public sealed record ImportIssue(int Row, string? Column, string? Cell, string C
         ArgumentNullException.ThrowIfNull(row);
         return new(row.Number, column, row.Reference(column), code, ImportSeverity.Warning, args);
     }
+
+    /// <summary>A module's own validation error on a cell: same code and arguments as through the API.</summary>
+    public static ImportIssue Error(ImportRow row, string column, SharedKernel.Results.Error error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        return Error(row, column, error.Code, ArgsOf(error));
+    }
+
+    /// <summary>A problem of the whole file (row 0), such as a plan limit.</summary>
+    public static ImportIssue ForFile(SharedKernel.Results.Error error)
+    {
+        ArgumentNullException.ThrowIfNull(error);
+        return new(0, null, null, error.Code, ImportSeverity.Error, ArgsOf(error));
+    }
+
+    private static Dictionary<string, string>? ArgsOf(SharedKernel.Results.Error error) =>
+        error.Extensions.Count == 0
+            ? null
+            : error.Extensions.ToDictionary(e => e.Key, e => Convert.ToString(e.Value, CultureInfo.InvariantCulture) ?? string.Empty, StringComparer.Ordinal);
+}
+
+/// <summary>Problem codes every kind uses for the cells themselves; a kind's own rules use its module's codes.</summary>
+public static class ImportCodes
+{
+    /// <summary>A required cell is empty.</summary>
+    public const string ValueRequired = "imports.value_required";
+
+    /// <summary>The same key on two rows (args: <c>key</c>, <c>rows</c>): an error on each of them.</summary>
+    public const string KeyDuplicate = "imports.key_duplicate";
+
+    public const string NumberInvalid = "imports.number_invalid";
+
+    public const string DateInvalid = "imports.date_invalid";
+
+    /// <summary>Someone changed the same data while the file was committed: nothing was written, validate again.</summary>
+    public const string DataChanged = "imports.data_changed";
+
+    /// <summary>An error on every row whose key appears more than once, naming the other rows.</summary>
+    public static IEnumerable<ImportIssue> Duplicates(IEnumerable<ImportRow> rows, string column, Func<ImportRow, string?> key)
+    {
+        ArgumentNullException.ThrowIfNull(rows);
+        ArgumentNullException.ThrowIfNull(key);
+        return rows.Select(row => (Row: row, Key: key(row))).Where(r => r.Key is not null).GroupBy(r => r.Key!, StringComparer.Ordinal).Where(g => g.Count() > 1)
+            .SelectMany(g => g.Select(r => ImportIssue.Error(r.Row, column, KeyDuplicate, new Dictionary<string, string>
+            {
+                ["key"] = g.Key,
+                ["rows"] = string.Join(", ", g.Select(o => o.Row.Number.ToString(CultureInfo.InvariantCulture))),
+            })));
+    }
 }
 
 /// <summary>What a commit would do with a row (the preview): create, update or leave it as it is.</summary>

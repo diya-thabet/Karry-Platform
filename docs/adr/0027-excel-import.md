@@ -55,6 +55,13 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      columns the template carries (an asset on another site is moved, keeping its site history). A key that appears
      twice in a file is an error on both rows.
    - Importing the same file twice therefore creates nothing the second time.
+   - *As built (slice 3, assets and meters):* the targets use the module's domain rules and aggregates directly (the
+     same `AssetRules`, `Asset.Register` / `Change` / `MoveTo` and `Meter.Record` as the API, so the same events and
+     ledger entries), with the whole file loaded by code in one query rather than row by row through the operations.
+     Shared row codes (`imports.value_required`, `number_invalid`, `date_invalid`, `key_duplicate`, `data_changed`) and
+     `ImportIssue.Error` live in BuildingBlocks. The plan limit is checked once for the file's creations
+     (`ILimitGuard.CheckCreateAsync(metric, count)`). A save that hits a concurrent change (unique code, row version)
+     writes nothing and reports `imports.data_changed` on row 0.
 
 4. **The flow is upload → validate → preview → commit, run as a job in `Karry.Workers`.**
    - `POST /api/v1/imports?kind=&fileName=` (the body is the `.xlsx`, `Idempotency-Key`) checks the file, stores it and

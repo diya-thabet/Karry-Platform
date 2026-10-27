@@ -28,6 +28,12 @@ public interface IMeterStore
     /// <summary>Saves the meter with its pending readings and events; false when someone else changed it meanwhile.</summary>
     Task<bool> TrySaveAsync(Meter meter, CancellationToken cancellationToken);
 
+    /// <summary>The meters of these assets (tracked, for an import).</summary>
+    Task<IReadOnlyList<Meter>> ForAssetsAsync(IReadOnlyCollection<AssetId> assets, CancellationToken cancellationToken);
+
+    /// <summary>Tracks the new readings of a meter, saved with the next save of the unit of work.</summary>
+    void Stage(Meter meter);
+
     /// <summary>Up to <paramref name="take"/> readings, newest first (by reading time), after the reading <paramref name="after"/>.</summary>
     Task<IReadOnlyList<MeterReading>> ReadingsAsync(MeterId meter, Guid? after, int take, CancellationToken cancellationToken);
 }
