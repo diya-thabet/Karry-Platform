@@ -36,6 +36,13 @@ describe("Button", () => {
     fireEvent.click(button);
     expect(click).not.toHaveBeenCalled();
   });
+
+  it("renders as its child with asChild (a link styled as a button), not as a button", () => {
+    render(<Button asChild><a href="/sites/new">New site</a></Button>);
+
+    expect(screen.getByRole("link", { name: "New site" })).toHaveAttribute("href", "/sites/new");
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
 });
 
 describe("TextField", () => {

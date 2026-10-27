@@ -13,6 +13,10 @@ type MaterialInput = components["schemas"]["MaterialInput"];
 type DensityVersion = components["schemas"]["DensityVersionResponse"];
 type DensityInput = components["schemas"]["DensityInput"];
 type ConversionInput = components["schemas"]["ConversionInput"];
+type Asset = components["schemas"]["AssetResponse"];
+type AssetInput = components["schemas"]["AssetInput"];
+type Meter = components["schemas"]["MeterResponse"];
+type Reading = components["schemas"]["ReadingResponse"];
 
 export interface Sent {
   method: string;
@@ -71,6 +75,12 @@ export function fakeApi(options: {
   instances?: ShiftInstance[];
   /** Materials of `GET /materials` (default: none). */
   materials?: Material[];
+  /** Machines of `GET /assets` (default: none). */
+  assets?: Asset[];
+  /** Meters by asset ID. */
+  meters?: Record<string, Meter[]>;
+  /** Readings by meter ID, newest first. */
+  readings?: Record<string, Reading[]>;
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -85,6 +95,9 @@ export function fakeApi(options: {
   const patterns: Record<string, ShiftPattern[]> = { ...options.patterns };
   const days: Record<string, NonWorkingDay[]> = { ...options.days };
   const materials: Material[] = [...(options.materials ?? [])];
+  const assets: Asset[] = [...(options.assets ?? [])];
+  const meters: Record<string, Meter[]> = { ...options.meters };
+  const readings: Record<string, Reading[]> = { ...options.readings };
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
     tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
@@ -156,6 +169,11 @@ export function fakeApi(options: {
     const material = materialsRoute(request.method, url, body);
     if (material) {
       return material;
+    }
+
+    const machine = assetsRoute(request.method, url, body);
+    if (machine) {
+      return machine;
     }
 
     const roleMatch = /^\/roles\/([^/]+)(\/field-levels)?$/.exec(path);
@@ -324,6 +342,106 @@ export function fakeApi(options: {
     }
   }
 
+  function assetsRoute(method: string, url: URL, body: unknown): Response | null {
+    const match = /^\/api\/v1\/assets(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const [, id, part, meterId, sub] = match;
+    if (id === "types") {
+      return json(200, { items: [{ code: "excavator", defaultMeters: ["hours"], components: [] }, { code: "haul-truck", defaultMeters: ["hours", "km"], components: [] }] });
+    }
+
+    if (id === "labels" && part === "sheet") {
+      return new Response(new Uint8Array([0x25, 0x50, 0x44, 0x46]), { status: 200, headers: { "Content-Type": "application/pdf" } });
+    }
+
+    if (!id) {
+      if (method === "GET") {
+        const q = (url.searchParams.get("q") ?? "").toLowerCase();
+        const status = url.searchParams.get("status");
+        const found = assets.filter((a) =>
+          (status ? a.status === status : a.status !== "disposed")
+          && [a.code, a.name, a.plate ?? ""].some((text) => text.toLowerCase().includes(q))
+          && (url.searchParams.get("siteId") ?? a.siteId) === a.siteId
+          && (url.searchParams.get("type") ?? a.type) === a.type);
+        return json(200, { items: found, nextCursor: null });
+      }
+
+      const input = body as AssetInput;
+      const created = asset({
+        id: `0192f0c1-0000-7000-8000-${String(assets.length + 1).padStart(12, "0")}`, code: (input.code ?? "").toUpperCase(), name: input.name ?? "",
+        type: input.type ?? "", make: input.make ?? null, model: input.model ?? null, serialNumber: input.serialNumber ?? null, plate: input.plate ?? null,
+        year: input.year ?? null, acquiredOn: input.acquiredOn ?? null, siteId: input.siteId ?? "",
+        sites: [{ siteId: input.siteId ?? "", from: "2026-10-27T08:00:00Z" }],
+      });
+      assets.push(created);
+      return json(201, created);
+    }
+
+    const index = assets.findIndex((a) => a.id === id);
+    const found = assets[index];
+    if (!found) {
+      return problem(404, "assets.asset_not_found");
+    }
+
+    const save = (next: Asset) => {
+      assets[index] = { ...next, changedAt: `2026-10-27T09:00:${String(index).padStart(2, "0")}Z` };
+      return json(200, assets[index]);
+    };
+    const list = meters[id] ?? [];
+    const meter = list.find((m) => m.id === meterId);
+    switch (true) {
+      case part === undefined && method === "GET":
+        return json(200, found);
+      case part === undefined && method === "PUT":
+        return save({ ...found, ...(body as object) });
+      case part === "move": {
+        const siteId = (body as { siteId: string }).siteId;
+        return save({ ...found, siteId, sites: [...found.sites, { siteId, from: "2026-10-27T09:00:00Z" }] });
+      }
+      case part === "status":
+        return save({ ...found, status: (body as { status: string }).status });
+      case part === "label":
+        return save({ ...found, label: "KRY1:NEWLABELTOKENAAAAAAAAAAA" });
+      case part === "photo" && method === "PUT":
+        return save({ ...found, photo: { sha256: "a".repeat(64), contentType: "image/png", bytes: 4 } });
+      case part === "photo" && method === "DELETE":
+        return save({ ...found, photo: null });
+      case part === "photo" && method === "GET":
+        return new Response(new Uint8Array([0x89, 0x50, 0x4e, 0x47]), { status: 200, headers: { "Content-Type": "image/png" } });
+      case part === "meters" && meterId === undefined && method === "GET":
+        return json(200, { items: list });
+      case part === "meters" && meterId === undefined && method === "POST": {
+        const input = body as { kind: string; initialReading: string };
+        const added = meterOf({ id: `meter-${String(list.length + 1)}`, kind: input.kind, lastValue: Number(input.initialReading), initialReading: Number(input.initialReading) });
+        meters[id] = [...list, added];
+        return json(201, added);
+      }
+      case meter !== undefined && sub === "readings" && method === "GET":
+        return json(200, { items: readings[meter.id] ?? [], nextCursor: null });
+      case meter !== undefined && sub === "readings" && method === "POST": {
+        const value = Number((body as { value: string }).value);
+        if (value < Number(meter.lastValue)) {
+          return problem(400, "assets.reading_decreased");
+        }
+
+        const reading: Reading = { id: `reading-${String(Date.now())}`, value, readAt: "2026-10-27T10:00:00Z", recordedAt: "2026-10-27T10:00:00Z", recordedBy: "admin-1" };
+        readings[meter.id] = [reading, ...(readings[meter.id] ?? [])];
+        meters[id] = list.map((m) => (m.id === meter.id ? { ...m, lastValue: value, lastReadAt: reading.readAt } : m));
+        return json(201, reading);
+      }
+      case meter !== undefined && sub === "status": {
+        const next = { ...meter, status: (body as { status: string }).status };
+        meters[id] = list.map((m) => (m.id === meter.id ? next : m));
+        return json(200, next);
+      }
+      default:
+        return problem(404, "test.unknown_route");
+    }
+  }
+
   const client: ApiClient = createApiClient({ baseUrl: "http://api.test", getAccessToken: () => "test-token", fetch });
   return {
     client,
@@ -413,4 +531,23 @@ function convert(found: Material, input: ConversionInput) {
 
   factors.push({ name: `density.${input.state ?? ""}`, value: density(input.state), unit: "t/m3" }, { name: "moisture", value: w, unit: "fraction" });
   return { result: { value: tonnes / (density(input.state) * (1 + w)), unit: "m3", state: input.state }, factors, densitiesFrom: version.effectiveFrom };
+}
+
+/** A machine as the API answers it: excavator PEL-01 on Carrière Nord. */
+export function asset(overrides: Partial<Asset> = {}): Asset {
+  const siteId = overrides.siteId ?? "0192f0c1-0000-7000-8000-000000005001";
+  return {
+    id: "0192f0c1-0000-7000-8000-000000007001", code: "PEL-01", name: "Pelle Cat 336", type: "excavator", make: "Caterpillar", model: "336",
+    serialNumber: "CAT0336X1234", plate: null, year: 2021, acquiredOn: "2021-03-15", siteId, status: "active",
+    label: "KRY1:ABCDEFGHIJKLMNOPQRSTUVWXYZ", photo: null, sites: [{ siteId, from: "2026-01-05T08:00:00Z" }],
+    createdAt: "2026-10-27T08:00:00Z", changedAt: "2026-10-27T08:00:00Z", disposedAt: null, ...overrides,
+  };
+}
+
+/** An hour meter at 4,250.5 h, working. */
+export function meterOf(overrides: Partial<Meter> = {}): Meter {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000008001", kind: "hours", unit: "h", initialReading: 0, installedOn: "2021-03-15", status: "ok", offset: 0,
+    lastValue: 4250.5, lastReadAt: "2026-10-26T16:00:00Z", createdAt: "2026-10-27T08:00:00Z", ...overrides,
+  };
 }
