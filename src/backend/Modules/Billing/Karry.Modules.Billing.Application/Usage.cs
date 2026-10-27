@@ -68,10 +68,10 @@ public sealed class LimitGuard(UsageMeter meter) : ILimitGuard
 {
     public const string LimitReachedCode = "billing.limit_reached";
 
-    public async Task<Error?> CheckCreateAsync(string metric, CancellationToken cancellationToken)
+    public async Task<Error?> CheckCreateAsync(string metric, int count, CancellationToken cancellationToken)
     {
         var line = await meter.CurrentAsync(metric, cancellationToken).ConfigureAwait(false);
-        return SoftLimit.AllowsOneMore(line.Usage, line.Limit)
+        return SoftLimit.Allows(line.Usage, line.Limit, count)
             ? null
             : Error.Forbidden(LimitReachedCode, $"The plan's {metric} limit is reached (with its 10 % grace); upgrade or remove some first.")
                 .With("metric", metric).With("limit", line.Limit!.Value).With("usage", line.Usage);

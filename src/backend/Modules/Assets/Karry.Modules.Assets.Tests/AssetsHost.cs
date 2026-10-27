@@ -29,7 +29,7 @@ public sealed class AssetLimits
 /// <summary>The soft-limit rule over the real usage sources, with asset limits from <see cref="AssetLimits"/> instead of a subscription.</summary>
 internal sealed class AssetLimitGuard(IEnumerable<IUsageSource> sources, ITenantContext tenant, AssetLimits limits) : ILimitGuard
 {
-    public async Task<Error?> CheckCreateAsync(string metric, CancellationToken cancellationToken)
+    public async Task<Error?> CheckCreateAsync(string metric, int count, CancellationToken cancellationToken)
     {
         if (metric != Metrics.Assets || !limits.ByTenant.TryGetValue(tenant.Current!.Value.Value, out var limit))
         {
@@ -37,14 +37,14 @@ internal sealed class AssetLimitGuard(IEnumerable<IUsageSource> sources, ITenant
         }
 
         var usage = await sources.Single(s => s.Metric == metric).CountAsync(cancellationToken);
-        return SoftLimit.AllowsOneMore(usage, limit)
+        return SoftLimit.Allows(usage, limit, count)
             ? null
             : Error.Forbidden("billing.limit_reached", "Limit reached.").With("metric", metric).With("limit", limit).With("usage", usage);
     }
 }
 
 /// <summary>
-/// Tenancy, Organization (the sites), Assets and Trust behind the real pipeline, on PostgreSQL and the real roles. Every
+/// Tenancy, Organization (the sites), Assets, Trust and Imports (the Excel import of assets and meters) behind the real pipeline, on PostgreSQL and the real roles. Every
 /// caller is a Tenant Admin except the subjects in <see cref="Roles"/>, who hold their role on the site in <see cref="SiteOf"/>.
 /// </summary>
 public sealed class AssetsHost : IAsyncLifetime
@@ -89,7 +89,7 @@ public sealed class AssetsHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
         builder.Services.AddSingleton<IObjectStore>(Files);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new AssetsModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new AssetsModule(), new Trust.Api.TrustModule(), new Imports.Api.ImportsModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         builder.Services.AddSingleton(Limits);
         builder.Services.AddScoped<ILimitGuard, AssetLimitGuard>();
@@ -103,6 +103,10 @@ public sealed class AssetsHost : IAsyncLifetime
         await app.StartAsync();
         Client = app.GetTestClient();
     }
+
+    /// <summary>Runs the queued import steps (validation, commit), as the worker does.</summary>
+    public Task RunImportsAsync() =>
+        Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Imports.Infrastructure.ImportsDbContext>>().DispatchPendingAsync(100, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

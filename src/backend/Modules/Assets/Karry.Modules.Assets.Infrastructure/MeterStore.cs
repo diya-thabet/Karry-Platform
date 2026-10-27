@@ -20,6 +20,16 @@ internal sealed class MeterStore(AssetsDbContext db) : IMeterStore
         meter.ClearPendingReadings();
     }
 
+    public async Task<IReadOnlyList<Meter>> ForAssetsAsync(IReadOnlyCollection<AssetId> assets, CancellationToken cancellationToken) =>
+        await db.Meters.Where(m => assets.Contains(m.AssetId)).OrderBy(m => m.CreatedAt).ThenBy(m => m.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Stage(Meter meter)
+    {
+        ArgumentNullException.ThrowIfNull(meter);
+        db.MeterReadings.AddRange(meter.PendingReadings);
+        meter.ClearPendingReadings();
+    }
+
     public async Task<bool> TrySaveAsync(Meter meter, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(meter);

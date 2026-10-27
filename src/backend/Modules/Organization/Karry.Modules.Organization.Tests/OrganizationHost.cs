@@ -27,11 +27,11 @@ public sealed class SiteLimits
 /// <summary>The soft-limit rule over Organization's real site meter, with limits from <see cref="SiteLimits"/> instead of a subscription.</summary>
 internal sealed class SiteLimitGuard(IEnumerable<IUsageSource> sources, ITenantContext tenant, SiteLimits limits) : ILimitGuard
 {
-    public async Task<Error?> CheckCreateAsync(string metric, CancellationToken cancellationToken)
+    public async Task<Error?> CheckCreateAsync(string metric, int count, CancellationToken cancellationToken)
     {
         var usage = await sources.Single(s => s.Metric == metric).CountAsync(cancellationToken);
         long? limit = limits.ByTenant.TryGetValue(tenant.Current!.Value.Value, out var l) ? l : null;
-        return SoftLimit.AllowsOneMore(usage, limit)
+        return SoftLimit.Allows(usage, limit, count)
             ? null
             : Error.Forbidden("billing.limit_reached", "Limit reached.").With("metric", metric).With("limit", limit!.Value).With("usage", usage);
     }

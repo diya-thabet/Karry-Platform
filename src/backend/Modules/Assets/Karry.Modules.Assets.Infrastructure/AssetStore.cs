@@ -67,6 +67,26 @@ internal sealed class AssetStore(AssetsDbContext db) : IAssetStore
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<Asset>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken) =>
+        await db.Assets.Where(a => codes.Contains(a.Code)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Asset asset) => db.Assets.Add(asset);
+
+    public async Task<bool> TrySaveAllAsync(CancellationToken cancellationToken)
+    {
+        // One SaveChanges is one transaction: the assets, meters, readings, their outbox rows and ledger entries.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }
 
 /// <summary>The asset meter (US-P1-AST-02 AC3): assets not disposed; disposing one frees its place.</summary>

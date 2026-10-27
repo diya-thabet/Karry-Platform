@@ -87,7 +87,7 @@ with the live count. **Field capture is never limited**: field users are unlimit
 do not call the guard. *As built (slice 4):* metric codes in `Karry.SharedKernel.Entitlements.Metrics` (`office-users`, `sites`,
 `assets`, `storage-bytes`; office users = invited or active office accounts, an open invitation holds a seat), the rule
 in `SoftLimit`: ceiling = limit + 10 % rounded up (at least one; 20 → 22), states `within` / `over` / `blocked`.
-`ILimitGuard.CheckCreateAsync(metric)` returns null or the error (problem members via `Error.With`). Snapshots in
+`ILimitGuard.CheckCreateAsync(metric, count)` returns null or the error (problem members via `Error.With`); `count` is the number of items about to be created (1 through the API, the file's creations for an Excel import, P1.14), so a file that would pass the ceiling is refused whole. Snapshots in
 `billing.usage_snapshots` (tenant, metric, UTC day; RLS) daily at 02:30 UTC and at worker start-up; Karry's notice is
 alert `KarryTenantOverLimit` (gauge without tenant label) plus worker log event 5002 naming the tenant.
 `GET /billing/usage` (`billing.subscription.read`) gives the live lines for "Plan & usage" and the banner.

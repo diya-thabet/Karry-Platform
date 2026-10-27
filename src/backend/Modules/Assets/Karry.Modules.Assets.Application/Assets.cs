@@ -82,6 +82,18 @@ public interface IAssetStore
 
     /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
     Task<bool> TrySaveAsync(Asset asset, CancellationToken cancellationToken);
+
+    /// <summary>The assets with these codes (tracked, for an import), disposed ones included.</summary>
+    Task<IReadOnlyList<Asset>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken);
+
+    /// <summary>Tracks a new asset, saved with the next save of the unit of work.</summary>
+    void Add(Asset asset);
+
+    /// <summary>
+    /// Saves everything tracked in one transaction (an import); false, with nothing saved, when a code was taken or a
+    /// meter changed meanwhile.
+    /// </summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>

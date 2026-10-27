@@ -20,5 +20,16 @@ public interface IUsageSource
 /// </summary>
 public interface ILimitGuard
 {
-    Task<Error?> CheckCreateAsync(string metric, CancellationToken cancellationToken);
+    /// <summary>Whether <paramref name="count"/> more items may be created (an import creates many at once).</summary>
+    Task<Error?> CheckCreateAsync(string metric, int count, CancellationToken cancellationToken);
+}
+
+public static class LimitGuardExtensions
+{
+    /// <summary>Whether one more item may be created.</summary>
+    public static Task<Error?> CheckCreateAsync(this ILimitGuard guard, string metric, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(guard);
+        return guard.CheckCreateAsync(metric, 1, cancellationToken);
+    }
 }

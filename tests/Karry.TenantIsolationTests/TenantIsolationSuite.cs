@@ -357,7 +357,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         var (path, targetsA) = Fill(pathTemplate);
 
         var response = await SendAsync(method, path, TestTokens.ForTenant(host.B.Id, IsolationHost.AttackerSubject));
-        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var body = await ReadBodyAsync(response);
 
         ((int)response.StatusCode).Should().BeLessThan(500, $"{operationId} must handle a foreign tenant cleanly");
         if (targetsA)
@@ -405,6 +405,15 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
     }
 
     [Fact]
+    public async Task Positive_control_a_workbook_body_is_read_as_its_cells()
+    {
+        var response = await SendAsync("GET", "/api/v1/imports/templates/assets?language=en", TestTokens.ForTenant(host.B.Id, IsolationHost.AttackerSubject));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ReadBodyAsync(response)).Should().Contain("PEL-01", "the example cell is only visible once the workbook is unpacked");
+    }
+
+    [Fact]
     public async Task The_published_contract_is_the_one_the_suite_attacks()
     {
         var published = await host.Client.GetStringAsync(new Uri("/openapi/v1.json", UriKind.Relative), TestContext.Current.CancellationToken);
@@ -424,10 +433,36 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
             var value = AttackValue(match.Groups[1].Value, template)
                 ?? throw new InvalidOperationException($"No attack value for route parameter '{match.Groups[1].Value}' in {template}: add one pointing at tenant A's data.");
             path = path.Replace(match.Value, Uri.EscapeDataString(value), StringComparison.Ordinal);
-            targetsA = true;
+            targetsA |= !CatalogueParameters.Contains(match.Groups[1].Value);
         }
 
         return (path, targetsA);
+    }
+
+    /// <summary>
+    /// Parameters that name a catalogue entry shared by every tenant (an import kind), not a resource of A: B gets its own
+    /// answer (200), and the body check below still proves none of A's values are in it.
+    /// </summary>
+    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind" };
+
+    /// <summary>The body as text; a workbook (a zip) is unpacked so the marker check sees its cells and lists.</summary>
+    private static async Task<string> ReadBodyAsync(HttpResponseMessage response)
+    {
+        var bytes = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        if (bytes is not [0x50, 0x4B, ..])
+        {
+            return System.Text.Encoding.UTF8.GetString(bytes);
+        }
+
+        using var zip = new System.IO.Compression.ZipArchive(new MemoryStream(bytes), System.IO.Compression.ZipArchiveMode.Read);
+        var text = new System.Text.StringBuilder();
+        foreach (var entry in zip.Entries)
+        {
+            using var reader = new StreamReader(entry.Open());
+            text.Append(await reader.ReadToEndAsync(TestContext.Current.CancellationToken));
+        }
+
+        return text.ToString();
     }
 
     private string? AttackValue(string parameter, string template) => parameter switch
@@ -440,7 +475,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "meterId" => host.AMeter.ToString(),
         "importId" => host.AImport.ToString(),
         "label" => "KRY1:" + IsolationHost.ALabelToken,
-        // A template lists the caller's own values (e.g. site codes); B asking for one must never see A's.
+        // A template lists the caller's own values (e.g. site codes): B gets its own, never A's (see CatalogueParameters).
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
         "effectiveFrom" when template.StartsWith("/api/v1/materials/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
