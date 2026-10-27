@@ -6,5 +6,7 @@
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
     <!-- Invitation links and messages need the tenant's address and name. -->
     <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <!-- The users import names sites by their codes. -->
+    <ProjectReference Include="../../Organization/Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
   </ItemGroup>
 </Project>

@@ -114,6 +114,17 @@ public sealed class IdentityModule : IModule
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("ResendInvitation");
 
+        // A field user's PIN, set by an administrator (an imported field user has none yet, P1.14).
+        endpoints.MapPut("/users/{id:guid}/pin", SetPinAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("SetUserPin");
+
         endpoints.MapGet("/users", ListAsync)
             .RequirePermission(IdentityPermissions.UsersRead)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -297,6 +308,13 @@ public sealed class IdentityModule : IModule
         var user = await db.Users.AsNoTracking().SingleAsync(u => u.Id == new UserId(result.Value), cancellationToken).ConfigureAwait(false);
         var tenantRoles = await roles.LoadAsync(cancellationToken).ConfigureAwait(false);
         return TypedResults.Created($"/api/v1/identity/users/{result.Value}", ToResponse(user, tenantRoles));
+    }
+
+    private static async Task<Results<NoContent, ProblemHttpResult>> SetPinAsync(
+        Guid id, SetPin request, [FromServices] SetPinHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(id, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeactivateAsync(

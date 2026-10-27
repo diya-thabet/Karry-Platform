@@ -129,5 +129,13 @@ public sealed class ImportSignInFailuresTests
         public Task<Result<UserAccount>> AddAsync(UserAccount user, Invitation? invitation, CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<Result<bool>> SaveAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<UserAccount>> FindForImportAsync(
+            IReadOnlyCollection<string> emails, IReadOnlyCollection<string> phones, IReadOnlyCollection<string> employeeIds, CancellationToken cancellationToken) =>
+            throw new NotSupportedException();
+
+        public void Track(UserAccount user, Invitation? invitation) => throw new NotSupportedException();
+
+        public Task<bool> TrySaveAllAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
     }
 }

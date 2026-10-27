@@ -136,6 +136,38 @@ public sealed class DeactivateUserHandler(
     }
 }
 
+public sealed record SetPin(string? Pin);
+
+/// <summary>
+/// Sets a field user's PIN (an imported field user has none until then; also a forgotten PIN). The caller manages the
+/// user (same scope rules as deactivation); the PIN is hashed at once and never stored, logged or ledgered in clear.
+/// </summary>
+public sealed class SetPinHandler(IIdentityStore store, TimeProvider clock, UserAdministration administration)
+{
+    public async Task<Result<bool>> HandleAsync(Guid userId, SetPin command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = userId == Guid.Empty ? null : await store.FindUserAsync(new UserId(userId), cancellationToken).ConfigureAwait(false);
+        if (user is null || !administration.CanSee(user))
+        {
+            return UserAdministration.NotFound;
+        }
+
+        if (!administration.CanManage(user))
+        {
+            return Error.Forbidden("identity.scope_exceeded", "This user also works outside the sites you manage.");
+        }
+
+        var set = user.SetPin(clock, command.Pin, administration.Subject);
+        if (!set.IsSuccess)
+        {
+            return set.Error;
+        }
+
+        return await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
 /// <summary>First Tenant Admin of a new tenant (US-P1-TEN-01 AC1), called by the Tenancy module after provisioning.</summary>
 public sealed class FirstAdminInvitation(IIdentityStore store, InviteUserHandler invite, ITenantContext context) : IFirstAdminInvitation
 {

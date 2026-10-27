@@ -7,6 +7,7 @@ using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Api;
 using Karry.Modules.Identity.Application;
+using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
 using Karry.SharedKernel.Entitlements;
@@ -37,6 +38,23 @@ public sealed class CapturingSender : IInvitationSender
         Uri.UnescapeDataString(Sent.Last(m => m.Destination == destination).Link.Fragment["#token=".Length..]);
 }
 
+/// <summary>Sites by code for the users import, as Organization's directory would answer (no tenant filter: codes are unique per test).</summary>
+public sealed class TestSites : ISiteDirectory
+{
+    public ConcurrentDictionary<Guid, SiteSummary> All { get; } = new();
+
+    public Guid Add(string code)
+    {
+        var id = Guid.CreateVersion7();
+        All[id] = new SiteSummary(id, code, $"Carrière {code}", "Africa/Tunis", false);
+        return id;
+    }
+
+    public Task<SiteSummary?> FindAsync(Guid siteId, CancellationToken cancellationToken) => Task.FromResult(All.GetValueOrDefault(siteId));
+
+    public Task<IReadOnlyList<SiteSummary>> ListAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<SiteSummary>>([.. All.Values]);
+}
+
 /// <summary>Office-seat limits per tenant for the test host (Billing owns the real guard); a tenant not listed is unlimited.</summary>
 public sealed class SeatLimits
 {
@@ -60,7 +78,7 @@ internal sealed class SeatLimitGuard(IEnumerable<IUsageSource> sources, ITenantC
 }
 
 /// <summary>
-/// Identity, Tenancy and Trust behind the real pipeline, on PostgreSQL with the real roles and a real Keycloak with
+/// Identity, Tenancy, Trust and Imports (the users import, with sites from <see cref="Sites"/>) behind the real pipeline, on PostgreSQL with the real roles and a real Keycloak with
 /// the repository realm. Tokens for the API come from the test issuer (the API side of Keycloak tokens is proven by
 /// <c>ApiTokenValidationTests</c>); Keycloak is the account store the module manages.
 /// </summary>
@@ -80,6 +98,12 @@ public sealed class IdentityHost : IAsyncLifetime
     public SeatLimits SeatLimits { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
+
+    /// <summary>The sites the users import names (Organization's directory, without its module and permissions).</summary>
+    public TestSites Sites { get; } = new();
+
+    /// <summary>The imported files (P1.14).</summary>
+    public InMemoryObjectStore Files { get; } = new();
 
     public IServiceProvider Services => app!.Services;
 
@@ -105,10 +129,12 @@ public sealed class IdentityHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule(), new ProbeModule()]);
+        builder.Services.AddSingleton<Karry.BuildingBlocks.Storage.IObjectStore>(Files);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule(), new ProbeModule(), new Imports.Api.ImportsModule()]);
         builder.Services.RemoveAll<IInvitationSender>();
         builder.Services.AddSingleton<IInvitationSender>(Sender);
         builder.Services.AddSingleton(SeatLimits);
+        builder.Services.AddSingleton<ISiteDirectory>(Sites);
         builder.Services.AddScoped<ILimitGuard, SeatLimitGuard>();
         app = builder.Build();
         app.UseKarryApiConventions();
@@ -120,6 +146,14 @@ public sealed class IdentityHost : IAsyncLifetime
         await app.StartAsync();
         Client = app.GetTestClient();
     }
+
+    /// <summary>Runs the queued import steps (validation, commit), as the worker does.</summary>
+    public Task RunImportsAsync() =>
+        Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Imports.Infrastructure.ImportsDbContext>>().DispatchPendingAsync(100, CancellationToken.None);
+
+    /// <summary>Delivers Identity's events, as the worker does (imported users get their Keycloak accounts and invitations).</summary>
+    public Task RunIdentityEventsAsync() =>
+        Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Infrastructure.IdentityDbContext>>().DispatchPendingAsync(100, CancellationToken.None);
 
     public async ValueTask DisposeAsync()
     {

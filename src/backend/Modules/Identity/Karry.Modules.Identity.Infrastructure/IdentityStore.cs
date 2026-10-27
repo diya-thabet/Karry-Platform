@@ -83,4 +83,34 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
             return Error.Conflict("identity.concurrent_change", "Someone else changed this at the same time. Try again.");
         }
     }
+
+    public async Task<IReadOnlyList<UserAccount>> FindForImportAsync(
+        IReadOnlyCollection<string> emails, IReadOnlyCollection<string> phones, IReadOnlyCollection<string> employeeIds, CancellationToken cancellationToken) =>
+        await db.Users.Where(u => (u.Email != null && emails.Contains(u.Email)) || (u.Phone != null && phones.Contains(u.Phone))
+                || (u.EmployeeId != null && employeeIds.Contains(u.EmployeeId)))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Track(UserAccount user, Invitation? invitation)
+    {
+        db.Users.Add(user);
+        if (invitation is not null)
+        {
+            db.Invitations.Add(invitation);
+        }
+    }
+
+    public async Task<bool> TrySaveAllAsync(CancellationToken cancellationToken)
+    {
+        // One SaveChanges is one transaction: the users, invitations, their outbox rows and ledger entries.
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }

@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Imports;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -59,6 +60,9 @@ public static class IdentityInfrastructure
         services.AddScoped<MfaSync>();
         services.AddScoped<ChangeUserRolesHandler>();
         services.AddScoped<ResendInvitationHandler>();
+        services.AddScoped<SetPinHandler>();
+        services.AddScoped<IImportTarget, UserImport>();
+        services.AddScoped<IDomainEventSubscriber<Domain.UserInvited>, ImportedUserAccounts>();
         services.AddScoped<IFirstAdminInvitation, FirstAdminInvitation>();
         services.AddScoped<DemoUsersSeeder>();
         services.AddScoped<ITenantProvisionedHandler, KeycloakTenantSetup>();
