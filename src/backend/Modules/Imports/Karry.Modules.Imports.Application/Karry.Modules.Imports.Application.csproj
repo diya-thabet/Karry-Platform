@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Commands, queries, handlers and ports (interfaces) of Imports. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Imports.Domain/Karry.Modules.Imports.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Imports.Contracts/Karry.Modules.Imports.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

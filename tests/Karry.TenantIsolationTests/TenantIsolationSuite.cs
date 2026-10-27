@@ -412,6 +412,8 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "assetId" => host.AAsset.ToString(),
         "meterId" => host.AMeter.ToString(),
         "label" => "KRY1:" + IsolationHost.ALabelToken,
+        // A template lists the caller's own values (e.g. site codes); B asking for one must never see A's.
+        "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
         "effectiveFrom" when template.StartsWith("/api/v1/materials/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,

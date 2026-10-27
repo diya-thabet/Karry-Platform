@@ -3,6 +3,7 @@ using Karry.Modules.Assets.Api;
 using Karry.Modules.Billing.Api;
 using Karry.Modules.Flags.Api;
 using Karry.Modules.Identity.Api;
+using Karry.Modules.Imports.Api;
 using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Tenancy.Api;
@@ -25,5 +26,6 @@ internal static class ModuleCatalog
         new OrganizationModule(),
         new MaterialsModule(),
         new AssetsModule(),
+        new ImportsModule(),
     ];
 }

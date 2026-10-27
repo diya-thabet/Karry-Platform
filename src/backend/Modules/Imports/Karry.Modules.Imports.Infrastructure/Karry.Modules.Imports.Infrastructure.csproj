@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Imports.Application/Karry.Modules.Imports.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Imports.Domain/Karry.Modules.Imports.Domain.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <!-- Reading uploaded workbooks and writing templates, server-side (ADR-0027). -->
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
+</Project>
