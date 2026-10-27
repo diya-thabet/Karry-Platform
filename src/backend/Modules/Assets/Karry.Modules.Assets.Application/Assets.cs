@@ -34,10 +34,13 @@ public static class AssetsPermissions
     ];
 }
 
-/// <summary>A new asset on a site; it starts <c>active</c>.</summary>
+/// <summary>
+/// A new asset on a site; it starts <c>active</c>. <c>Meters</c> null gives it its type's default meters from 0, installed
+/// on the acquisition date (else today); an empty list gives it none.
+/// </summary>
 public sealed record AssetInput(
     string? Code, string? Name, string? Type, string? Make, string? Model, string? SerialNumber, string? Plate, int? Year, DateOnly? AcquiredOn,
-    Guid? SiteId);
+    Guid? SiteId, IReadOnlyList<MeterInput>? Meters = null);
 
 /// <summary>New details of an asset (the code never changes; the site and status have their own operations).</summary>
 public sealed record AssetChangeInput(
@@ -72,7 +75,7 @@ public interface IAssetStore
 /// disposed one back, follows the asset limit (soft limit). A site role reads and manages only the assets on its sites.
 /// </summary>
 public sealed class AssetOperations(
-    IAssetStore store, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+    IAssetStore store, IMeterStore meters, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 200;
@@ -138,9 +141,8 @@ public sealed class AssetOperations(
             return code.Error;
         }
 
-        var details = AssetRules.Details(
-            input.Name, input.Type, input.Make, input.Model, input.SerialNumber, input.Plate, input.Year, input.AcquiredOn,
-            await TodayAsync(cancellationToken).ConfigureAwait(false));
+        var today = await TodayAsync(cancellationToken).ConfigureAwait(false);
+        var details = AssetRules.Details(input.Name, input.Type, input.Make, input.Model, input.SerialNumber, input.Plate, input.Year, input.AcquiredOn, today);
         if (!details.IsSuccess)
         {
             return details.Error;
@@ -151,12 +153,31 @@ public sealed class AssetOperations(
             return SiteInvalid;
         }
 
+        var meterInputs = input.Meters
+            ?? [.. AssetTypes.Find(details.Value.Type)!.DefaultMeters.Select(k => new MeterInput(AssetRules.MeterKindCode(k), 0m, details.Value.AcquiredOn ?? today))];
+        var newMeters = new List<(MeterKind Kind, decimal Initial, DateOnly On)>();
+        foreach (var meterInput in meterInputs)
+        {
+            var meter = MeterOperations.Validate(meterInput, today);
+            if (!meter.IsSuccess)
+            {
+                return meter.Error;
+            }
+
+            newMeters.Add(meter.Value);
+        }
+
         if (await limits.CheckCreateAsync(Metrics.Assets, cancellationToken).ConfigureAwait(false) is { } refused)
         {
             return refused;
         }
 
         var asset = Asset.Register(clock, Tenant, code.Value, details.Value, siteId, caller.Subject);
+        foreach (var (kind, initial, on) in newMeters)
+        {
+            meters.Add(Meter.Add(clock, Tenant, asset.Id, kind, initial, on, caller.Subject));
+        }
+
         return await store.TrySaveAsync(asset, cancellationToken).ConfigureAwait(false) ? asset : CodeTaken;
     }
 
@@ -229,7 +250,7 @@ public sealed class AssetOperations(
     }
 
     /// <summary>An asset the caller may change: 404 when they cannot see it, 403 when they see it but do not manage its site.</summary>
-    private async Task<Result<Asset>> ManagedAsync(AssetId id, CancellationToken cancellationToken)
+    public async Task<Result<Asset>> ManagedAsync(AssetId id, CancellationToken cancellationToken)
     {
         var asset = await GetAsync(id, cancellationToken).ConfigureAwait(false);
         if (!asset.IsSuccess)

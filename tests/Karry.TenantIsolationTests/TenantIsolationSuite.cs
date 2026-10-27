@@ -55,7 +55,11 @@ public sealed class IsolationHost : IAsyncLifetime
         AMaterial = await SeedMaterialAsync(A.Id, "Alphamaterial");
         // Assets (P1.13): a machine of A on its site, to read, change, move or dispose.
         AAsset = await SeedAssetAsync(A.Id, ASite, "Alphamachine");
+        AMeter = await SeedMeterAsync(A.Id, AAsset);
     }
+
+    /// <summary>ID of tenant A's hour meter on its asset, with one reading (value 4242.5, a marker too).</summary>
+    public Guid AMeter { get; private set; }
 
     /// <summary>ID of tenant A's asset (its name, <c>Alphamachine</c>, code, <c>ALPHA-PEL</c>, and plate, <c>ALPHA 0001</c>, are markers too).</summary>
     public Guid AAsset { get; private set; }
@@ -154,6 +158,27 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(name);
         insert.Parameters.AddWithValue(site);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedMeterAsync(Guid tenant, Guid asset)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            WITH meter AS (
+              INSERT INTO assets.meters (id, tenant_id, asset_id, kind, initial_reading, installed_on, status, "offset", last_value, last_read_at, created_at, changed_at)
+              VALUES ($1, $2, $3, 'Hours', 4242.5, '2026-01-01', 'Ok', 0, 4242.5, '2026-01-01T00:00:00Z', now(), now())
+              RETURNING id, tenant_id)
+            INSERT INTO assets.meter_readings (id, tenant_id, meter_id, value, read_at, recorded_at)
+            SELECT gen_random_uuid(), tenant_id, id, 4242.5, '2026-01-01T00:00:00Z', now() FROM meter
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(asset);
         await insert.ExecuteNonQueryAsync();
         return id;
     }
@@ -313,7 +338,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         }
 
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
-            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001"],
+            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -382,6 +407,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
         "effectiveFrom" or "date" when template.StartsWith("/api/v1/organization/sites/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "materialId" => host.AMaterial.ToString(),
         "assetId" => host.AAsset.ToString(),
+        "meterId" => host.AMeter.ToString(),
         "effectiveFrom" when template.StartsWith("/api/v1/materials/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "id" or "tenantId" => host.A.Id.ToString(),
         "slug" => host.A.Slug,

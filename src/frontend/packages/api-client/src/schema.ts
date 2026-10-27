@@ -900,6 +900,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/meters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMeters"];
+        put?: never;
+        post: operations["AddMeter"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{assetId}/meters/{meterId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["SetMeterStatus"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/assets/{assetId}/meters/{meterId}/readings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMeterReadings"];
+        put?: never;
+        post: operations["RecordMeterReading"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -945,7 +993,10 @@ export interface components {
             /** Format: date */
             acquiredOn: null | string;
         };
-        /** @description A new asset on a site; it starts `active`. */
+        /**
+         * @description A new asset on a site; it starts `active`. `Meters` null gives it its type's default meters from 0, installed
+         *     on the acquisition date (else today); an empty list gives it none.
+         */
         AssetInput: {
             code: null | string;
             name: null | string;
@@ -960,6 +1011,7 @@ export interface components {
             acquiredOn: null | string;
             /** Format: uuid */
             siteId: null | string;
+            meters?: null | components["schemas"]["MeterInput"][];
         };
         /** @description A page of the register, ordered by code; `NextCursor` is null on the last page. */
         AssetListResponse: {
@@ -1262,6 +1314,44 @@ export interface components {
             /** Format: date-time */
             archivedAt: null | string;
         };
+        /** @description A new meter: `Kind` hours or km, the value shown when installed (default 0) and the date (default the company's today). */
+        MeterInput: {
+            kind: null | string;
+            /** Format: double */
+            initialReading: null | number | string;
+            /** Format: date */
+            installedOn: null | string;
+        };
+        MeterListResponse: {
+            items: components["schemas"]["MeterResponse"][];
+        };
+        /**
+         * @description A meter: `Kind` hours or km, counted in `Unit` (h, km); `LastValue` and `LastReadAt` are its
+         *     latest reading (the initial one at first); `Offset` stays 0 until meter replacement (Phase 2).
+         */
+        MeterResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            unit: string;
+            /** Format: double */
+            initialReading: number | string;
+            /** Format: date */
+            installedOn: string;
+            status: string;
+            /** Format: double */
+            offset: number | string;
+            /** Format: double */
+            lastValue: number | string;
+            /** Format: date-time */
+            lastReadAt: string;
+            /** Format: date-time */
+            createdAt: string;
+        };
+        /** @description `Status`: ok or failed (replacement comes with field operations). */
+        MeterStatusRequest: {
+            status: null | string;
+        };
         NonWorkingDayInput: {
             kind: null | string;
             name: null | string;
@@ -1370,6 +1460,31 @@ export interface components {
             value: number | string;
             unit: string;
             state: null | string;
+        };
+        /** @description What a meter shows; `ReadAt` defaults to now. */
+        ReadingInput: {
+            /** Format: double */
+            value: null | number | string;
+            /** Format: date-time */
+            readAt: null | string;
+        };
+        /** @description A page of readings, newest first; `NextCursor` is null on the last page. */
+        ReadingListResponse: {
+            items: components["schemas"]["ReadingResponse"][];
+            /** Format: uuid */
+            nextCursor: null | string;
+        };
+        /** @description A reading: the value shown at `ReadAt`, received at `RecordedAt` from `RecordedBy` (a user subject). */
+        ReadingResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: double */
+            value: number | string;
+            /** Format: date-time */
+            readAt: string;
+            /** Format: date-time */
+            recordedAt: string;
+            recordedBy: null | string;
         };
         RecordInvoice: {
             number: string;
@@ -5088,6 +5203,278 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMeters: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeterListResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    AddMeter: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeterResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SetMeterStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+                meterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterStatusRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeterResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMeterReadings: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path: {
+                assetId: string;
+                meterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordMeterReading: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+                meterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadingInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadingResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
