@@ -35,6 +35,8 @@
     <PackageVersion Include="NetTopologySuite" Version="2.6.0" />
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" Version="10.0.3" />
     <PackageVersion Include="Quartz.Extensions.Hosting" Version="4.5.1" />
+    <!-- Asset QR labels (ADR-0026): the QR matrix only (MIT); the PDF is drawn by our own writer. 1.8.1 released 2026-10-13. -->
+    <PackageVersion Include="QRCoder" Version="1.8.1" />
     <!-- Testing -->
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
     <PackageVersion Include="AwesomeAssertions" Version="9.6.0" />

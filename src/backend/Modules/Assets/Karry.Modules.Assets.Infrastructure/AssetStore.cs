@@ -12,6 +12,9 @@ internal sealed class AssetStore(AssetsDbContext db) : IAssetStore
     public Task<Asset?> FindAsync(AssetId id, CancellationToken cancellationToken) =>
         db.Assets.SingleOrDefaultAsync(a => a.Id == id, cancellationToken);
 
+    public Task<Asset?> FindByLabelAsync(string token, CancellationToken cancellationToken) =>
+        db.Assets.SingleOrDefaultAsync(a => a.LabelToken == token, cancellationToken);
+
     public async Task<IReadOnlyList<Asset>> SearchAsync(AssetQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);

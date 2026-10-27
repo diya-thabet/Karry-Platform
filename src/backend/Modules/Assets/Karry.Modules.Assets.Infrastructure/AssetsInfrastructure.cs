@@ -17,6 +17,7 @@ public static class AssetsInfrastructure
         services.AddOutboxDispatcher<AssetsDbContext>(eventAssemblies: typeof(Domain.Asset).Assembly);
         services.AddScoped<IAssetStore, AssetStore>();
         services.AddScoped<AssetOperations>();
+        services.AddSingleton<ILabelSheet, LabelSheet>();
         services.AddScoped<IMeterStore, MeterStore>();
         services.AddScoped<MeterOperations>();
         services.AddScoped<IUsageSource, CountedAssets>();
