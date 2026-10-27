@@ -77,7 +77,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | Microsoft.EntityFrameworkCore.Design, dotnet-ef (local tool) | 10.0.13 (P1.5) | Microsoft.AspNetCore.Authentication.JwtBearer, Microsoft.Extensions.ApiDescription.Server (build-time OpenAPI) | 10.0.13 (P1.5) |
 | Quartz.Extensions.Hosting | 4.6.0 | OpenFeature | 2.14.1 |
 | OpenTelemetry.Extensions.Hosting, .Instrumentation.AspNetCore/.Http/.Runtime, .Exporter.OpenTelemetryProtocol/.InMemory | 1.20.0 (P1.4; 1.20.1 was < 7 days old on 2026-10-23) | Npgsql.OpenTelemetry | 10.0.3 |
-| FluentValidation | 12.2.0 | ClosedXML (Excel import, P1.14) | 0.105.1 |
+| FluentValidation | 12.2.0 | ClosedXML (Excel import, MIT; reading and templates in the `Imports` module only; ADR-0027, P1.14) | 0.105.1 |
 | Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
 | NodaTime (company and site time zones, shift time; ADR-0024, P1.11) | 3.3.5 (3.3.6 < 7 days on 2026-10-26) | NetTopologySuite / Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite (site geometry in PostGIS; ADR-0024, P1.11) | 2.6.0 / 10.0.3 |
 | xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak runs from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |

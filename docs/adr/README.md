@@ -68,3 +68,9 @@ Added in Phase 1 sub-phase P1.13 (assets and meters):
 | ADR | Title | Status |
 |---|---|---|
 | [0026](0026-asset-registry-meters-and-labels.md) | Asset registry with a type catalogue in code, append-only site and meter history, random label tokens | Accepted |
+
+Added in Phase 1 sub-phase P1.14 (Excel import):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0027](0027-excel-import.md) | Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit | Proposed |
