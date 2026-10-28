@@ -127,8 +127,16 @@ public sealed class InboxRulesTests
 
         received.Should().BeEquivalentTo(new
         {
-            signed.Id, TenantId = tenant, DeviceId = device, signed.Sequence, signed.Type, signed.DeviceTime, signed.Body, signed.Signature,
-            Status = InboxStatus.Received, ReceivedAt = at,
+            signed.Id,
+            TenantId = tenant,
+            DeviceId = device,
+            signed.Sequence,
+            signed.Type,
+            signed.DeviceTime,
+            signed.Body,
+            signed.Signature,
+            Status = InboxStatus.Received,
+            ReceivedAt = at,
         });
         quarantined.Status.Should().Be(InboxStatus.Quarantined);
     }

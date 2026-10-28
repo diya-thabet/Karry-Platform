@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Modules;
@@ -6,7 +7,6 @@ using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Sync.Infrastructure;
-using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
