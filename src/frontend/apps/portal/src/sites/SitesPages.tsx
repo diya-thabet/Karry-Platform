@@ -22,7 +22,7 @@ export function SitesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("portal.nav.sites")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.nav.sites")}</h1>
         {can(SitesManagePermission) && (
           <Button asChild>
             <Link to="/sites/new">{t("portal.sites.new")}</Link>
@@ -204,16 +204,16 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link to="/sites" className="text-primary underline-offset-4 hover:underline">{t("portal.sites.back")}</Link>
+        <Link to="/sites" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.sites.back")}</Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold" translate={site ? "no" : undefined}>{site ? site.name : t("portal.sites.new")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" translate={site ? "no" : undefined}>{site ? site.name : t("portal.sites.new")}</h1>
           {site && <SiteStatus site={site} />}
         </div>
         {site?.status === "archived" && <p className="text-text-muted">{t("portal.sites.archivedHint")}</p>}
         {!can(SitesManagePermission) && <p className="text-text-muted">{t("portal.sites.readOnly")}</p>}
       </div>
 
-      <form className="flex flex-col gap-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
+      <form className="flex flex-col gap-6 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)] md:p-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-2">
           <TextField
             label={t("portal.sites.code")}

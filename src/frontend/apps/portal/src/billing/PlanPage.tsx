@@ -19,9 +19,9 @@ export function PlanPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">{t("portal.plan.title")}</h1>
-      <section aria-labelledby="plan-heading" className="flex flex-col gap-2 rounded-md border-[length:var(--karry-border-width)] border-border bg-surface p-4">
-        <h2 id="plan-heading" className="text-lg font-semibold">
+      <h1 className="text-2xl font-semibold tracking-tight">{t("portal.plan.title")}</h1>
+      <section aria-labelledby="plan-heading" className="flex flex-col gap-2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+        <h2 id="plan-heading" className="text-base font-semibold">
           {planCode ? t(`plans.${planCode}`, { defaultValue: planCode }) : t("common.loading")}
         </h2>
         {status && (
@@ -57,8 +57,8 @@ export function PlanPage() {
       {usage.items.some((line) => line.state !== "within") && <p>{t("portal.plan.overExplained")}</p>}
       {usage.snapshotOn && <p className="text-text-muted">{t("portal.plan.snapshotOn", { date: new Date(usage.snapshotOn) })}</p>}
 
-      <section aria-labelledby="features-heading" className="flex flex-col gap-2">
-        <h2 id="features-heading" className="text-lg font-semibold">{t("portal.plan.features")}</h2>
+      <section aria-labelledby="features-heading" className="flex flex-col gap-2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+        <h2 id="features-heading" className="text-base font-semibold">{t("portal.plan.features")}</h2>
         <ul className="grid gap-1 md:grid-cols-2">
           {featureCodes.filter(includes).map((code) => (
             <li key={code}>{t(`features.${code}`)}</li>

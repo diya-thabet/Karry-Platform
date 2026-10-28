@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, SelectField, StatusChip, useToast } from "@karry/ui";
+import { Button, buttonVariants, DataTable, EmptyState, SelectField, StatusChip, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import {
   importKey, importKinds, importsKey, isRunning, saveFile, shownLimit, workbookType,
@@ -65,14 +65,14 @@ export function ImportsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link to="/settings" className="text-primary underline-offset-4 hover:underline">{t("portal.imports.back")}</Link>
-      <h1 className="text-2xl font-bold">{t("portal.imports.title")}</h1>
+      <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.imports.back")}</Link>
+      <h1 className="text-2xl font-semibold tracking-tight">{t("portal.imports.title")}</h1>
 
       {jobId
         ? <ImportJobView key={jobId} jobId={jobId} onDone={() => { setJobId(undefined); }} />
         : (
-          <section aria-labelledby="import-start" className="flex flex-col gap-4">
-            <h2 id="import-start" className="text-lg font-semibold">{t("portal.imports.start")}</h2>
+          <section aria-labelledby="import-start" className="flex flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+            <h2 id="import-start" className="text-base font-semibold">{t("portal.imports.start")}</h2>
             <p className="text-text-muted">{t("portal.imports.orderHint")}</p>
             <div className="flex flex-wrap items-end gap-3">
               <SelectField
@@ -93,7 +93,7 @@ export function ImportsPage() {
             </div>
             <p className="text-sm text-text-muted">{t("portal.imports.templateHint")}</p>
             <div className="flex flex-wrap items-center gap-3">
-              <label className="inline-flex min-h-[var(--karry-control-height)] cursor-pointer items-center rounded-md border-[length:var(--karry-border-width)] border-primary bg-primary px-4 font-semibold text-primary-text focus-within:outline focus-within:outline-2">
+              <label className={`${buttonVariants()} cursor-pointer focus-within:outline focus-within:outline-2`}>
                 {upload.isPending ? t("portal.imports.uploading") : t("portal.imports.upload")}
                 <input type="file" accept={`.xlsx,${workbookType}`} className="sr-only" disabled={upload.isPending} onChange={onFile} />
               </label>
@@ -103,7 +103,7 @@ export function ImportsPage() {
         )}
 
       <section aria-labelledby="import-recent" className="flex flex-col gap-3">
-        <h2 id="import-recent" className="text-lg font-semibold">{t("portal.imports.recent")}</h2>
+        <h2 id="import-recent" className="text-base font-semibold">{t("portal.imports.recent")}</h2>
         <DataTable<ImportJob>
           caption={t("portal.imports.recent")}
           rows={recent.data ?? []}
@@ -188,9 +188,9 @@ function ImportJobView({ jobId, onDone }: { jobId: string; onDone: () => void })
   const kind = t(`portal.imports.kind.${current.kind}`, { defaultValue: current.kind });
   const errors = Number(current.errors);
   return (
-    <section aria-labelledby="import-job" className="flex flex-col gap-4">
+    <section aria-labelledby="import-job" className="flex flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
       <div className="flex flex-wrap items-center gap-3">
-        <h2 id="import-job" className="text-lg font-semibold">{`${current.fileName} · ${kind}`}</h2>
+        <h2 id="import-job" className="text-base font-semibold">{`${current.fileName} · ${kind}`}</h2>
         <JobStatus job={current} />
       </div>
 

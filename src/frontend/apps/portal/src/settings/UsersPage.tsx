@@ -102,7 +102,7 @@ function UserRoles({ user }: { user: User }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <h2 className="text-xl font-bold">{`${user.firstName} ${user.lastName}`}</h2>
+      <h2 className="text-base font-semibold">{`${user.firstName} ${user.lastName}`}</h2>
       <p className="text-text-muted">{user.email ?? user.phone ?? user.employeeId}</p>
       {user.requiresMfa && <StatusChip status="warning">{t("portal.users.mfa")}</StatusChip>}
       {user.kind === "field" && user.status === "active" && !user.pinSet && <StatusChip status="warning">{t("portal.users.noPin")}</StatusChip>}

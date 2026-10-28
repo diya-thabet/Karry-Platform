@@ -22,6 +22,7 @@
     "@openfeature/web-sdk": "catalog:",
     "@tanstack/react-query": "catalog:",
     "@tanstack/react-router": "catalog:",
+    "lucide-react": "catalog:",
     "maplibre-gl": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:"

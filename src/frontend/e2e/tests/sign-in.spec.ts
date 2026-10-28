@@ -32,15 +32,17 @@ test.describe("sign-in (US-P1-IAM-01, US-P1-IAM-02)", () => {
     await signIn(page, "site-manager@demo-carriere-a.karry.test");
 
     await expect(page).toHaveURL(`${portal("demo-carriere-a")}/`);
-    await expect(page.getByText("Connecté : Demo SiteManager")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Connecté : Demo SiteManager" })).toBeVisible(); // the account menu
     const stored = await webStorage(page);
     expect(stored.filter((entry) => /eyJ|refresh_token|access_token|id_token/.test(entry)), "no token in localStorage or sessionStorage").toEqual([]);
 
     // A reload loses the in-memory tokens: the Keycloak session signs the user in again without a form.
     await page.reload();
-    await expect(page.getByText("Connecté : Demo SiteManager")).toBeVisible();
+    const account = page.getByRole("button", { name: "Connecté : Demo SiteManager" });
+    await expect(account).toBeVisible();
 
-    await page.getByRole("button", { name: "Se déconnecter" }).click();
+    await account.click();
+    await page.getByRole("menuitem", { name: "Se déconnecter" }).click();
     await expect(page.getByRole("heading", { name: "Connectez-vous à Karry" })).toBeVisible();
   });
 
@@ -55,7 +57,7 @@ test.describe("sign-in (US-P1-IAM-01, US-P1-IAM-02)", () => {
     await expect(page.getByRole("heading", { name: "Sign in to Karry" })).toBeVisible();
     await expect(page.getByTestId("tenant-name")).toHaveText("Carrière Démo B");
     await signIn(page, "commercial@demo-carriere-b.karry.test");
-    await expect(page.getByText("Signed in as Demo Commercial")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Signed in as Demo Commercial" })).toBeVisible();
   });
 
   test("TC-P1-IAM-002: a privileged user must set up two-step sign-in and never reaches the portal before", async ({ page }) => {

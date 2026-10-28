@@ -68,7 +68,7 @@ export function AssetsPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("portal.nav.assets")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.nav.assets")}</h1>
         {can(AssetsManagePermission) && (
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" disabled={rows.length === 0} onClick={() => { setPrinting(true); }}>{t("portal.assets.printLabels")}</Button>
@@ -245,16 +245,16 @@ function AssetForm({ asset }: { asset: Asset | null }) {
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link to="/assets" className="text-primary underline-offset-4 hover:underline">{t("portal.assets.back")}</Link>
+        <Link to="/assets" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.assets.back")}</Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold" translate={asset ? "no" : undefined}>{asset ? `${asset.code} · ${asset.name}` : t("portal.assets.new")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" translate={asset ? "no" : undefined}>{asset ? `${asset.code} · ${asset.name}` : t("portal.assets.new")}</h1>
           {asset && <AssetStatusChip status={asset.status} />}
         </div>
         {asset?.status === "disposed" && <p className="text-text-muted">{t("portal.assets.disposedHint")}</p>}
         {!can(AssetsManagePermission) && <p className="text-text-muted">{t("portal.assets.readOnly")}</p>}
       </div>
 
-      <form className="flex flex-col gap-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
+      <form className="flex flex-col gap-6 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)] md:p-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-2">
           <TextField
             label={t("portal.assets.code")}

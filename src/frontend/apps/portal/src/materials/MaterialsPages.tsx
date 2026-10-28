@@ -32,9 +32,9 @@ export function MaterialsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/settings" className="text-primary underline-offset-4 hover:underline">{t("portal.materials.backToSettings")}</Link>
+      <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.materials.backToSettings")}</Link>
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("portal.materials.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.materials.title")}</h1>
         {can(MaterialsManagePermission) && (
           <Button asChild>
             <Link to="/settings/materials/new">{t("portal.materials.new")}</Link>
@@ -263,16 +263,16 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
   return (
     <div className="flex max-w-4xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link to="/settings/materials" className="text-primary underline-offset-4 hover:underline">{t("portal.materials.back")}</Link>
+        <Link to="/settings/materials" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.materials.back")}</Link>
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-bold" translate={material ? "no" : undefined}>{material ? material.name : t("portal.materials.new")}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight" translate={material ? "no" : undefined}>{material ? material.name : t("portal.materials.new")}</h1>
           {material && <MaterialStatus material={material} />}
         </div>
         {material?.status === "archived" && <p className="text-text-muted">{t("portal.materials.archivedHint")}</p>}
         {!can(MaterialsManagePermission) && <p className="text-text-muted">{t("portal.materials.readOnly")}</p>}
       </div>
 
-      <form className="flex flex-col gap-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
+      <form className="flex flex-col gap-6 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)] md:p-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-3">
           <TextField
             label={t("portal.materials.code")}
@@ -379,8 +379,8 @@ function Densities({ material, today }: { material: Material; today: string }) {
   };
 
   return (
-    <section className="flex max-w-4xl flex-col gap-4" aria-labelledby="material-densities">
-      <h2 id="material-densities" className="text-xl font-bold">{t("portal.materials.densities")}</h2>
+    <section className="flex max-w-4xl flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]" aria-labelledby="material-densities">
+      <h2 id="material-densities" className="text-base font-semibold">{t("portal.materials.densities")}</h2>
       <p className="text-text-muted">{t("portal.materials.densitiesHint")}</p>
       <DataTable<DensityVersion>
         caption={t("portal.materials.densities")}
@@ -482,8 +482,8 @@ function ConversionPanel({ material, today }: { material: Material; today: strin
     unit === "t/m3" ? `${number(factorValue)} t/m³` : unit === "fraction" ? `${number(Number(factorValue) * 100, 2)} %` : number(factorValue);
 
   return (
-    <section className="flex max-w-4xl flex-col gap-4" aria-labelledby="material-conversion">
-      <h2 id="material-conversion" className="text-xl font-bold">{t("portal.materials.convert")}</h2>
+    <section className="flex max-w-4xl flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]" aria-labelledby="material-conversion">
+      <h2 id="material-conversion" className="text-base font-semibold">{t("portal.materials.convert")}</h2>
       <p className="text-text-muted">{t("portal.materials.convertHint")}</p>
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
         <QuantityInput

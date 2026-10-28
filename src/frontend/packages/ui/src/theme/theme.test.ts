@@ -4,7 +4,8 @@ import { contrast, cssVariables, themeNames, themes, type ThemeTokens } from "./
 const textPairs: [keyof ThemeTokens, keyof ThemeTokens][] = [
   ["text", "background"], ["text", "surface"], ["textMuted", "background"], ["textMuted", "surface"],
   ["primaryText", "primary"], ["dangerText", "danger"], ["primary", "surface"], ["danger", "surface"],
-  ["success", "surface"], ["warning", "surface"],
+  ["success", "surface"], ["warning", "surface"], ["text", "surfaceMuted"], ["textMuted", "surfaceMuted"],
+  ["primary", "primarySoft"], ["text", "primarySoft"], ["success", "successSoft"], ["warning", "warningSoft"], ["danger", "dangerSoft"],
 ];
 const nonTextPairs: [keyof ThemeTokens, keyof ThemeTokens][] = [["border", "surface"], ["focus", "surface"], ["focus", "background"]];
 
