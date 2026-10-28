@@ -9,6 +9,7 @@ import { sections } from "./sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { CompanyPage } from "./settings/CompanyPage";
 import { SettingsPage } from "./settings/SettingsPage";
+import { TabletsPage } from "./settings/TabletsPage";
 import { UsersPage } from "./settings/UsersPage";
 import { SitePage, SitesPage } from "./sites/SitesPages";
 
@@ -32,6 +33,7 @@ const role = createRoute({
 const users = createRoute({ getParentRoute: () => root, path: "/settings/users", component: UsersPage });
 const plan = createRoute({ getParentRoute: () => root, path: "/settings/plan", component: PlanPage });
 const imports = createRoute({ getParentRoute: () => root, path: "/settings/imports", component: ImportsPage });
+const tablets = createRoute({ getParentRoute: () => root, path: "/settings/tablets", component: TabletsPage });
 const company = createRoute({ getParentRoute: () => root, path: "/settings/company", component: CompanyPage });
 const materials = createRoute({ getParentRoute: () => root, path: "/settings/materials", component: MaterialsPage });
 const newMaterial = createRoute({ getParentRoute: () => root, path: "/settings/materials/new", component: () => <MaterialPage /> });
@@ -68,7 +70,7 @@ const asset = createRoute({
 export function createPortalRouter(history?: RouterHistory) {
   return createRouter({
     routeTree: root.addChildren([
-      home, ...routes, settings, roles, newRole, role, users, plan, imports, company, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
+      home, ...routes, settings, roles, newRole, role, users, plan, imports, tablets, company, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
     ]),
     ...(history ? { history } : {}),
   });

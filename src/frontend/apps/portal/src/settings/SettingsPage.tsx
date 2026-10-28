@@ -1,8 +1,8 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, CreditCard, FileSpreadsheet, Layers, ShieldCheck, Users } from "lucide-react";
+import { Building2, CreditCard, FileSpreadsheet, Layers, ShieldCheck, Tablet, Users } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { PageHeader } from "@karry/ui";
-import { BillingReadPermission, useAccess } from "../api";
+import { BillingReadPermission, DevicesManagePermission, useAccess } from "../api";
 import { ImportsPermission } from "../imports/api";
 import { MaterialsReadPermission } from "../materials/api";
 
@@ -14,6 +14,7 @@ export function SettingsPage() {
     { to: "/settings/company", icon: Building2, label: t("portal.company.title"), hint: t("portal.settings.companyHint"), permission: null },
     { to: "/settings/roles", icon: ShieldCheck, label: t("portal.roles.title"), hint: t("portal.settings.rolesHint"), permission: "identity.roles.read" },
     { to: "/settings/users", icon: Users, label: t("portal.users.title"), hint: t("portal.settings.usersHint"), permission: "identity.users.read" },
+    { to: "/settings/tablets", icon: Tablet, label: t("portal.tablets.title"), hint: t("portal.settings.tabletsHint"), permission: DevicesManagePermission },
     { to: "/settings/materials", icon: Layers, label: t("portal.materials.title"), hint: t("portal.settings.materialsHint"), permission: MaterialsReadPermission },
     { to: "/settings/imports", icon: FileSpreadsheet, label: t("portal.imports.title"), hint: t("portal.settings.importsHint"), permission: ImportsPermission },
     { to: "/settings/plan", icon: CreditCard, label: t("portal.plan.title"), hint: t("portal.settings.planHint"), permission: BillingReadPermission },
