@@ -1,12 +1,15 @@
-import { useEffect, useState } from "react";
-import { Download, Droplets, Gauge, HardDriveDownload, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Download, Droplets, Gauge, HardDriveDownload, Lock, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
-import type { DeviceRecord, KarryOfflineDb } from "@karry/offline";
+import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
 import { Enroll } from "./Enroll";
 import { ReferenceStatus } from "./ReferenceStatus";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
+import { useAutoLock } from "./autoLock";
+import { Unlock } from "./UnlockScreen";
+import type { Session, UnlockFailure } from "./unlock";
 import { useUpdateAvailable, type AppUpdates } from "./updates";
 
 const actions: { key: "field.action.fuel" | "field.action.meter" | "field.action.production" | "field.action.issue"; icon: LucideIcon }[] = [
@@ -29,6 +32,8 @@ export interface FieldEnvironment {
   enroll: (input: EnrollInput) => Promise<DeviceRecord | EnrollFailure>;
   /** Refreshes the reference data (a delta, or a snapshot when one is due). */
   pull: () => Promise<PullOutcome>;
+  /** Checks a field user's employee ID and PIN, online when it can, else on the tablet. */
+  unlock: (employeeId: string, pin: string) => Promise<Session | UnlockFailure>;
 }
 
 /** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
@@ -67,14 +72,29 @@ function StorageWarning({ persisted }: { persisted: Promise<boolean> }) {
   );
 }
 
-/** Field home (US-P1-OFF-01 shell): large actions for gloves, the state of the tablet's offline data. */
-function Home({ environment, device }: { environment: FieldEnvironment; device: DeviceRecord }) {
+/**
+ * Field home (US-P1-OFF-01 shell): who has the tablet and a button to lock it, large actions for gloves, the state of
+ * the tablet's offline data. It locks itself after the server's idle time (US-P1-OFF-04 AC3).
+ */
+function Home({ environment, device, session, autoLockMinutes, lock }: {
+  environment: FieldEnvironment; device: DeviceRecord; session: Session; autoLockMinutes: number; lock: () => void;
+}) {
   const { t } = useTranslation();
+  useAutoLock(autoLockMinutes, lock);
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-3xl font-bold">{t("field.title")}</h1>
-        <p className="text-text-muted">{t("field.subtitle")}</p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-3xl font-bold">{t("field.title")}</h1>
+          <p className="text-text-muted">{t("field.subtitle")}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="font-semibold">{t("field.unlock.user", { name: session.name, employeeId: session.employeeId })}</p>
+          <Button variant="secondary" onClick={lock}>
+            <Lock aria-hidden className="size-5" />
+            {t("field.unlock.lock")}
+          </Button>
+        </div>
       </header>
       <UpdateOffer updates={environment.updates} />
       <StorageWarning persisted={environment.persisted} />
@@ -101,10 +121,17 @@ function Home({ environment, device }: { environment: FieldEnvironment; device: 
   );
 }
 
-/** Enrolment until this tablet has a device key, then the home screen. */
+/** Enrolment until this tablet has a device key, then the lock screen until someone unlocks it, then the home screen. */
 function Tablet({ environment }: { environment: FieldEnvironment }) {
   const [device, setDevice] = useState<DeviceRecord | null | undefined>(undefined);
-  useEffect(() => { void environment.db.device.get("this").then((found) => { setDevice(found ?? null); }); }, [environment.db]);
+  const [settings, setSettings] = useState<SettingsRecord | undefined>(undefined);
+  // Who has the tablet: in memory only, so closing the app locks it too.
+  const [session, setSession] = useState<Session | null>(null);
+  const lock = useCallback(() => { setSession(null); }, []);
+  useEffect(() => {
+    void environment.db.device.get("this").then((found) => { setDevice(found ?? null); });
+    void environment.db.settings.get("this").then(setSettings);
+  }, [environment.db]);
 
   if (device === undefined) {
     return null;
@@ -115,6 +142,7 @@ function Tablet({ environment }: { environment: FieldEnvironment }) {
       <Enroll company={environment.company} code={environment.code} enroll={async (input) => {
         const result = await environment.enroll(input);
         if (typeof result !== "string") {
+          setSettings(await environment.db.settings.get("this"));
           setDevice(result);
         }
 
@@ -123,7 +151,11 @@ function Tablet({ environment }: { environment: FieldEnvironment }) {
     );
   }
 
-  return <Home environment={environment} device={device} />;
+  if (session === null) {
+    return <Unlock unlock={environment.unlock} onUnlocked={setSession} />;
+  }
+
+  return <Home environment={environment} device={device} session={session} autoLockMinutes={settings?.autoLockMinutes ?? 5} lock={lock} />;
 }
 
 /** Field app: outdoor high-contrast theme by default, field density (≥ 48 px targets, ≥ 16 px text). */

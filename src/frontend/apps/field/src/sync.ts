@@ -13,13 +13,18 @@ export type PullOutcome = "ok" | "offline" | "revoked" | "failed";
  * A request signed by the tablet (ADR-0028 §3), dated by the server's clock as far as the tablet knows it. When the
  * server says the clock is wrong it sends its time: the offset is corrected and kept, and the request is sent once more.
  */
-export async function deviceFetch(db: KarryOfflineDb, device: DeviceRecord, method: string, url: string, send: typeof fetch = fetch): Promise<Response> {
+export async function deviceFetch(db: KarryOfflineDb, device: DeviceRecord, method: string, url: string, send: typeof fetch = fetch, body?: unknown): Promise<Response> {
   let offset = device.clockOffsetMs;
   for (let attempt = 0; ; attempt++) {
     const authorization = await deviceAssertion(device.privateKey, {
       deviceId: device.deviceId, tenantId: device.tenantId, method, path: url.split("?")[0] ?? url, now: Date.now() + offset,
     });
-    const response = await send(url, { method, headers: { Authorization: `Device ${authorization}` } });
+    const headers: Record<string, string> = { Authorization: `Device ${authorization}` };
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const response = await send(url, { method, headers, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     const serverTime = attempt === 0 && response.status === 401 ? await clockSkew(response.clone()) : null;
     if (serverTime === null) {
       return response;
