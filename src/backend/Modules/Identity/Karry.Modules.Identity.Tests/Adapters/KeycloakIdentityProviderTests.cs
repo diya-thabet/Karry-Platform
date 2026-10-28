@@ -13,11 +13,27 @@ namespace Karry.Modules.Identity.Tests.Adapters;
 [Trait("Story", "US-P1-IAM-03")]
 public sealed class KeycloakIdentityProviderTests(KeycloakFixture keycloak) : IClassFixture<KeycloakFixture>, IDisposable
 {
-    private readonly KeycloakIdentityProvider provider = new(
-        new HttpClient(),
+    private readonly KeycloakIdentityProvider provider = NewProvider(keycloak);
+
+    private static KeycloakIdentityProvider NewProvider(KeycloakFixture keycloak, HttpMessageHandler? handler = null) => new(
+        handler is null ? new HttpClient() : new HttpClient(handler),
         Options.Create(new KeycloakOptions { BaseUrl = keycloak.Server.BaseUrl, ClientSecret = KeycloakServer.IdentityClientSecret }),
         Options.Create(new IdentityOptions { PortalOrigin = "https://{slug}.karry.test", FieldOrigin = "https://{slug}.field.karry.test" }),
         TimeProvider.System);
+
+    /// <summary>Waits before every write, so read-modify-writes that are not serialized always overlap.</summary>
+    private sealed class SlowWrites() : DelegatingHandler(new HttpClientHandler())
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            if (request.Method == HttpMethod.Put)
+            {
+                await Task.Delay(TimeSpan.FromMilliseconds(200), cancellationToken).ConfigureAwait(false);
+            }
+
+            return await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
+        }
+    }
 
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
@@ -53,6 +69,26 @@ public sealed class KeycloakIdentityProviderTests(KeycloakFixture keycloak) : IC
 
         var redirects = Strings((await JsonAsync("clients?clientId=karry-portal"))[0], "redirectUris");
         redirects.Should().Contain(slugs.Select(s => $"https://{s}.karry.test/*"), "a read-modify-write lost to another one is retried");
+    }
+
+    [Fact]
+    public async Task Concurrent_tenant_setups_through_separate_adapters_lose_no_redirect_uri()
+    {
+        // Several adapters at once, as hosts and test classes sharing one Keycloak build them: each read-modify-write of
+        // the portal client waits for the others, or a later one drops an address an earlier one had checked.
+        var slugs = Enumerable.Range(0, 6).Select(_ => $"kc-{Guid.NewGuid():N}"[..16]).ToList();
+        var adapters = slugs.Select(_ => NewProvider(keycloak, new SlowWrites())).ToList();
+        try
+        {
+            await Task.WhenAll(slugs.Zip(adapters).Select(p => p.Second.EnsureTenantAsync(new TenantId(Guid.CreateVersion7()), p.First, p.First, Ct)));
+        }
+        finally
+        {
+            adapters.ForEach(a => a.Dispose());
+        }
+
+        var redirects = Strings((await JsonAsync("clients?clientId=karry-portal"))[0], "redirectUris");
+        redirects.Should().Contain(slugs.Select(s => $"https://{s}.karry.test/*"));
     }
 
     [Fact]

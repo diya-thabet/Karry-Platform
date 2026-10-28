@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -35,13 +36,19 @@ public sealed class KeycloakOptions
 /// before it expires. Client redirect URIs are updated read-modify-write: serialized within the process, and verified
 /// and retried against another process's concurrent update (two workers provisioning tenants at the same moment).
 /// </summary>
-internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<KeycloakOptions> options, IOptions<IdentityOptions> identity, TimeProvider clock)
+internal sealed class KeycloakIdentityProvider(
+    HttpClient http, IOptions<KeycloakOptions> options, IOptions<IdentityOptions> identity, TimeProvider clock, IKeycloakClientLock? processes = null)
     : IIdentityProvider, ISignInEventSource, IDisposable
 {
     private const string TenantAttribute = "tenant_id";
 
+    /// <summary>
+    /// One lock per Keycloak realm for every adapter in the process (a host can build more than one); <c>processes</c>
+    /// serializes the processes between them.
+    /// </summary>
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> ClientLocks = new(StringComparer.Ordinal);
+
     private readonly SemaphoreSlim tokenLock = new(1, 1);
-    private readonly SemaphoreSlim clientLock = new(1, 1);
     private string? token;
     private DateTimeOffset tokenExpires;
 
@@ -50,7 +57,6 @@ internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<Keycloa
     public void Dispose()
     {
         tokenLock.Dispose();
-        clientLock.Dispose();
         http.Dispose();
     }
 
@@ -223,14 +229,24 @@ internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<Keycloa
 
     private async Task AllowOriginAsync(string clientId, Uri address, CancellationToken cancellationToken)
     {
-        await clientLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        var inProcess = ClientLocks.GetOrAdd($"{Options.BaseUrl}|{Options.Realm}", _ => new SemaphoreSlim(1, 1));
+        await inProcess.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await AllowOriginLockedAsync(clientId, address, cancellationToken).ConfigureAwait(false);
+            if (processes is null)
+            {
+                await AllowOriginLockedAsync(clientId, address, cancellationToken).ConfigureAwait(false);
+                return;
+            }
+
+            await using (await processes.AcquireAsync(cancellationToken).ConfigureAwait(false))
+            {
+                await AllowOriginLockedAsync(clientId, address, cancellationToken).ConfigureAwait(false);
+            }
         }
         finally
         {
-            clientLock.Release();
+            inProcess.Release();
         }
     }
 
