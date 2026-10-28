@@ -102,8 +102,8 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
     }).join(" · ");
 
   return (
-    <section aria-labelledby="shift-patterns" className="flex flex-col gap-3">
-      <h2 id="shift-patterns" className="text-xl font-bold">{t("portal.shifts.title")}</h2>
+    <section aria-labelledby="shift-patterns" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="shift-patterns" className="text-base font-semibold">{t("portal.shifts.title")}</h2>
       <p className="text-text-muted">{t("portal.shifts.hint", { zone: site.timeZone })}</p>
       <DataTable<ShiftPattern>
         caption={t("portal.shifts.title")}
@@ -138,7 +138,7 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
       {editable && rows !== null && (
         <form
           aria-label={t("portal.shifts.newVersion")}
-          className="flex flex-col gap-4 rounded-md border-[length:var(--karry-border-width)] border-border p-4"
+          className="flex flex-col gap-4 rounded-lg border-[length:var(--karry-border-width)] border-divider p-4"
           onSubmit={(event) => { event.preventDefault(); save.mutate(); }}
         >
           <h3 className="text-lg font-semibold">{t("portal.shifts.newVersion")}</h3>
@@ -152,7 +152,7 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
             onChange={(e) => { setEffectiveFrom(e.target.value); }}
           />
           {rows.map((shift, index) => (
-            <fieldset key={shift.key} className="flex flex-col gap-3 rounded-md border-[length:var(--karry-border-width)] border-border p-3">
+            <fieldset key={shift.key} className="flex flex-col gap-3 rounded-lg border-[length:var(--karry-border-width)] border-divider bg-surface-muted p-3">
               <legend className="px-1 font-semibold">{t("portal.shifts.shiftNumber", { number: index + 1 })}</legend>
               <div className="grid gap-3 md:grid-cols-4">
                 <TextField label={t("portal.shifts.code")} value={shift.code} required onChange={(e) => { setRow(index, { code: e.target.value.toUpperCase() }); }} />
@@ -232,8 +232,8 @@ function NonWorkingDays({ site, editable }: { site: Site; editable: boolean }) {
   });
 
   return (
-    <section aria-labelledby="non-working-days" className="flex flex-col gap-3">
-      <h2 id="non-working-days" className="text-xl font-bold">{t("portal.days.title")}</h2>
+    <section aria-labelledby="non-working-days" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="non-working-days" className="text-base font-semibold">{t("portal.days.title")}</h2>
       <p className="text-text-muted">{t("portal.days.hint")}</p>
       <DataTable<NonWorkingDay>
         caption={t("portal.days.title")}
@@ -290,8 +290,8 @@ function Upcoming({ site }: { site: Site }) {
   const length = (minutes: number) => (minutes % 60 === 0 ? t("portal.upcoming.hours", { hours: minutes / 60 }) : t("portal.upcoming.hoursMinutes", { hours: Math.floor(minutes / 60), minutes: minutes % 60 }));
 
   return (
-    <section aria-labelledby="upcoming-shifts" className="flex flex-col gap-3">
-      <h2 id="upcoming-shifts" className="text-xl font-bold">{t("portal.upcoming.title")}</h2>
+    <section aria-labelledby="upcoming-shifts" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="upcoming-shifts" className="text-base font-semibold">{t("portal.upcoming.title")}</h2>
       <p className="text-text-muted">{t("portal.upcoming.hint", { zone: site.timeZone })}</p>
       <DataTable<ShiftInstance>
         caption={t("portal.upcoming.title")}

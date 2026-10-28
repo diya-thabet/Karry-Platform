@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
 import { supportedLanguages, useTranslation } from "@karry/i18n";
-import { Button, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
+import { Button, buttonVariants, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
 import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../api";
 import { currencies } from "../currencies";
 
@@ -88,20 +88,20 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
   return (
     <div className="flex max-w-3xl flex-col gap-6">
       <div className="flex flex-col gap-1">
-        <Link to="/settings" className="text-primary underline-offset-4 hover:underline">{t("portal.company.back")}</Link>
-        <h1 className="text-2xl font-bold">{t("portal.company.title")}</h1>
+        <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.company.back")}</Link>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.company.title")}</h1>
         {!editable && <p className="text-text-muted">{t("portal.company.readOnly")}</p>}
       </div>
 
-      <section aria-labelledby="company-logo" className="flex flex-col gap-3">
-        <h2 id="company-logo" className="text-lg font-semibold">{t("portal.company.logo")}</h2>
+      <section aria-labelledby="company-logo" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+        <h2 id="company-logo" className="text-base font-semibold">{t("portal.company.logo")}</h2>
         <div className="flex flex-wrap items-center gap-4">
           {tenant.logoUrl
             ? <img src={tenant.logoUrl} alt={t("portal.company.logoAlt", { company: tenant.name })} className="h-16 max-w-48 object-contain" />
             : <p className="text-text-muted">{t("portal.company.noLogo")}</p>}
           {editable && (
             <>
-              <label className="inline-flex min-h-[var(--karry-control-height)] cursor-pointer items-center rounded-md border-[length:var(--karry-border-width)] border-border px-4 font-semibold focus-within:outline focus-within:outline-2">
+              <label className={`${buttonVariants({ variant: "secondary" })} cursor-pointer focus-within:outline focus-within:outline-2`}>
                 {t("portal.company.chooseLogo")}
                 <input type="file" accept={logoTypes} className="sr-only" onChange={onFile} />
               </label>

@@ -11,11 +11,19 @@ export function CompanyBrand() {
   const { t } = useTranslation();
   const { tenant } = useCurrentTenant();
   return (
-    <div className="flex items-center gap-3">
-      {tenant?.logoUrl && <img src={tenant.logoUrl} alt="" className="h-10 max-w-32 object-contain" />}
-      <div>
-        <p className="text-2xl font-bold">{t("portal.title")}</p>
-        {tenant ? <p className="text-text-muted" translate="no">{tenant.name}</p> : <p className="text-text-muted">{t("portal.subtitle")}</p>}
+    <div className="flex min-w-0 items-center gap-3">
+      {tenant?.logoUrl
+        ? <img src={tenant.logoUrl} alt="" className="size-9 shrink-0 rounded-lg object-contain" />
+        : (
+          <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-bold text-primary-text">
+            {(tenant?.name ?? "K").slice(0, 1).toUpperCase()}
+          </span>
+        )}
+      <div className="flex min-w-0 flex-col leading-tight">
+        {tenant
+          ? <p className="truncate text-sm font-semibold text-text" translate="no">{tenant.name}</p>
+          : <p className="truncate text-sm font-semibold text-text">{t("common.appName")}</p>}
+        <p className="text-xs text-text-muted">{t("portal.title")}</p>
       </div>
     </div>
   );

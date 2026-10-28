@@ -139,7 +139,7 @@ export function MapPicker(props: {
   return (
     <div className="flex flex-col gap-2">
       {available
-        ? <div ref={container} role="region" aria-label={t("portal.sites.map.label")} className="h-80 w-full overflow-hidden rounded-md border-[length:var(--karry-border-width)] border-border" />
+        ? <div ref={container} role="region" aria-label={t("portal.sites.map.label")} className="h-80 w-full overflow-hidden rounded-lg border-[length:var(--karry-border-width)] border-border" />
         : <p className="text-text-muted">{t("portal.sites.map.unavailable")}</p>}
       {props.editable && (
         <div className="flex flex-wrap items-center gap-2">

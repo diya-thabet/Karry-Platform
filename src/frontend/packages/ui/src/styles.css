@@ -1,5 +1,7 @@
 /* Karry design system (US-P1-OFF-05). Apps import this file and add their own `@source` for their code. */
 @import "tailwindcss";
+/* Inter, bundled with the apps (no font CDN: the field app works offline). */
+@import "@fontsource-variable/inter";
 
 @source "./";
 
@@ -17,23 +19,38 @@
   --color-success: var(--karry-success);
   --color-warning: var(--karry-warning);
   --color-focus: var(--karry-focus);
+  --color-divider: var(--karry-divider);
+  --color-surface-muted: var(--karry-surface-muted);
+  --color-primary-soft: var(--karry-primary-soft);
+  --color-success-soft: var(--karry-success-soft);
+  --color-warning-soft: var(--karry-warning-soft);
+  --color-danger-soft: var(--karry-danger-soft);
 }
 
-/* Density: the field app uses data-density="field": touch targets >= 48 px (here 56), body text >= 16 px (here 18). */
+/* Density: the field app uses data-density="field": touch targets >= 48 px (here 56), body text >= 16 px (here 18),
+   labels and control text >= 16 px. The office portal is compact (14 px), as in ERPs. */
 :root {
   --karry-control-height: 2.5rem;
-  --karry-font-body: 0.9375rem;
+  --karry-font-body: 0.875rem;
+  --karry-font-control: 0.875rem;
+  --karry-card-shadow: 0 1px 2px rgb(16 24 40 / 0.05);
 }
 
 [data-density="field"] {
   --karry-control-height: 3.5rem;
   --karry-font-body: 1.125rem;
+  --karry-font-control: 1rem;
 }
 
 /* Outdoor: heavier borders and a thick focus ring that stays visible in sunlight. */
 [data-theme="outdoor"] {
   --karry-border-width: 2px;
   --karry-focus-width: 4px;
+  --karry-card-shadow: none;
+}
+
+[data-theme="dark"] {
+  --karry-card-shadow: none;
 }
 
 :root:not([data-theme="outdoor"]) {
@@ -45,7 +62,9 @@ body {
   margin: 0;
   background: var(--karry-background);
   color: var(--karry-text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
   font-size: var(--karry-font-body);
   line-height: 1.5;
 }

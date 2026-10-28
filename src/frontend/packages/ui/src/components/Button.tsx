@@ -4,16 +4,17 @@ import { Loader2 } from "lucide-react";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "../cn";
 
-const buttonVariants = cva(
-  "inline-flex min-h-[var(--karry-control-height)] items-center justify-center gap-2 rounded-md px-4 font-semibold " +
-    "border-[length:var(--karry-border-width)] transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+/** Button looks, also for a link or a file picker's label styled as a button. */
+export const buttonVariants = cva(
+  "inline-flex min-h-[var(--karry-control-height)] items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-[length:var(--karry-font-control)] font-semibold " +
+    "border-[length:var(--karry-border-width)] shadow-[var(--karry-card-shadow)] transition-colors disabled:cursor-not-allowed disabled:opacity-60",
   {
     variants: {
       variant: {
         primary: "border-primary bg-primary text-primary-text hover:brightness-110",
-        secondary: "border-border bg-surface text-text hover:bg-background",
+        secondary: "border-border bg-surface text-text hover:bg-surface-muted",
         danger: "border-danger bg-danger text-danger-text hover:brightness-110",
-        ghost: "border-transparent bg-transparent text-primary underline-offset-4 hover:underline",
+        ghost: "border-transparent bg-transparent text-primary shadow-none hover:bg-primary-soft",
       },
       block: { true: "w-full", false: "" },
     },
@@ -39,7 +40,7 @@ export function Button({ className, variant, block, asChild = false, loading = f
       {...props}
     >
       {/* Slot takes exactly one child: the element it renders as (a link has no loading state). */}
-      {asChild ? children : <>{loading && <Loader2 aria-hidden className="size-5 animate-spin" />}{children}</>}
+      {asChild ? children : <>{loading && <Loader2 aria-hidden className="size-4 animate-spin" />}{children}</>}
     </Component>
   );
 }

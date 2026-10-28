@@ -49,8 +49,11 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     const auth = await signedInAuth({ givenName: "Karim", familyName: "Trabelsi" });
     render(<App i18n={i18n} auth={auth} api={fakeApi({ permissions: [] }).client} history={createMemoryHistory({ initialEntries: ["/"] })} />);
 
-    expect(await screen.findByText("Connecté : Karim Trabelsi")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Se déconnecter" }));
+    // Who is signed in names the account menu; sign-out is in it.
+    const account = await screen.findByRole("button", { name: "Connecté : Karim Trabelsi" });
+    expect(account).toHaveTextContent("Karim Trabelsi");
+    fireEvent.keyDown(account, { key: "Enter" });
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Se déconnecter" }));
 
     await vi.waitFor(() => {
       expect(auth.signOuts).toBe(1);

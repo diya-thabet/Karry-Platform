@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
+import { Button, buttonVariants, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import {
   assetKey, assetsKey, AssetsManagePermission, assetStatuses, blobUrl, labelsPerSheet, meterKinds, metersKey, readingsKey, readingText,
@@ -63,8 +63,8 @@ export function PlacePanel({ asset }: { asset: Asset }) {
 
   const history = [...asset.sites].reverse();
   return (
-    <section aria-labelledby="asset-place" className="flex max-w-4xl flex-col gap-4">
-      <h2 id="asset-place" className="text-lg font-semibold">{t("portal.assets.place")}</h2>
+    <section aria-labelledby="asset-place" className="flex max-w-4xl flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="asset-place" className="text-base font-semibold">{t("portal.assets.place")}</h2>
       {manage && (
         <div className="grid items-end gap-4 md:grid-cols-2">
           <SelectField
@@ -154,14 +154,14 @@ export function PhotoPanel({ asset }: { asset: Asset }) {
   };
 
   return (
-    <section aria-labelledby="asset-photo" className="flex flex-col gap-3">
-      <h2 id="asset-photo" className="text-lg font-semibold">{t("portal.assets.photo")}</h2>
+    <section aria-labelledby="asset-photo" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="asset-photo" className="text-base font-semibold">{t("portal.assets.photo")}</h2>
       {url
         ? <img src={url} alt={t("portal.assets.photoAlt", { asset: asset.name })} className="max-h-64 w-full max-w-md rounded-md object-contain" />
         : <p className="text-text-muted">{sha ? t("common.loading") : t("portal.assets.noPhoto")}</p>}
       {editable && (
         <div className="flex flex-wrap gap-2">
-          <label className="inline-flex min-h-[var(--karry-control-height)] cursor-pointer items-center rounded-md border-[length:var(--karry-border-width)] border-border px-4 font-semibold focus-within:outline focus-within:outline-2">
+          <label className={`${buttonVariants({ variant: "secondary" })} cursor-pointer focus-within:outline focus-within:outline-2`}>
             {t("portal.assets.choosePhoto")}
             <input type="file" accept={photoTypes} className="sr-only" onChange={onFile} />
           </label>
@@ -194,8 +194,8 @@ export function LabelPanel({ asset }: { asset: Asset }) {
   });
 
   return (
-    <section aria-labelledby="asset-label" className="flex flex-col gap-3">
-      <h2 id="asset-label" className="text-lg font-semibold">{t("portal.assets.label")}</h2>
+    <section aria-labelledby="asset-label" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="asset-label" className="text-base font-semibold">{t("portal.assets.label")}</h2>
       <p className="break-all font-mono" translate="no">{asset.label}</p>
       <p className="text-sm text-text-muted">{t("portal.assets.labelHint")}</p>
       {can(AssetsManagePermission) && (
@@ -295,8 +295,8 @@ export function MetersPanel({ asset }: { asset: Asset }) {
   const editable = can(AssetsManagePermission) && asset.status !== "disposed";
 
   return (
-    <section aria-labelledby="asset-meters" className="flex max-w-4xl flex-col gap-4">
-      <h2 id="asset-meters" className="text-lg font-semibold">{t("portal.assets.meters")}</h2>
+    <section aria-labelledby="asset-meters" className="flex max-w-4xl flex-col gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+      <h2 id="asset-meters" className="text-base font-semibold">{t("portal.assets.meters")}</h2>
       <DataTable<Meter>
         caption={t("portal.assets.meters")}
         rows={meters.data ?? []}
@@ -343,7 +343,7 @@ function AddMeter({ asset }: { asset: Asset }) {
   });
 
   return (
-    <details className="rounded-md border-[length:var(--karry-border-width)] border-border p-4">
+    <details className="rounded-lg border-[length:var(--karry-border-width)] border-divider p-4">
       <summary className="cursor-pointer font-semibold">{t("portal.assets.addMeter")}</summary>
       <form className="mt-4 grid items-end gap-4 md:grid-cols-3" noValidate onSubmit={(event) => { event.preventDefault(); if (value !== null) add.mutate(); }}>
         <SelectField

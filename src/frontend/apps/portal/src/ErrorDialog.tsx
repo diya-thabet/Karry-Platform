@@ -144,7 +144,7 @@ export function ErrorDialogProvider({ children }: { children: ReactNode }) {
           </>
         }
       >
-        {!code && <ErrorState correlationId={error instanceof ApiError ? error.correlationId : undefined} />}
+        {!code && <ErrorState bare correlationId={error instanceof ApiError ? error.correlationId : undefined} />}
       </Dialog>
     </ReportContext>
   );

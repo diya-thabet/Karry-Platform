@@ -33,7 +33,7 @@ export function RolesPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-bold">{t("portal.roles.title")}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.roles.title")}</h1>
         {can("identity.roles.manage") && (
           <Button asChild>
             <Link to="/settings/roles/new">{t("portal.roles.new")}</Link>
@@ -166,8 +166,8 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
   return (
     <form className="flex max-w-4xl flex-col gap-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
       <div className="flex flex-col gap-1">
-        <Link to="/settings/roles" className="text-primary underline-offset-4 hover:underline">{t("portal.roles.back")}</Link>
-        <h1 className="text-2xl font-bold">{title}</h1>
+        <Link to="/settings/roles" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.roles.back")}</Link>
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
         {role?.isDefault && <p className="text-text-muted">{t("portal.roles.defaultHint")}</p>}
       </div>
 
@@ -200,10 +200,10 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
         />
       )}
 
-      <section aria-labelledby="permissions-heading" className="flex flex-col gap-3">
-        <h2 id="permissions-heading" className="text-xl font-bold">{t("portal.roles.permissions")}</h2>
+      <section aria-labelledby="permissions-heading" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+        <h2 id="permissions-heading" className="text-base font-semibold">{t("portal.roles.permissions")}</h2>
         {byModule(catalog?.permissions ?? []).map(([module, permissions]) => (
-          <fieldset key={module} className="rounded-md border-[length:var(--karry-border-width)] border-border p-4">
+          <fieldset key={module} className="rounded-lg border-[length:var(--karry-border-width)] border-divider p-4">
             <legend className="px-1 font-semibold">{moduleLabel(t, module)}</legend>
             <ul className="flex flex-col gap-2">
               {permissions.map((permission) => (
@@ -231,8 +231,8 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
         ))}
       </section>
 
-      <section aria-labelledby="fields-heading" className="flex flex-col gap-3">
-        <h2 id="fields-heading" className="text-xl font-bold">{t("portal.roles.fields")}</h2>
+      <section aria-labelledby="fields-heading" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+        <h2 id="fields-heading" className="text-base font-semibold">{t("portal.roles.fields")}</h2>
         {(catalog?.sensitiveFields.length ?? 0) === 0 ? (
           <p className="text-text-muted">{t("portal.roles.noFields")}</p>
         ) : (

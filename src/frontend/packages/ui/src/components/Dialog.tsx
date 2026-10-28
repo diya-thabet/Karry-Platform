@@ -15,15 +15,15 @@ export function Dialog(props: {
   return (
     <RadixDialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
-        <RadixDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-lg border-[length:var(--karry-border-width)] border-border bg-surface p-6 text-text shadow-xl">
+        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
+        <RadixDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-6 text-text shadow-2xl">
           <div className="flex items-start justify-between gap-4">
-            <RadixDialog.Title className="text-xl font-bold">{props.title}</RadixDialog.Title>
-            <RadixDialog.Close aria-label={props.closeLabel} className="min-h-[var(--karry-control-height)] min-w-[var(--karry-control-height)] rounded-md text-text-muted">
-              <X aria-hidden className="mx-auto size-6" />
+            <RadixDialog.Title className="text-lg font-semibold">{props.title}</RadixDialog.Title>
+            <RadixDialog.Close aria-label={props.closeLabel} className="min-h-[var(--karry-control-height)] min-w-[var(--karry-control-height)] rounded-lg text-text-muted hover:bg-surface-muted">
+              <X aria-hidden className="mx-auto size-5" />
             </RadixDialog.Close>
           </div>
-          <RadixDialog.Description className="mt-2 text-text-muted">{props.description}</RadixDialog.Description>
+          <RadixDialog.Description className="mt-1 text-sm text-text-muted">{props.description}</RadixDialog.Description>
           {props.children && <div className="mt-4">{props.children}</div>}
           {props.footer && <div className="mt-6 flex flex-wrap justify-end gap-2">{props.footer}</div>}
         </RadixDialog.Content>

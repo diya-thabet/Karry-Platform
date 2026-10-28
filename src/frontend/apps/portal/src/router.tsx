@@ -1,6 +1,7 @@
 import { createRootRoute, createRoute, createRouter, type RouterHistory } from "@tanstack/react-router";
 import { AssetPage, AssetsPage } from "./assets/AssetsPages";
 import { PlanPage } from "./billing/PlanPage";
+import { HomePage } from "./HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
 import { Layout, NotFound, Section } from "./Layout";
 import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
@@ -13,9 +14,10 @@ import { SitePage, SitesPage } from "./sites/SitesPages";
 
 const root = createRootRoute({ component: Layout, notFoundComponent: NotFound });
 const routes = sections
-  .filter((section) => section.path !== "/settings" && section.path !== "/sites" && section.path !== "/assets")
+  .filter((section) => !["/", "/settings", "/sites", "/assets"].includes(section.path))
   .map((section) => createRoute({ getParentRoute: () => root, path: section.path, component: () => <Section titleKey={section.key} /> }));
 
+const home = createRoute({ getParentRoute: () => root, path: "/", component: HomePage });
 const settings = createRoute({ getParentRoute: () => root, path: "/settings", component: SettingsPage });
 const roles = createRoute({ getParentRoute: () => root, path: "/settings/roles", component: RolesPage });
 const newRole = createRoute({ getParentRoute: () => root, path: "/settings/roles/new", component: () => <RoleEditorPage /> });
@@ -66,7 +68,7 @@ const asset = createRoute({
 export function createPortalRouter(history?: RouterHistory) {
   return createRouter({
     routeTree: root.addChildren([
-      ...routes, settings, roles, newRole, role, users, plan, imports, company, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
+      home, ...routes, settings, roles, newRole, role, users, plan, imports, company, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
     ]),
     ...(history ? { history } : {}),
   });

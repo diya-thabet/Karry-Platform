@@ -21,11 +21,20 @@ export interface ThemeTokens {
   success: string;
   warning: string;
   focus: string;
+  /** Lines between rows and around cards: decorative (controls keep `border`, which has 3:1). */
+  divider: string;
+  /** Quiet areas on a surface: table headers, hovered rows, the sidebar's active item background behind text. */
+  surfaceMuted: string;
+  /** Tinted backgrounds behind coloured text: selection, status pills. */
+  primarySoft: string;
+  successSoft: string;
+  warningSoft: string;
+  dangerSoft: string;
 }
 
 export const themes: Record<ThemeName, ThemeTokens> = {
   light: {
-    background: "#f7f7f5",
+    background: "#f4f6f8",
     surface: "#ffffff",
     text: "#1c1f23",
     textMuted: "#535a63",
@@ -37,6 +46,12 @@ export const themes: Record<ThemeName, ThemeTokens> = {
     success: "#1e6b38",
     warning: "#8a5300",
     focus: "#1f5fa8",
+    divider: "#e2e5e9",
+    surfaceMuted: "#f3f5f7",
+    primarySoft: "#e8f0fb",
+    successSoft: "#e6f4eb",
+    warningSoft: "#fcf1df",
+    dangerSoft: "#fbe8e6",
   },
   dark: {
     background: "#121417",
@@ -51,6 +66,12 @@ export const themes: Record<ThemeName, ThemeTokens> = {
     success: "#86d69c",
     warning: "#f2c46b",
     focus: "#8ab8ef",
+    divider: "#2e343b",
+    surfaceMuted: "#181b1f",
+    primarySoft: "#1b2b3f",
+    successSoft: "#15301f",
+    warningSoft: "#372a10",
+    dangerSoft: "#3a1916",
   },
   outdoor: {
     background: "#ffffff",
@@ -65,6 +86,12 @@ export const themes: Record<ThemeName, ThemeTokens> = {
     success: "#00521f",
     warning: "#5c3700",
     focus: "#b35900",
+    divider: "#000000",
+    surfaceMuted: "#ffffff",
+    primarySoft: "#ffffff",
+    successSoft: "#ffffff",
+    warningSoft: "#ffffff",
+    dangerSoft: "#ffffff",
   },
 };
 

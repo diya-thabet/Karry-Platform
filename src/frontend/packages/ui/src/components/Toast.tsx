@@ -28,11 +28,11 @@ export function ToastProvider({ children, label }: { children: ReactNode; label:
             key={message.id}
             type={message.status === "error" ? "foreground" : "background"}
             onOpenChange={(open) => { if (!open) setMessages((current) => current.filter((m) => m.id !== message.id)); }}
-            className="rounded-lg border-[length:var(--karry-border-width)] border-border bg-surface p-4 text-text shadow-lg data-[status=error]:border-danger"
+            className="rounded-xl border-[length:var(--karry-border-width)] border-divider border-l-4 border-l-success bg-surface p-4 text-text shadow-lg data-[status=error]:border-l-danger data-[status=warning]:border-l-warning data-[status=pending]:border-l-primary"
             data-status={message.status}
           >
-            <RadixToast.Title className="font-bold">{message.title}</RadixToast.Title>
-            {message.description && <RadixToast.Description className="text-text-muted">{message.description}</RadixToast.Description>}
+            <RadixToast.Title className="text-sm font-semibold">{message.title}</RadixToast.Title>
+            {message.description && <RadixToast.Description className="text-sm text-text-muted">{message.description}</RadixToast.Description>}
           </RadixToast.Root>
         ))}
         <RadixToast.Viewport className="fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2" />

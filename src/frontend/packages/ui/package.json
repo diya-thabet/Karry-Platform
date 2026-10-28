@@ -16,8 +16,10 @@
     "build-storybook": "storybook build -o storybook-static --quiet"
   },
   "dependencies": {
+    "@fontsource-variable/inter": "catalog:",
     "@karry/i18n": "workspace:*",
     "@radix-ui/react-dialog": "catalog:",
+    "@radix-ui/react-dropdown-menu": "catalog:",
     "@radix-ui/react-select": "catalog:",
     "@radix-ui/react-slot": "catalog:",
     "@radix-ui/react-toast": "catalog:",

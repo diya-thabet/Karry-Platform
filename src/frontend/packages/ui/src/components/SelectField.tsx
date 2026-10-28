@@ -19,7 +19,7 @@ export function SelectField(props: FieldProps & {
 }) {
   const ids = useFieldIds(props.error, props.description);
   return (
-    <FieldFrame label={props.label} description={props.description} error={props.error} {...ids}>
+    <FieldFrame label={props.label} hideLabel={props.hideLabel} description={props.description} error={props.error} {...ids}>
       <Select.Root value={props.value ?? ""} onValueChange={props.onValueChange} disabled={props.disabled ?? false}>
         <Select.Trigger
           id={ids.id}
@@ -28,16 +28,16 @@ export function SelectField(props: FieldProps & {
           aria-invalid={props.error ? true : undefined}
         >
           <Select.Value placeholder={props.placeholder} />
-          <Select.Icon><ChevronDown aria-hidden className="size-5" /></Select.Icon>
+          <Select.Icon><ChevronDown aria-hidden className="size-4 text-text-muted" /></Select.Icon>
         </Select.Trigger>
         <Select.Portal>
-          <Select.Content position="popper" sideOffset={4} className="z-50 min-w-[var(--radix-select-trigger-width)] rounded-md border-[length:var(--karry-border-width)] border-border bg-surface text-text shadow-lg">
+          <Select.Content position="popper" sideOffset={4} className="z-50 min-w-[var(--radix-select-trigger-width)] rounded-lg border-[length:var(--karry-border-width)] border-divider bg-surface text-text shadow-lg">
             <Select.Viewport className="p-1">
               {props.options.map((option) => (
                 <Select.Item
                   key={option.value}
                   value={option.value}
-                  className="flex min-h-[var(--karry-control-height)] cursor-pointer select-none items-center gap-2 rounded px-3 outline-none data-[highlighted]:bg-primary data-[highlighted]:text-primary-text"
+                  className="flex min-h-[var(--karry-control-height)] cursor-pointer select-none items-center gap-2 rounded-md px-3 outline-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-text data-[state=checked]:font-semibold"
                 >
                   <Select.ItemText>{option.label}</Select.ItemText>
                   <Select.ItemIndicator className="ml-auto"><Check aria-hidden className="size-4" /></Select.ItemIndicator>
