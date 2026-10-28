@@ -19,7 +19,7 @@ export function Menu(props: { trigger: ReactNode; label: string; groups: { label
         <Dropdown.Content
           align={props.align ?? "end"}
           sideOffset={6}
-          className="z-50 min-w-56 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-1.5 text-sm text-text shadow-lg"
+          className="karry-pop z-50 min-w-56 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-1.5 text-sm text-text shadow-lg"
         >
           {props.groups.map((group, index) => (
             <Dropdown.Group key={index}>
@@ -29,7 +29,7 @@ export function Menu(props: { trigger: ReactNode; label: string; groups: { label
                 <Dropdown.Item
                   key={item.key}
                   onSelect={item.onSelect}
-                  className="flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 outline-none data-[highlighted]:bg-surface-muted"
+                  className="flex min-h-9 cursor-pointer select-none items-center gap-2 rounded-lg px-2.5 outline-none transition-colors data-[highlighted]:bg-surface-muted"
                 >
                   {item.icon}
                   <span className="flex-1">{item.label}</span>

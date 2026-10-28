@@ -9,7 +9,7 @@ export function PageHeader(props: { title: ReactNode; description?: ReactNode; a
       {props.back && <div className="text-sm">{props.back}</div>}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-text">{props.title}</h1>
+          <h1 className="text-xl font-semibold tracking-tight text-text sm:text-2xl">{props.title}</h1>
           {props.description && <p className="text-sm text-text-muted">{props.description}</p>}
         </div>
         {props.actions && <div className="flex flex-wrap gap-2">{props.actions}</div>}
@@ -51,7 +51,7 @@ export function Card(props: {
 export function StatCard(props: { icon: LucideIcon; label: ReactNode; value: ReactNode; hint?: ReactNode; children?: ReactNode }) {
   const Icon = props.icon;
   return (
-    <div className="flex items-start gap-4 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
+    <div className="flex items-start gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-4 shadow-[var(--karry-card-shadow)] transition-shadow hover:shadow-md sm:gap-4 sm:p-5">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary">
         <Icon aria-hidden className="size-5" />
       </span>

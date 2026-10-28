@@ -7,7 +7,7 @@ import { cn } from "../cn";
 /** Button looks, also for a link or a file picker's label styled as a button. */
 export const buttonVariants = cva(
   "inline-flex min-h-[var(--karry-control-height)] items-center justify-center gap-2 whitespace-nowrap rounded-lg px-4 text-[length:var(--karry-font-control)] font-semibold " +
-    "border-[length:var(--karry-border-width)] shadow-[var(--karry-card-shadow)] transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+    "border-[length:var(--karry-border-width)] shadow-[var(--karry-card-shadow)] transition-[color,background-color,border-color,filter,transform] duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:active:scale-100 disabled:opacity-60",
   {
     variants: {
       variant: {

@@ -1,6 +1,6 @@
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { createMemoryHistory } from "@tanstack/react-router";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { ApiError } from "@karry/api-client";
 import { AuthProvider } from "@karry/auth";
@@ -57,6 +57,38 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
 
     await vi.waitFor(() => {
       expect(auth.signOuts).toBe(1);
+    });
+  });
+
+  it("reduces the sidebar to its icons on request and remembers it, links keeping their names", async () => {
+    localStorage.removeItem("karry.sidebar");
+    await renderPortal();
+
+    fireEvent.click(screen.getByRole("button", { name: "Réduire le menu" }));
+
+    expect(screen.getByRole("button", { name: "Garder le menu ouvert" })).toBeInTheDocument();
+    expect(document.querySelector("aside")).toHaveAttribute("data-collapsed", "true");
+    expect(localStorage.getItem("karry.sidebar")).toBe("collapsed");
+    expect(screen.getByRole("link", { name: "Engins" })).toBeInTheDocument(); // the label stays for screen readers
+
+    cleanup();
+    await renderPortal();
+    expect(document.querySelector("aside")).toHaveAttribute("data-collapsed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Garder le menu ouvert" }));
+    expect(localStorage.getItem("karry.sidebar")).toBe("expanded");
+    expect(document.querySelector("aside")).toHaveAttribute("data-collapsed", "false");
+  });
+
+  it("opens the navigation as a drawer on a phone and closes it after choosing a screen", async () => {
+    await renderPortal();
+
+    fireEvent.click(screen.getByRole("button", { name: "Ouvrir le menu" }));
+    const drawer = await screen.findByRole("dialog", { name: "Navigation principale" });
+    fireEvent.click(within(drawer).getByRole("link", { name: "Engins" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Engins" })).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
   });
 

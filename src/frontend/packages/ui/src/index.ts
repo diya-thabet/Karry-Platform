@@ -8,6 +8,7 @@ export { TextField, type FieldProps } from "./components/TextField";
 export { QuantityInput, type MaterialState, type QuantityFactor, type QuantityInputProps, type QuantityStateOption, type QuantityUnit } from "./components/QuantityInput";
 export { SelectField, type SelectOption } from "./components/SelectField";
 export { Dialog } from "./components/Dialog";
+export { Drawer } from "./components/Drawer";
 export { StatusChip, type Status } from "./components/StatusChip";
 export { MaskedValue, SensitiveValue, type MaybeMasked } from "./components/MaskedValue";
 export { EmptyState, ErrorState, UpgradeCard } from "./components/States";

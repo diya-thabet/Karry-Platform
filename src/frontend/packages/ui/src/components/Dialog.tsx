@@ -15,8 +15,8 @@ export function Dialog(props: {
   return (
     <RadixDialog.Root open={props.open} onOpenChange={props.onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
-        <RadixDialog.Content className="fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-6 text-text shadow-2xl">
+        <RadixDialog.Overlay className="karry-overlay fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
+        <RadixDialog.Content className="karry-dialog fixed left-1/2 top-1/2 z-50 w-[min(32rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-6 text-text shadow-2xl">
           <div className="flex items-start justify-between gap-4">
             <RadixDialog.Title className="text-lg font-semibold">{props.title}</RadixDialog.Title>
             <RadixDialog.Close aria-label={props.closeLabel} className="min-h-[var(--karry-control-height)] min-w-[var(--karry-control-height)] rounded-lg text-text-muted hover:bg-surface-muted">
