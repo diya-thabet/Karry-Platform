@@ -4,7 +4,7 @@ import { InMemoryWebStorage, UserManager, WebStorageStateStore, type User, type 
 export interface AuthOptions {
   /** Keycloak realm URL, e.g. `http://localhost:8080/realms/karry`. */
   authority: string;
-  /** `karry-portal` or `karry-field`. */
+  /** `karry-portal` (field tablets sign their requests as devices instead, ADR-0028). */
   clientId: string;
   /** Origin of the app; the tenant address `https://<slug>.karry.app` in production. Default: the page's origin. */
   origin?: string;

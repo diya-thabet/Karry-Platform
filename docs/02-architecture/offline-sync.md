@@ -24,10 +24,10 @@ Dexie (IndexedDB)
 
 ## 12.2 Sync protocol
 
-1. **Push:** `POST /sync/v1/batches` with up to N commands; each has `commandId` (UUIDv7) used as **Idempotency-Key**. Server responds per command: `ACCEPTED | DUPLICATE | REJECTED(reason) | CONFLICT(details)`.
+1. **Push:** `POST /api/v1/sync/batches` with up to 100 commands, each signed by the tablet's key; its `commandId` (UUIDv7) makes a resend harmless (no `Idempotency-Key`). The server answers per command `accepted | duplicate | rejected(code)` (P1.15, [ADR-0028 §6](../adr/0028-field-devices-offline-data-shared-tablet.md#6-uploads-preparing-phase-2)); Phase 2 adds `conflict(details)` when handlers process commands.
 2. **Blobs:** uploaded first via pre-signed URLs; commands reference blob hashes; server verifies hash on receipt.
-3. **Pull:** `GET /sync/v1/changes?since=<cursor>&scopes=...` returns deltas for reference data and statuses of the user's own submissions.
-4. **Ordering:** per-device monotonic sequence; server enforces it per device to detect lost/replayed batches.
+3. **Pull:** `GET /api/v1/sync/changes?cursor=…` returns the reference data of the tablet's site as a snapshot or a delta ([ADR-0028 §5](../adr/0028-field-devices-offline-data-shared-tablet.md#5-reference-data-and-delta-pulls-us-p1-off-03)); Phase 2 adds the statuses of the tablet's own submissions.
+4. **Ordering:** per-device sequence without gaps; the server stores received commands in it and reports a gap or a reused number per command.
 
 ## 12.3 Conflict policy
 

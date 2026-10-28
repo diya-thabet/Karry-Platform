@@ -24,10 +24,8 @@ public sealed class KeycloakOptions
 
     public string? ClientSecret { get; set; }
 
-    /// <summary>The app clients whose redirect URIs get each tenant's addresses.</summary>
+    /// <summary>The app client whose redirect URIs get each tenant's address (field tablets sign in as devices, ADR-0028).</summary>
     public string PortalClientId { get; set; } = "karry-portal";
-
-    public string FieldClientId { get; set; } = "karry-field";
 
     public string MfaRole { get; set; } = "mfa-required";
 }
@@ -170,7 +168,6 @@ internal sealed class KeycloakIdentityProvider(HttpClient http, IOptions<Keycloa
 
         var settings = identity.Value;
         await AllowOriginAsync(Options.PortalClientId, settings.PortalFor(slug), cancellationToken).ConfigureAwait(false);
-        await AllowOriginAsync(Options.FieldClientId, settings.FieldFor(slug), cancellationToken).ConfigureAwait(false);
     }
 
     public async Task<IReadOnlyList<KeycloakSignInEvent>> ReadFailuresAsync(DateTimeOffset from, int first, int max, CancellationToken cancellationToken)

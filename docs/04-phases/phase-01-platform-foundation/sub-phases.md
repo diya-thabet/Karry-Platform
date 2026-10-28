@@ -600,7 +600,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - A re-enrollment flow covers "clear site data" (Phase 0 finding).
   - **Offline reference data:**
     - `packages/offline` holds the Dexie schema v1.
-    - The tablet downloads the reference data for the user's scopes and keeps it fresh with delta pulls from `/sync/v1/changes`; the last refresh time is visible.
+    - The tablet downloads the reference data for the user's scopes and keeps it fresh with delta pulls from `/api/v1/sync/changes`; the last refresh time is visible.
   - **Shared tablet:**
     - Employee ID + PIN unlock offline, checked against a cached salted hash with lockout.
     - Auto-lock after 5 minutes; online re-authentication required after 72 hours.

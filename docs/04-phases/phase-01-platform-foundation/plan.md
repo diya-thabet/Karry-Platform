@@ -262,7 +262,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 
 **US-P1-OFF-03 — Offline reference data** · Must · M
 - AC1: After login on an enrolled device, reference data for the user's scopes (sites, assets, meters, materials, shift patterns, users of the site) is downloaded to IndexedDB.
-- AC2: Delta pull keeps it fresh (`/sync/v1/changes`); last refresh time visible.
+- AC2: Delta pull keeps it fresh (`/api/v1/sync/changes`); last refresh time visible.
 - AC3: 2,000 assets + 500 users load offline lists in < 500 ms on reference device.
 
 **US-P1-OFF-04 — Shared tablet quick user switch** · Must · M
@@ -318,7 +318,7 @@ As a site manager, I want to enrol site tablets with a QR code, so that only tru
 | CRUD | `/api/v1/assets`, `/assets/{id}/meters`, `/materials` | Assets & materials |
 | POST | `/api/v1/imports` (+ `/validate`, `/commit`) | Excel import |
 | GET | `/api/v1/audit/entries`, POST `/api/v1/audit/verify` | Ledger |
-| GET | `/sync/v1/changes` | Reference data delta pull |
+| GET | `/api/v1/sync/changes` | Reference data delta pull |
 
 **Infrastructure**
 - dev + staging environments, KMS keys (ledger anchoring signing, later envelope countersigning), object storage buckets (`photos`, `documents`, `anchors` with Object Lock), Keycloak deployment with DB, backups enabled with PITR.

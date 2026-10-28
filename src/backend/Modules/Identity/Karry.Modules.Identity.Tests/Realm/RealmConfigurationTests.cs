@@ -13,7 +13,7 @@ public sealed class RealmConfigurationTests
     private static readonly string KeycloakDirectory = Path.Combine(PostgresServer.RepositoryRoot(), "deploy", "keycloak");
     private static readonly JsonNode Realm = JsonNode.Parse(File.ReadAllText(Path.Combine(KeycloakDirectory, "realm", "karry-realm.json")))!;
 
-    public static TheoryData<string> AppClients => ["karry-portal", "karry-field"];
+    public static TheoryData<string> AppClients => ["karry-portal"];
 
     [Fact]
     public void Tokens_are_short_lived_and_refresh_tokens_are_single_use()
@@ -22,6 +22,13 @@ public sealed class RealmConfigurationTests
         Realm["revokeRefreshToken"]!.GetValue<bool>().Should().BeTrue("AC2: refresh tokens rotate");
         Realm["refreshTokenMaxReuse"]!.GetValue<int>().Should().Be(0, "AC2: any reuse is detected");
         Realm["ssoSessionMaxLifespan"]!.GetValue<int>().Should().BeLessThanOrEqualTo(12 * 3600, "a working day, then sign in again");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-OFF-02")]
+    public void The_field_app_has_no_client_because_tablets_sign_their_requests_as_devices()
+    {
+        Realm["clients"]!.AsArray().Select(c => c!["clientId"]!.GetValue<string>()).Should().NotContain("karry-field", "an unused client with redirect URIs is attack surface (ADR-0028 §1)");
     }
 
     [Theory]

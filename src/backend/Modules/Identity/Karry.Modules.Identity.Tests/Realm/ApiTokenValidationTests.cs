@@ -29,7 +29,7 @@ public sealed class ApiTokenValidationTests(KeycloakFixture keycloak) : IClassFi
         var tenant = Guid.NewGuid();
         var username = $"a{Guid.NewGuid():N}"[..20];
         await keycloak.Server.CreateUserAsync(username, Password, new Dictionary<string, string> { ["tenant_id"] = tenant.ToString() }, cancellationToken: Cancel);
-        using var browser = new KeycloakBrowser(keycloak.Server, "karry-field", "http://localhost:5174");
+        using var browser = new KeycloakBrowser(keycloak.Server, "karry-portal", "http://localhost:5173");
         var final = await browser.LoginAsync(await browser.StartAsync(cancellationToken: Cancel), username, Password, Cancel);
         var token = (await browser.ExchangeAsync(final, Cancel)).Body.GetProperty("access_token").GetString()!;
         await using var app = await ApiAsync(keycloak.Server.Issuer);

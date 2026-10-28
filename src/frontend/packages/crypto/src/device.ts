@@ -47,7 +47,7 @@ export interface DeviceRequest {
   deviceId: string;
   tenantId: string;
   method: string;
-  /** Path of the request (no query string), e.g. /api/v1/sync/v1/changes. */
+  /** Path of the request (no query string), e.g. /api/v1/sync/changes. */
   path: string;
   /** Device time corrected by the last measured offset to the server's clock, in milliseconds. */
   now: number;

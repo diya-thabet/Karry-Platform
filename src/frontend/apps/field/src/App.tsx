@@ -1,7 +1,11 @@
-import { Droplets, Gauge, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
-import { AuthProvider, useAuth, type Auth } from "@karry/auth";
+import { useEffect, useState } from "react";
+import { Download, Droplets, Gauge, HardDriveDownload, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
+import type { DeviceRecord, KarryOfflineDb } from "@karry/offline";
 import { Button, LanguageSwitcher, StatusChip, ThemeProvider, ThemeSwitcher } from "@karry/ui";
+import { Enroll } from "./Enroll";
+import type { EnrollFailure, EnrollInput } from "./tablet";
+import { useUpdateAvailable, type AppUpdates } from "./updates";
 
 const actions: { key: "field.action.fuel" | "field.action.meter" | "field.action.production" | "field.action.issue"; icon: LucideIcon }[] = [
   { key: "field.action.fuel", icon: Droplets },
@@ -10,22 +14,57 @@ const actions: { key: "field.action.fuel" | "field.action.meter" | "field.action
   { key: "field.action.issue", icon: TriangleAlert },
 ];
 
-/** Who is signed in, and sign-out (US-P1-IAM-01); the shared-tablet PIN unlock comes in P1.15. */
-function Account() {
+/** Where the app runs and what it can do there; built by main.tsx, replaced by fakes in tests. */
+export interface FieldEnvironment {
+  db: KarryOfflineDb;
+  updates: AppUpdates;
+  /** Whether the browser keeps the tablet's data under storage pressure (US-P1-OFF-01 AC3); null while unknown. */
+  persisted: Promise<boolean>;
+  /** The company named by the address, null on a bare local address. */
+  company: string | null;
+  /** The enrollment code of the opened link, if any. */
+  code: string | null;
+  enroll: (input: EnrollInput) => Promise<DeviceRecord | EnrollFailure>;
+}
+
+/** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
+function UpdateOffer({ updates }: { updates: AppUpdates }) {
   const { t } = useTranslation();
-  const { user, signOut } = useAuth();
+  const [applying, setApplying] = useState(false);
+  if (!useUpdateAvailable(updates)) {
+    return null;
+  }
+
   return (
-    <div className="flex flex-col gap-2 sm:col-span-2">
-      <p className="text-text-muted">{t("common.account.signedInAs", { name: user?.name ?? "" })}</p>
-      <Button block variant="secondary" onClick={() => void signOut()}>
-        {t("common.account.signOut")}
-      </Button>
-    </div>
+    <section aria-label={t("field.update.label")} className="flex flex-wrap items-center gap-3 rounded-xl border-[length:var(--karry-border-width)] border-primary bg-surface p-4">
+      <Download aria-hidden className="size-8 text-primary" />
+      <p className="flex-1 font-medium">{t("field.update.ready")}</p>
+      <Button disabled={applying} onClick={() => { setApplying(true); void updates.apply(); }}>{t("field.update.install")}</Button>
+    </section>
+  );
+}
+
+function StorageWarning({ persisted }: { persisted: Promise<boolean> }) {
+  const { t } = useTranslation();
+  const [kept, setKept] = useState(true);
+  useEffect(() => { void persisted.then(setKept); }, [persisted]);
+  if (kept) {
+    return null;
+  }
+
+  return (
+    <section role="alert" className="flex items-start gap-3 rounded-xl border-[length:var(--karry-border-width)] border-warning bg-warning-soft p-4">
+      <HardDriveDownload aria-hidden className="size-8 shrink-0 text-warning" />
+      <div>
+        <h2 className="font-semibold">{t("field.storage.title")}</h2>
+        <p>{t("field.storage.body")}</p>
+      </div>
+    </section>
   );
 }
 
 /** Field home (US-P1-OFF-01 shell): large actions for gloves, sync status (real counts with the outbox, P1.15). */
-function Home() {
+function Home({ environment }: { environment: FieldEnvironment }) {
   const { t } = useTranslation();
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4">
@@ -33,6 +72,8 @@ function Home() {
         <h1 className="text-3xl font-bold">{t("field.title")}</h1>
         <p className="text-text-muted">{t("field.subtitle")}</p>
       </header>
+      <UpdateOffer updates={environment.updates} />
+      <StorageWarning persisted={environment.persisted} />
       <section aria-label={t("field.sync.label")} className="flex items-center gap-3">
         <StatusChip status="pending">{t("field.sync.unknown")}</StatusChip>
       </section>
@@ -53,21 +94,43 @@ function Home() {
       <footer className="mt-auto grid gap-4 sm:grid-cols-2">
         <LanguageSwitcher />
         <ThemeSwitcher />
-        <Account />
       </footer>
     </div>
   );
 }
 
+/** Enrolment until this tablet has a device key, then the home screen. */
+function Tablet({ environment }: { environment: FieldEnvironment }) {
+  const [device, setDevice] = useState<DeviceRecord | null | undefined>(undefined);
+  useEffect(() => { void environment.db.device.get("this").then((found) => { setDevice(found ?? null); }); }, [environment.db]);
+
+  if (device === undefined) {
+    return null;
+  }
+
+  if (device === null) {
+    return (
+      <Enroll company={environment.company} code={environment.code} enroll={async (input) => {
+        const result = await environment.enroll(input);
+        if (typeof result !== "string") {
+          setDevice(result);
+        }
+
+        return result;
+      }} />
+    );
+  }
+
+  return <Home environment={environment} />;
+}
+
 /** Field app: outdoor high-contrast theme by default, field density (≥ 48 px targets, ≥ 16 px text). */
-export function App({ i18n, auth }: { i18n: I18n; auth: Auth }) {
+export function App({ i18n, environment }: { i18n: I18n; environment: FieldEnvironment }) {
   return (
-    <AuthProvider auth={auth}>
-      <I18nProvider i18n={i18n}>
-        <ThemeProvider defaultTheme="outdoor" density="field">
-          <Home />
-        </ThemeProvider>
-      </I18nProvider>
-    </AuthProvider>
+    <I18nProvider i18n={i18n}>
+      <ThemeProvider defaultTheme="outdoor" density="field">
+        <Tablet environment={environment} />
+      </ThemeProvider>
+    </I18nProvider>
   );
 }

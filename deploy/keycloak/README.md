@@ -13,7 +13,6 @@ Sign-in for Karry (ADR-0012, sub-phase P1.8). Everything Keycloak needs is in th
 | Client | Type | Used by |
 |---|---|---|
 | `karry-portal` | public, Authorization Code + PKCE (S256) | Portal (`http://localhost:5173` locally) |
-| `karry-field` | public, Authorization Code + PKCE (S256) | Field PWA (`http://localhost:5174` locally) |
 | `karry-api` | bearer-only | Token audience the API validates (`Authentication:Audience`) |
 | `karry-identity` | confidential, service account | The Identity module calls the admin API: users (`manage-users`), organizations (`manage-realm`), login events (`view-events`), each tenant's app addresses as redirect URIs (`manage-clients`). Secret from `KARRY_IDENTITY_CLIENT_SECRET`; the `identity-local-only` default is for the local stack and tests only. **This secret is as sensitive as the Keycloak admin password**: vault only (P1.17), never in configuration files outside local development. |
 
