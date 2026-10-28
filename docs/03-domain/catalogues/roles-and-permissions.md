@@ -49,6 +49,7 @@ The matrix above is the target for the whole product. In code it is the union of
 |---|---|---|---|---|
 | `identity.users.read` | site | no | Tenant Admin, Executive, Site Manager | Users, roles, masking, policies |
 | `identity.users.manage` | site | yes | Tenant Admin, Site Manager | Users (S) |
+| `identity.devices.manage` | site | yes | Tenant Admin, Site Manager (their sites) | Site tablets: enrollment codes, device list, revocation (US-P1-OFF-02, ADR-0028) |
 | `identity.roles.read` | tenant | no | Tenant Admin, Executive | Users, roles, masking, policies |
 | `identity.roles.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F) |
 | `audit.ledger.verify` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check |

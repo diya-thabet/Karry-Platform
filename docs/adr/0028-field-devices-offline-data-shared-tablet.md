@@ -47,15 +47,17 @@ everything it later sends must be attributable to a trusted device. The question
 - A person with `identity.devices.manage` (Tenant Admin: all sites; Site Manager: the sites they manage) creates an
   **enrollment code for a site**: 80 random bits, shown as a QR code of
   `https://<company>.<field address>/enroll#<code>` and as 16 Crockford base-32 characters to type
-  (`XXXX-XXXX-XXXX-XXXX`). **Valid 15 minutes, single use**, stored only as a SHA-256 hash in a global lookup table
-  (the code names its tenant, like an invitation token), enrollment attempts rate-limited per address.
+  (`XXXX-XXXX-XXXX-XXXX`, Crockford: `O`/`0`, `I`/`L`/`1` read alike). **Valid 15 minutes, single use**, stored
+  only as a SHA-256 hash under the tenant's row-level security. The tablet names its company by the slug of its own
+  address (as the sign-in page does); the code is the secret. 80 random bits for 15 minutes cannot be guessed, so no
+  rate limit is needed on top.
 - The tablet generates an **ECDSA P-256 key pair with `extractable: false`** (WebCrypto), keeps the `CryptoKey` in
-  IndexedDB, and posts `{code, publicKey (JWK), proof, name, model, platform, appVersion}`. `proof` is the device's
+  IndexedDB, and posts `{tenant (slug), code, publicKey (JWK), proof, name, model, platform, appVersion}`. `proof` is the device's
   signature over `karry-enroll:<code>`: the server checks that the caller holds the private key. Signatures are
   **IEEE P1363** (`r‖s`, 64 bytes), which is also the JWS ES256 format (D26).
 - The server creates the device bound to **tenant and site** and answers `{deviceId, tenantId, siteId, pinKey}`
-  (`pinKey`: 256 random bits, see §4). An expired or used code answers `410 devices.enrollment_expired`; an unknown
-  one `404` (TC-P1-OFF-002). Enrollment and revocation are ledger events.
+  (`pinKey`: 256 random bits, see §4). An expired or used code answers `422 devices.enrollment_expired`; an unknown
+  one `404 devices.enrollment_unknown` (TC-P1-OFF-002). Enrollment and revocation are ledger events.
 - **Device list** (name, model, app version, site, enrolled at, last seen, last sync, status) and **revoke**.
 
 ### 3. Device-signed requests
@@ -64,8 +66,8 @@ everything it later sends must be attributable to a trusted device. The question
   <deviceId>}`, payload `{tid, iat, exp, jti, htm, htu}`: tenant, issue and expiry time (at most 5 minutes apart),
   unique ID, HTTP method and path. The server verifies the signature with the stored public key, the expiry against
   **its own clock** (a tablet's clock may be wrong: on `401 devices.clock_skew` the answer carries the server time
-  and the app corrects its offset), refuses a `jti` seen in the last 10 minutes (replay) and a method/path that does
-  not match.
+  and the app corrects its offset), refuses a `jti` the device already used (remembered until the assertion expires; after that the expiry refuses it)
+  and a method/path that does not match.
 - The device principal carries `tenant_id`, `sub = device:<id>`, `device_id` and `site_id`, so tenant resolution,
   RLS and the host check work unchanged. **Device principals reach only endpoints marked for devices** (`sync`,
   device unlock); every user endpoint keeps requiring a user token.
@@ -76,7 +78,8 @@ everything it later sends must be attributable to a trusted device. The question
 ### 4. Offline PIN unlock (US-P1-OFF-04, IAM-03 AC3)
 
 - The server **never sends a PIN hash** to a tablet. At enrollment the tablet receives `pinKey`, imports it as a
-  **non-extractable HMAC-SHA256 key**; the server keeps it encrypted (ASP.NET Data Protection). For each active field
+  **non-extractable HMAC-SHA256 key**; the server keeps it with the device row (tenant row-level security). It is
+  no extra exposure there: the same database already holds the PIN hashes the verifiers are made from. For each active field
   user of the device's site, the reference data carries `{userId, employeeId, name, salt, iterations, verifier}` with
   `verifier = HMAC(pinKey, PBKDF2-SHA256(pin, salt, iterations))` (the stored hash's own salt and iterations, so the
   server computes it from the hash it keeps, without the PIN).

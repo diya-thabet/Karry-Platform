@@ -22,6 +22,14 @@ public sealed class IdentityOptions
     /// <summary>Address of a tenant's field app (same placeholder); registered with Keycloak next to the portal.</summary>
     public string FieldOrigin { get; set; } = "http://{slug}.localhost:5174";
 
+    /// <summary>A tablet locks itself after this many minutes without a touch (US-P1-OFF-04 AC3).</summary>
+    public int DeviceAutoLockMinutes { get; set; } = 5;
+
+    /// <summary>Hours a field user may unlock a tablet offline after their last online unlock on it (US-P1-OFF-04 AC2).</summary>
+    public int DeviceOfflineSessionHours { get; set; } = 72;
+
+    public DeviceSettings DeviceSettings => new(DeviceAutoLockMinutes, DeviceOfflineSessionHours);
+
     public Uri PortalFor(string slug) => new(PortalOrigin.Replace("{slug}", slug, StringComparison.Ordinal));
 
     public Uri FieldFor(string slug) => new(FieldOrigin.Replace("{slug}", slug, StringComparison.Ordinal));

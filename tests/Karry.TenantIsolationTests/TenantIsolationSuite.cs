@@ -58,7 +58,12 @@ public sealed class IsolationHost : IAsyncLifetime
         AMeter = await SeedMeterAsync(A.Id, AAsset);
         // Imports (P1.14): a validated import of A without errors (to read, commit or discard), with an issue and a preview row.
         AImport = await SeedImportAsync(A.Id);
+        // Field tablets (P1.15): an enrolled tablet of A on its site, to list or revoke.
+        ADevice = await SeedDeviceAsync(A.Id, ASite);
     }
+
+    /// <summary>ID of tenant A's tablet (its name, <c>Alphatablet</c>, is a marker too).</summary>
+    public Guid ADevice { get; private set; }
 
     /// <summary>ID of tenant A's import (its file, <c>Alphaimport.xlsx</c>, and its row key, <c>ALPHA-IMPORT</c>, are markers too).</summary>
     public Guid AImport { get; private set; }
@@ -166,6 +171,24 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(name);
         insert.Parameters.AddWithValue(site);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedDeviceAsync(Guid tenant, Guid site)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO identity.devices (id, tenant_id, site_id, name, public_key_x, public_key_y, pin_key, status, enrolled_at)
+            VALUES ($1, $2, $3, 'Alphatablet', $4, $4, $4, 'Active', now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(site);
+        insert.Parameters.AddWithValue(new byte[32]);
         await insert.ExecuteNonQueryAsync();
         return id;
     }
@@ -368,7 +391,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
 
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
-            host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT"],
+            host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -468,6 +491,7 @@ public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<Iso
     private string? AttackValue(string parameter, string template) => parameter switch
     {
         "id" when template.StartsWith("/api/v1/identity/users/", StringComparison.Ordinal) => host.AUser.Id.ToString(),
+        "id" when template.StartsWith("/api/v1/identity/devices/", StringComparison.Ordinal) => host.ADevice.ToString(),
         "siteId" => host.ASite.ToString(),
         "effectiveFrom" or "date" when template.StartsWith("/api/v1/organization/sites/", StringComparison.Ordinal) => IsolationHost.AShiftDate,
         "materialId" => host.AMaterial.ToString(),

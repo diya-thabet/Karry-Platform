@@ -17,12 +17,15 @@ public sealed class TenantMembers(IdentityHost host)
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
-    public async Task<Guid> TenantAsync()
+    public async Task<Guid> TenantAsync() => (await CompanyAsync()).Id;
+
+    /// <summary>A fresh tenant and its slug (the company part of its addresses).</summary>
+    public async Task<(Guid Id, string Slug)> CompanyAsync()
     {
         var slug = $"az-{Guid.NewGuid():N}"[..20];
         var response = await SendAsync(HttpMethod.Post, "/api/v1/tenancy/tenants", TestTokens.ForPlatformOperator(), new { slug, name = $"Carrière {slug}" });
         response.IsSuccessStatusCode.Should().BeTrue(await response.Content.ReadAsStringAsync(Ct));
-        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
+        return ((await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid(), slug);
     }
 
     /// <summary>An active office user with these roles; returns a token for them (signed in long ago: no step-up).</summary>

@@ -233,6 +233,158 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                     b.ToTable("default_role_settings", "identity");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.Device", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AppVersion")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("app_version");
+
+                    b.Property<DateTimeOffset>("EnrolledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("enrolled_at");
+
+                    b.Property<DateTimeOffset?>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("model");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("name");
+
+                    b.Property<byte[]>("PinKey")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("pin_key");
+
+                    b.Property<string>("Platform")
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("platform");
+
+                    b.Property<byte[]>("PublicKeyX")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("public_key_x");
+
+                    b.Property<byte[]>("PublicKeyY")
+                        .IsRequired()
+                        .HasColumnType("bytea")
+                        .HasColumnName("public_key_y");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("RevokedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("revoked_by");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_devices");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_devices_tenant_id");
+
+                    b.HasIndex("TenantId", "SiteId")
+                        .HasDatabaseName("ix_devices_tenant_id_site_id");
+
+                    b.ToTable("devices", "identity");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Identity.Domain.DeviceEnrollment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("code_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<Guid?>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_device_enrollments");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_device_enrollments_tenant_id");
+
+                    b.HasIndex("TenantId", "CodeHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_device_enrollments_tenant_id_code_hash");
+
+                    b.ToTable("device_enrollments", "identity");
+                });
+
             modelBuilder.Entity("Karry.Modules.Identity.Domain.Invitation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -386,10 +538,18 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(16)")
                         .HasColumnName("phone");
 
+                    b.Property<int>("PinFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("pin_failures");
+
                     b.Property<string>("PinHash")
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)")
                         .HasColumnName("pin_hash");
+
+                    b.Property<DateTimeOffset?>("PinLockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("pin_locked_until");
 
                     b.Property<string>("Roles")
                         .IsRequired()
@@ -444,6 +604,34 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasFilter("phone IS NOT NULL");
 
                     b.ToTable("users", "identity");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Identity.Infrastructure.DeviceAssertionRow", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<string>("AssertionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("assertion_id");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("DeviceId", "AssertionId")
+                        .HasName("pk_device_assertions");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_device_assertions_expires_at");
+
+                    b.ToTable("device_assertions", "identity");
                 });
 
             modelBuilder.Entity("Karry.Modules.Identity.Infrastructure.ImportCursorRow", b =>

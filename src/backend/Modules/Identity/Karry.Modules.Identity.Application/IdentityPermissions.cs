@@ -20,12 +20,16 @@ public static class IdentityPermissions
     /// <summary>Create, clone, change and delete custom roles; set field levels (US-P1-IAM-05, US-P1-IAM-07 AC1).</summary>
     public const string RolesManage = "identity.roles.manage";
 
+    /// <summary>Enrol site tablets, see and revoke them, on the caller's sites (US-P1-OFF-02).</summary>
+    public const string DevicesManage = "identity.devices.manage";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(UsersRead, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Executive, Roles.SiteManager),
         new(UsersManage, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.SiteManager),
         new(RolesRead, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Executive),
         new(RolesManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
+        new(DevicesManage, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.SiteManager),
     ];
 }
 

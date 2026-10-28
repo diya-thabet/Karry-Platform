@@ -54,6 +54,10 @@ public sealed record UserRolesChanged(Guid UserId, IReadOnlyList<RoleAssignment>
 [EventType("identity.user_pin_set.v1")]
 public sealed record UserPinSet(Guid UserId, string? Actor) : DomainEvent;
 
+/// <summary>A field user typed a wrong PIN too often on a tablet's online unlock: locked for a while (ADR-0028 §4).</summary>
+[EventType("identity.user_pin_locked.v1")]
+public sealed record UserPinLocked(Guid UserId, Guid DeviceId, DateTimeOffset LockedUntil) : DomainEvent;
+
 [EventType("identity.invitation_reissued.v1")]
 public sealed record InvitationReissued(Guid UserId, Guid InvitationId, Guid ReplacedInvitationId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
 
@@ -102,6 +106,16 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     public string? Subject { get; private set; }
 
     public string? PinHash { get; private set; }
+
+    /// <summary>Wrong PINs in a row at an online unlock; reset by a right PIN, a new PIN or a lock.</summary>
+    public int PinFailures { get; private set; }
+
+    public DateTimeOffset? PinLockedUntil { get; private set; }
+
+    /// <summary>Wrong PINs in a row that lock the user's online unlock, and for how long (a 6-digit PIN is guessable).</summary>
+    public const int PinFailuresBeforeLock = 5;
+
+    public static readonly TimeSpan PinLockDuration = TimeSpan.FromMinutes(15);
 
     public IReadOnlyList<RoleAssignment> Roles { get; private set; }
 
@@ -200,8 +214,48 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         }
 
         PinHash = hash.Value;
+        PinFailures = 0;
+        PinLockedUntil = null;
         Raise(new UserPinSet(Id.Value, actor) { OccurredAt = clock.GetUtcNow() });
         return true;
+    }
+
+    /// <summary>
+    /// The online unlock of a tablet (ADR-0028 §4): the PIN is checked against the stored hash; 5 wrong PINs in a row
+    /// lock this user for 15 minutes on every tablet (recorded in the ledger). A locked user is refused even with the
+    /// right PIN until the lock ends.
+    /// </summary>
+    public Result<bool> UnlockWithPin(TimeProvider clock, string? pin, Guid deviceId)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        var now = clock.GetUtcNow();
+        if (Kind != UserKind.Field || Status != UserStatus.Active || PinHash is null)
+        {
+            return Error.Unauthorized("identity.unlock_refused", "This person cannot unlock a tablet. Check the employee ID or ask for a PIN.");
+        }
+
+        if (PinLockedUntil is { } until && now < until)
+        {
+            return Error.Unauthorized("identity.pin_locked", "Too many wrong PINs. Try again later.");
+        }
+
+        if (Pin.Verify(pin, PinHash))
+        {
+            PinFailures = 0;
+            PinLockedUntil = null;
+            return true;
+        }
+
+        PinFailures++;
+        if (PinFailures >= PinFailuresBeforeLock)
+        {
+            PinFailures = 0;
+            PinLockedUntil = now + PinLockDuration;
+            Raise(new UserPinLocked(Id.Value, deviceId, PinLockedUntil.Value) { OccurredAt = now });
+            return Error.Unauthorized("identity.pin_locked", "Too many wrong PINs. Try again later.");
+        }
+
+        return Error.Unauthorized("identity.pin_wrong", "Wrong PIN.");
     }
 
     private static Result<UserAccount> NewFieldUser(

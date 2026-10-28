@@ -57,9 +57,38 @@ public static class Pin
         }
     }
 
+    /// <summary>
+    /// What a tablet needs to check this PIN offline without ever holding the hash (ADR-0028 §4): the hash's salt and
+    /// iterations, and <c>HMAC-SHA256(pinKey, hash)</c> with the tablet's own key. Null for a malformed hash.
+    /// </summary>
+    public static PinVerifier? Verifier(string? stored, byte[] pinKey)
+    {
+        ArgumentNullException.ThrowIfNull(pinKey);
+        var parts = (stored ?? string.Empty).Split('$');
+        if (parts.Length != 4 || parts[0] != Scheme
+            || !int.TryParse(parts[1], NumberStyles.None, CultureInfo.InvariantCulture, out var iterations) || iterations < 1)
+        {
+            return null;
+        }
+
+        try
+        {
+            var hash = Convert.FromBase64String(parts[3]);
+            _ = Convert.FromBase64String(parts[2]);
+            return new PinVerifier(parts[2], iterations, Convert.ToBase64String(HMACSHA256.HashData(pinKey, hash)));
+        }
+        catch (FormatException)
+        {
+            return null;
+        }
+    }
+
     private static bool IsTrivial(string pin)
     {
         var steps = pin.Zip(pin.Skip(1), (a, b) => b - a).Distinct().ToList();
         return steps is [0] or [1] or [-1];
     }
 }
+
+/// <summary>A field user's PIN as a tablet checks it offline: base64 salt, iterations, base64 verifier (ADR-0028 §4).</summary>
+public sealed record PinVerifier(string Salt, int Iterations, string Verifier);
