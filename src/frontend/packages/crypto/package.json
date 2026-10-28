@@ -2,15 +2,18 @@
   "name": "@karry/crypto",
   "private": true,
   "version": "0.0.0",
-  "description": "WebCrypto device keys and signature envelopes (P1.15).",
+  "description": "WebCrypto device keys, device-signed requests, RFC 8785 and the offline PIN check (ADR-0028).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
   }
 }

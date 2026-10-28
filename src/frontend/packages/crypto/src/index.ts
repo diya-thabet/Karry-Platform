@@ -1,3 +1,6 @@
-// WebCrypto device keys and signature envelopes (P1.15).
+// WebCrypto device keys, device-signed requests, RFC 8785 and the offline PIN check (ADR-0028).
 // Source-first internal package: apps import TypeScript directly, no build step.
-export {};
+export { canonicalize } from "./canonicalize";
+export { assertionLifetime, deviceAssertion, enrollmentProof, generateDeviceKey, publicJwk, sign, verify, type DevicePublicKey, type DeviceRequest } from "./device";
+export { fromBase64, fromBase64Url, toBase64, toBase64Url, utf8 } from "./encoding";
+export { checkPin, importPinKey, pinVerifier, type PinVerifier } from "./pin";

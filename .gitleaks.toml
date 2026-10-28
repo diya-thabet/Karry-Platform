@@ -1,0 +1,11 @@
+# Secret scanning (TC-P1-PLT-002): every default gitleaks rule, plus the reviewed exceptions below. Keep this list short;
+# each entry is a file of public test data, never a real secret.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Published test vectors"
+paths = [
+  # PIN verifier vectors (ADR-0028 §4): made-up keys and salts computed by tests/vectors/generate-pin-verifier-vectors.py.
+  '''^tests/vectors/pin-verifier\.json$''',
+]
