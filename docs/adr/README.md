@@ -74,4 +74,4 @@ Added in Phase 1 sub-phase P1.14 (Excel import):
 | ADR | Title | Status |
 |---|---|---|
 | [0027](0027-excel-import.md) | Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit | Accepted |
-| [0028](0028-field-devices-offline-data-shared-tablet.md) | Field tablets as enrolled devices: device-signed requests, delta reference data, offline PIN unlock | Proposed |
+| [0028](0028-field-devices-offline-data-shared-tablet.md) | Field tablets as enrolled devices: device-signed requests, delta reference data, offline PIN unlock | Accepted |

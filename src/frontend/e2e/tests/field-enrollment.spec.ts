@@ -23,6 +23,23 @@ async function signIn(page: Page, username: string) {
   await page.locator("#kc-login").click();
 }
 
+/** A new enrollment code from the portal's Site tablets screen (signed in as the site manager of company B). */
+async function newCode(page: Page) {
+  await page.getByRole("button", { name: "Ajouter une tablette" }).click();
+  await page.getByRole("combobox", { name: "Site" }).click();
+  await page.getByRole("option").first().click();
+  await page.getByRole("button", { name: "Créer le code" }).click();
+  const code = (await page.getByLabel("Code à saisir sur la tablette").textContent())?.trim() ?? "";
+  await page.keyboard.press("Escape");
+  return code;
+}
+
+async function enroll(tablet: Page, code: string, name: string) {
+  await tablet.goto(`${field("demo-carriere-b")}/enroll#${code}`);
+  await tablet.getByLabel(/Nom de la tablette/).fill(name);
+  await tablet.getByRole("button", { name: "Enregistrer la tablette" }).click();
+}
+
 test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
   test("TC-P1-OFF-001/003, OFF-04: a site manager adds a tablet with a code, the tablet enrols, an operator unlocks it, it downloads its site's data, keeps it, unlocks and finds a machine offline, and is listed", async ({ browser, page }) => {
     const name = `Pont-bascule ${String(Date.now())}`;
@@ -88,22 +105,42 @@ test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
   test("TC-P1-OFF-002: a code that was already used is refused on a second tablet", async ({ browser, page }) => {
     await page.goto(`${portal("demo-carriere-b")}/settings/tablets`);
     await signIn(page, "site-manager@demo-carriere-b.karry.test");
-    await page.getByRole("button", { name: "Ajouter une tablette" }).click();
-    await page.getByRole("combobox", { name: "Site" }).click();
-    await page.getByRole("option").first().click();
-    await page.getByRole("button", { name: "Créer le code" }).click();
-    const code = (await page.getByLabel("Code à saisir sur la tablette").textContent())?.trim() ?? "";
+    const code = await newCode(page);
 
     for (const [index, expected] of [[1, "Déverrouiller la tablette"], [2, null]] as const) {
       const tablet = await (await browser.newContext({ locale: "fr-FR" })).newPage();
-      await tablet.goto(`${field("demo-carriere-b")}/enroll#${code}`);
-      await tablet.getByLabel(/Nom de la tablette/).fill(`Tablette ${String(index)}`);
-      await tablet.getByRole("button", { name: "Enregistrer la tablette" }).click();
+      await enroll(tablet, code, `Tablette ${String(index)}`);
       if (expected) {
         await expect(tablet.getByRole("heading", { level: 1, name: expected })).toBeVisible();
       } else {
         await expect(tablet.getByRole("alert")).toHaveText("Ce code a expiré ou a déjà servi. Demandez un nouveau code.");
       }
+    }
+  });
+
+  test("TC-P1-OFF-008: after the browser's site data is cleared, the tablet asks to be enrolled again and a new code works", async ({ browser, page }) => {
+    const stamp = String(Date.now());
+    await page.goto(`${portal("demo-carriere-b")}/settings/tablets`);
+    await signIn(page, "site-manager@demo-carriere-b.karry.test");
+    const context = await browser.newContext({ locale: "fr-FR" });
+    const tablet = await context.newPage();
+    await enroll(tablet, await newCode(page), `Avant ${stamp}`);
+    await expect(tablet.getByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeVisible();
+
+    // What "Clear site data" does in Chrome's settings: storage, IndexedDB (the device key with it) and service worker.
+    const cdp = await context.newCDPSession(tablet);
+    await cdp.send("Storage.clearDataForOrigin", { origin: new URL(tablet.url()).origin, storageTypes: "all" });
+    await tablet.goto(field("demo-carriere-b"));
+    await expect(tablet.getByRole("heading", { level: 1, name: "Enregistrer cette tablette" }), "no key left: enrollment again").toBeVisible();
+
+    await enroll(tablet, await newCode(page), `Après ${stamp}`);
+    await expect(tablet.getByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeVisible();
+    await unlock(tablet, operator, pin);
+    await expect(tablet.getByRole("heading", { level: 1, name: "Karry Terrain" })).toBeVisible();
+
+    await page.reload();
+    for (const name of [`Avant ${stamp}`, `Après ${stamp}`]) {
+      await expect(page.getByRole("row").filter({ hasText: name }), "each enrollment is its own tablet, to revoke if lost").toContainText("Active");
     }
   });
 });
