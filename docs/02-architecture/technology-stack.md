@@ -91,8 +91,8 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 |---|---|---|---|
 | react / react-dom | 19.3.1 | vite | 8.3.4 |
 | @tanstack/react-router | 1.170.45 | @tanstack/react-query | 5.104.3 (P1.7: newest ≥ 7 days old) |
-| tailwindcss (+ @tailwindcss/vite) | 4.3.3 | Radix primitives (dialog 1.3.1, select 2.4.1, toast 1.3.1, slot 1.5.0), cva 0.7.1, tailwind-merge 3.7.0, lucide-react 1.58.0 (P1.7; shadcn patterns written in-house, no CLI) | n/a |
-| i18next / react-i18next (+ i18next-icu 2.5.0, intl-messageformat 12.1.3) | 26.4.7 / 17.0.20 (P1.7: newest ≥ 7 days old) | dexie | 4.4.6 |
+| tailwindcss (+ @tailwindcss/vite) | 4.3.3 | Radix primitives (dialog 1.3.1, dropdown-menu 2.2.1, select 2.4.1, toast 1.3.1, slot 1.5.0), Inter (@fontsource-variable/inter 5.3.0, D44), cva 0.7.1, tailwind-merge 3.7.0, lucide-react 1.58.0 (P1.7; shadcn patterns written in-house, no CLI) | n/a |
+| i18next / react-i18next (+ i18next-icu 2.5.0, intl-messageformat 12.1.3) | 26.4.7 / 17.0.20 (P1.7: newest ≥ 7 days old) | dexie (+ fake-indexeddb 6.2.6 for tests) | 4.4.7 (P1.15: newest ≥ 7 days old; `@karry/offline` schema v1, ADR-0028) |
 | vite-plugin-pwa | 2.0.0 | maplibre-gl | 6.15.0 |
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test / playwright (browser E2E `src/frontend/e2e` from P1.8; Vitest browser mode) | 1.64.1 | axe-core (in Vitest browser mode, P1.7) | 4.14.0 |

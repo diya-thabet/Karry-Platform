@@ -315,6 +315,8 @@ pnpm --filter @karry/i18n check:catalogs   # FR/EN complete, valid ICU, same pla
 pnpm --filter @karry/ui exec playwright install chromium && pnpm --filter @karry/ui test:a11y   # axe on every story x theme (TC-P1-OFF-006)
 pnpm --filter @karry/ui storybook                                                                # design system at http://localhost:6006
 pnpm --filter @karry/api-client generate          # after the API contract changed (dotnet build regenerates openapi/v1.json); CI: check:generated
+pnpm --filter @karry/crypto test && pnpm --filter @karry/offline test   # RFC 8785 + PIN verifier vectors (tests/vectors), device keys, Dexie schema v1 (ADR-0028)
+python3 tests/vectors/generate-pin-verifier-vectors.py > tests/vectors/pin-verifier.json   # regenerate the PIN verifier vectors (independent Python implementation)
 tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) against the running, seeded local stack (CI: local-stack job)
 # Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
 dotnet tool restore

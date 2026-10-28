@@ -2,15 +2,23 @@
   "name": "@karry/offline",
   "private": true,
   "version": "0.0.0",
-  "description": "Dexie schema, outbox and sync client (P1.15).",
+  "description": "Dexie schema v1 of the field tablet: reference data, sync state, unlocks, outbox (ADR-0028).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "catalog:"
+    "@types/node": "catalog:",
+    "fake-indexeddb": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "dependencies": {
+    "@karry/crypto": "workspace:*",
+    "dexie": "catalog:"
   }
 }
