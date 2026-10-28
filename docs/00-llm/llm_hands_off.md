@@ -331,11 +331,17 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-10-28 — EF Core migration model race; local Keycloak cleanup (agent)
+
+- **Found:** the `TenancyApiTests` fixture failed in `MigrationRunner.MigrateAsync` → `Migrator.HasPendingModelChanges` → `GetRelationalModel` with "The model must be finalized…". EF Core builds a context's design-time model lazily, once per process; two hosts of one process (test classes in parallel) migrating the same context could read it half built. Production runs migrations once as their own step, so only tests were hit.
+- **Done:** `MigrationRunner` migrates one context type at a time per process (`SemaphoreSlim` per `ContextType`); different modules still migrate side by side. `MigrationRunnerTests` (no database: the context factory holds and fails): a second host of the same context waits, another context runs meanwhile. Mutation checks caught: no gate, one gate for every context. Tenancy tests 81/81.
+- **Local stack:** deleted the obsolete `karry-field` client from the local Keycloak realm (admin API, 204; `karry-portal` untouched). The owner reminder is closed.
+
 ### 2026-10-28 — Keycloak client update race (agent)
 
 - **Found:** `Concurrent_tenant_setups_lose_no_redirect_uri` failed on PRs #101 and #103 (3 times in one day). Cause: the redirect-URI read-modify-write of `karry-portal` was locked per adapter instance only, and Keycloak's client PUT has no version check, so a second instance or process could overwrite an address the first had just verified. In production that is the API host, the workers and replicas: two companies set up at once could lose one company's sign-in address.
 - **Done:** `KeycloakClientLock.cs`: `PostgresKeycloakClientLock` takes `pg_advisory_lock` (key "KARRYKC") on its own session of the application database for the change (released explicitly, and by the session ending on a crash); the provider shares one in-process lock per realm across instances, then takes the database lock (wired in `AddIdentityInfrastructure`). Tests: six separate adapters set up companies at once with every write delayed 200 ms (always overlaps without the shared lock); the lock makes a second session wait and a cancelled wait gives up, both with the app role. Identity adapters 6, lock 2, API 15. Mutation checks caught: a lock per adapter (3/3 runs), no advisory lock, lock never released.
-- **Still open:** the EF Core "model must be finalized" race in `TenancyHost.InitializeAsync` (seen once on #101).
+- **Still open:** the EF Core "model must be finalized" race in `TenancyHost.InitializeAsync` (seen once on #101); fixed next, see "EF Core migration model race".
 
 ### 2026-10-28 — P1.15 close-out, slice 7 (agent)
 
