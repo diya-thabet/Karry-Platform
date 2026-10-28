@@ -103,7 +103,6 @@ realm = {
     {"clientId": "karry-api", "name": "Karry API (token audience only)", "enabled": True, "protocol": "openid-connect", "bearerOnly": True,
      "publicClient": False, "standardFlowEnabled": False, "directAccessGrantsEnabled": False, "serviceAccountsEnabled": False},
     app_client("karry-portal", "Karry portal", 5173),
-    app_client("karry-field", "Karry field app", 5174),
     {"clientId": "karry-identity", "name": "Karry Identity module (admin API)", "enabled": True, "protocol": "openid-connect",
      "publicClient": False, "clientAuthenticatorType": "client-secret", "secret": "${KARRY_IDENTITY_CLIENT_SECRET:identity-local-only}",
      "standardFlowEnabled": False, "directAccessGrantsEnabled": False, "serviceAccountsEnabled": True,

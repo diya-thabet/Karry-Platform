@@ -12,13 +12,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@karry/auth": "workspace:*",
+    "@karry/api-client": "workspace:*",
+    "@karry/crypto": "workspace:*",
     "@karry/i18n": "workspace:*",
     "@karry/observability": "workspace:*",
+    "@karry/offline": "workspace:*",
     "@karry/ui": "workspace:*",
     "lucide-react": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "workbox-window": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
@@ -30,10 +33,12 @@
     "@types/react-dom": "catalog:",
     "@vitejs/plugin-react": "catalog:",
     "axe-core": "catalog:",
+    "fake-indexeddb": "catalog:",
     "jsdom": "catalog:",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:",
+    "vite-plugin-pwa": "catalog:",
     "vitest": "catalog:"
   }
 }

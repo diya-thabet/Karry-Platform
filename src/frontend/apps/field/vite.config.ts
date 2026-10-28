@@ -1,9 +1,10 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 
-// Local addresses (US-P1-IAM-01): Keycloak's field client allows http://localhost:5174 and the demo tenants'
-// http://<slug>.localhost:5174 (browsers resolve *.localhost to this machine). /api goes to Karry.Host, so the app
+// Local addresses: http://localhost:5174 and the demo tenants' http://<slug>.localhost:5174 (browsers resolve
+// *.localhost to this machine; the first label names the company at enrollment). /api goes to Karry.Host, so the app
 // and the API share an origin as behind the production ingress.
 const server = {
   port: 5174,
@@ -13,7 +14,39 @@ const server = {
 };
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Installable and offline after the first load (US-P1-OFF-01, ADR-0028 §7): the whole app is precached; a new
+    // version waits until the person accepts it on the home screen ("prompt"), never in the middle of a form.
+    VitePWA({
+      registerType: "prompt",
+      injectRegister: false,
+      manifest: {
+        name: "Karry Terrain",
+        short_name: "Karry",
+        description: "Saisies de poste hors ligne pour les opérateurs, pontiers et magasiniers.",
+        lang: "fr",
+        start_url: "/",
+        scope: "/",
+        display: "standalone",
+        orientation: "any",
+        background_color: "#ffffff",
+        theme_color: "#0b1f33",
+        icons: [
+          { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+          { src: "icon-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+        ],
+      },
+      includeAssets: ["icon.svg", "icon-maskable.svg"],
+      workbox: {
+        globPatterns: ["**/*.{js,css,html,svg,woff2,webmanifest}"],
+        navigateFallback: "/index.html",
+        // The API is never cached by the service worker: reference data lives in IndexedDB (ADR-0028 §5).
+        navigateFallbackDenylist: [/^\/api\//],
+      },
+    }),
+  ],
   server,
   preview: server,
   test: {

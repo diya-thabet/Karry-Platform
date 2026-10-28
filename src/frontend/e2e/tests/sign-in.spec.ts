@@ -3,7 +3,6 @@ import { expect, test, type Page } from "@playwright/test";
 // Demo users from `Karry.Host seed-demo` (local stack only): <role>@<slug>.karry.test.
 const password = process.env.KARRY_DEMO_PASSWORD ?? "karry-demo-local-only";
 const portal = (slug: string) => `http://${slug}.localhost:5173`;
-const field = (slug: string) => `http://${slug}.localhost:5174`;
 
 // Keycloak's form fields keep stable IDs across themes and languages.
 async function signIn(page: Page, username: string, secret = password) {
@@ -68,18 +67,6 @@ test.describe("sign-in (US-P1-IAM-01, US-P1-IAM-02)", () => {
     await expect(page.getByRole("heading", { name: "Activez la double authentification" })).toBeVisible();
     await expect(page).toHaveURL(/\/realms\/karry\/login-actions\/required-action\?execution=CONFIGURE_TOTP/);
     expect(new URL(page.url()).host).not.toBe(new URL(portal("demo-carriere-a")).host);
-  });
-
-  test("the field app signs in through its own client with the tenant's branding", async ({ page }) => {
-    await page.goto(field("demo-carriere-b"));
-
-    await expect(page).toHaveURL(/client_id=karry-field/);
-    await expect(page.getByTestId("tenant-name")).toHaveText("Carrière Démo B");
-    await signIn(page, "site-manager@demo-carriere-b.karry.test");
-
-    await expect(page.getByText("Connecté : Demo SiteManager")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Se déconnecter" })).toBeVisible();
-    expect((await webStorage(page)).filter((entry) => entry.includes("eyJ"))).toEqual([]);
   });
 
   test("wrong passwords never reveal whether the account exists, then the account locks (US-P1-IAM-01 AC4)", async ({ page }) => {

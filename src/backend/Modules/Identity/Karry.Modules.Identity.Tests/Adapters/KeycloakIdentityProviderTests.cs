@@ -25,7 +25,7 @@ public sealed class KeycloakIdentityProviderTests(KeycloakFixture keycloak) : IC
 
     [Fact]
     [Trait("Story", "US-P1-TEN-01")]
-    public async Task Tenant_setup_creates_one_organization_and_registers_both_app_addresses_once()
+    public async Task Tenant_setup_creates_one_organization_and_registers_the_portal_address_once()
     {
         var tenant = new TenantId(Guid.CreateVersion7());
         var slug = $"kc-{Guid.NewGuid():N}"[..16];
@@ -38,10 +38,8 @@ public sealed class KeycloakIdentityProviderTests(KeycloakFixture keycloak) : IC
         organizations[0].GetProperty("alias").GetString().Should().Be(slug);
         organizations[0].GetProperty("name").GetString().Should().Be($"Carrière Keycloak ({slug})", "organization names are unique per realm");
         var portal = (await JsonAsync("clients?clientId=karry-portal"))[0];
-        var field = (await JsonAsync("clients?clientId=karry-field"))[0];
         Strings(portal, "redirectUris").Count(r => r == $"https://{slug}.karry.test/*").Should().Be(1);
         Strings(portal, "webOrigins").Should().Contain($"https://{slug}.karry.test");
-        Strings(field, "redirectUris").Should().Contain($"https://{slug}.field.karry.test/*");
         portal.GetProperty("attributes").GetProperty("post.logout.redirect.uris").GetString().Should().Contain($"https://{slug}.karry.test/*");
         Strings(portal, "redirectUris").Should().Contain("http://localhost:5173/*", "existing addresses are kept");
     }

@@ -31,8 +31,10 @@ pnpm --filter @karry/field dev                                 # 8. field app: h
 pnpm --filter @karry/ui storybook                              # 9. design system (Storybook, http://localhost:6006)
 ```
 
-Both apps sign in with Keycloak (the API must run for the login page's company name: `/api` is proxied to
-`localhost:5000`). Browser end-to-end tests against the running stack: `tools/e2e/run.sh`.
+The portal signs in with Keycloak (the API must run for the login page's company name: `/api` is proxied to
+`localhost:5000`). The field app has no sign-in: it is enrolled as a site tablet with a code from the portal
+(**Settings › Site tablets**; open the code's link, or type the code at `http://<company>.localhost:5174`). Browser
+end-to-end tests against the running stack: `tools/e2e/run.sh`.
 
 **Demo sign-in** (after `seed-demo`, local stack only): `<role>@demo-carriere-a.karry.test` (e.g. `site-manager@…`,
 `tenant-admin@…`) with password `karry-demo-local-only`. Privileged roles (tenant admin, executive, finance, controller)

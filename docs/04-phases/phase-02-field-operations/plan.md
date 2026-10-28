@@ -85,7 +85,7 @@ As an operator, I want to start my shift on my machine in under 60 seconds, so t
 - AC3: Synced blobs purged locally after 7 days (configurable) while keeping thumbnails for history.
 
 **US-P2-OFF-03 — Server batch processing** · Must · M
-- AC1: `POST /sync/v1/batches` returns per-command status: ACCEPTED, DUPLICATE (same commandId), REJECTED (validation, reason code), CONFLICT (business conflict creates exception, still stored).
+- AC1: `POST /api/v1/sync/batches` (built in P1.15 with `accepted`, `duplicate`, `rejected`) returns per-command status: ACCEPTED, DUPLICATE (same commandId), REJECTED (validation, reason code), CONFLICT (business conflict creates exception, still stored).
 - AC2: Device sequence gaps are detected and reported (`MISSING_SEQUENCE`), and the device re-sends missing commands.
 - AC3: Processing is idempotent: replaying the same batch 10 times creates exactly one record per command.
 - AC4: Batch processing p95 < 1 s for 50 commands.
@@ -230,9 +230,9 @@ integrity.flag(id, tenant_id, rule_code, severity, record_type, record_id, detai
 
 | Method | Route |
 |---|---|
-| POST | `/sync/v1/batches` |
-| POST | `/sync/v1/blobs/presign` |
-| GET | `/sync/v1/changes?scopes=status,reference` |
+| POST | `/api/v1/sync/batches` |
+| POST | `/api/v1/sync/blobs/presign` |
+| GET | `/api/v1/sync/changes` (reference data since P1.15; submission statuses added) |
 | GET | `/api/v1/verification/queue` |
 | POST | `/api/v1/verification/items/{id}/approve` · `/reject` · `/correct` · `/second-approve` |
 | CRUD | `/api/v1/verification/policies` |

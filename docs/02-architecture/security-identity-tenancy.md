@@ -25,7 +25,7 @@ last_updated: 2026-10-24
 - The tenant of a user is the **admin-only** user attribute `tenant_id`, mapped to the `tenant_id` access-token claim
   that `TenantResolutionMiddleware` reads; platform operators have `platform_role=operator` and no tenant. Users can
   neither read nor change these attributes (user profile permissions).
-- App clients `karry-portal` and `karry-field`: public, Authorization Code + PKCE S256 only (no password grant, no
+- App client `karry-portal` (the field app has none since P1.15: tablets sign their requests as enrolled devices, [ADR-0028](../adr/0028-field-devices-offline-data-shared-tablet.md)): public, Authorization Code + PKCE S256 only (no password grant, no
   implicit flow), explicit redirect URIs, audience `karry-api`, no Keycloak roles in tokens.
 - Access token 5 min; refresh rotation with reuse 0: a reused refresh token revokes the app session (all its tokens).
   The Keycloak SSO cookie itself survives, which is safe: it is HttpOnly on the Keycloak origin and never in a token.

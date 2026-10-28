@@ -61,7 +61,7 @@ describe("device key (US-P1-OFF-02, TC-P1-OFF-008)", () => {
 });
 
 describe("device-signed request (ADR-0028 §3)", () => {
-  const request = { deviceId: "0192f0c1-0000-7000-8000-00000000d001", tenantId: "0192f0c1-0000-7000-8000-00000000a001", method: "get", path: "/api/v1/sync/v1/changes", now: Date.UTC(2026, 9, 28, 12) };
+  const request = { deviceId: "0192f0c1-0000-7000-8000-00000000d001", tenantId: "0192f0c1-0000-7000-8000-00000000a001", method: "get", path: "/api/v1/sync/changes", now: Date.UTC(2026, 9, 28, 12) };
 
   it("is a compact ES256 JWS naming the device, tenant, method and path, valid 5 minutes", async () => {
     const { privateKey, publicKey } = await generateDeviceKey();
@@ -71,7 +71,7 @@ describe("device-signed request (ADR-0028 §3)", () => {
 
     expect(decode(header)).toEqual({ alg: "ES256", typ: "karry-device+jwt", kid: request.deviceId });
     const claims = decode(payload);
-    expect(claims).toMatchObject({ tid: request.tenantId, iat: 1793188800, exp: 1793188800 + 300, htm: "GET", htu: "/api/v1/sync/v1/changes" });
+    expect(claims).toMatchObject({ tid: request.tenantId, iat: 1793188800, exp: 1793188800 + 300, htm: "GET", htu: "/api/v1/sync/changes" });
     expect(claims.jti).toMatch(/^[0-9a-f-]{36}$/);
     expect(await verify(publicKey, `${header ?? ""}.${payload ?? ""}`, fromBase64Url(signature ?? "") as Uint8Array<ArrayBuffer>)).toBe(true);
   });

@@ -39,8 +39,9 @@ everything it later sends must be attributable to a trusted device. The question
 - The field app no longer signs people in through Keycloak. A tablet is **enrolled once** for one site and from then on
   calls the API **as the device**. Operators unlock the app with employee ID + PIN; what they record is attributed to
   them **and** signed by the device (field facts, Phase 2). Office staff use the portal (it works on a phone, D44).
-- The `karry-field` Keycloak client is removed from the realm when the field app stops using it (slice 5): an unused
-  client with redirect URIs is attack surface.
+- The `karry-field` Keycloak client is removed from the realm now that the field app does not use it (slice 5): an
+  unused client with redirect URIs is attack surface. A realm that already has it (an existing environment) gets it
+  deleted by hand in the admin console; the realm file no longer creates it.
 
 ### 2. Enrollment (US-P1-OFF-02)
 
@@ -139,6 +140,12 @@ everything it later sends must be attributable to a trusted device. The question
 - **Re-enrollment:** if the key or database is gone (cleared site data, new browser), the app shows "enrol this
   tablet" again; the new enrollment creates a new device; the old one stays in the list, and the server refuses its
   key once revoked. A re-enrollment while the server has unsynced history of the old device is flagged in the list.
+- As built (P1.15 slice 5a): the whole app is precached (`registerType: "prompt"`, navigation fallback to the app
+  shell, `/api` never cached). The enrollment screen reads the code from `…/enroll#<code>`, then removes it from the
+  address bar and history; the company is the first label of the tablet's address (a bare local address asks for it).
+  `workbox-build`/`workbox-window` are pinned to 7.4.0: 7.4.1 swaps a build dependency for a single-maintainer fork
+  that the install policy flags as a possible takeover; two high advisories in the 7.4.0 build chain (rollup 2,
+  serialize-javascript) are closed by pinning patched versions (build time only, nothing reaches the browser).
 
 ## Options considered
 
