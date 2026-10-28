@@ -5,7 +5,10 @@ import { generateDeviceKey, importPinKey, publicJwk } from "@karry/crypto";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { applyChanges, openOfflineDb, type DeviceRecord } from "@karry/offline";
 import { App, type FieldEnvironment } from "./App";
+import type { Session } from "./unlock";
 import { createUpdates } from "./updates";
+
+const operator: Session = { userId: "u1", name: "Karim Ben Ali", employeeId: "OP-1", checkedBy: "server" };
 
 async function device(): Promise<DeviceRecord> {
   const keys = await generateDeviceKey();
@@ -18,7 +21,8 @@ async function device(): Promise<DeviceRecord> {
 function environment(overrides: Partial<FieldEnvironment> = {}): FieldEnvironment & { updates: ReturnType<typeof createUpdates> } {
   return {
     db: openOfflineDb(`field-${crypto.randomUUID()}`), updates: createUpdates(), persisted: Promise.resolve(true),
-    company: "demo-carriere-a", code: null, enroll: vi.fn(device), pull: vi.fn(() => Promise.resolve("ok" as const)), ...overrides,
+    company: "demo-carriere-a", code: null, enroll: vi.fn(device), pull: vi.fn(() => Promise.resolve("ok" as const)),
+    unlock: vi.fn(() => Promise.resolve(operator)), ...overrides,
   } as FieldEnvironment & { updates: ReturnType<typeof createUpdates> };
 }
 
@@ -34,6 +38,24 @@ async function renderField(env: FieldEnvironment, options: { pseudo?: boolean } 
   return i18n;
 }
 
+function unlockAs(employeeId: string, pin: string) {
+  fireEvent.change(screen.getByLabelText(/Matricule/), { target: { value: employeeId } });
+  fireEvent.change(screen.getByLabelText(/Code PIN/), { target: { value: pin } });
+  fireEvent.click(screen.getByRole("button", { name: "Déverrouiller" }));
+}
+
+/** The home screen of an enrolled tablet, once someone unlocked it. */
+async function renderHome(env: FieldEnvironment, options: { pseudo?: boolean } = {}) {
+  const i18n = await renderField(env, options);
+  await screen.findByRole("heading", { level: 1 });
+  const { t } = i18n;
+  fireEvent.change(screen.getByLabelText(t("field.unlock.employeeId"), { exact: false }), { target: { value: "OP-1" } });
+  fireEvent.change(screen.getByLabelText(t("field.unlock.pin"), { exact: false }), { target: { value: "804613" } });
+  fireEvent.click(screen.getByRole("button", { name: t("field.unlock.submit") }));
+  await screen.findByRole("navigation");
+  return i18n;
+}
+
 describe("enrollment screen (US-P1-OFF-02 AC1)", () => {
   it("opens on a tablet without a device key, with the code of the scanned link filled in", async () => {
     await renderField(environment({ code: "K7QM-2XRA-9D4T-WB3N" }));
@@ -43,7 +65,7 @@ describe("enrollment screen (US-P1-OFF-02 AC1)", () => {
     expect(screen.queryByLabelText(/Entreprise/)).not.toBeInTheDocument();
   });
 
-  it("enrols with the typed code and name, then shows the home screen", async () => {
+  it("enrols with the typed code and name, then asks who uses the tablet", async () => {
     const env = environment();
     await renderField(env);
 
@@ -52,7 +74,7 @@ describe("enrollment screen (US-P1-OFF-02 AC1)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Enregistrer la tablette" }));
 
     expect(env.enroll).toHaveBeenCalledWith({ company: "demo-carriere-a", code: "k7qm2xra9d4twb3n", name: "Pont-bascule entrée" });
-    expect(await screen.findByRole("heading", { level: 1, name: "Karry Terrain" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeInTheDocument();
   });
 
   it("asks for the company on an address that does not name it", async () => {
@@ -88,9 +110,81 @@ describe("enrollment screen (US-P1-OFF-02 AC1)", () => {
   });
 });
 
+describe("shared tablet (US-P1-OFF-04)", () => {
+  it("opens locked, unlocks with the employee ID and PIN, and shows who has the tablet", async () => {
+    const env = await enrolled();
+    await renderField(env);
+    expect(await screen.findByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeInTheDocument();
+    expect(screen.getByLabelText(/Code PIN/)).toHaveAttribute("type", "password");
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+
+    unlockAs("OP-1", "804613");
+
+    expect(await screen.findByText("Karim Ben Ali (OP-1)")).toBeInTheDocument();
+    expect(env.unlock).toHaveBeenCalledWith("OP-1", "804613");
+  });
+
+  it.each([
+    ["wrong", "Matricule ou code PIN incorrect."],
+    ["locked", "Trop de codes PIN incorrects."],
+    ["online", "Cette tablette a besoin d’une connexion pour vous reconnaître"],
+    ["revoked", "Cette tablette a été révoquée dans le portail."],
+  ] as const)("explains a refused unlock (%s), clears the PIN and keeps the employee ID", async (failure, text) => {
+    await renderField(await enrolled({ unlock: vi.fn(() => Promise.resolve(failure)) }));
+    await screen.findByRole("heading", { level: 1, name: "Déverrouiller la tablette" });
+
+    unlockAs("OP-1", "000000");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(text);
+    expect(screen.getByLabelText(/Code PIN/)).toHaveValue("");
+    expect(screen.getByLabelText(/Matricule/)).toHaveValue("OP-1");
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
+  });
+
+  it("locks on request, so the next person unlocks with their own PIN", async () => {
+    await renderHome(await enrolled());
+
+    fireEvent.click(screen.getByRole("button", { name: "Verrouiller" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeInTheDocument();
+    expect(screen.queryByText("Karim Ben Ali (OP-1)")).not.toBeInTheDocument();
+  });
+
+  it("locks itself after the server's idle time, and each touch starts it again (AC3)", async () => {
+    const env = await enrolled();
+    await env.db.settings.put({ id: "this", autoLockMinutes: 2, offlineSessionHours: 72 });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await renderHome(env);
+      act(() => { vi.advanceTimersByTime(90_000); });
+      fireEvent.pointerDown(window);
+      act(() => { vi.advanceTimersByTime(90_000); });
+      expect(screen.getByRole("navigation")).toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(45_000); });
+      expect(screen.getByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("locks when the tablet wakes up past the idle time", async () => {
+    await renderHome(await enrolled());
+    vi.useFakeTimers({ shouldAdvanceTime: true, toFake: ["Date"] });
+    try {
+      vi.setSystemTime(Date.now() + 6 * 60_000);
+      act(() => { document.dispatchEvent(new Event("visibilitychange")); });
+
+      expect(screen.getByRole("heading", { level: 1, name: "Déverrouiller la tablette" })).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
 describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
   it("shows the four field actions as large buttons, in the outdoor theme and field density", async () => {
-    await renderField(await enrolled());
+    await renderHome(await enrolled());
 
     const nav = await screen.findByRole("navigation", { name: "Actions terrain" });
     expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Carburant", "Compteur horaire", "Production", "Signaler un problème"]);
@@ -101,7 +195,7 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
   it("offers a downloaded version on the home screen and installs it only when asked (US-P1-OFF-01 AC2)", async () => {
     const env = await enrolled();
     const apply = vi.fn(() => Promise.resolve());
-    await renderField(env);
+    await renderHome(env);
     await screen.findByRole("heading", { level: 1, name: "Karry Terrain" });
     expect(screen.queryByRole("region", { name: "Mise à jour" })).not.toBeInTheDocument();
 
@@ -113,13 +207,13 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
   });
 
   it("warns when the browser does not guarantee the tablet's storage (US-P1-OFF-01 AC3)", async () => {
-    await renderField(await enrolled({ persisted: Promise.resolve(false) }));
+    await renderHome(await enrolled({ persisted: Promise.resolve(false) }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Stockage non garanti");
   });
 
   it("shows no storage warning when storage is kept", async () => {
-    await renderField(await enrolled());
+    await renderHome(await enrolled());
     await screen.findByRole("heading", { level: 1, name: "Karry Terrain" });
 
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -141,7 +235,7 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
       });
       return "ok" as const;
     });
-    await renderField(env);
+    await renderHome(env);
 
     const region = await screen.findByRole("region", { name: "Synchronisation" });
     expect(await within(region).findByText("À jour")).toBeInTheDocument();
@@ -153,7 +247,7 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
 
   it("refreshes on request and says so when the tablet is offline before the first download", async () => {
     const env = await enrolled({ pull: vi.fn(() => Promise.resolve("offline" as const)) });
-    await renderField(env);
+    await renderHome(env);
 
     const region = await screen.findByRole("region", { name: "Synchronisation" });
     expect(await within(region).findByText("Hors ligne")).toBeInTheDocument();
@@ -165,7 +259,7 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
 
   it("refreshes when the network comes back", async () => {
     const env = await enrolled();
-    await renderField(env);
+    await renderHome(env);
     await screen.findByText("À jour");
 
     act(() => { window.dispatchEvent(new Event("online")); });
@@ -174,14 +268,14 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
   });
 
   it("tells a revoked tablet that it no longer receives data (TC-P1-OFF-005)", async () => {
-    await renderField(await enrolled({ pull: vi.fn(() => Promise.resolve("revoked" as const)) }));
+    await renderHome(await enrolled({ pull: vi.fn(() => Promise.resolve("revoked" as const)) }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Cette tablette a été révoquée dans le portail.");
     expect(screen.queryByRole("button", { name: "Actualiser" })).not.toBeInTheDocument();
   });
 
   it("switches language instantly without remounting", async () => {
-    const i18n = await renderField(await enrolled());
+    const i18n = await renderHome(await enrolled());
     const title = await screen.findByRole("heading", { level: 1, name: "Karry Terrain" });
 
     await act(async () => { await i18n.changeLanguage("en"); });
@@ -193,11 +287,12 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
 describe("every screen (TC-P1-OFF-007, OFF-05)", () => {
   const screens = [
     ["enrollment", () => Promise.resolve(environment({ company: null, persisted: Promise.resolve(false) })), "Enregistrer cette tablette"],
+    ["lock", () => enrolled(), "Déverrouiller la tablette"],
     ["home", () => enrolled({ persisted: Promise.resolve(false) }), "Karry Terrain"],
   ] as const;
 
-  it.each(screens)("%s has no hard-coded text in the pseudo-localized build", async (_, make) => {
-    await renderField(await make(), { pseudo: true });
+  it.each(screens)("%s has no hard-coded text in the pseudo-localized build", async (name, make) => {
+    await (name === "home" ? renderHome : renderField)(await make(), { pseudo: true });
     await screen.findByRole("heading", { level: 1 });
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -213,8 +308,8 @@ describe("every screen (TC-P1-OFF-007, OFF-05)", () => {
     expect(untranslated).toEqual([]);
   });
 
-  it.each(screens)("%s has no serious accessibility violation in its structure (contrast is checked in the browser suite)", async (_, make, title) => {
-    await renderField(await make());
+  it.each(screens)("%s has no serious accessibility violation in its structure (contrast is checked in the browser suite)", async (name, make, title) => {
+    await (name === "home" ? renderHome : renderField)(await make());
     await screen.findByRole("heading", { level: 1, name: title });
 
     const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });

@@ -8,6 +8,7 @@ import { savedLanguage } from "@karry/ui";
 import { App } from "./App";
 import { pullChanges } from "./sync";
 import { codeOf, companyOf, deviceInfo, enrollTablet } from "./tablet";
+import { unlock } from "./unlock";
 import { createUpdates } from "./updates";
 import "./index.css";
 
@@ -49,6 +50,7 @@ createRoot(root).render(
       code,
       enroll: async (input) => enrollTablet(db, input, await deviceInfo(release)),
       pull: () => pullChanges(db),
+      unlock: (employeeId, pin) => unlock(db, employeeId, pin),
     }} />
   </StrictMode>,
 );

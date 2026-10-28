@@ -46,7 +46,7 @@ Dexie (IndexedDB)
 
 - Devices are **enrolled** (QR code by admin) → device key pair generated (WebCrypto, non-extractable) → public key registered → device bound to tenant/site.
 - Lost device: admin revokes; outstanding unsynced data from revoked device is quarantined for review.
-- Shared tablets: fast user switching via PIN with per-user local encryption key wrap; session expiry per shift.
+- Shared tablets: employee ID + PIN unlock, checked online first and offline against per-tablet PIN verifiers for 72 h after the user's last online unlock there; lockout 5 wrong → 5 min, 10 → online; auto-lock after 5 minutes idle; the session lives in memory only ([ADR-0028 §4](../adr/0028-field-devices-offline-data-shared-tablet.md#4-offline-pin-unlock-us-p1-off-04-iam-03-ac3)).
 
 ## 12.6 Storage & quota
 

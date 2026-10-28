@@ -33,7 +33,8 @@ pnpm --filter @karry/ui storybook                              # 9. design syste
 
 The portal signs in with Keycloak (the API must run for the login page's company name: `/api` is proxied to
 `localhost:5000`). The field app has no sign-in: it is enrolled as a site tablet with a code from the portal
-(**Settings › Site tablets**; open the code's link, or type the code at `http://<company>.localhost:5174`). Browser
+(**Settings › Site tablets**; open the code's link, or type the code at `http://<company>.localhost:5174`); then
+an operator unlocks it with their employee ID and PIN (e.g. `DEMO-OPERATOR` / `804613`, online the first time). Browser
 end-to-end tests against the running stack: `tools/e2e/run.sh`.
 
 **Demo sign-in** (after `seed-demo`, local stack only): `<role>@demo-carriere-a.karry.test` (e.g. `site-manager@…`,

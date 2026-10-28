@@ -94,6 +94,15 @@ everything it later sends must be attributable to a trusted device. The question
   after 5 minutes of inactivity, delivered by the server with the device's settings (configurable).
 - A PIN change or a deactivation reaches the tablet with the next delta: the user's verifier changes or disappears,
   so a deactivated operator **cannot unlock after the next sync** (TC-P1-IAM-004).
+- As built on the tablet (P1.15 slice 6a): the app opens locked. An unlock is first sent to the server (device-signed);
+  the tablet checks the PIN itself only when there is no network or the server answers 5xx. A server answer is final:
+  `identity.pin_wrong`, `identity.pin_locked`, `identity.unlock_refused` and `devices.revoked` are shown as such and
+  never retried offline. A successful online unlock stores `lastOnlineAt` (the server's time) and clears the tablet's
+  count for that user. Offline, a user the tablet does not know, without a verifier, never unlocked online here, or
+  past the window (by the corrected clock) is told to connect; the 5th wrong PIN locks for 5 minutes (also the 10th),
+  the 10th requires an online unlock. Who has the tablet is kept in memory only: closing or reloading the app locks
+  it. Auto-lock counts touches and keys, checks every 15 s and on waking, so a sleeping screen past the idle time
+  wakes locked. Reference data is refreshed while the tablet is unlocked.
 
 ### 5. Reference data and delta pulls (US-P1-OFF-03)
 
