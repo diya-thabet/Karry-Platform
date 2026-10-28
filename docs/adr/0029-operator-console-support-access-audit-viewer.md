@@ -42,13 +42,19 @@ that nothing was altered. The questions:
   `[AuditSubject("user", nameof(UserId))]` or `[AuditSubject("role", nameof(Role))]`. An architecture test refuses
   an event type without it. The actor is the event's `Actor` property when it has one (the caller's subject, or a
   system name such as `seed-demo`), else none.
-- The ledger writer stores **`audit.ledger_subjects (tenant_id, seq, actor, entity_type, entity_id)`** in the same
+- The ledger writer stores **`audit.ledger_subjects (tenant_id, seq, actor, entity_type, entity_id, site_id)`** in the same
   transaction as the entry: append-only (trigger plus revoked `UPDATE`/`DELETE`/`TRUNCATE`), row-level security,
   indexed for each filter. It is **derived from the hashed payload, never hashed itself**: a tampered index row can
   mislead a filter but never the entry, whose payload the viewer always shows and the integrity check verifies.
 - `Karry.Host migrate` **fills missing index rows** from the stored payloads after the migrations (idempotent), so
   existing ledgers become searchable and a changed mapping can be applied again.
 
+- **Site of an entry (added while building):** the roles matrix gives Controller and Site Manager the audit log **on
+  their sites** only. The index therefore also stores `site_id`: the event's site property (`Site = nameof(ToSiteId)`,
+  else `SiteId`, else the ID of a `site` entity), otherwise the **entity's latest known site** in the index (an
+  asset's status change belongs to the asset's site). A reader holding `audit.ledger.read` on some sites sees only
+  entries of those sites; entries without a site (company, users, roles, materials, subscriptions) only company-wide
+  readers see. Fail-closed: a site-scoped reader may miss an entry, never see another site's.
 - **As built (2026-10-28, US-P1-AUD-04 slice 1):** `AuditSubjectAttribute` / `AuditSubject.Of` in
   `Karry.SharedKernel.Domain` (entity names `^[a-z][a-z_]*$`, `Guid` IDs stored in `D` form); 61 event types
   annotated; `LedgerRecord.Subject`; migration `LedgerSubjects` (foreign key to the entry, so the owner's plain

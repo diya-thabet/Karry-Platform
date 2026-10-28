@@ -35,8 +35,10 @@ public static partial class TypeRules
             if (type.GetCustomAttribute<AuditSubjectAttribute>() is not { } subject)
             {
                 yield return $"{type.FullName}: domain event without [AuditSubject(\"entity\", nameof(Id))].";
+                continue;
             }
-            else if (type.GetProperty(subject.IdProperty) is null)
+
+            if (type.GetProperty(subject.IdProperty) is null)
             {
                 yield return $"{type.FullName}: [AuditSubject] names {subject.IdProperty}, which the event does not have.";
             }
@@ -44,6 +46,11 @@ public static partial class TypeRules
             {
                 // Anything else is stored through ToString(), e.g. "ThingId { Value = … }": the viewer could never match it.
                 yield return $"{type.FullName}: [AuditSubject] property {subject.IdProperty} is a {idType.Name}; use a Guid or a string.";
+            }
+
+            if (subject.Site is { } site && type.GetProperty(site)?.PropertyType is var siteType && siteType != typeof(Guid) && siteType != typeof(Guid?))
+            {
+                yield return $"{type.FullName}: [AuditSubject] names {site} as its site, which is not a Guid property of the event.";
             }
         }
     }

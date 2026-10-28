@@ -67,7 +67,7 @@ public sealed record AssetRegistered(Guid AssetId, AssetSnapshot Asset, Guid Sit
 public sealed record AssetChanged(Guid AssetId, AssetSnapshot Before, AssetSnapshot After, string? Actor) : DomainEvent;
 
 [EventType("assets.asset_moved.v1")]
-[AuditSubject("asset", nameof(AssetId))]
+[AuditSubject("asset", nameof(AssetId), Site = nameof(ToSiteId))]
 public sealed record AssetMoved(Guid AssetId, string Code, Guid FromSiteId, Guid ToSiteId, string? Actor) : DomainEvent;
 
 /// <summary>A new label token: the printed label before it no longer resolves. The token itself is not in the ledger.</summary>

@@ -54,6 +54,9 @@ public sealed class LedgerSubjectRow : ITenantOwned
     public required string EntityType { get; init; }
 
     public string? EntityId { get; init; }
+
+    /// <summary>The site the entry concerns, when the event names one: site-scoped readers see only their sites' entries.</summary>
+    public Guid? SiteId { get; init; }
 }
 
 /// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
@@ -117,6 +120,7 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             // One index per filter of the audit viewer, newest first within a tenant.
             subject.HasIndex(s => new { s.TenantId, s.Actor, s.Seq });
             subject.HasIndex(s => new { s.TenantId, s.EntityType, s.EntityId, s.Seq });
+            subject.HasIndex(s => new { s.TenantId, s.SiteId, s.Seq });
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

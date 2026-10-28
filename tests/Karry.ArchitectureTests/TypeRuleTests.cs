@@ -25,8 +25,9 @@ public sealed class TypeRuleTests
 
     [Fact]
     public void An_event_without_a_subject_or_naming_a_missing_property_is_a_violation() =>
-        TypeRules.DomainEventsNameTheirAuditSubject([typeof(Fine), typeof(WrongSubject), typeof(TypedSubject), typeof(Subjected)])
-            .Should().HaveCount(3)
+        TypeRules.DomainEventsNameTheirAuditSubject([typeof(Fine), typeof(WrongSubject), typeof(TypedSubject), typeof(WrongSite), typeof(Subjected)])
+            .Should().HaveCount(4)
+            .And.Contain(v => v.Contains(nameof(WrongSite), StringComparison.Ordinal))
             .And.Contain(v => v.Contains(nameof(TypedSubject), StringComparison.Ordinal))
             .And.Contain(v => v.Contains(nameof(Fine), StringComparison.Ordinal))
             .And.Contain(v => v.Contains(nameof(WrongSubject), StringComparison.Ordinal));
@@ -83,9 +84,13 @@ public sealed class TypeRuleTests
     [AuditSubject("thing", nameof(Thing))]
     public sealed record TypedSubject(ThingId Thing) : DomainEvent;
 
+    [EventType("probe.wrong_site.v1")]
+    [AuditSubject("thing", nameof(Id), Site = nameof(SiteCode))]
+    public sealed record WrongSite(Guid Id, string SiteCode) : DomainEvent;
+
     [EventType("probe.subjected.v1")]
-    [AuditSubject("thing", nameof(Id))]
-    public sealed record Subjected(Guid Id) : DomainEvent;
+    [AuditSubject("thing", nameof(Id), Site = nameof(ToSiteId))]
+    public sealed record Subjected(Guid Id, Guid ToSiteId) : DomainEvent;
 
     public readonly record struct ThingId(Guid Value) : IEntityId<ThingId>
     {

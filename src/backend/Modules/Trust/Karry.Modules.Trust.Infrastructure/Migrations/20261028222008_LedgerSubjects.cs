@@ -21,7 +21,8 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     seq = table.Column<long>(type: "bigint", nullable: false),
                     actor = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
                     entity_type = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    entity_id = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true)
+                    entity_id = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    site_id = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -45,6 +46,12 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                 schema: "audit",
                 table: "ledger_subjects",
                 columns: new[] { "tenant_id", "entity_type", "entity_id", "seq" });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_ledger_subjects_tenant_id_site_id_seq",
+                schema: "audit",
+                table: "ledger_subjects",
+                columns: new[] { "tenant_id", "site_id", "seq" });
 
             // Hand-written (reviewed): tenant data, append-only like the entries it indexes, and only for entries that
             // exist (ADR-0029 §1).

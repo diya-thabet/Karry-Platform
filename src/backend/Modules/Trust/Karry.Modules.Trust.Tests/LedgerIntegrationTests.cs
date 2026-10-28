@@ -25,7 +25,7 @@ public readonly record struct BlastId(Guid Value) : IEntityId<BlastId>
 
 [EventType("ledgerprobe.blast_recorded.v1")]
 [AuditSubject("blast", nameof(BlastId))]
-public sealed record BlastRecorded(Guid BlastId, decimal Tonnes) : DomainEvent;
+public sealed record BlastRecorded(Guid BlastId, decimal Tonnes, Guid? SiteId = null) : DomainEvent;
 
 public sealed class Blast : AggregateRoot<BlastId>, ITenantOwned
 {
@@ -36,10 +36,10 @@ public sealed class Blast : AggregateRoot<BlastId>, ITenantOwned
 
     public decimal Tonnes { get; private set; }
 
-    public static Blast Record(TimeProvider clock, TenantId tenant, decimal tonnes)
+    public static Blast Record(TimeProvider clock, TenantId tenant, decimal tonnes, Guid? site = null)
     {
         var blast = new Blast(EntityId.New<BlastId>(clock), tenant) { Tonnes = tonnes };
-        blast.Raise(new BlastRecorded(blast.Id.Value, tonnes) { OccurredAt = clock.GetUtcNow() });
+        blast.Raise(new BlastRecorded(blast.Id.Value, tonnes, site) { OccurredAt = clock.GetUtcNow() });
         return blast;
     }
 }
@@ -77,6 +77,8 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
 {
     private static readonly TenantId TenantA = new(Guid.Parse("01970000-0000-7000-8000-00000000000a"));
     private static readonly TenantId TenantB = new(Guid.Parse("01970000-0000-7000-8000-00000000000b"));
+    private static readonly Guid Quarry = Guid.Parse("01970000-0000-7000-8000-0000000005e1");
+    private static readonly Guid Plant = Guid.Parse("01970000-0000-7000-8000-0000000005e2");
 
     private readonly FakeTimeProvider clock = new(new DateTimeOffset(2026, 10, 23, 8, 0, 0, TimeSpan.Zero).AddTicks(1234567));
     private KarryDatabase database = null!;
@@ -329,11 +331,12 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
     public async Task Every_entry_is_indexed_by_its_subject_in_the_same_transaction()
     {
         await SaveBlastAsync(TenantA, 1);
-        await SaveBlastAsync(TenantA, 2);
+        await SaveBlastAsync(TenantA, 2, Quarry);
 
         var subjects = await SubjectsAsync(TenantA);
         subjects.Select(s => s.Seq).Should().Equal(1L, 2L);
         subjects.Should().OnlyContain(s => s.EntityType == "blast" && s.Actor == null);
+        subjects.Select(s => s.SiteId).Should().Equal(null, Quarry);
         var payloads = (await EntriesAsync(TenantA)).Select(e => e.Payload).ToList();
         subjects.Select(s => s.EntityId).Should().Equal(payloads.Select(p => System.Text.Json.JsonDocument.Parse(p).RootElement.GetProperty("blastId").GetString()));
     }
@@ -382,7 +385,37 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         (await SubjectsAsync(TenantA)).Select(s => s.Seq).Should().Equal(1L, 2L, 3L, 4L);
         (await SubjectsAsync(TenantB)).Select(s => s.Seq).Should().Equal(1L, 2L);
         (await SubjectsAsync(TenantA)).Should().OnlyContain(s => s.EntityType == "blast" && s.EntityId != null);
+        (await SubjectsAsync(TenantB)).Should().OnlyContain(s => s.SiteId == Quarry);
         LedgerVerifier.Verify(await EntriesAsync(TenantA)).IsValid.Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-04")]
+    public async Task An_entry_without_a_site_takes_its_entitys_latest_site()
+    {
+        var blast = Guid.CreateVersion7();
+        var other = Guid.CreateVersion7();
+        await AppendAsync(TenantA, [Record(TenantA, blast, Quarry, subject: true), Record(TenantA, blast, null, subject: true)]); // same transaction
+        await AppendAsync(TenantA, [Record(TenantA, blast, null, subject: true), Record(TenantA, other, null, subject: true)]);
+        await AppendAsync(TenantA, [Record(TenantA, blast, Plant, subject: true), Record(TenantA, blast, null, subject: true)]); // moved
+        await AppendAsync(TenantB, [Record(TenantB, blast, null, subject: true)]); // another tenant's entity of the same ID
+
+        (await SubjectsAsync(TenantA)).Select(s => s.SiteId).Should().Equal(Quarry, Quarry, Quarry, null, Plant, Plant);
+        (await SubjectsAsync(TenantB)).Select(s => s.SiteId).Should().Equal([null]);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-04")]
+    public async Task The_backfill_gives_entries_their_entitys_latest_site_too()
+    {
+        var indexed = Guid.CreateVersion7();
+        var fresh = Guid.CreateVersion7();
+        await AppendAsync(TenantA, [Record(TenantA, indexed, Quarry, subject: true), Record(TenantA, indexed, Plant, subject: true)]); // indexed before
+        await AppendAsync(TenantA, [Record(TenantA, indexed, null, subject: false), Record(TenantA, fresh, Quarry, subject: false), Record(TenantA, fresh, null, subject: false)]);
+
+        await services.GetRequiredService<ILedgerSubjectBackfill>().RunAsync([TenantA], TestContext.Current.CancellationToken);
+
+        (await SubjectsAsync(TenantA)).Select(s => s.SiteId).Should().Equal(Quarry, Plant, Plant, Quarry, Quarry);
     }
 
     private static async Task<(int Exit, string Output)> CliAsync(params string[] args)
@@ -414,11 +447,11 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         return scope;
     }
 
-    private async Task SaveBlastAsync(TenantId tenant, decimal tonnes)
+    private async Task SaveBlastAsync(TenantId tenant, decimal tonnes, Guid? site = null)
     {
         await using var scope = Scope(tenant);
         var db = scope.ServiceProvider.GetRequiredService<LedgerProbeDbContext>();
-        db.Blasts.Add(Blast.Record(clock, tenant, tonnes));
+        db.Blasts.Add(Blast.Record(clock, tenant, tonnes, site));
         await db.SaveChangesAsync(TestContext.Current.CancellationToken);
     }
 
@@ -441,9 +474,17 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
     private Task AppendWithoutSubjectAsync(TenantId tenant, int count) =>
         AppendAsync(tenant, [.. Enumerable.Range(1, count).Select(i =>
         {
-            var blast = new BlastRecorded(Guid.CreateVersion7(), i) { OccurredAt = clock.GetUtcNow() };
+            var blast = new BlastRecorded(Guid.CreateVersion7(), i, Quarry) { OccurredAt = clock.GetUtcNow() };
             return new LedgerRecord(tenant, blast.EventId, EventTypeAttribute.NameOf(typeof(BlastRecorded)), EventSerializer.Serialize(blast), blast.OccurredAt);
         })]);
+
+    /// <summary>A blast entry as the unit of work records it (with its subject) or as an older version did (without).</summary>
+    private LedgerRecord Record(TenantId tenant, Guid blast, Guid? site, bool subject)
+    {
+        var recorded = new BlastRecorded(blast, 1, site) { OccurredAt = clock.GetUtcNow() };
+        return new LedgerRecord(tenant, recorded.EventId, EventTypeAttribute.NameOf(typeof(BlastRecorded)), EventSerializer.Serialize(recorded),
+            recorded.OccurredAt, subject ? AuditSubject.Of(recorded) : null);
+    }
 
     private Task AppendUnknownEventAsync(TenantId tenant) =>
         AppendAsync(tenant, [new LedgerRecord(tenant, Guid.CreateVersion7(), "future.thing_happened.v1", "{}", clock.GetUtcNow())]);

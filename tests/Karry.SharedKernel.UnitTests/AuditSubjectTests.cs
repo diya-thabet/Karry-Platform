@@ -13,6 +13,26 @@ public sealed class AuditSubjectTests
     [AuditSubject("flag", nameof(Key))]
     private sealed record FlagSet(string? Key, int Actor) : DomainEvent;
 
+    [EventType("probe.asset_registered.v1")]
+    [AuditSubject("asset", nameof(AssetId))]
+    private sealed record AssetRegistered(Guid AssetId, Guid SiteId, string? Actor) : DomainEvent;
+
+    [EventType("probe.site_archived.v1")]
+    [AuditSubject("site", nameof(SiteId))]
+    private sealed record SiteArchived(Guid SiteId, string Code) : DomainEvent;
+
+    [EventType("probe.label_printed.v1")]
+    [AuditSubject("asset", nameof(AssetId))]
+    private sealed record LabelPrinted(Guid AssetId, string SiteId) : DomainEvent;
+
+    [EventType("probe.asset_moved.v1")]
+    [AuditSubject("asset", nameof(AssetId), Site = nameof(ToSiteId))]
+    private sealed record AssetMoved(Guid AssetId, Guid FromSiteId, Guid ToSiteId) : DomainEvent;
+
+    [EventType("probe.lost_site.v1")]
+    [AuditSubject("asset", nameof(AssetId), Site = "Nowhere")]
+    private sealed record LostSite(Guid AssetId) : DomainEvent;
+
     [EventType("probe.unnamed.v1")]
     private sealed record Unnamed(Guid Id) : DomainEvent;
 
@@ -29,6 +49,21 @@ public sealed class AuditSubjectTests
 
         AuditSubject.Of(new UserRenamed(id, "Ali", "user:42") { OccurredAt = Now })
             .Should().Be(new AuditSubject("user", "0197a000-0000-7000-8000-0000000000ff", "user:42"));
+    }
+
+    [Fact]
+    public void The_site_is_the_events_site_id_or_the_site_itself()
+    {
+        var asset = Guid.CreateVersion7();
+        var site = Guid.CreateVersion7();
+
+        AuditSubject.Of(new AssetRegistered(asset, site, null) { OccurredAt = Now }).SiteId.Should().Be(site);
+        AuditSubject.Of(new SiteArchived(site, "CAR-NORD") { OccurredAt = Now }).SiteId.Should().Be(site);
+        AuditSubject.Of(new LabelPrinted(asset, "CAR-NORD") { OccurredAt = Now }).SiteId.Should().BeNull("a site code is not a site ID");
+        AuditSubject.Of(new UserRenamed(asset, "Ali", "user:42") { OccurredAt = Now }).SiteId.Should().BeNull();
+        AuditSubject.Of(new AssetMoved(asset, Guid.CreateVersion7(), site) { OccurredAt = Now }).SiteId.Should().Be(site, "the named site property");
+        FluentActions.Invoking(() => AuditSubject.Of(new LostSite(asset) { OccurredAt = Now }))
+            .Should().Throw<InvalidOperationException>().WithMessage("*Nowhere*");
     }
 
     [Fact]

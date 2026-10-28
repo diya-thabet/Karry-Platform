@@ -282,6 +282,10 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("entity_type");
 
+                    b.Property<Guid?>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
                     b.HasKey("TenantId", "Seq")
                         .HasName("pk_ledger_subjects");
 
@@ -293,6 +297,9 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "EntityType", "EntityId", "Seq")
                         .HasDatabaseName("ix_ledger_subjects_tenant_id_entity_type_entity_id_seq");
+
+                    b.HasIndex("TenantId", "SiteId", "Seq")
+                        .HasDatabaseName("ix_ledger_subjects_tenant_id_site_id_seq");
 
                     b.ToTable("ledger_subjects", "audit");
                 });
