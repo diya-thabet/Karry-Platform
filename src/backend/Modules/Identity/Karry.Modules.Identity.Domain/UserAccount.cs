@@ -80,6 +80,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         LastName = lastName;
         Roles = roles;
         CreatedAt = createdAt;
+        ChangedAt = createdAt;
     }
 
     public TenantId TenantId { get; private set; }
@@ -127,6 +128,9 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     }
 
     public DateTimeOffset CreatedAt { get; private set; }
+
+    /// <summary>Last change a tablet must learn about (status, roles, PIN): the field reference data is pulled by it (ADR-0028 §5).</summary>
+    public DateTimeOffset ChangedAt { get; private set; }
 
     public DateTimeOffset? DeactivatedAt { get; private set; }
 
@@ -216,6 +220,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         PinHash = hash.Value;
         PinFailures = 0;
         PinLockedUntil = null;
+        ChangedAt = clock.GetUtcNow();
         Raise(new UserPinSet(Id.Value, actor) { OccurredAt = clock.GetUtcNow() });
         return true;
     }
@@ -332,6 +337,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
         }
 
         Status = UserStatus.Active;
+        ChangedAt = clock.GetUtcNow();
         Raise(new InvitationAccepted(Id.Value, invitation.Id.Value) { OccurredAt = clock.GetUtcNow() });
         return this;
     }
@@ -368,6 +374,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
 
         var before = Roles;
         Roles = after;
+        ChangedAt = clock.GetUtcNow();
         Raise(new UserRolesChanged(Id.Value, before, after, actor) { OccurredAt = clock.GetUtcNow() });
         return true;
     }
@@ -399,6 +406,7 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
 
         Status = UserStatus.Deactivated;
         DeactivatedAt = clock.GetUtcNow();
+        ChangedAt = DeactivatedAt.Value;
         Raise(new UserDeactivated(Id.Value, actor) { OccurredAt = DeactivatedAt.Value });
         return true;
     }

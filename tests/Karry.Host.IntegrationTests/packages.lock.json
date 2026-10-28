@@ -19,6 +19,12 @@
           "Microsoft.Extensions.Hosting": "10.0.13"
         }
       },
+      "Microsoft.Extensions.TimeProvider.Testing": {
+        "type": "Direct",
+        "requested": "[10.11.0, )",
+        "resolved": "10.11.0",
+        "contentHash": "DTivKZ2Du0dJideTTa6vPj/eXKNRu+RxtjBX7NOOUXHBtHx1ehbE+lM+j3/5M3wU6BqzcZqEEyR4+FnPKs2rTA=="
+      },
       "Microsoft.Testing.Extensions.CodeCoverage": {
         "type": "Direct",
         "requested": "[18.12.0, )",
@@ -807,6 +813,7 @@
           "Karry.Modules.Imports.Api": "[1.0.0, )",
           "Karry.Modules.Materials.Api": "[1.0.0, )",
           "Karry.Modules.Organization.Api": "[1.0.0, )",
+          "Karry.Modules.Sync.Api": "[1.0.0, )",
           "Karry.Modules.Tenancy.Api": "[1.0.0, )",
           "Karry.Modules.Trust.Api": "[1.0.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.13, )",
@@ -1071,6 +1078,39 @@
           "Karry.Modules.Organization.Application": "[1.0.0, )",
           "Karry.Modules.Organization.Domain": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": "[10.0.3, )"
+        }
+      },
+      "karry.modules.sync.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Sync.Application": "[1.0.0, )",
+          "Karry.Modules.Sync.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Sync.Contracts": "[1.0.0, )",
+          "Karry.Modules.Sync.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Sync.Application": "[1.0.0, )"
         }
       },
       "karry.modules.tenancy.api": {

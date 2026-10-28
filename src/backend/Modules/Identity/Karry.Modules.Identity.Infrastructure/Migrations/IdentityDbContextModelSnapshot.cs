@@ -497,6 +497,12 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at")
+                        .HasDefaultValueSql("now()");
+
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -587,6 +593,9 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_users_tenant_id");
+
+                    b.HasIndex("TenantId", "ChangedAt")
+                        .HasDatabaseName("ix_users_tenant_id_changed_at");
 
                     b.HasIndex("TenantId", "Email")
                         .IsUnique()

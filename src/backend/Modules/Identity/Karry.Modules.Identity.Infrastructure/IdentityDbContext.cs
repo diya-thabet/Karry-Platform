@@ -73,6 +73,8 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             user.Property(u => u.EmployeeId).HasMaxLength(UserAccount.EmployeeIdMaxLength);
             user.Property(u => u.Subject).HasMaxLength(64);
             user.Property(u => u.PinHash).HasMaxLength(120);
+            user.Property(u => u.ChangedAt).HasDefaultValueSql("now()"); // rows written by SQL (seeds, tests) count as just changed
+            user.HasIndex(u => new { u.TenantId, u.ChangedAt }); // field reference data deltas (ADR-0028 §5)
             user.Property(u => u.Roles).HasColumnType("jsonb").HasConversion(
                 roles => JsonSerializer.Serialize(roles, RolesJson),
                 json => JsonSerializer.Deserialize<List<RoleAssignment>>(json, RolesJson)!,

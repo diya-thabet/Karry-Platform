@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Commands, queries, handlers and ports (interfaces) of Sync. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Sync.Contracts/Karry.Modules.Sync.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

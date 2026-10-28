@@ -30,6 +30,7 @@ public static class AssetsInfrastructure
         // Excel import of machines and meter readings (P1.14): run by the Imports module, with these rules.
         services.AddScoped<IImportTarget, AssetImport>();
         services.AddScoped<IImportTarget, MeterImport>();
+        services.AddScoped<BuildingBlocks.Sync.ISyncSource, AssetsSync>();
         return services;
     }
 }

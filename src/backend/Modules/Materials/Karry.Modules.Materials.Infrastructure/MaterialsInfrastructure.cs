@@ -19,6 +19,7 @@ public static class MaterialsInfrastructure
         services.AddScoped<MaterialOperations>();
         services.AddScoped<DemoMaterialsSeeder>();
         services.AddScoped<IImportTarget, MaterialImport>();
+        services.AddScoped<BuildingBlocks.Sync.ISyncSource, MaterialsSync>();
         return services;
     }
 }

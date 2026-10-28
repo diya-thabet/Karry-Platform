@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP endpoints and the IModule entry point that wires the Sync module into the host. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Sync.Application/Karry.Modules.Sync.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Sync.Infrastructure/Karry.Modules.Sync.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

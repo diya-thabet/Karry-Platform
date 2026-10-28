@@ -23,7 +23,9 @@ export interface SettingsRecord {
 }
 
 export interface SiteRow { id: string; code: string; name: string; type: string; timeZone: string }
-export interface ShiftPatternRow { id: string; siteId: string; effectiveFrom: string; shifts: { name: string; start: string; end: string }[] }
+/** A shift of a pattern version: wall-clock times "HH:mm" (an end before the start ends the next day), days "mon".."sun". */
+export interface ShiftRow { code: string; name: string; start: string; end: string; days: string[] }
+export interface ShiftPatternRow { id: string; siteId: string; effectiveFrom: string; shifts: ShiftRow[] }
 export interface AssetRow {
   id: string; code: string; name: string; type: string; siteId: string; status: string;
   make: string | null; model: string | null; serialNumber: string | null; plate: string | null;
@@ -31,7 +33,7 @@ export interface AssetRow {
   labelCode: string | null;
 }
 export interface MeterRow { id: string; assetId: string; kind: string; unit: string; status: string }
-export interface MaterialRow { id: string; code: string; name: string; nature: string }
+export interface MaterialRow { id: string; code: string; name: string; kind: string }
 export interface FieldUserRow { id: string; employeeId: string; name: string; pin: PinVerifier | null }
 
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
