@@ -9202,7 +9202,8 @@
           "roles",
           "requiresMfa",
           "createdAt",
-          "deactivatedAt"
+          "deactivatedAt",
+          "pinSet"
         ],
         "type": "object",
         "properties": {
@@ -9259,8 +9260,12 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "pinSet": {
+            "type": "boolean"
           }
-        }
+        },
+        "description": "A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it)."
       }
     }
   },

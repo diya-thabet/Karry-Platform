@@ -17,6 +17,9 @@ type Asset = components["schemas"]["AssetResponse"];
 type AssetInput = components["schemas"]["AssetInput"];
 type Meter = components["schemas"]["MeterResponse"];
 type Reading = components["schemas"]["ReadingResponse"];
+type ImportJob = components["schemas"]["ImportResponse"];
+type ImportIssue = components["schemas"]["ImportIssueResponse"];
+type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
 
 export interface Sent {
   method: string;
@@ -81,6 +84,8 @@ export function fakeApi(options: {
   meters?: Record<string, Meter[]>;
   /** Readings by meter ID, newest first. */
   readings?: Record<string, Reading[]>;
+  /** What the validation of every uploaded file finds (default: one site to create, no issue). */
+  importReport?: { issues: ImportIssue[]; rows: ImportPlannedRow[] };
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -98,6 +103,8 @@ export function fakeApi(options: {
   const assets: Asset[] = [...(options.assets ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
+  const imports: ImportJob[] = [];
+  let importSteps = 0;
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
     tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
@@ -171,6 +178,11 @@ export function fakeApi(options: {
       return material;
     }
 
+    const imported = importsRoute(request.method, url);
+    if (imported) {
+      return imported;
+    }
+
     const machine = assetsRoute(request.method, url, body);
     if (machine) {
       return machine;
@@ -214,10 +226,89 @@ export function fakeApi(options: {
         const user = users.find((u) => path.includes(u.id));
         return user ? json(200, { ...user, roles: (body as { roles: User["roles"] }).roles }) : problem(404, "identity.user_not_found");
       }
+      case request.method === "PUT" && /^\/users\/[^/]+\/pin$/.test(path): {
+        const index = users.findIndex((u) => path.includes(u.id));
+        const found = users[index];
+        if (!found) {
+          return problem(404, "identity.user_not_found");
+        }
+
+        if (/^(\d)\1+$/.test((body as { pin: string }).pin)) {
+          return problem(400, "identity.pin_too_simple");
+        }
+
+        users[index] = { ...found, pinSet: true };
+        return new Response(null, { status: 204 });
+      }
       default:
         return problem(404, "test.unknown_route");
     }
   };
+
+  /**
+   * The Imports API with the worker's steps run at the next read of the job: an upload is "validating", then
+   * "validated" with the report of `options.importReport`; a commit is "committing", then "committed".
+   */
+  function importsRoute(method: string, url: URL): Response | null {
+    if (!url.pathname.startsWith("/api/v1/imports")) {
+      return null;
+    }
+
+    const [, id, part] = /^\/api\/v1\/imports(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname) ?? [];
+    const report = options.importReport ?? { issues: [], rows: [{ row: 2, key: "CAR-NORD", action: "create" }] };
+    const errors = report.issues.filter((i) => i.severity === "error").length;
+    const count = (action: string) => report.rows.filter((r) => r.action === action).length;
+    if (id === "templates" && method === "GET") {
+      return new Response(new Uint8Array([0x50, 0x4b, 0x03, 0x04]), { status: 200, headers: { "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" } });
+    }
+
+    if (id === undefined && method === "POST") {
+      const job: ImportJob = {
+        id: `0192f0c1-0000-7000-8000-00000000900${String(imports.length + 1)}`, kind: url.searchParams.get("kind") ?? "", fileName: url.searchParams.get("fileName") ?? "",
+        size: 4, sha256: "b".repeat(64), status: "validating", rows: 0, errors: 0, warnings: 0, created: 0, updated: 0, unchanged: 0, scanner: null,
+        uploadedAt: "2026-10-28T08:00:00Z", changedAt: "2026-10-28T08:00:00Z", fileKept: true,
+      };
+      imports.unshift(job);
+      return json(202, job);
+    }
+
+    if (id === undefined) {
+      return json(200, { items: imports, nextCursor: null });
+    }
+
+    const index = imports.findIndex((j) => j.id === id);
+    const job = imports[index];
+    if (!job) {
+      return problem(404, "imports.job_not_found");
+    }
+
+    const save = (next: Partial<ImportJob>) => {
+      importSteps += 1;
+      imports[index] = { ...job, ...next, changedAt: `2026-10-28T08:00:${String(importSteps).padStart(2, "0")}Z` };
+      return json(200, imports[index]);
+    };
+    switch (true) {
+      case part === undefined && job.status === "validating":
+        return save({
+          status: "validated", rows: report.rows.length + errors, errors,
+          warnings: report.issues.length - errors, created: 0, updated: 0, unchanged: 0,
+        });
+      case part === undefined && job.status === "committing":
+        return save({ status: "committed", created: count("create"), updated: count("update"), unchanged: count("unchanged") });
+      case part === undefined:
+        return json(200, job);
+      case part === "issues":
+        return json(200, { items: report.issues, nextCursor: null });
+      case part === "rows":
+        return json(200, { items: errors > 0 ? [] : report.rows, nextCursor: null });
+      case part === "commit":
+        return errors > 0 ? problem(422, "imports.job_has_errors") : save({ status: "committing" });
+      case part === "discard":
+        return save({ status: "discarded" });
+      default:
+        return problem(404, "test.unknown_route");
+    }
+  }
 
   function organizationRoute(method: string, url: URL, body: unknown): Response | null {
     const match = /^\/api\/v1\/organization\/sites(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
@@ -455,7 +546,7 @@ export function user(overrides: Partial<User> = {}): User {
   return {
     id: "0192f0c1-0000-7000-8000-000000000001", kind: "office", status: "active", firstName: "Sami", lastName: "Gharbi",
     email: "sami@example.test", phone: null, employeeId: null, roles: [{ role: "commercial", siteId: null }], requiresMfa: false,
-    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, ...overrides,
+    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, pinSet: false, ...overrides,
   };
 }
 

@@ -93,6 +93,14 @@ a validation report with cell references, a preview, an all-or-nothing commit th
    - Every problem is recorded as an issue on row 0 (the file) rather than thrown: kind no longer allowed
      (`imports.kind_forbidden`), file deleted by retention (`imports.file_deleted`), refused by the scanner
      (`imports.file_infected`), unreadable or too large once opened. So the same file always gives the same report.
+   - *As built (slice 6, portal):* Settings → "Import from Excel" (`/settings/imports`, shown with
+     `imports.files.manage`) offers only the kinds whose permission the person holds, in loading order (sites,
+     materials, machines, meters, users). It downloads the template in French or English, uploads the file, polls the
+     job every second while the worker runs, then shows the report (row, cell, severity and the problem in the person's
+     words: the same `errors.<code>` texts as the screens, with the issue's arguments; an unknown code is shown as is
+     for support), the preview with its create / update / unchanged counts, and Confirm (only without errors) or
+     Discard. The last 10 imports are listed and can be reopened. At most 200 issues or preview rows are shown (the
+     API's page size).
 
 5. **Users are imported in two steps.** The commit creates the Karry users and their invitations in one transaction.
    Their Keycloak accounts and invitation messages are created afterwards by an outbox handler, retried until done,
@@ -103,7 +111,8 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      creates the account, reissues the invitation (`identity.invitation_reissued`) and delivers it; a Keycloak failure is
      retried by the outbox; a username owned by someone else is logged and left. Owner decision (2026-10-27): **a file
      never carries PINs**; imported field users are active without one and an administrator sets it on screen
-     (`PUT /identity/users/{id}/pin`, `identity.user_pin_set`). **Privileged roles cannot be imported**: the worker has no
+     (`PUT /identity/users/{id}/pin`, `identity.user_pin_set`; users carry `pinSet`, and the portal's Users screen shows
+     "No PIN yet" and a Set / Change the PIN action for active field users, slice 6). **Privileged roles cannot be imported**: the worker has no
      recent sign-in, so they are refused (`identity.role_privileged`) and given on screen with step-up. A known user
      only gains the row's role (never loses one), so re-importing is harmless.
 

@@ -2006,6 +2006,7 @@ export interface components {
             /** Format: uuid */
             nextCursor: null | string;
         };
+        /** @description A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it). */
         UserResponse: {
             /** Format: uuid */
             id: string;
@@ -2022,6 +2023,7 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             deactivatedAt: null | string;
+            pinSet: boolean;
         };
     };
     responses: never;
