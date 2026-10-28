@@ -331,6 +331,12 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-10-28 — Keycloak client update race (agent)
+
+- **Found:** `Concurrent_tenant_setups_lose_no_redirect_uri` failed on PRs #101 and #103 (3 times in one day). Cause: the redirect-URI read-modify-write of `karry-portal` was locked per adapter instance only, and Keycloak's client PUT has no version check, so a second instance or process could overwrite an address the first had just verified. In production that is the API host, the workers and replicas: two companies set up at once could lose one company's sign-in address.
+- **Done:** `KeycloakClientLock.cs`: `PostgresKeycloakClientLock` takes `pg_advisory_lock` (key "KARRYKC") on its own session of the application database for the change (released explicitly, and by the session ending on a crash); the provider shares one in-process lock per realm across instances, then takes the database lock (wired in `AddIdentityInfrastructure`). Tests: six separate adapters set up companies at once with every write delayed 200 ms (always overlaps without the shared lock); the lock makes a second session wait and a cancelled wait gives up, both with the app role. Identity adapters 6, lock 2, API 15. Mutation checks caught: a lock per adapter (3/3 runs), no advisory lock, lock never released.
+- **Still open:** the EF Core "model must be finalized" race in `TenancyHost.InitializeAsync` (seen once on #101).
+
 ### 2026-10-28 — P1.15 close-out, slice 7 (agent)
 
 - **Done:** ADR-0028 accepted, D45. E2E TC-P1-OFF-008 in the browser: Chrome's "clear site data" (CDP `Storage.clearDataForOrigin`, all storage types) → enrollment screen → new code enrols → unlock works → both tablets listed active; the code-creation steps are shared helpers (`newCode`, `enroll`). Field E2E 3/3 locally. Tablet-size (800 × 1280) screenshots of lock (with a wrong-PIN message), home (operator and Lock button, Find a machine) and Find a machine reviewed; the help example now uses the demo's code style `PEL-01`. Tracker P1.15 ⏳ with the owner's real-tablet steps; 34 mutation checks across P1.15.
@@ -350,7 +356,7 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Decision:** the screen file is `UnlockScreen.tsx`, not `Unlock.tsx`, so it never clashes with `unlock.ts` on a case-insensitive filesystem.
 - **Known limit:** reference data refreshes only while someone has the tablet unlocked (Home); a locked tablet does not pull.
 - **Next:** slice 6b: QR scan of machine labels (BarcodeDetector, typed label fallback, `assetByLabel`).
-- **Flaky backend tests (follow-up, not caused by the slice):** PR #101 needed two reruns of the `backend` job with no backend change. Attempt 1: `KeycloakIdentityProviderTests.Concurrent_tenant_setups_lose_no_redirect_uri` lost one redirect URI to a concurrent write (also failed once in an earlier slice). Attempt 2: every `TenancyApiTests` test failed in `TenancyHost.InitializeAsync` with EF Core "The model must be finalized … before 'GetRelationalModel'" (a model-building race when fixtures start in parallel). Attempt 3 green. To fix: make the redirect-URI retry robust and build the EF model once before parallel fixtures start.
+- **Flaky backend tests (follow-up, not caused by the slice; the Keycloak one is fixed, see "Keycloak client update race"):** PR #101 needed two reruns of the `backend` job with no backend change. Attempt 1: `KeycloakIdentityProviderTests.Concurrent_tenant_setups_lose_no_redirect_uri` lost one redirect URI to a concurrent write (also failed once in an earlier slice). Attempt 2: every `TenancyApiTests` test failed in `TenancyHost.InitializeAsync` with EF Core "The model must be finalized … before 'GetRelationalModel'" (a model-building race when fixtures start in parallel). Attempt 3 green. To fix: make the redirect-URI retry robust and build the EF model once before parallel fixtures start.
 
 ### 2026-10-28 — P1.15 field app, slice 5b (agent)
 

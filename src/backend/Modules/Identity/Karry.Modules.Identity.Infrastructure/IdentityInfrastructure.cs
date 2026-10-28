@@ -41,12 +41,14 @@ public static class IdentityInfrastructure
         services.AddScoped<RoleDirectory>();
         services.AddScoped<UserAdministration>();
 
-        // One client and token cache for the process; connections are recycled so DNS changes are picked up.
+        // One client and token cache for the process; connections are recycled so DNS changes are picked up. Changes to
+        // the shared portal client are serialized with the other processes through the database.
         services.TryAddSingleton(sp => new KeycloakIdentityProvider(
             new HttpClient(new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(5) }) { Timeout = TimeSpan.FromSeconds(15) },
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<KeycloakOptions>>(),
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>(),
-            sp.GetRequiredService<TimeProvider>()));
+            sp.GetRequiredService<TimeProvider>(),
+            new PostgresKeycloakClientLock(connectionString)));
         services.TryAddSingleton<IIdentityProvider>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
         services.TryAddSingleton<ISignInEventSource>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
         services.TryAddSingleton<IInvitationSender, InvitationSender>();

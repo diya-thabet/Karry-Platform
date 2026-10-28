@@ -27,6 +27,11 @@ last_updated: 2026-10-24
   neither read nor change these attributes (user profile permissions).
 - App client `karry-portal` (the field app has none since P1.15: tablets sign their requests as enrolled devices, [ADR-0028](../adr/0028-field-devices-offline-data-shared-tablet.md)): public, Authorization Code + PKCE S256 only (no password grant, no
   implicit flow), explicit redirect URIs, audience `karry-api`, no Keycloak roles in tokens.
+- Each company's portal address is added to `karry-portal` (redirect URI, web origin, post-logout URI) when the
+  company is set up. Keycloak replaces a client whole and has no version check, so these read-modify-writes are
+  serialized: one lock per realm inside a process, and a PostgreSQL advisory lock on the application database between
+  processes (API host, workers, replicas). Without it, two companies set up at once could lose one address and its
+  people could not sign in.
 - Access token 5 min; refresh rotation with reuse 0: a reused refresh token revokes the app session (all its tokens).
   The Keycloak SSO cookie itself survives, which is safe: it is HttpOnly on the Keycloak origin and never in a token.
 - Brute force: temporary lockout after 5 failures (growing wait, max 15 min), same message as a wrong password.
