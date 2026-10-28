@@ -1,4 +1,6 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using ClosedXML.Excel;
 using Karry.Modules.Identity.Domain;
 using Karry.Testing;
@@ -73,9 +75,11 @@ public sealed class UserImportsTests(IdentityHost host) : IClassFixture<Identity
         host.Sender.Sent.Count(m => m.Destination == email).Should().Be(1, "a user is invited once, even when the events run again");
 
         var operatorId = await ScalarAsync<Guid>($"SELECT id FROM identity.users WHERE tenant_id = '{tenant}' AND employee_id = 'OP-1'");
+        (await PinSetAsync(operatorId, admin)).Should().BeFalse("the portal shows who still needs a PIN");
         await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Put, $"/api/v1/identity/users/{operatorId}/pin", admin, new { pin = "111111" }),
             HttpStatusCode.BadRequest, "identity.pin_too_simple");
         (await api.SendAsync(HttpMethod.Put, $"/api/v1/identity/users/{operatorId}/pin", admin, new { pin = "583920" })).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        (await PinSetAsync(operatorId, admin)).Should().BeTrue();
         (await ScalarAsync<string>($"SELECT pin_hash FROM identity.users WHERE id = '{operatorId}'")).Should().NotBeNullOrEmpty().And.NotContain("583920");
         var ledger = await api.LedgerAsync(tenant);
         ledger.Should().ContainSingle(e => e.Type == "identity.user_pin_set.v1").Which.Payload.ToString().Should().NotContain("583920");
@@ -161,6 +165,12 @@ public sealed class UserImportsTests(IdentityHost host) : IClassFixture<Identity
         var subject = $"admin-{Guid.NewGuid():N}";
         await api.InsertAsync(tenant, "Office", [(Roles.TenantAdmin, null)], subject, employeeId: null);
         return (tenant, TestTokens.ForTenant(tenant, subject), new ImportDriver(host.Client, host.RunImportsAsync, subject));
+    }
+
+    private async Task<bool> PinSetAsync(Guid user, string token)
+    {
+        using var response = await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/users/{user}", token);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("pinSet").GetBoolean();
     }
 
     private async Task<T> ScalarAsync<T>(string sql)

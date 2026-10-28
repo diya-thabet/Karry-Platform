@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, ListDetailPage, SelectField, StatusChip, useToast } from "@karry/ui";
+import { Button, DataTable, Dialog, EmptyState, ListDetailPage, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi, useWithStepUp } from "../api";
 import { useSites } from "../sites/api";
 import { roleName } from "./labels";
@@ -105,6 +105,7 @@ function UserRoles({ user }: { user: User }) {
       <h2 className="text-xl font-bold">{`${user.firstName} ${user.lastName}`}</h2>
       <p className="text-text-muted">{user.email ?? user.phone ?? user.employeeId}</p>
       {user.requiresMfa && <StatusChip status="warning">{t("portal.users.mfa")}</StatusChip>}
+      {user.kind === "field" && user.status === "active" && !user.pinSet && <StatusChip status="warning">{t("portal.users.noPin")}</StatusChip>}
 
       <ul className="flex flex-col gap-3" aria-label={t("portal.users.roles")}>
         {assignments.map((assignment, index) => (
@@ -141,11 +142,70 @@ function UserRoles({ user }: { user: User }) {
             {t("portal.users.addRole")}
           </Button>
           <Button type="button" loading={save.isPending} onClick={() => { save.mutate(); }}>{t("portal.users.save")}</Button>
+          {user.kind === "field" && user.status === "active" && <SetPinButton user={user} />}
           {user.status === "invited" && (
             <Button type="button" variant="ghost" loading={resend.isPending} onClick={() => { resend.mutate(); }}>{t("portal.users.resend")}</Button>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+const pinPattern = /^\d{6}$/;
+
+/**
+ * Sets a field user's PIN (an imported one has none until then; also a forgotten PIN). Typed by the administrator and
+ * sent once: it is never shown again, and the API keeps only its hash. Simple PINs (111111, 123456) are refused there.
+ */
+function SetPinButton({ user }: { user: User }) {
+  const { t } = useTranslation();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [pin, setPin] = useState("");
+  const valid = pinPattern.test(pin);
+
+  const save = useMutation({
+    mutationFn: async () => (await api.PUT("/api/v1/identity/users/{id}/pin", { params: { path: { id: user.id } }, body: { pin } })).data,
+    onSuccess: async () => {
+      close(false);
+      await queryClient.invalidateQueries({ queryKey: usersKey });
+      toast({ status: "ok", title: t("portal.users.pinSaved") });
+    },
+  });
+
+  const close = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setPin("");
+      save.reset();
+    }
+  };
+
+  return (
+    <>
+      <Button type="button" variant="secondary" onClick={() => { close(true); }}>{user.pinSet ? t("portal.users.changePin") : t("portal.users.setPin")}</Button>
+      <Dialog
+        open={open}
+        onOpenChange={close}
+        title={user.pinSet ? t("portal.users.changePin") : t("portal.users.setPin")}
+        description={t("portal.users.pinHint", { name: `${user.firstName} ${user.lastName}` })}
+        closeLabel={t("common.close")}
+        footer={<Button type="button" disabled={!valid} loading={save.isPending} onClick={() => { save.mutate(); }}>{t("portal.users.savePin")}</Button>}
+      >
+        <TextField
+          label={t("portal.users.pin")}
+          type="password"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={6}
+          value={pin}
+          error={pin !== "" && !valid ? t("portal.users.pinInvalid") : undefined}
+          onChange={(e) => { setPin(e.target.value.trim()); }}
+        />
+      </Dialog>
+    </>
   );
 }

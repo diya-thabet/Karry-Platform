@@ -272,7 +272,8 @@ public sealed class IdentityModule : IModule
 
     private static UserResponse ToResponse(UserAccount u, TenantRoles roles) =>
         new(u.Id.Value, u.Kind.ToString().ToLowerInvariant(), u.Status.ToString().ToLowerInvariant(), u.FirstName, u.LastName, u.Email, u.Phone, u.EmployeeId,
-            [.. u.Roles.Select(r => new RoleAssignmentDto(r.Role, r.SiteId))], u.RequiresMfa(roles.Lookup), u.CreatedAt, u.DeactivatedAt);
+            [.. u.Roles.Select(r => new RoleAssignmentDto(r.Role, r.SiteId))], u.RequiresMfa(roles.Lookup), u.CreatedAt, u.DeactivatedAt,
+            u.PinHash is not null);
 
     private static RoleResponse ToResponse(RoleView role) =>
         new(role.Code, role.IsDefault, role.Name, role.Description, role.BasedOn, role.Office, role.Privileged,
@@ -414,9 +415,10 @@ public sealed class IdentityModule : IModule
 
 public sealed record RoleAssignmentDto(string Role, Guid? SiteId);
 
+/// <summary>A user; <c>pinSet</c> tells whether a field user has a PIN (an imported one has none until an administrator sets it).</summary>
 public sealed record UserResponse(
     Guid Id, string Kind, string Status, string FirstName, string LastName, string? Email, string? Phone, string? EmployeeId,
-    IReadOnlyList<RoleAssignmentDto> Roles, bool RequiresMfa, DateTimeOffset CreatedAt, DateTimeOffset? DeactivatedAt);
+    IReadOnlyList<RoleAssignmentDto> Roles, bool RequiresMfa, DateTimeOffset CreatedAt, DateTimeOffset? DeactivatedAt, bool PinSet);
 
 public sealed record UserPage(IReadOnlyList<UserResponse> Items, Guid? NextCursor);
 
