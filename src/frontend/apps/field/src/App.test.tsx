@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { generateDeviceKey, importPinKey, publicJwk } from "@karry/crypto";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
-import { openOfflineDb, type DeviceRecord } from "@karry/offline";
+import { applyChanges, openOfflineDb, type DeviceRecord } from "@karry/offline";
 import { App, type FieldEnvironment } from "./App";
 import { createUpdates } from "./updates";
 
@@ -18,7 +18,7 @@ async function device(): Promise<DeviceRecord> {
 function environment(overrides: Partial<FieldEnvironment> = {}): FieldEnvironment & { updates: ReturnType<typeof createUpdates> } {
   return {
     db: openOfflineDb(`field-${crypto.randomUUID()}`), updates: createUpdates(), persisted: Promise.resolve(true),
-    company: "demo-carriere-a", code: null, enroll: vi.fn(device), ...overrides,
+    company: "demo-carriere-a", code: null, enroll: vi.fn(device), pull: vi.fn(() => Promise.resolve("ok" as const)), ...overrides,
   } as FieldEnvironment & { updates: ReturnType<typeof createUpdates> };
 }
 
@@ -125,10 +125,59 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
-  it("shows the synchronization status area (placeholder until the outbox, P1.15)", async () => {
-    await renderField(await enrolled());
+  it("downloads the site's data on opening and shows the site, the refresh time and what is kept offline (US-P1-OFF-03)", async () => {
+    const env = await enrolled();
+    env.pull = vi.fn(async () => {
+      await applyChanges(env.db, {
+        full: true, cursor: "c1", serverTime: "2026-10-28T13:05:00Z",
+        changes: {
+          sites: { upserts: [{ id: "s1", code: "NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
+          shiftPatterns: { upserts: [], removes: [] },
+          assets: { upserts: [{ id: "a1", code: "PE-01", name: "Pelle", type: "excavator", siteId: "s1", status: "active", make: null, model: null, serialNumber: null, plate: null, labelCode: null }], removes: [] },
+          meters: { upserts: [], removes: [] },
+          materials: { upserts: [], removes: [] },
+          users: { upserts: [{ id: "u1", employeeId: "OP-1", name: "Karim", pin: null }, { id: "u2", employeeId: "OP-2", name: "Sami", pin: null }], removes: [] },
+        },
+      });
+      return "ok" as const;
+    });
+    await renderField(env);
 
-    expect(within(await screen.findByRole("region", { name: "Synchronisation" })).getByText("État de synchronisation pas encore disponible")).toBeInTheDocument();
+    const region = await screen.findByRole("region", { name: "Synchronisation" });
+    expect(await within(region).findByText("À jour")).toBeInTheDocument();
+    expect(within(region).getByText("Site : NORD · Carrière Nord")).toBeInTheDocument();
+    expect(within(region).getByText(/^Données mises à jour le 28 oct. 2026 à \d{2}:05$/)).toBeInTheDocument();
+    expect(within(region).getByText("1 machine et 2 opérateurs disponibles hors ligne")).toBeInTheDocument();
+    expect(env.pull).toHaveBeenCalledOnce();
+  });
+
+  it("refreshes on request and says so when the tablet is offline before the first download", async () => {
+    const env = await enrolled({ pull: vi.fn(() => Promise.resolve("offline" as const)) });
+    await renderField(env);
+
+    const region = await screen.findByRole("region", { name: "Synchronisation" });
+    expect(await within(region).findByText("Hors ligne")).toBeInTheDocument();
+    expect(within(region).getByText(/pas encore téléchargées/)).toBeInTheDocument();
+    fireEvent.click(within(region).getByRole("button", { name: "Actualiser" }));
+
+    await vi.waitFor(() => { expect(env.pull).toHaveBeenCalledTimes(2); });
+  });
+
+  it("refreshes when the network comes back", async () => {
+    const env = await enrolled();
+    await renderField(env);
+    await screen.findByText("À jour");
+
+    act(() => { window.dispatchEvent(new Event("online")); });
+
+    await vi.waitFor(() => { expect(env.pull).toHaveBeenCalledTimes(2); });
+  });
+
+  it("tells a revoked tablet that it no longer receives data (TC-P1-OFF-005)", async () => {
+    await renderField(await enrolled({ pull: vi.fn(() => Promise.resolve("revoked" as const)) }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Cette tablette a été révoquée dans le portail.");
+    expect(screen.queryByRole("button", { name: "Actualiser" })).not.toBeInTheDocument();
   });
 
   it("switches language instantly without remounting", async () => {
