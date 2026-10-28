@@ -6018,6 +6018,76 @@
           }
         }
       }
+    },
+    "/api/v1/sync/batches": {
+      "post": {
+        "tags": [
+          "SyncModule"
+        ],
+        "operationId": "UploadSyncBatch",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchReceipt"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6553,6 +6623,30 @@
         },
         "description": "A machine type: its default meters (`hours`, `km`) and component templates; the apps translate the codes."
       },
+      "BatchReceipt": {
+        "required": [
+          "results",
+          "lastSequence"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommandReceipt"
+            }
+          },
+          "lastSequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          }
+        },
+        "description": "The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number."
+      },
       "ChangeFieldLevels": {
         "required": [
           "fieldLevels"
@@ -6765,6 +6859,30 @@
           }
         },
         "description": "One collection of a change set: rows to keep, IDs to drop; bool CollectionChanges.Replace: the rows are the whole collection."
+      },
+      "CommandReceipt": {
+        "required": [
+          "commandId",
+          "status",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "What happened to one command: `accepted`, `duplicate` or `rejected` (with string? CommandReceipt.Code)."
       },
       "ConversionFactorResponse": {
         "required": [
@@ -7959,6 +8077,7 @@
         },
         "description": "An invoice Karry issued (decimal amount in its currency's minor units; negative for a credit note)."
       },
+      "JsonElement": { },
       "LabelSheetInput": {
         "required": [
           "assetIds",
@@ -9872,6 +9991,72 @@
           }
         },
         "description": "New settings, every field given (a full replacement)."
+      },
+      "UploadBatch": {
+        "required": [
+          "commands"
+        ],
+        "type": "object",
+        "properties": {
+          "commands": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/UploadedCommand"
+            }
+          }
+        }
+      },
+      "UploadedCommand": {
+        "required": [
+          "commandId",
+          "sequence",
+          "type",
+          "payload",
+          "deviceTime",
+          "signature"
+        ],
+        "type": "object",
+        "properties": {
+          "commandId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "payload": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "deviceTime": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "signature": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A command as the tablet's outbox holds it (ADR-0028 §6, `@karry/offline``OutboxRecord`):\nSignature is ES256 (IEEE P1363, base64url) over the RFC 8785 form of the other five members."
       },
       "UsageLineResponse": {
         "required": [

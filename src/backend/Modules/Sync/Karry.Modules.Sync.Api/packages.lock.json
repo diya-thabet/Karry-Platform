@@ -148,7 +148,9 @@
       "karry.modules.sync.infrastructure": {
         "type": "Project",
         "dependencies": {
-          "Karry.Modules.Sync.Application": "[1.0.0, )"
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Sync.Application": "[1.0.0, )",
+          "Karry.Modules.Sync.Domain": "[1.0.0, )"
         }
       },
       "karry.sharedkernel": {

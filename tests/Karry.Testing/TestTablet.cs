@@ -5,7 +5,9 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Karry.BuildingBlocks.Idempotency;
+using Karry.SharedKernel.Canonical;
 
 namespace Karry.Testing;
 
@@ -84,6 +86,25 @@ public sealed class TestTablet(HttpClient client, Func<DateTimeOffset> now) : ID
         });
         var signature = key.SignData(Encoding.ASCII.GetBytes($"{header}.{payload}"), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         return $"{header}.{payload}.{Base64Url.EncodeToString(signature)}";
+    }
+
+    /// <summary>
+    /// A command as the field app's outbox holds it (ADR-0028 §6): <c>signature</c> is ES256 over the RFC 8785 form of
+    /// the other members. A new UUIDv7 unless <paramref name="commandId"/> is given; device time is now.
+    /// </summary>
+    public JsonObject Command(long sequence, object payload, Guid? commandId = null, string type = "test.item_recorded.v1")
+    {
+        var command = new JsonObject
+        {
+            ["commandId"] = (commandId ?? Guid.CreateVersion7(now())).ToString("D"),
+            ["sequence"] = sequence,
+            ["type"] = type,
+            ["payload"] = JsonSerializer.SerializeToNode(payload),
+            ["deviceTime"] = now().UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", System.Globalization.CultureInfo.InvariantCulture),
+        };
+        var signature = key.SignData(JsonCanonicalizer.Canonicalize(command.ToJsonString()), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        command["signature"] = Base64Url.EncodeToString(signature);
+        return command;
     }
 
     public void Dispose() => key.Dispose();

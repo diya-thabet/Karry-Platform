@@ -122,6 +122,15 @@ everything it later sends must be attributable to a trusted device. The question
   `tests/vectors/rfc8785.json`, the same vectors as the server's). Duplicates by `commandId`, a per-device gap-free
   sequence, and storage in `sync.inbox`. P1 has no command types yet: commands are stored, not processed;
   Phase 2 adds the handlers.
+- As built (P1.15 slice 4b): the signed text is RFC 8785 of `{commandId, sequence, type, payload, deviceTime}`
+  (`commandId` lowercase, so the text is unambiguous; numbers must be exact, amounts travel as strings). The inbox
+  keeps that **exact text and the signature**, so any command can be verified again later; rows are append-only
+  (trigger, and `UPDATE`/`DELETE`/`TRUNCATE` revoked from the application role) under tenant RLS, keyed by
+  `(device, commandId)`. Each command is answered `accepted`, `duplicate` or `rejected` (`sync.signature_invalid`,
+  `sync.sequence_gap`, `sync.sequence_reused`); a rejected one does not advance the sequence, and the tablet keeps it.
+  The sequence holds only received commands (a partial unique index on `(device, sequence)`); quarantined ones sit
+  outside it. Two crossing uploads of one tablet: 409 `sync.batch_conflict`, send again. No `Idempotency-Key`:
+  the command IDs already make a batch safe to repeat, and the answer must be current. At most 100 commands of 64 KB.
 
 ### 7. Install, updates and lost data (US-P1-OFF-01, TC-P1-OFF-008)
 

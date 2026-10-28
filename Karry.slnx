@@ -42,6 +42,7 @@
     <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Api/Karry.Modules.Sync.Api.csproj" />
     <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Application/Karry.Modules.Sync.Application.csproj" />
     <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Contracts/Karry.Modules.Sync.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Domain/Karry.Modules.Sync.Domain.csproj" />
     <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Infrastructure/Karry.Modules.Sync.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Application/Karry.Modules.Tenancy.Application.csproj" />

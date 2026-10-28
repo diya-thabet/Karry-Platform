@@ -2,5 +2,10 @@
   <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Sync.Application/Karry.Modules.Sync.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Sync.Domain/Karry.Modules.Sync.Domain.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
 </Project>

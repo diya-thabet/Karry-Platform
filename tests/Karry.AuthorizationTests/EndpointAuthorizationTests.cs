@@ -34,6 +34,7 @@ public sealed class EndpointAuthorizationTests
         ["GetOwnDevice"] = "The calling tablet's own record, status and settings (looked up by its device ID).",
         ["UnlockTablet"] = "A field user of the tablet's site checks their PIN online (server lockout, ledger event on lock).",
         ["GetSyncChanges"] = "The reference data of the tablet's own site (its machines, the company's materials, its field users with verifiers keyed by this tablet).",
+        ["UploadSyncBatch"] = "Commands signed by the tablet's own key, stored in its own sequence; a revoked tablet's are only quarantined.",
     };
 
     /// <summary>Endpoints without a tenant: anonymous or for platform operators only.</summary>
