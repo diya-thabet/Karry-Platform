@@ -63,6 +63,25 @@ internal sealed class PostgresLedgerWriter : ILedgerWriter
                     ("tenant", group.Key.Value), ("seq", sequence), ("event_id", record.EventId), ("type", record.EventType),
                     ("occurred_at", occurredAt), ("payload", payload), ("payload_hash", payloadHash), ("prev_hash", previous),
                     ("entry_hash", entryHash)).ConfigureAwait(false);
+                if (record.Subject is { } subject)
+                {
+                    // What the entry is about, for the audit viewer's filters (ADR-0029 §1): derived, not hashed. An
+                    // event without a site of its own takes its entity's latest known site (an asset's status change
+                    // belongs to the asset's site), so site-scoped readers see it.
+                    await ExecuteAsync(connection, transaction,
+                        """
+                        INSERT INTO audit.ledger_subjects (tenant_id, seq, actor, entity_type, entity_id, site_id)
+                        VALUES (@tenant, @seq, @actor, @entity_type, @entity_id, COALESCE(@site_id, (
+                          SELECT s.site_id FROM audit.ledger_subjects s
+                          WHERE s.tenant_id = @tenant AND s.entity_type = @entity_type AND s.entity_id = @entity_id AND s.site_id IS NOT NULL
+                          ORDER BY s.seq DESC LIMIT 1)))
+                        """,
+                        cancellationToken,
+                        ("tenant", group.Key.Value), ("seq", sequence), ("actor", (object?)subject.Actor ?? DBNull.Value),
+                        ("entity_type", subject.Entity), ("entity_id", (object?)subject.EntityId ?? DBNull.Value),
+                        ("site_id", (object?)subject.SiteId ?? DBNull.Value)).ConfigureAwait(false);
+                }
+
                 previous = entryHash;
             }
 

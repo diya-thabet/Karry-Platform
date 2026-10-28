@@ -14,6 +14,7 @@ public sealed class AggregateRootTests
     }
 
     [EventType("assets.reading_recorded.v1")]
+    [AuditSubject("reading", nameof(Hours))]
     private sealed record ReadingRecorded(decimal Hours) : DomainEvent;
 
     private sealed record Unnamed : DomainEvent;

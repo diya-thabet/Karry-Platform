@@ -84,13 +84,16 @@ public sealed record SubscriptionTerms(
 }
 
 [EventType("billing.subscription_started.v1")]
+[AuditSubject("subscription", nameof(SubscriptionId))]
 public sealed record SubscriptionStarted(Guid SubscriptionId, SubscriptionTerms Terms, string Status, DateTimeOffset? TrialEndsAt, string? Actor) : DomainEvent;
 
 /// <summary><c>Reason</c>: <c>operator</c>, <c>payment_recorded</c>, or the time rule that moved it (e.g. <c>unpaid_14_days</c>).</summary>
 [EventType("billing.subscription_status_changed.v1")]
+[AuditSubject("subscription", nameof(SubscriptionId))]
 public sealed record SubscriptionStatusChanged(Guid SubscriptionId, string From, string To, string Reason, string? Actor) : DomainEvent;
 
 [EventType("billing.subscription_terms_changed.v1")]
+[AuditSubject("subscription", nameof(SubscriptionId))]
 public sealed record SubscriptionTermsChanged(Guid SubscriptionId, SubscriptionTerms Before, SubscriptionTerms After, string? Actor) : DomainEvent;
 
 /// <summary>

@@ -41,6 +41,16 @@ if (args is ["migrate", ..])
     }
 
     await MigrationRunner.MigrateAsync(app.Services, ownerConnectionString, CancellationToken.None).ConfigureAwait(false);
+
+    // Ledger entries written before the audit viewer's index get their subject (ADR-0029 §1).
+    IReadOnlyList<Karry.SharedKernel.Tenancy.TenantId> tenants;
+    await using (var scope = app.Services.CreateAsyncScope())
+    {
+        tenants = await scope.ServiceProvider.GetRequiredService<Karry.Modules.Tenancy.Contracts.ITenantDirectory>().ListAsync(CancellationToken.None).ConfigureAwait(false);
+    }
+
+    var subjects = await app.Services.GetRequiredService<Karry.Modules.Trust.Application.ILedgerSubjectBackfill>().RunAsync(tenants, CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"Audit index: {subjects} ledger entries given their subject");
     return 0;
 }
 

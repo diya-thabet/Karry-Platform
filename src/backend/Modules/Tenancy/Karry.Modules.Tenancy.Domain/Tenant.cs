@@ -13,14 +13,17 @@ public enum TenantStatus
 
 /// <summary>Raised once when a tenant is provisioned; other modules create their defaults from it (P1.8–P1.11).</summary>
 [EventType("tenancy.tenant_provisioned.v1")]
+[AuditSubject("company", nameof(TenantId))]
 public sealed record TenantProvisioned(Guid TenantId, string Slug, string Name) : DomainEvent;
 
 /// <summary>A change of the company's settings (US-P1-TEN-04 AC2): company data only, no personal data.</summary>
 [EventType("tenancy.tenant_settings_changed.v1")]
+[AuditSubject("company", nameof(TenantId))]
 public sealed record TenantSettingsChanged(Guid TenantId, TenantSettings Before, TenantSettings After, string? Actor) : DomainEvent;
 
 /// <summary>The logo was replaced or removed; the ledger keeps its fingerprint, not the image.</summary>
 [EventType("tenancy.tenant_logo_changed.v1")]
+[AuditSubject("company", nameof(TenantId))]
 public sealed record TenantLogoChanged(Guid TenantId, string? BeforeSha256, string? AfterSha256, string? ContentType, int? Bytes, string? Actor) : DomainEvent;
 
 /// <summary>

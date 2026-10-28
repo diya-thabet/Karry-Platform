@@ -34,31 +34,39 @@ public enum UserStatus
 // Ledger events carry identifiers only, never names, e-mails or phone numbers: the ledger is immutable, personal data
 // must stay erasable (it lives in the users table).
 [EventType("identity.user_invited.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record UserInvited(Guid UserId, Guid InvitationId, string Channel, IReadOnlyList<RoleAssignment> Roles, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
 
 [EventType("identity.invitation_accepted.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record InvitationAccepted(Guid UserId, Guid InvitationId) : DomainEvent;
 
 [EventType("identity.field_user_created.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record FieldUserCreated(Guid UserId, IReadOnlyList<RoleAssignment> Roles, string? Actor) : DomainEvent;
 
 [EventType("identity.user_deactivated.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record UserDeactivated(Guid UserId, string? Actor) : DomainEvent;
 
 /// <summary>A user's role assignments changed (US-P1-IAM-06 AC1); before and after for the ledger (T-13).</summary>
 [EventType("identity.user_roles_changed.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record UserRolesChanged(Guid UserId, IReadOnlyList<RoleAssignment> Before, IReadOnlyList<RoleAssignment> After, string? Actor) : DomainEvent;
 
 /// <summary>A new invitation link replaced the previous one, which no longer works.</summary>
 /// <summary>A field user's PIN was set by an administrator (the PIN itself is never in the ledger).</summary>
 [EventType("identity.user_pin_set.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record UserPinSet(Guid UserId, string? Actor) : DomainEvent;
 
 /// <summary>A field user typed a wrong PIN too often on a tablet's online unlock: locked for a while (ADR-0028 §4).</summary>
 [EventType("identity.user_pin_locked.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record UserPinLocked(Guid UserId, Guid DeviceId, DateTimeOffset LockedUntil) : DomainEvent;
 
 [EventType("identity.invitation_reissued.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record InvitationReissued(Guid UserId, Guid InvitationId, Guid ReplacedInvitationId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
 
 /// <summary>

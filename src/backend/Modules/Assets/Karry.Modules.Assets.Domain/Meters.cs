@@ -64,12 +64,15 @@ public sealed class MeterReading : ITenantOwned
 }
 
 [EventType("assets.meter_added.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record MeterAdded(Guid MeterId, Guid AssetId, string Kind, decimal InitialReading, DateOnly InstalledOn, string? Actor) : DomainEvent;
 
 [EventType("assets.meter_reading_recorded.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record MeterReadingRecorded(Guid MeterId, Guid AssetId, Guid ReadingId, decimal Value, DateTimeOffset ReadAt, string? Actor) : DomainEvent;
 
 [EventType("assets.meter_status_changed.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record MeterStatusChanged(Guid MeterId, Guid AssetId, string From, string To, string? Actor) : DomainEvent;
 
 /// <summary>

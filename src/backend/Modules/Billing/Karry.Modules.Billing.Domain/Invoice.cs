@@ -14,9 +14,11 @@ public readonly record struct InvoiceId(Guid Value) : IEntityId<InvoiceId>
 }
 
 [EventType("billing.invoice_recorded.v1")]
+[AuditSubject("invoice", nameof(InvoiceId))]
 public sealed record InvoiceRecorded(Guid InvoiceId, string Number, decimal Amount, string Currency, DateOnly IssuedOn, DateOnly DueOn, string? Actor) : DomainEvent;
 
 [EventType("billing.invoice_paid.v1")]
+[AuditSubject("invoice", nameof(InvoiceId))]
 public sealed record InvoicePaid(Guid InvoiceId, string Number, DateOnly PaidOn, string? Actor) : DomainEvent;
 
 /// <summary>

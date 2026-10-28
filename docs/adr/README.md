@@ -75,3 +75,4 @@ Added in Phase 1 sub-phase P1.14 (Excel import):
 |---|---|---|
 | [0027](0027-excel-import.md) | Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit | Accepted |
 | [0028](0028-field-devices-offline-data-shared-tablet.md) | Field tablets as enrolled devices: device-signed requests, delta reference data, offline PIN unlock | Accepted |
+| [0029](0029-operator-console-support-access-audit-viewer.md) | Operator console, consented read-only support sessions, audit viewer with subject index and masked export | Proposed |

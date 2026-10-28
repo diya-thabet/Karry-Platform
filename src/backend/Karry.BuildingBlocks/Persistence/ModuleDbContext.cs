@@ -95,7 +95,7 @@ public abstract partial class ModuleDbContext : DbContext
                 });
                 if (tenant is { } owner)
                 {
-                    ledger.Add(new LedgerRecord(owner, domainEvent.EventId, type, payload, domainEvent.OccurredAt));
+                    ledger.Add(new LedgerRecord(owner, domainEvent.EventId, type, payload, domainEvent.OccurredAt, AuditSubject.Of(domainEvent)));
                 }
             }
         }

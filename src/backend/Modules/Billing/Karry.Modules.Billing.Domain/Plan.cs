@@ -29,6 +29,7 @@ public sealed record PlanPrice(string Currency, BillingPeriod Period, decimal Pe
 
 /// <summary>A plan version was published (platform data: no tenant ledger; the outbox tells other instances).</summary>
 [EventType("billing.plan_published.v1")]
+[AuditSubject("plan", nameof(PlanId))]
 public sealed record PlanPublished(Guid PlanId, string Code, int Version, string? Actor) : DomainEvent;
 
 /// <summary>

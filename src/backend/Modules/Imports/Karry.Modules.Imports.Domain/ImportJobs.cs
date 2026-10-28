@@ -23,22 +23,28 @@ public enum ImportJobStatus
 }
 
 [EventType("imports.import_uploaded.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportUploaded(Guid JobId, string Kind, string FileName, long Size, string Sha256, string? Actor) : DomainEvent;
 
 /// <summary><c>Scanner</c>: the malware scanner that checked the file (<c>none</c> where no scanner is configured).</summary>
 [EventType("imports.import_validated.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportValidated(Guid JobId, string Kind, int Rows, int Errors, int Warnings, string Scanner) : DomainEvent;
 
 [EventType("imports.import_commit_requested.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportCommitRequested(Guid JobId, string Kind, string? Actor) : DomainEvent;
 
 [EventType("imports.import_committed.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportCommitted(Guid JobId, string Kind, int Created, int Updated, int Unchanged, string? Actor) : DomainEvent;
 
 [EventType("imports.import_discarded.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportDiscarded(Guid JobId, string Kind, string? Actor) : DomainEvent;
 
 [EventType("imports.import_file_deleted.v1")]
+[AuditSubject("import", nameof(JobId))]
 public sealed record ImportFileDeleted(Guid JobId, string Kind, string Sha256) : DomainEvent;
 
 /// <summary>

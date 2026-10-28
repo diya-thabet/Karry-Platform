@@ -43,15 +43,19 @@ public sealed record SiteSnapshot(
     string Code, string Name, string Type, SiteAddress Address, double Latitude, double Longitude, string? Boundary, string TimeZone, string? Currency);
 
 [EventType("organization.site_created.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record SiteCreated(Guid SiteId, SiteSnapshot Site, string? Actor) : DomainEvent;
 
 [EventType("organization.site_changed.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record SiteChanged(Guid SiteId, SiteSnapshot Before, SiteSnapshot After, string? Actor) : DomainEvent;
 
 [EventType("organization.site_archived.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record SiteArchived(Guid SiteId, string Code, string? Actor) : DomainEvent;
 
 [EventType("organization.site_restored.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record SiteRestored(Guid SiteId, string Code, string? Actor) : DomainEvent;
 
 /// <summary>Validated site details: what <see cref="Site.Create"/> and <see cref="Site.Change"/> take.</summary>
