@@ -21,8 +21,9 @@ public static class DemoImportFiles
         var written = new List<string>();
         foreach (var (name, withMistakes) in new[] { (WithMistakes, true), (Fixed, false) })
         {
-            var path = Path.Combine(directory, name);
-            File.WriteAllBytes(path, Workbook(withMistakes));
+            // The directory is the operator's own command-line argument and the file names are constants: no request data.
+            var path = Path.Combine(Path.GetFullPath(directory), name);
+            File.WriteAllBytes(path, Workbook(withMistakes)); // nosemgrep: csharp.lang.security.filesystem.unsafe-path-combine.unsafe-path-combine
             written.Add(path);
         }
 
