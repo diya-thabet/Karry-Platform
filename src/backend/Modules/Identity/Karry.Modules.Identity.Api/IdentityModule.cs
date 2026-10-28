@@ -51,10 +51,14 @@ public sealed class IdentityModule : IModule
         services.AddScoped<IValidator<CreateRole>, CreateRoleValidator>();
         services.AddScoped<IValidator<ChangeRole>, ChangeRoleValidator>();
         services.AddScoped<IValidator<ChangeFieldLevels>, ChangeFieldLevelsValidator>();
+        services.AddScoped<IValidator<EnrollDevice>, EnrollDeviceValidator>();
+        services.AddScoped<IValidator<UnlockOnTablet>, UnlockOnTabletValidator>();
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
+        DeviceEndpoints.Map(endpoints);
+
         endpoints.MapPost("/invitations", InviteAsync)
             .RequirePermission(IdentityPermissions.UsersManage)
             .Validate<InviteUser>()

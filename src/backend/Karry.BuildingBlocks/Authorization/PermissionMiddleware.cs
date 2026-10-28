@@ -1,5 +1,6 @@
 using System.Globalization;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.SharedKernel.Results;
 using Microsoft.AspNetCore.Http;
@@ -24,6 +25,8 @@ public sealed partial class PermissionMiddleware(RequestDelegate next, ILogger<P
 
     public const string AuthTimeClaim = "auth_time";
 
+    public const string RevokedDeviceCode = "devices.revoked";
+
     public async Task InvokeAsync(HttpContext context)
     {
         ArgumentNullException.ThrowIfNull(context);
@@ -32,6 +35,28 @@ public sealed partial class PermissionMiddleware(RequestDelegate next, ILogger<P
         var services = context.RequestServices;
         if (metadata?.GetMetadata<TenantRequired>() is null || metadata.GetMetadata<AllowWithoutTenant>() is not null)
         {
+            await next(context).ConfigureAwait(false);
+            return;
+        }
+
+        // Tablets hold no roles: a device endpoint needs an enrolled device, and an active one unless it quarantines.
+        if (metadata.GetMetadata<DeviceEndpoint>() is { } deviceEndpoint)
+        {
+            if (DeviceCaller.From(context.User) is not { } device)
+            {
+                await Forbidden(ForbiddenCode, "Only an enrolled tablet can do this.").ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
+
+            if (device.Revoked && !deviceEndpoint.AllowRevoked)
+            {
+                await TypedResults.Problem(
+                    title: "This tablet has been revoked.", statusCode: StatusCodes.Status401Unauthorized,
+                    type: ProblemTypes.For(RevokedDeviceCode).ToString(),
+                    extensions: new Dictionary<string, object?> { ["code"] = RevokedDeviceCode }).ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
+
             await next(context).ConfigureAwait(false);
             return;
         }

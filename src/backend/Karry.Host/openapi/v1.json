@@ -356,6 +356,320 @@
         }
       }
     },
+    "/api/v1/identity/devices/enrollments": {
+      "post": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "CreateDeviceEnrollment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnrollment"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/devices": {
+      "get": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "ListDevices",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/devices/{id}/revoke": {
+      "post": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "RevokeDevice",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/devices/enroll": {
+      "post": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "EnrollDevice",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EnrollDevice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceEnrolledResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/devices/me": {
+      "get": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "GetOwnDevice",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceSelf"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/identity/devices/unlock": {
+      "post": {
+        "tags": [
+          "DeviceEndpoints"
+        ],
+        "operationId": "UnlockTablet",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnlockOnTablet"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TabletUnlocked"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/identity/invitations": {
       "post": {
         "tags": [
@@ -6440,6 +6754,18 @@
         },
         "description": "The converted quantity (full precision: round only for display), the factors used and the version's date."
       },
+      "CreateEnrollment": {
+        "required": [
+          "siteId"
+        ],
+        "type": "object",
+        "properties": {
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "CreateFieldUser": {
         "required": [
           "firstName",
@@ -6665,6 +6991,301 @@
           }
         },
         "description": "Densities in t/m³ from `EffectiveFrom`; `Swell` = bank / loose − 1 when both are known."
+      },
+      "DeviceEnrolledResponse": {
+        "required": [
+          "deviceId",
+          "tenantId",
+          "siteId",
+          "pinKey",
+          "settings",
+          "serverTime"
+        ],
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "tenantId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "pinKey": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/DeviceSettings"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "What a tablet keeps after enrolling: who it is, for which company and site, and its PIN key (base64, once)."
+      },
+      "DevicePublicKey": {
+        "required": [
+          "kty",
+          "crv",
+          "x",
+          "y"
+        ],
+        "type": "object",
+        "properties": {
+          "kty": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "crv": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "x": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "y": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The public half of the tablet's P-256 key, as a JWK (`kty` EC, `crv` P-256, base64url points)."
+      },
+      "DeviceResponse": {
+        "required": [
+          "id",
+          "name",
+          "model",
+          "platform",
+          "appVersion",
+          "siteId",
+          "status",
+          "enrolledAt",
+          "lastSeenAt",
+          "revokedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "platform": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "appVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "enrolledAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeenAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceSelf": {
+        "required": [
+          "deviceId",
+          "siteId",
+          "status",
+          "settings",
+          "serverTime"
+        ],
+        "type": "object",
+        "properties": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/DeviceSettings"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The calling tablet as the API sees it (status, site, settings, server time for its clock)."
+      },
+      "DeviceSettings": {
+        "required": [
+          "autoLockMinutes",
+          "offlineSessionHours"
+        ],
+        "type": "object",
+        "properties": {
+          "autoLockMinutes": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "offlineSessionHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "How tablets behave (US-P1-OFF-04 AC2/AC3), sent to each tablet with its settings."
+      },
+      "EnrollDevice": {
+        "required": [
+          "tenant",
+          "code",
+          "publicKey",
+          "proof",
+          "name",
+          "model",
+          "platform",
+          "appVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "publicKey": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DevicePublicKey"
+              }
+            ]
+          },
+          "proof": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "model": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "platform": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "appVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "EnrollmentCreated": {
+        "required": [
+          "enrollmentId",
+          "siteId",
+          "code",
+          "url",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "enrollmentId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The code (only ever shown here) and the address a tablet opens to enrol with it."
       },
       "EntitlementsResponse": {
         "required": [
@@ -8888,6 +9509,27 @@
         },
         "description": "A tenant's subscription. `Status`: trial, active, past_due, restricted, suspended, cancelled, expired,\ndeleted. `Period`: monthly or annual. Limits and features are resolved with the entitlements (slice 3)."
       },
+      "TabletUnlocked": {
+        "required": [
+          "userId",
+          "name",
+          "serverTime"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "TenantBrandingResponse": {
         "required": [
           "slug",
@@ -9039,6 +9681,27 @@
           }
         },
         "description": "The caller's company with its settings (US-P1-TEN-04); `LogoUrl` is null without a logo."
+      },
+      "UnlockOnTablet": {
+        "required": [
+          "employeeId",
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
       },
       "UpdateTenantSettings": {
         "required": [
@@ -9272,6 +9935,9 @@
   "tags": [
     {
       "name": "TenancyModule"
+    },
+    {
+      "name": "DeviceEndpoints"
     },
     {
       "name": "IdentityModule"

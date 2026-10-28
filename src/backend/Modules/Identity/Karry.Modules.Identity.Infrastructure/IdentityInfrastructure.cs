@@ -61,6 +61,12 @@ public static class IdentityInfrastructure
         services.AddScoped<ChangeUserRolesHandler>();
         services.AddScoped<ResendInvitationHandler>();
         services.AddScoped<SetPinHandler>();
+        services.AddScoped<DeviceStore>();
+        services.AddScoped<IDeviceStore>(sp => sp.GetRequiredService<DeviceStore>());
+        services.AddScoped<BuildingBlocks.Devices.IDeviceDirectory>(sp => sp.GetRequiredService<DeviceStore>());
+        services.AddScoped<DeviceAdministration>();
+        services.AddScoped<EnrollDeviceHandler>();
+        services.AddScoped<TabletSession>();
         services.AddScoped<IImportTarget, UserImport>();
         services.AddScoped<IDomainEventSubscriber<Domain.UserInvited>, ImportedUserAccounts>();
         services.AddScoped<IFirstAdminInvitation, FirstAdminInvitation>();

@@ -1,5 +1,8 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Devices;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,6 +22,7 @@ public static class TenancyExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.TryAddSingleton(TimeProvider.System);
         services.AddKarryAuthorization();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
         {
@@ -27,7 +31,7 @@ public static class TenancyExtensions
             options.RequireHttpsMetadata = configuration.GetValue("Authentication:RequireHttpsMetadata", true);
             options.MapInboundClaims = false; // keep "sub", "tenant_id" … as issued
             options.TokenValidationParameters.ValidateAudience = !string.IsNullOrEmpty(options.Audience);
-        });
+        }).AddScheme<AuthenticationSchemeOptions, DeviceAuthenticationHandler>(DeviceAuthenticationHandler.SchemeName, null); // field tablets (ADR-0028 §3)
         services.AddAuthorization(KarryPolicies.Add);
         services.Configure<TenancyOptions>(configuration.GetSection(TenancyOptions.Section));
         return services;
@@ -39,6 +43,18 @@ public static class TenancyExtensions
     /// </summary>
     public static IApplicationBuilder UseKarryTenancy(this IApplicationBuilder app) =>
         app.UseAuthentication().UseAuthorization().UseMiddleware<TenantResolutionMiddleware>().UseKarryAuthorization();
+
+    /// <summary>
+    /// The endpoint is for enrolled field tablets only (ADR-0028 §3): authenticated by the <c>Device</c> scheme alone, so
+    /// a person's token is refused here, and a device's assertion is refused everywhere else. A revoked device is
+    /// refused (<c>401 devices.revoked</c>) unless <paramref name="allowRevoked"/> (the upload that quarantines).
+    /// </summary>
+    public static TBuilder RequireDevice<TBuilder>(this TBuilder builder, bool allowRevoked = false)
+        where TBuilder : IEndpointConventionBuilder =>
+        builder
+            .RequireAuthorization(new AuthorizationPolicyBuilder(DeviceAuthenticationHandler.SchemeName)
+                .RequireAuthenticatedUser().RequireClaim(DeviceAuthenticationHandler.DeviceIdClaim).Build())
+            .WithMetadata(new DeviceEndpoint(allowRevoked));
 
     /// <summary>Opts an endpoint out of the module default "tenant required" (operator and public endpoints only).</summary>
     public static TBuilder AllowWithoutTenant<TBuilder>(this TBuilder builder)

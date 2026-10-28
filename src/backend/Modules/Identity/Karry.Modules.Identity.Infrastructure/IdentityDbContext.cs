@@ -50,6 +50,12 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
 
     public DbSet<DefaultRoleSettings> DefaultRoleSettings => Set<DefaultRoleSettings>();
 
+    public DbSet<Device> Devices => Set<Device>();
+
+    public DbSet<DeviceEnrollment> DeviceEnrollments => Set<DeviceEnrollment>();
+
+    public DbSet<DeviceAssertionRow> DeviceAssertions => Set<DeviceAssertionRow>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -149,6 +155,45 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             settings.HasIndex(s => new { s.TenantId, s.Role }).IsUnique();
             settings.Ignore(s => s.DomainEvents);
             settings.Ignore(s => s.AggregateKey);
+        });
+
+        modelBuilder.Entity<DeviceEnrollment>(enrollment =>
+        {
+            enrollment.ToTable("device_enrollments");
+            enrollment.HasKey(e => e.Id);
+            enrollment.Property(e => e.Id).HasConversion(id => id.Value, value => new DeviceEnrollmentId(value)).ValueGeneratedNever();
+            enrollment.Property(e => e.CodeHash).HasMaxLength(64).IsFixedLength();
+            enrollment.Property(e => e.CreatedBy).HasMaxLength(64);
+            enrollment.Property(e => e.DeviceId).HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DeviceId, Guid>(id => id.Value, value => new DeviceId(value)));
+            enrollment.Property<uint>("xmin").IsRowVersion(); // the same code used by two tablets at once: one wins
+            enrollment.HasIndex(e => new { e.TenantId, e.CodeHash }).IsUnique();
+            enrollment.Ignore(e => e.DomainEvents);
+            enrollment.Ignore(e => e.AggregateKey);
+        });
+
+        modelBuilder.Entity<Device>(device =>
+        {
+            device.ToTable("devices");
+            device.HasKey(d => d.Id);
+            device.Property(d => d.Id).HasConversion(id => id.Value, value => new DeviceId(value)).ValueGeneratedNever();
+            device.Property(d => d.Name).HasMaxLength(Device.NameMaxLength);
+            device.Property(d => d.Model).HasMaxLength(Device.DetailMaxLength);
+            device.Property(d => d.Platform).HasMaxLength(Device.DetailMaxLength);
+            device.Property(d => d.AppVersion).HasMaxLength(Device.AppVersionMaxLength);
+            device.Property(d => d.Status).HasConversion<string>().HasMaxLength(10);
+            device.Property(d => d.RevokedBy).HasMaxLength(64);
+            device.Property<uint>("xmin").IsRowVersion();
+            device.HasIndex(d => new { d.TenantId, d.SiteId });
+            device.Ignore(d => d.DomainEvents);
+            device.Ignore(d => d.AggregateKey);
+        });
+
+        modelBuilder.Entity<DeviceAssertionRow>(assertion =>
+        {
+            assertion.ToTable("device_assertions");
+            assertion.HasKey(a => new { a.DeviceId, a.AssertionId });
+            assertion.Property(a => a.AssertionId).HasMaxLength(64);
+            assertion.HasIndex(a => a.ExpiresAt);
         });
 
         // Platform bookkeeping of the importers (no tenant data): see deploy/database/global-reference-tables.txt.

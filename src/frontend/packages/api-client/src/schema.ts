@@ -100,6 +100,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identity/devices/enrollments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["CreateDeviceEnrollment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/devices/{id}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RevokeDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/devices/enroll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["EnrollDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/devices/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetOwnDevice"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/identity/devices/unlock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["UnlockTablet"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identity/invitations": {
         parameters: {
             query?: never;
@@ -1327,6 +1423,10 @@ export interface components {
             /** Format: date */
             densitiesFrom: string;
         };
+        CreateEnrollment: {
+            /** Format: uuid */
+            siteId: string;
+        };
         CreateFieldUser: {
             firstName: null | string;
             lastName: null | string;
@@ -1376,6 +1476,83 @@ export interface components {
             moisture: number | string;
             /** Format: double */
             swell: null | number | string;
+        };
+        /** @description What a tablet keeps after enrolling: who it is, for which company and site, and its PIN key (base64, once). */
+        DeviceEnrolledResponse: {
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: uuid */
+            tenantId: string;
+            /** Format: uuid */
+            siteId: string;
+            pinKey: string;
+            settings: components["schemas"]["DeviceSettings"];
+            /** Format: date-time */
+            serverTime: string;
+        };
+        /** @description The public half of the tablet's P-256 key, as a JWK (`kty` EC, `crv` P-256, base64url points). */
+        DevicePublicKey: {
+            kty: null | string;
+            crv: null | string;
+            x: null | string;
+            y: null | string;
+        };
+        DeviceResponse: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            model: null | string;
+            platform: null | string;
+            appVersion: null | string;
+            /** Format: uuid */
+            siteId: string;
+            status: string;
+            /** Format: date-time */
+            enrolledAt: string;
+            /** Format: date-time */
+            lastSeenAt: null | string;
+            /** Format: date-time */
+            revokedAt: null | string;
+        };
+        /** @description The calling tablet as the API sees it (status, site, settings, server time for its clock). */
+        DeviceSelf: {
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: uuid */
+            siteId: string;
+            status: string;
+            settings: components["schemas"]["DeviceSettings"];
+            /** Format: date-time */
+            serverTime: string;
+        };
+        /** @description How tablets behave (US-P1-OFF-04 AC2/AC3), sent to each tablet with its settings. */
+        DeviceSettings: {
+            /** Format: int32 */
+            autoLockMinutes: number | string;
+            /** Format: int32 */
+            offlineSessionHours: number | string;
+        };
+        EnrollDevice: {
+            tenant: null | string;
+            code: null | string;
+            publicKey: null | components["schemas"]["DevicePublicKey"];
+            proof: null | string;
+            name: null | string;
+            model: null | string;
+            platform: null | string;
+            appVersion: null | string;
+        };
+        /** @description The code (only ever shown here) and the address a tablet opens to enrol with it. */
+        EnrollmentCreated: {
+            /** Format: uuid */
+            enrollmentId: string;
+            /** Format: uuid */
+            siteId: string;
+            code: string;
+            /** Format: uri */
+            url: string;
+            /** Format: date-time */
+            expiresAt: string;
         };
         /**
          * @description What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is
@@ -1931,6 +2108,13 @@ export interface components {
                 [key: string]: number | string;
             };
         };
+        TabletUnlocked: {
+            /** Format: uuid */
+            userId: string;
+            name: string;
+            /** Format: date-time */
+            serverTime: string;
+        };
         /** @description Public sign-in branding: no data beyond what the sign-in page shows. */
         TenantBrandingResponse: {
             slug: string;
@@ -1968,6 +2152,10 @@ export interface components {
             logoUrl: null | string;
             /** Format: date-time */
             settingsChangedAt: null | string;
+        };
+        UnlockOnTablet: {
+            employeeId: null | string;
+            pin: null | string;
         };
         /** @description New settings, every field given (a full replacement). */
         UpdateTenantSettings: {
@@ -2325,6 +2513,275 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateDeviceEnrollment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateEnrollment"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnrollmentCreated"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceResponse"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    EnrollDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EnrollDevice"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceEnrolledResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetOwnDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSelf"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UnlockTablet: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnlockOnTablet"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TabletUnlocked"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };

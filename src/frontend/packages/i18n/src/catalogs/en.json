@@ -111,6 +111,7 @@
   "modules.identity": "Users and roles",
   "modules.audit": "Audit",
   "permissions.identity.users.read": "See people",
+  "permissions.identity.devices.manage": "Enrol and revoke site tablets",
   "permissions.identity.users.manage": "Invite, change and deactivate people",
   "permissions.identity.roles.read": "See roles",
   "permissions.identity.roles.manage": "Create and change roles and field levels",

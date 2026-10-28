@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Routing;
@@ -24,6 +25,16 @@ public sealed class EndpointAuthorizationTests
         ["GetCurrentFlags"] = "Feature flag values evaluated for the caller and their own company (which features to show); display only, the API checks every call.",
     };
 
+    /// <summary>
+    /// Endpoints for enrolled tablets (ADR-0028 §3): only a device-signed request reaches them (a person's token is refused),
+    /// the device is bound to one tenant and one site. Adding one is a security decision: give the reason.
+    /// </summary>
+    private static readonly Dictionary<string, string> DeviceOnly = new(StringComparer.Ordinal)
+    {
+        ["GetOwnDevice"] = "The calling tablet's own record, status and settings (looked up by its device ID).",
+        ["UnlockTablet"] = "A field user of the tablet's site checks their PIN online (server lockout, ledger event on lock).",
+    };
+
     /// <summary>Endpoints without a tenant: anonymous or for platform operators only.</summary>
     private static readonly Dictionary<string, string> WithoutTenant = new(StringComparer.Ordinal)
     {
@@ -44,6 +55,7 @@ public sealed class EndpointAuthorizationTests
         ["GetTenantBranding"] = "Anonymous login branding (threat model R-07).",
         ["GetTenantLogo"] = "Anonymous login branding (threat model R-07): the company logo, an image only (type read from the content, nosniff).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
+        ["EnrollDevice"] = "Anonymous: the single-use 15-minute enrollment code is the credential, looked up only under the company the slug names (ADR-0028).",
     };
 
     [Fact]
@@ -72,6 +84,16 @@ public sealed class EndpointAuthorizationTests
                 continue;
             }
 
+            if (endpoint.Metadata.GetMetadata<DeviceEndpoint>() is not null)
+            {
+                if (!DeviceOnly.ContainsKey(name) || permissions.Count > 0 || anyMember)
+                {
+                    problems.Add($"{name} is a device endpoint but is not in the reviewed list (or also names permissions).");
+                }
+
+                continue;
+            }
+
             if (permissions.Count == 0 && !anyMember)
             {
                 problems.Add($"{name} declares no permission (it is refused at run time).");
@@ -90,7 +112,7 @@ public sealed class EndpointAuthorizationTests
         }
 
         problems.Should().BeEmpty();
-        named.Should().Contain(AnyMember.Keys.Concat(WithoutTenant.Keys), "a stale review entry suggests a review that did not happen");
+        named.Should().Contain(AnyMember.Keys.Concat(WithoutTenant.Keys).Concat(DeviceOnly.Keys), "a stale review entry suggests a review that did not happen");
     }
 
     private static IEnumerable<RouteEndpoint> ModuleEndpoints(HostFactory factory) =>
