@@ -3,7 +3,7 @@ title: "ADR-0028: Field tablets as enrolled devices: device-signed requests, del
 area: adr
 tags: [offline, pwa, devices, enrollment, ecdsa, webcrypto, dexie, sync, pin, shared-tablet, quarantine]
 source: "Phase 1 sub-phase P1.15"
-status: proposed
+status: accepted
 last_updated: 2026-10-28
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-10-28
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.15 slice 1, 2026-10-28)
+- **Status:** Accepted (P1.15 built, 2026-10-28; on-device measurements pending, see Consequences)
 - **Date:** 2026-10-28
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-OFF-01…04, US-P1-IAM-03 AC2/AC3; TC-P1-OFF-001…005, TC-P1-OFF-008, TC-P1-IAM-004;
