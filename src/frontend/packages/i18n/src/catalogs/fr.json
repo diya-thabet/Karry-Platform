@@ -724,5 +724,8 @@
   "modules.assets": "Engins",
   "modules.imports": "Import Excel",
   "modules.tenancy": "Entreprise",
-  "modules.flags": "Fonctionnalités"
+  "modules.flags": "Fonctionnalités",
+  "portal.nav.open": "Ouvrir le menu",
+  "portal.nav.collapse": "Réduire le menu",
+  "portal.nav.pin": "Garder le menu ouvert"
 }

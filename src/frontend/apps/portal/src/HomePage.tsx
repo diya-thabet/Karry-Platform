@@ -65,7 +65,7 @@ export function HomePage() {
       {loaded && stats.length === 0 && actions.length === 0 && <EmptyState title={t("portal.home.welcome", { company: tenant?.name ?? t("common.appName") })} />}
 
       {stats.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
           {stats.map((stat) => <StatCard key={stat.key} icon={stat.icon} label={stat.label} value={stat.value} />)}
         </div>
       )}

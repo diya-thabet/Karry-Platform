@@ -17,6 +17,10 @@ const stories = Object.entries(modules).flatMap(([file, module]) =>
   })),
 );
 const i18n = await createI18n({ language: "fr" });
+// axe checks what people read once a dialog or menu has opened, not a frame of its fade-in (colour contrast mid-fade).
+const still = document.createElement("style");
+still.textContent = "*, ::before, ::after { animation: none !important; transition: none !important; }";
+document.head.append(still);
 
 afterEach(() => { cleanup(); });
 

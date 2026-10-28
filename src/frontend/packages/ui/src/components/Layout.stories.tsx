@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Globe, LogOut, Truck } from "lucide-react";
+import { useState } from "react";
 import { Button } from "./Button";
+import { Drawer } from "./Drawer";
 import { Card, PageHeader, StatCard } from "./Layout";
 import { Menu } from "./Menu";
 import { StatusChip } from "./StatusChip";
@@ -35,3 +37,17 @@ export const AccountMenu: Story = {
     />
   ),
 };
+
+function DrawerDemo() {
+  const [open, setOpen] = useState(true);
+  return (
+    <>
+      <Button variant="secondary" onClick={() => { setOpen(true); }}>Ouvrir le menu</Button>
+      <Drawer open={open} onOpenChange={setOpen} title="Navigation principale" closeLabel="Fermer" header={<strong>Carrière Démo A</strong>}>
+        <nav aria-label="Navigation principale" className="p-3"><a href="#sites" className="block rounded-lg px-3 py-2 text-sm">Sites</a></nav>
+      </Drawer>
+    </>
+  );
+}
+
+export const MobileDrawer: Story = { render: () => <DrawerDemo /> };
