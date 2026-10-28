@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Karry.BuildingBlocks.UnitTests;
 
 [EventType("serializerprobe.happened.v1")]
+[AuditSubject("probe", nameof(Id))]
 public sealed record ProbeHappened(Guid Id) : DomainEvent;
 
 public sealed class SerializerProbeDbContext(DbContextOptions<SerializerProbeDbContext> options) : ModuleDbContext(options)

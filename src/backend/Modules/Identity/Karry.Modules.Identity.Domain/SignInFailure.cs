@@ -12,6 +12,7 @@ public readonly record struct SignInFailureId(Guid Value) : IEntityId<SignInFail
 
 /// <summary>A refused sign-in of a known user, for the tenant's audit ledger (US-P1-IAM-01 AC4). IDs and reason only.</summary>
 [EventType("identity.sign_in_failed.v1")]
+[AuditSubject("user", nameof(UserId))]
 public sealed record SignInFailed(Guid UserId, string Reason, bool Locked) : DomainEvent;
 
 /// <summary>

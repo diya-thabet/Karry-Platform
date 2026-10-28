@@ -46,21 +46,27 @@ public sealed record DensityVersion(DateOnly EffectiveFrom, decimal? Bank, decim
 public sealed record MaterialSnapshot(string Code, string Name, string Kind);
 
 [EventType("materials.material_created.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record MaterialCreated(Guid MaterialId, MaterialSnapshot Material, DensityVersion Densities, string? Actor) : DomainEvent;
 
 [EventType("materials.material_changed.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record MaterialChanged(Guid MaterialId, MaterialSnapshot Before, MaterialSnapshot After, string? Actor) : DomainEvent;
 
 [EventType("materials.material_archived.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record MaterialArchived(Guid MaterialId, string Code, string? Actor) : DomainEvent;
 
 [EventType("materials.material_restored.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record MaterialRestored(Guid MaterialId, string Code, string? Actor) : DomainEvent;
 
 [EventType("materials.density_version_set.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record DensityVersionSet(Guid MaterialId, string Code, DensityVersion? Before, DensityVersion After, string? Actor) : DomainEvent;
 
 [EventType("materials.density_version_removed.v1")]
+[AuditSubject("material", nameof(MaterialId))]
 public sealed record DensityVersionRemoved(Guid MaterialId, string Code, DensityVersion Removed, string? Actor) : DomainEvent;
 
 /// <summary>

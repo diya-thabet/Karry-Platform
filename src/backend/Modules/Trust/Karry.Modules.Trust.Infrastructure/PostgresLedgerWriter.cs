@@ -63,6 +63,19 @@ internal sealed class PostgresLedgerWriter : ILedgerWriter
                     ("tenant", group.Key.Value), ("seq", sequence), ("event_id", record.EventId), ("type", record.EventType),
                     ("occurred_at", occurredAt), ("payload", payload), ("payload_hash", payloadHash), ("prev_hash", previous),
                     ("entry_hash", entryHash)).ConfigureAwait(false);
+                if (record.Subject is { } subject)
+                {
+                    // What the entry is about, for the audit viewer's filters (ADR-0029 §1): derived, not hashed.
+                    await ExecuteAsync(connection, transaction,
+                        """
+                        INSERT INTO audit.ledger_subjects (tenant_id, seq, actor, entity_type, entity_id)
+                        VALUES (@tenant, @seq, @actor, @entity_type, @entity_id)
+                        """,
+                        cancellationToken,
+                        ("tenant", group.Key.Value), ("seq", sequence), ("actor", (object?)subject.Actor ?? DBNull.Value),
+                        ("entity_type", subject.Entity), ("entity_id", (object?)subject.EntityId ?? DBNull.Value)).ConfigureAwait(false);
+                }
+
                 previous = entryHash;
             }
 

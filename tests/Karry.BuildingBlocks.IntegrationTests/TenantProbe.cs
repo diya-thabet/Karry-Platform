@@ -16,6 +16,7 @@ public readonly record struct SiteNoteId(Guid Value) : IEntityId<SiteNoteId>
 }
 
 [EventType("tenantprobe.note_written.v1")]
+[AuditSubject("note", nameof(NoteId))]
 public sealed record NoteWritten(Guid NoteId, string Text) : DomainEvent;
 
 public sealed class SiteNote : AggregateRoot<SiteNoteId>, ITenantOwned

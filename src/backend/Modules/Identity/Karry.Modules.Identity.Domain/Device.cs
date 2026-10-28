@@ -25,14 +25,17 @@ public enum DeviceStatus
 
 /// <summary>An enrollment code was created for a site (US-P1-OFF-02 AC1). The code itself is never recorded.</summary>
 [EventType("identity.device_enrollment_created.v1")]
+[AuditSubject("device_enrollment", nameof(EnrollmentId))]
 public sealed record DeviceEnrollmentCreated(Guid EnrollmentId, Guid SiteId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
 
 /// <summary>A tablet enrolled with a code: bound to the tenant and the code's site.</summary>
 [EventType("identity.device_enrolled.v1")]
+[AuditSubject("device", nameof(DeviceId))]
 public sealed record DeviceEnrolled(Guid DeviceId, Guid SiteId, Guid EnrollmentId, string Name, string? Model, string? Platform, string? AppVersion) : DomainEvent;
 
 /// <summary>A tablet was revoked (US-P1-OFF-02 AC2): it can no longer call the API; what it uploads later is quarantined.</summary>
 [EventType("identity.device_revoked.v1")]
+[AuditSubject("device", nameof(DeviceId))]
 public sealed record DeviceRevoked(Guid DeviceId, string? Actor) : DomainEvent;
 
 /// <summary>

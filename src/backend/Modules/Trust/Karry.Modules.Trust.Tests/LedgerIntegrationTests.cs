@@ -1,5 +1,8 @@
+using Karry.BuildingBlocks.Ledger;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Domain;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.SharedKernel.Domain;
@@ -21,6 +24,7 @@ public readonly record struct BlastId(Guid Value) : IEntityId<BlastId>
 }
 
 [EventType("ledgerprobe.blast_recorded.v1")]
+[AuditSubject("blast", nameof(BlastId))]
 public sealed record BlastRecorded(Guid BlastId, decimal Tonnes) : DomainEvent;
 
 public sealed class Blast : AggregateRoot<BlastId>, ITenantOwned
@@ -175,7 +179,7 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
     [Trait("TestCase", "TC-P1-AUD-002")]
     [InlineData("UPDATE audit.ledger_entries SET payload = '{}'")]
     [InlineData("DELETE FROM audit.ledger_entries")]
-    [InlineData("TRUNCATE audit.ledger_entries")]
+    [InlineData("TRUNCATE audit.ledger_entries CASCADE")] // CASCADE: past the subject index's foreign key, to the trigger
     public async Task Nobody_can_change_or_delete_ledger_entries(string sql)
     {
         await SaveBlastAsync(TenantA, 1);
@@ -320,6 +324,67 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
     public async Task Invalid_arguments_exit_with_code_2(params string[] args) =>
         (await CliAsync(args)).Exit.Should().Be(2);
 
+    [Fact]
+    [Trait("Story", "US-P1-AUD-04")]
+    public async Task Every_entry_is_indexed_by_its_subject_in_the_same_transaction()
+    {
+        await SaveBlastAsync(TenantA, 1);
+        await SaveBlastAsync(TenantA, 2);
+
+        var subjects = await SubjectsAsync(TenantA);
+        subjects.Select(s => s.Seq).Should().Equal(1L, 2L);
+        subjects.Should().OnlyContain(s => s.EntityType == "blast" && s.Actor == null);
+        var payloads = (await EntriesAsync(TenantA)).Select(e => e.Payload).ToList();
+        subjects.Select(s => s.EntityId).Should().Equal(payloads.Select(p => System.Text.Json.JsonDocument.Parse(p).RootElement.GetProperty("blastId").GetString()));
+    }
+
+    [Theory]
+    [Trait("Story", "US-P1-AUD-04")]
+    [InlineData("UPDATE audit.ledger_subjects SET entity_id = 'forged'")]
+    [InlineData("DELETE FROM audit.ledger_subjects")]
+    [InlineData("TRUNCATE audit.ledger_subjects")]
+    public async Task Nobody_can_change_or_delete_the_subject_index(string sql)
+    {
+        await SaveBlastAsync(TenantA, 1);
+
+        foreach (var role in new[] { database.App, database.Owner })
+        {
+            var act = () => ExecuteAsync(role, $"SET app.tenant_id = '{TenantA}'; {sql}");
+            (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        }
+
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_subjects")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-04")]
+    public async Task The_subject_index_is_isolated_per_tenant()
+    {
+        await SaveBlastAsync(TenantA, 1);
+        await SaveBlastAsync(TenantB, 1);
+
+        (await SubjectsAsync(TenantA)).Should().ContainSingle().Which.TenantId.Should().Be(TenantA);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-04")]
+    public async Task The_backfill_indexes_entries_written_before_the_index_existed_and_runs_twice_safely()
+    {
+        await AppendWithoutSubjectAsync(TenantA, 3);
+        await AppendWithoutSubjectAsync(TenantB, 2);
+        await SaveBlastAsync(TenantA, 9); // already indexed
+        await AppendUnknownEventAsync(TenantA); // a newer version's event: left without a subject
+
+        var backfill = services.GetRequiredService<ILedgerSubjectBackfill>();
+        (await backfill.RunAsync([TenantA, TenantB], TestContext.Current.CancellationToken)).Should().Be(5);
+        (await backfill.RunAsync([TenantA, TenantB], TestContext.Current.CancellationToken)).Should().Be(0);
+
+        (await SubjectsAsync(TenantA)).Select(s => s.Seq).Should().Equal(1L, 2L, 3L, 4L);
+        (await SubjectsAsync(TenantB)).Select(s => s.Seq).Should().Equal(1L, 2L);
+        (await SubjectsAsync(TenantA)).Should().OnlyContain(s => s.EntityType == "blast" && s.EntityId != null);
+        LedgerVerifier.Verify(await EntriesAsync(TenantA)).IsValid.Should().BeTrue();
+    }
+
     private static async Task<(int Exit, string Output)> CliAsync(params string[] args)
     {
         await using var output = new StringWriter();
@@ -333,6 +398,7 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         collection.AddLogging();
         collection.AddSingleton<TimeProvider>(clock);
         collection.AddTrustInfrastructure(connectionString);
+        collection.AddSingleton(new EventSerializer([typeof(BlastRecorded).Assembly]));
         collection.AddModuleDbContext<LedgerProbeDbContext>(connectionString);
         return collection.BuildServiceProvider(validateScopes: true);
     }
@@ -362,6 +428,39 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         var trust = scope.ServiceProvider.GetRequiredService<TrustDbContext>();
         var rows = await trust.LedgerEntries.OrderBy(e => e.Seq).ToListAsync(TestContext.Current.CancellationToken);
         return [.. rows.Select(r => new LedgerEntry(r.TenantId, r.Seq, r.EventId, r.EventType, r.OccurredAt, r.Payload, r.PayloadHash, r.PrevHash, r.EntryHash))];
+    }
+
+    private async Task<List<LedgerSubjectRow>> SubjectsAsync(TenantId tenant)
+    {
+        await using var scope = Scope(tenant);
+        var trust = scope.ServiceProvider.GetRequiredService<TrustDbContext>();
+        return await trust.LedgerSubjects.AsNoTracking().OrderBy(s => s.Seq).ToListAsync(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>Entries as an older version wrote them: through the real writer, with no subject.</summary>
+    private Task AppendWithoutSubjectAsync(TenantId tenant, int count) =>
+        AppendAsync(tenant, [.. Enumerable.Range(1, count).Select(i =>
+        {
+            var blast = new BlastRecorded(Guid.CreateVersion7(), i) { OccurredAt = clock.GetUtcNow() };
+            return new LedgerRecord(tenant, blast.EventId, EventTypeAttribute.NameOf(typeof(BlastRecorded)), EventSerializer.Serialize(blast), blast.OccurredAt);
+        })]);
+
+    private Task AppendUnknownEventAsync(TenantId tenant) =>
+        AppendAsync(tenant, [new LedgerRecord(tenant, Guid.CreateVersion7(), "future.thing_happened.v1", "{}", clock.GetUtcNow())]);
+
+    private async Task AppendAsync(TenantId tenant, IReadOnlyList<LedgerRecord> records)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(database.App);
+        await connection.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+        await using (var setTenant = new NpgsqlCommand($"SELECT set_config('app.tenant_id', '{tenant}', true)", connection, transaction))
+        {
+            await setTenant.ExecuteNonQueryAsync(ct);
+        }
+
+        await services.GetRequiredService<ILedgerWriter>().AppendAsync(connection, transaction, tenant, records, ct);
+        await transaction.CommitAsync(ct);
     }
 
     private static async Task<T> ScalarAsync<T>(string connectionString, string sql)

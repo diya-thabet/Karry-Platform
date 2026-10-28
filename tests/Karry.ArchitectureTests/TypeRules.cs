@@ -24,6 +24,30 @@ public static partial class TypeRules
             .ToList();
     }
 
+    /// <summary>
+    /// The audit viewer filters the ledger by what each event is about (ADR-0029 §1): every named event declares its
+    /// subject, and the property it names exists.
+    /// </summary>
+    public static IEnumerable<string> DomainEventsNameTheirAuditSubject(IEnumerable<Type> types)
+    {
+        foreach (var type in types.Where(t => typeof(DomainEvent).IsAssignableFrom(t) && !t.IsAbstract && t.GetCustomAttribute<EventTypeAttribute>() is not null))
+        {
+            if (type.GetCustomAttribute<AuditSubjectAttribute>() is not { } subject)
+            {
+                yield return $"{type.FullName}: domain event without [AuditSubject(\"entity\", nameof(Id))].";
+            }
+            else if (type.GetProperty(subject.IdProperty) is null)
+            {
+                yield return $"{type.FullName}: [AuditSubject] names {subject.IdProperty}, which the event does not have.";
+            }
+            else if (type.GetProperty(subject.IdProperty)!.PropertyType is var idType && idType != typeof(Guid) && idType != typeof(Guid?) && idType != typeof(string))
+            {
+                // Anything else is stored through ToString(), e.g. "ThingId { Value = … }": the viewer could never match it.
+                yield return $"{type.FullName}: [AuditSubject] property {subject.IdProperty} is a {idType.Name}; use a Guid or a string.";
+            }
+        }
+    }
+
     /// <summary>Events are stored and dispatched by name: a missing, malformed, foreign-prefixed or duplicate name breaks delivery.</summary>
     public static IEnumerable<string> DomainEventsHaveStableUniqueTypeNames(IEnumerable<Type> types)
     {

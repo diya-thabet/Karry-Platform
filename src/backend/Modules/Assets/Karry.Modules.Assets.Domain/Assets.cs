@@ -59,23 +59,29 @@ public sealed record AssetSnapshot(
     string Code, string Name, string Type, string? Make, string? Model, string? SerialNumber, string? Plate, int? Year, DateOnly? AcquiredOn);
 
 [EventType("assets.asset_registered.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetRegistered(Guid AssetId, AssetSnapshot Asset, Guid SiteId, string? Actor) : DomainEvent;
 
 [EventType("assets.asset_changed.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetChanged(Guid AssetId, AssetSnapshot Before, AssetSnapshot After, string? Actor) : DomainEvent;
 
 [EventType("assets.asset_moved.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetMoved(Guid AssetId, string Code, Guid FromSiteId, Guid ToSiteId, string? Actor) : DomainEvent;
 
 /// <summary>A new label token: the printed label before it no longer resolves. The token itself is not in the ledger.</summary>
 [EventType("assets.asset_label_reissued.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetLabelReissued(Guid AssetId, string Code, string? Actor) : DomainEvent;
 
 /// <summary>The asset's photo changed: its SHA-256 fingerprint, or null when it was removed.</summary>
 [EventType("assets.asset_photo_changed.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetPhotoChanged(Guid AssetId, string Code, string? Sha256, string? Actor) : DomainEvent;
 
 [EventType("assets.asset_status_changed.v1")]
+[AuditSubject("asset", nameof(AssetId))]
 public sealed record AssetStatusChanged(Guid AssetId, string Code, string From, string To, string? Actor) : DomainEvent;
 
 /// <summary>

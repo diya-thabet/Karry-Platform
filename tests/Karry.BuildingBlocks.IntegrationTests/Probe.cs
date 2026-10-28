@@ -14,6 +14,7 @@ public readonly record struct ProbeId(Guid Value) : IEntityId<ProbeId>
 }
 
 [EventType("probe.renamed.v1")]
+[AuditSubject("probe", nameof(ProbeId))]
 public sealed record ProbeRenamed(Guid ProbeId, string Name, int Sequence) : DomainEvent;
 
 public sealed class Probe : AggregateRoot<ProbeId>

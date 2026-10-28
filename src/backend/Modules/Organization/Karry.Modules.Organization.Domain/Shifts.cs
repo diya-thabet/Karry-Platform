@@ -49,16 +49,20 @@ public enum NonWorkingDayKind
 public sealed record ShiftSnapshot(string Code, string Name, string Start, string End, IReadOnlyList<string> Days);
 
 [EventType("organization.shift_pattern_set.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record ShiftPatternSet(
     Guid SiteId, DateOnly EffectiveFrom, IReadOnlyList<ShiftSnapshot>? Before, IReadOnlyList<ShiftSnapshot> After, string? Actor) : DomainEvent;
 
 [EventType("organization.shift_pattern_removed.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record ShiftPatternRemoved(Guid SiteId, DateOnly EffectiveFrom, IReadOnlyList<ShiftSnapshot> Shifts, string? Actor) : DomainEvent;
 
 [EventType("organization.non_working_day_set.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record NonWorkingDaySet(Guid SiteId, DateOnly Date, string Kind, string Name, string? Actor) : DomainEvent;
 
 [EventType("organization.non_working_day_removed.v1")]
+[AuditSubject("site", nameof(SiteId))]
 public sealed record NonWorkingDayRemoved(Guid SiteId, DateOnly Date, string Kind, string Name, string? Actor) : DomainEvent;
 
 /// <summary>

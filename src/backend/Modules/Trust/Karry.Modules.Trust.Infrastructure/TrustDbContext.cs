@@ -39,6 +39,23 @@ public sealed class LedgerHeadRow : ITenantOwned
     public required string LastHash { get; init; }
 }
 
+/// <summary>
+/// What a ledger entry is about (ADR-0029 §1): who acted and on which entity, read from the event's
+/// <c>[AuditSubject]</c>. An index for the audit viewer's filters, derived from the hashed payload, never hashed.
+/// </summary>
+public sealed class LedgerSubjectRow : ITenantOwned
+{
+    public TenantId TenantId { get; init; }
+
+    public long Seq { get; init; }
+
+    public string? Actor { get; init; }
+
+    public required string EntityType { get; init; }
+
+    public string? EntityId { get; init; }
+}
+
 /// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
 public sealed class AnchorRow : ITenantOwned
 {
@@ -68,6 +85,8 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
 
     public DbSet<AnchorRow> Anchors => Set<AnchorRow>();
 
+    public DbSet<LedgerSubjectRow> LedgerSubjects => Set<LedgerSubjectRow>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -87,6 +106,17 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             head.ToTable("ledger_heads");
             head.HasKey(h => h.TenantId);
             head.Property(h => h.LastHash).HasMaxLength(64).IsFixedLength();
+        });
+        modelBuilder.Entity<LedgerSubjectRow>(subject =>
+        {
+            subject.ToTable("ledger_subjects");
+            subject.HasKey(s => new { s.TenantId, s.Seq });
+            subject.Property(s => s.Actor).HasMaxLength(200);
+            subject.Property(s => s.EntityType).HasMaxLength(50);
+            subject.Property(s => s.EntityId).HasMaxLength(200);
+            // One index per filter of the audit viewer, newest first within a tenant.
+            subject.HasIndex(s => new { s.TenantId, s.Actor, s.Seq });
+            subject.HasIndex(s => new { s.TenantId, s.EntityType, s.EntityId, s.Seq });
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

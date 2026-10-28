@@ -15,6 +15,7 @@ public readonly record struct TenantFlagId(Guid Value) : IEntityId<TenantFlagId>
 
 /// <summary>A company's (or one of its users') flag value changed; <c>After</c> null: the override was removed.</summary>
 [EventType("flags.tenant_flag_changed.v1")]
+[AuditSubject("flag", nameof(Key))]
 public sealed record TenantFlagChanged(string Key, string? Subject, bool? Before, bool? After, string? Actor) : DomainEvent;
 
 /// <summary>

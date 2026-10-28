@@ -18,6 +18,7 @@ public static class TrustInfrastructure
         services.AddScoped<IAnchorBookkeeping, EfAnchorBookkeeping>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
+        services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
         return services;
     }
 

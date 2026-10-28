@@ -20,6 +20,18 @@ public sealed class TypeRuleTests
         TypeRules.DomainEventsHaveStableUniqueTypeNames(ProductTypes).Should().BeEmpty();
 
     [Fact]
+    public void Product_domain_events_name_their_audit_subject() =>
+        TypeRules.DomainEventsNameTheirAuditSubject(ProductTypes).Should().BeEmpty();
+
+    [Fact]
+    public void An_event_without_a_subject_or_naming_a_missing_property_is_a_violation() =>
+        TypeRules.DomainEventsNameTheirAuditSubject([typeof(Fine), typeof(WrongSubject), typeof(TypedSubject), typeof(Subjected)])
+            .Should().HaveCount(3)
+            .And.Contain(v => v.Contains(nameof(TypedSubject), StringComparison.Ordinal))
+            .And.Contain(v => v.Contains(nameof(Fine), StringComparison.Ordinal))
+            .And.Contain(v => v.Contains(nameof(WrongSubject), StringComparison.Ordinal));
+
+    [Fact]
     public void Product_aggregates_have_no_public_setters() =>
         TypeRules.AggregatesHaveNoPublicSetters(ProductTypes).Should().BeEmpty();
 
@@ -62,6 +74,18 @@ public sealed class TypeRuleTests
 
     [EventType("probe.other_thing.v2")]
     public sealed record Fine : DomainEvent;
+
+    [EventType("probe.wrong_subject.v1")]
+    [AuditSubject("thing", "ThingId")]
+    public sealed record WrongSubject(Guid Id) : DomainEvent;
+
+    [EventType("probe.typed_subject.v1")]
+    [AuditSubject("thing", nameof(Thing))]
+    public sealed record TypedSubject(ThingId Thing) : DomainEvent;
+
+    [EventType("probe.subjected.v1")]
+    [AuditSubject("thing", nameof(Id))]
+    public sealed record Subjected(Guid Id) : DomainEvent;
 
     public readonly record struct ThingId(Guid Value) : IEntityId<ThingId>
     {

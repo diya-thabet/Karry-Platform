@@ -22,16 +22,20 @@ public sealed record RoleContent(IReadOnlyList<string> Permissions, IReadOnlyDic
 }
 
 [EventType("identity.role_created.v1")]
+[AuditSubject("role", nameof(Role))]
 public sealed record RoleCreated(string Role, string? BasedOn, bool Office, RoleContent Content, string? Actor) : DomainEvent;
 
 [EventType("identity.role_changed.v1")]
+[AuditSubject("role", nameof(Role))]
 public sealed record RoleChanged(string Role, RoleContent Before, RoleContent After, string? Actor) : DomainEvent;
 
 [EventType("identity.role_deleted.v1")]
+[AuditSubject("role", nameof(Role))]
 public sealed record RoleDeleted(string Role, RoleContent Before, string? Actor) : DomainEvent;
 
 /// <summary>Field levels of a default role changed (its permissions are fixed by the catalogue).</summary>
 [EventType("identity.field_levels_changed.v1")]
+[AuditSubject("role", nameof(Role))]
 public sealed record FieldLevelsChanged(string Role, IReadOnlyDictionary<string, string> Before, IReadOnlyDictionary<string, string> After, string? Actor) : DomainEvent;
 
 /// <summary>

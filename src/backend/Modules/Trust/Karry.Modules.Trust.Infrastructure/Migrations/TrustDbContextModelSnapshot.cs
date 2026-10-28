@@ -252,6 +252,47 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
 
                     b.ToTable("ledger_heads", "audit");
                 });
+
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.LedgerSubjectRow", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long>("Seq")
+                        .HasColumnType("bigint")
+                        .HasColumnName("seq");
+
+                    b.Property<string>("Actor")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor");
+
+                    b.Property<string>("EntityId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("entity_id");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("entity_type");
+
+                    b.HasKey("TenantId", "Seq")
+                        .HasName("pk_ledger_subjects");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_ledger_subjects_tenant_id");
+
+                    b.HasIndex("TenantId", "Actor", "Seq")
+                        .HasDatabaseName("ix_ledger_subjects_tenant_id_actor_seq");
+
+                    b.HasIndex("TenantId", "EntityType", "EntityId", "Seq")
+                        .HasDatabaseName("ix_ledger_subjects_tenant_id_entity_type_entity_id_seq");
+
+                    b.ToTable("ledger_subjects", "audit");
+                });
 #pragma warning restore 612, 618
         }
     }
