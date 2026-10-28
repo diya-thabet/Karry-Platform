@@ -33,7 +33,10 @@ public sealed class AssetImport(
 
     public string Permission => AssetsPermissions.RegistryManage;
 
-    public IReadOnlyList<ImportColumn> Columns { get; } =
+    public IReadOnlyList<ImportColumn> Columns => AssetColumns;
+
+    /// <summary>The columns of the assets file, in template order (the demo fleet file uses them too).</summary>
+    public static IReadOnlyList<ImportColumn> AssetColumns { get; } =
     [
         new("code", "Code", "Code", Required: true, Example: "PEL-01"),
         new("name", "Name", "Nom", Required: true, Example: "Pelle CAT 336"),
