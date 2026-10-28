@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,13 @@ namespace Karry.BuildingBlocks.Persistence;
 /// </summary>
 public static partial class MigrationRunner
 {
+    /// <summary>
+    /// EF Core builds a context's design-time model lazily, once per process, and reading it while another thread builds
+    /// it fails ("The model must be finalized…"). Hosts in one process (test classes run in parallel) therefore migrate
+    /// one context type at a time; different modules still migrate side by side.
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, SemaphoreSlim> Gates = new();
+
     public static async Task<int> MigrateAsync(IServiceProvider services, string ownerConnectionString, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(services);
@@ -20,10 +28,19 @@ public static partial class MigrationRunner
         var databases = services.GetServices<ModuleDatabase>().DistinctBy(d => d.ContextType).ToList();
         foreach (var database in databases)
         {
-            await using var context = database.CreateForMigration(ownerConnectionString);
-            var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
-            await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
-            LogMigrated(logger, context.Schema, pending.Count);
+            var gate = Gates.GetOrAdd(database.ContextType, _ => new SemaphoreSlim(1, 1));
+            await gate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                await using var context = database.CreateForMigration(ownerConnectionString);
+                var pending = (await context.Database.GetPendingMigrationsAsync(cancellationToken).ConfigureAwait(false)).ToList();
+                await context.Database.MigrateAsync(cancellationToken).ConfigureAwait(false);
+                LogMigrated(logger, context.Schema, pending.Count);
+            }
+            finally
+            {
+                gate.Release();
+            }
         }
 
         return databases.Count;
