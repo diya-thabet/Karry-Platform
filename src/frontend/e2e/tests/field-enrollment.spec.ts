@@ -24,13 +24,14 @@ async function signIn(page: Page, username: string) {
 }
 
 test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
-  test("TC-P1-OFF-001/003, OFF-04: a site manager adds a tablet with a code, the tablet enrols, an operator unlocks it, it downloads its site's data, keeps it and unlocks offline, and is listed", async ({ browser, page }) => {
+  test("TC-P1-OFF-001/003, OFF-04: a site manager adds a tablet with a code, the tablet enrols, an operator unlocks it, it downloads its site's data, keeps it, unlocks and finds a machine offline, and is listed", async ({ browser, page }) => {
     const name = `Pont-bascule ${String(Date.now())}`;
     await page.goto(`${portal("demo-carriere-b")}/settings/tablets`);
     await signIn(page, "site-manager@demo-carriere-b.karry.test");
     await page.getByRole("button", { name: "Ajouter une tablette" }).click();
     await page.getByRole("combobox", { name: "Site" }).click();
-    await page.getByRole("option").first().click();
+    // The demo quarry of company B, whose machines include the excavator PEL-01.
+    await page.getByRole("option", { name: /^CAR-KAK · / }).click();
     await page.getByRole("button", { name: "Créer le code" }).click();
     const code = (await page.getByLabel("Code à saisir sur la tablette").textContent())?.trim() ?? "";
     expect(code).toMatch(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$/);
@@ -67,6 +68,13 @@ test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
     await expect(tablet.getByRole("heading", { level: 1, name: "Karry Terrain" }), "enrolled for good: the key is kept on the tablet").toBeVisible();
     await expect(sync.getByText("Hors ligne", { exact: true })).toBeVisible();
     await expect(sync.getByText(kept)).toBeVisible();
+
+    // Still offline: a machine is found on the tablet by its typed code (no camera in the test browser).
+    await tablet.getByRole("button", { name: "Trouver une machine" }).click();
+    await tablet.getByLabel(/Code, nom ou étiquette/).fill("pel");
+    await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^PEL-01/ }).click();
+    await expect(tablet.getByRole("region", { name: "Machine choisie" })).toContainText("Pelle Komatsu PC350");
+    await tablet.getByRole("button", { name: "Retour à l’accueil" }).click();
     await context.setOffline(false);
 
     await tablet.getByRole("button", { name: "Verrouiller" }).click();

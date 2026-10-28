@@ -22,7 +22,7 @@ function environment(overrides: Partial<FieldEnvironment> = {}): FieldEnvironmen
   return {
     db: openOfflineDb(`field-${crypto.randomUUID()}`), updates: createUpdates(), persisted: Promise.resolve(true),
     company: "demo-carriere-a", code: null, enroll: vi.fn(device), pull: vi.fn(() => Promise.resolve("ok" as const)),
-    unlock: vi.fn(() => Promise.resolve(operator)), ...overrides,
+    unlock: vi.fn(() => Promise.resolve(operator)), scanner: null, ...overrides,
   } as FieldEnvironment & { updates: ReturnType<typeof createUpdates> };
 }
 
@@ -182,6 +182,92 @@ describe("shared tablet (US-P1-OFF-04)", () => {
   });
 });
 
+describe("finding a machine (P1.15, ADR-0028 §5)", () => {
+  const label = "KRY1:ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+  async function withMachines(overrides: Partial<FieldEnvironment> = {}) {
+    const env = await enrolled(overrides);
+    const machine = (id: string, code: string, name: string, labelCode: string | null) => ({
+      id, code, name, type: "excavator", siteId: "s1", status: "active", make: "Caterpillar", model: "336", serialNumber: null, plate: "123 TU 4567", labelCode,
+    });
+    await applyChanges(env.db, {
+      full: true, cursor: "c1", serverTime: "2026-10-28T10:00:00Z",
+      changes: {
+        sites: { upserts: [], removes: [] }, shiftPatterns: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
+        materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] },
+        assets: { upserts: [machine("a1", "PE-01", "Pelle 1", label), machine("a2", "PE-02", "Pelle 2", null), machine("t1", "TO-01", "Tombereau", null)], removes: [] },
+      },
+    });
+    return env;
+  }
+
+  /** A camera that reads this text once it is started, and says when it is released. */
+  function camera(text: string) {
+    const released = vi.fn();
+    const scanner = { start: vi.fn((_: HTMLVideoElement, onCode: (code: string) => void) => {
+      setTimeout(() => { onCode(text); }, 0);
+      return Promise.resolve(released);
+    }) };
+    return { scanner, released };
+  }
+
+  async function openFinder(env: FieldEnvironment) {
+    await renderHome(env);
+    fireEvent.click(screen.getByRole("button", { name: "Trouver une machine" }));
+    await screen.findByRole("heading", { level: 1, name: "Trouver une machine" });
+  }
+
+  it("selects the machine of a scanned QR label and releases the camera", async () => {
+    const { scanner, released } = camera(label);
+    await openFinder(await withMachines({ scanner }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Scanner l’étiquette QR" }));
+
+    const card = await screen.findByRole("region", { name: "Machine choisie" });
+    expect(card).toHaveTextContent("PE-01");
+    expect(card).toHaveTextContent("Pelle 1");
+    expect(card).toHaveTextContent("Caterpillar · 336 · 123 TU 4567");
+    await vi.waitFor(() => { expect(released).toHaveBeenCalled(); });
+    expect(screen.queryByLabelText(/Caméra/)).not.toBeInTheDocument();
+  });
+
+  it("says when a scanned label is not one of this tablet's machines", async () => {
+    await openFinder(await withMachines({ scanner: camera("KRY1:QQQQQQQQQQQQQQQQQQQQQQQQQQ").scanner }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Scanner l’étiquette QR" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Étiquette inconnue sur cette tablette");
+    expect(screen.queryByRole("region", { name: "Machine choisie" })).not.toBeInTheDocument();
+  });
+
+  it("explains a camera that cannot open and keeps the typed search", async () => {
+    await openFinder(await withMachines({ scanner: { start: vi.fn(() => Promise.reject(new DOMException("denied", "NotAllowedError"))) } }));
+
+    fireEvent.click(screen.getByRole("button", { name: "Scanner l’étiquette QR" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("La caméra n’est pas disponible.");
+    expect(screen.getByLabelText(/Code, nom ou étiquette/)).toBeInTheDocument();
+  });
+
+  it("finds a machine by its typed code on a tablet without a QR reader, then goes back home", async () => {
+    await openFinder(await withMachines());
+    expect(screen.queryByRole("button", { name: "Scanner l’étiquette QR" })).not.toBeInTheDocument();
+    expect(screen.getByText(/Cette tablette ne lit pas les QR codes/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText(/Code, nom ou étiquette/), { target: { value: "pe" } });
+    const results = await screen.findByRole("list", { name: "Machines trouvées" });
+    expect(within(results).getAllByRole("button").map((b) => b.textContent)).toEqual(["PE-01Pelle 1", "PE-02Pelle 2"]);
+    fireEvent.click(within(results).getByRole("button", { name: /PE-02/ }));
+    expect(await screen.findByRole("region", { name: "Machine choisie" })).toHaveTextContent("Pelle 2");
+
+    fireEvent.change(screen.getByLabelText(/Code, nom ou étiquette/), { target: { value: "grue" } });
+    expect(await screen.findByText("Aucune machine de ce site ne correspond.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retour à l’accueil" }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Karry Terrain" })).toBeInTheDocument();
+  });
+});
+
 describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
   it("shows the four field actions as large buttons, in the outdoor theme and field density", async () => {
     await renderHome(await enrolled());
@@ -289,10 +375,25 @@ describe("every screen (TC-P1-OFF-007, OFF-05)", () => {
     ["enrollment", () => Promise.resolve(environment({ company: null, persisted: Promise.resolve(false) })), "Enregistrer cette tablette"],
     ["lock", () => enrolled(), "Déverrouiller la tablette"],
     ["home", () => enrolled({ persisted: Promise.resolve(false) }), "Karry Terrain"],
+    ["machine finder", () => enrolled(), "Trouver une machine"],
   ] as const;
 
+  /** Opens the screen as a person would reach it. */
+  async function open(name: (typeof screens)[number][0], env: FieldEnvironment, options: { pseudo?: boolean } = {}) {
+    if (name === "enrollment" || name === "lock") {
+      return renderField(env, options);
+    }
+
+    const i18n = await renderHome(env, options);
+    if (name === "machine finder") {
+      fireEvent.click(screen.getByRole("button", { name: i18n.t("field.machines.open") }));
+    }
+
+    return i18n;
+  }
+
   it.each(screens)("%s has no hard-coded text in the pseudo-localized build", async (name, make) => {
-    await (name === "home" ? renderHome : renderField)(await make(), { pseudo: true });
+    await open(name, await make(), { pseudo: true });
     await screen.findByRole("heading", { level: 1 });
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -309,7 +410,7 @@ describe("every screen (TC-P1-OFF-007, OFF-05)", () => {
   });
 
   it.each(screens)("%s has no serious accessibility violation in its structure (contrast is checked in the browser suite)", async (name, make, title) => {
-    await (name === "home" ? renderHome : renderField)(await make());
+    await open(name, await make());
     await screen.findByRole("heading", { level: 1, name: title });
 
     const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
