@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-28
 ---
 
 # Architecture Decision Records (ADR) Index
@@ -73,4 +73,4 @@ Added in Phase 1 sub-phase P1.14 (Excel import):
 
 | ADR | Title | Status |
 |---|---|---|
-| [0027](0027-excel-import.md) | Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit | Proposed |
+| [0027](0027-excel-import.md) | Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit | Accepted |

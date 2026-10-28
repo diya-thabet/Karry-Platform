@@ -3,15 +3,15 @@ title: "ADR-0027: Excel import as a server-side job: one kind per file, targets 
 area: adr
 tags: [import, excel, closedxml, onboarding, background-jobs, object-storage, retention, formula-injection, idempotency]
 source: "Phase 1 sub-phase P1.14"
-status: proposed
-last_updated: 2026-10-27
+status: accepted
+last_updated: 2026-10-28
 ---
 
 # ADR-0027 — Excel import as a server-side job: one kind per file, targets owned by their modules, all-or-nothing commit
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.14 in progress)
+- **Status:** Accepted (P1.14 done, 2026-10-28)
 - **Date:** 2026-10-27
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-ORG-03 (AC1–AC5); TC-P1-ORG-001, TC-P1-ORG-002, TC-P1-ORG-004;
@@ -101,6 +101,12 @@ a validation report with cell references, a preview, an all-or-nothing commit th
      for support), the preview with its create / update / unchanged counts, and Confirm (only without errors) or
      Discard. The last 10 imports are listed and can be reopened. At most 200 issues or preview rows are shown (the
      API's page size).
+   - *As built (slice 7, demo):* `Karry.Host demo-import-files [directory]` writes the demo scenario's two files: 60
+     machines of demo company A on `CAR-NORD` and `LAV-SUD` (`DemoFleetFile` in Assets), first with 8 everyday mistakes
+     (forgotten name, type in words, misspelt site, code used twice, letter O in a year, 31 February, year 1019, a `_` in
+     a code), then fixed. After `seed-demo`, uploading the first as Machines shows 9 errors on their cells and no
+     commit; the second previews 60 creations and commits them (68 machines, within the trial's 2 × 50). A module test
+     runs this scenario and checks the report is exactly the planted mistakes.
 
 5. **Users are imported in two steps.** The commit creates the Karry users and their invitations in one transaction.
    Their Keycloak accounts and invitation messages are created afterwards by an outbox handler, retried until done,

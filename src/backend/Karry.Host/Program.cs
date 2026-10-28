@@ -57,6 +57,17 @@ if (args is ["seed-demo", ..])
     return 0;
 }
 
+// `Karry.Host demo-import-files [directory]`: the two Excel files of the P1.14 demo scenario (writes files only).
+if (args is ["demo-import-files", .. var rest])
+{
+    foreach (var path in DemoImportFiles.Write(rest is [var directory, ..] ? directory : Directory.GetCurrentDirectory()))
+    {
+        Console.WriteLine(path);
+    }
+
+    return 0;
+}
+
 app.UseKarryObservability();
 app.UseKarryApiConventions();
 app.UseKarryTenancy();

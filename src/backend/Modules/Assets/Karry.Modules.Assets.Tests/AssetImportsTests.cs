@@ -8,6 +8,7 @@ using ClosedXML.Excel;
 using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Assets.Application;
 using Karry.SharedKernel.Entitlements;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
@@ -69,6 +70,27 @@ public sealed class AssetImportsTests(AssetsHost host) : IClassFixture<AssetsHos
         (await UsageAsync(tenant)).Should().Be(1000);
         (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'assets.asset_registered.v1'")).Should().Be(1000);
         (await ScalarAsync<long>($"SELECT count(*) FROM assets.meters WHERE tenant_id = '{tenant}'")).Should().Be(1000 + 100, "the types' default meters: 100 haul trucks have hours and km");
+    }
+
+    [Fact]
+    public async Task The_demo_scenario_reports_each_planted_mistake_on_its_cell_then_the_fixed_file_commits_the_60_machines()
+    {
+        var tenant = await ProvisionAsync();
+        await SiteAsync(tenant, "CAR-NORD");
+        await SiteAsync(tenant, "LAV-SUD");
+        string?[][] File(bool withMistakes) => [.. DemoFleetFile.Rows(withMistakes).Select(r => r.ToArray())];
+        var headers = DemoFleetFile.Headers.ToArray();
+
+        var job = await ImportAsync(tenant, "assets", Workbook(headers, File(withMistakes: true)));
+        (await IssuesAsync(tenant, job, "error")).Select(i => (i.Row, i.Cell, i.Code))
+            .Should().Equal(DemoFleetFile.ExpectedIssues.Select(i => (i.Row, (string?)i.Cell, (string?)i.Code)), "every planted mistake, and nothing else");
+        (await IssuesAsync(tenant, job, "warning")).Should().BeEmpty();
+        (await PostAsync(tenant, $"/api/v1/imports/{job}/commit")).StatusCode.Should().Be(HttpStatusCode.UnprocessableEntity);
+
+        var done = await CommitAsync(tenant, "assets", Workbook(headers, File(withMistakes: false)));
+        (done.GetProperty("created").GetInt32(), done.GetProperty("rows").GetInt32()).Should().Be((60, 60));
+        (await ScalarAsync<long>($"SELECT count(*) FROM assets.assets a JOIN organization.sites s ON s.id = a.site_id WHERE a.tenant_id = '{tenant}' AND s.code = 'LAV-SUD'"))
+            .Should().Be(14);
     }
 
     [Fact]
