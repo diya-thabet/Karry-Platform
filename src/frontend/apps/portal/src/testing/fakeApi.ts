@@ -20,6 +20,7 @@ type Reading = components["schemas"]["ReadingResponse"];
 type ImportJob = components["schemas"]["ImportResponse"];
 type ImportIssue = components["schemas"]["ImportIssueResponse"];
 type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
+type Device = components["schemas"]["DeviceResponse"];
 
 export interface Sent {
   method: string;
@@ -86,6 +87,8 @@ export function fakeApi(options: {
   readings?: Record<string, Reading[]>;
   /** What the validation of every uploaded file finds (default: one site to create, no issue). */
   importReport?: { issues: ImportIssue[]; rows: ImportPlannedRow[] };
+  /** Tablets of `GET /identity/devices` (default: none). */
+  devices?: Device[];
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -104,6 +107,7 @@ export function fakeApi(options: {
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
   const imports: ImportJob[] = [];
+  const devices: Device[] = [...(options.devices ?? [])];
   let importSteps = 0;
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
@@ -239,6 +243,27 @@ export function fakeApi(options: {
 
         users[index] = { ...found, pinSet: true };
         return new Response(null, { status: 204 });
+      }
+      case request.method === "GET" && path === "/devices":
+        return json(200, devices);
+      case request.method === "POST" && path === "/devices/enrollments": {
+        const siteId = (body as { siteId: string }).siteId;
+        return sites.some((s) => s.id === siteId)
+          ? json(201, {
+              enrollmentId: "0192f0c1-0000-7000-8000-00000000e001", siteId, code: "7KQ2-M9XD-4RTA-0PZB",
+              url: `https://${tenant.slug}.field.karry.test/enroll#7KQ2-M9XD-4RTA-0PZB`, expiresAt: new Date(Date.now() + 15 * 60_000).toISOString(),
+            })
+          : problem(400, "devices.site_invalid");
+      }
+      case request.method === "POST" && /^\/devices\/[^/]+\/revoke$/.test(path): {
+        const index = devices.findIndex((d) => path.includes(d.id));
+        const found = devices[index];
+        if (!found) {
+          return problem(404, "devices.not_found");
+        }
+
+        devices[index] = { ...found, status: "revoked", revokedAt: "2026-10-28T10:00:00Z" };
+        return json(200, devices[index]);
       }
       default:
         return problem(404, "test.unknown_route");
@@ -539,6 +564,14 @@ export function fakeApi(options: {
     sent,
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
+  };
+}
+
+/** An active tablet of Carrière Nord as the API lists it. */
+export function device(overrides: Partial<Device> = {}): Device {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000d001", name: "Tablette pesage", model: "Galaxy Tab A9", platform: "Android 14", appVersion: "1.0.0",
+    siteId: site().id, status: "active", enrolledAt: "2026-10-27T08:00:00Z", lastSeenAt: "2026-10-28T07:55:00Z", revokedAt: null, ...overrides,
   };
 }
 

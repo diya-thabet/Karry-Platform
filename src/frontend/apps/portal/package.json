@@ -25,7 +25,8 @@
     "lucide-react": "catalog:",
     "maplibre-gl": "catalog:",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "uqr": "catalog:"
   },
   "devDependencies": {
     "@tailwindcss/vite": "catalog:",
