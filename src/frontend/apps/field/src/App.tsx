@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download, Droplets, Gauge, HardDriveDownload, Lock, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
+import { Download, Droplets, Gauge, HardDriveDownload, Lock, Mountain, ScanLine, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
 import { Enroll } from "./Enroll";
+import { MachineFinder } from "./MachineFinder";
+import { findMachine, type QrScanner } from "./machines";
 import { ReferenceStatus } from "./ReferenceStatus";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
@@ -34,6 +36,8 @@ export interface FieldEnvironment {
   pull: () => Promise<PullOutcome>;
   /** Checks a field user's employee ID and PIN, online when it can, else on the tablet. */
   unlock: (employeeId: string, pin: string) => Promise<Session | UnlockFailure>;
+  /** The camera's QR reader, null where the browser or the tablet has none (typed codes only). */
+  scanner: QrScanner | null;
 }
 
 /** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
@@ -80,7 +84,13 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   environment: FieldEnvironment; device: DeviceRecord; session: Session; autoLockMinutes: number; lock: () => void;
 }) {
   const { t } = useTranslation();
+  const [finding, setFinding] = useState(false);
+  const find = useCallback((text: string) => findMachine(environment.db, text), [environment.db]);
   useAutoLock(autoLockMinutes, lock);
+  if (finding) {
+    return <MachineFinder find={find} scanner={environment.scanner} onBack={() => { setFinding(false); }} />;
+  }
+
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -99,6 +109,10 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
       <UpdateOffer updates={environment.updates} />
       <StorageWarning persisted={environment.persisted} />
       <ReferenceStatus db={environment.db} device={device} pull={environment.pull} />
+      <Button block onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
+        <ScanLine aria-hidden className="size-8" />
+        {t("field.machines.open")}
+      </Button>
       <main>
         <nav aria-label={t("field.nav.label")}>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">

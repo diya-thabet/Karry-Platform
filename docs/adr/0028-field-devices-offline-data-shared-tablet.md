@@ -130,6 +130,13 @@ everything it later sends must be attributable to a trusted device. The question
   On `401 devices.clock_skew` the tablet stores the server's time as its clock offset and sends the request once
   more. `401 devices.revoked` stops the refreshes and says so; the data already on the tablet is left as it is.
   The screen shows the site, the last refresh time and how many machines and operators are kept offline.
+- As built on the tablet (P1.15 slice 6b): **Find a machine** reads IndexedDB only. A scan or typed text that is a
+  label (`KRY1:` + 26 base32 characters, prefix optional, any case, the same rule as the server's
+  `AssetLabels.Token`) selects its machine through the `labelCode` index; a label the tablet does not know is said to
+  be unknown (another site or company, a reissued label, or data to refresh), never searched as words. Any other text
+  searches codes, names, makes, models, serials and plates. The camera is read with the browser's `BarcodeDetector`
+  (back camera, 4 frames a second) and released as soon as a code is read; where the browser has no QR reader or the
+  camera is refused, the typed search remains (no QR library is shipped: the target, Chrome on Android, has one).
 
 ### 6. Uploads (preparing Phase 2)
 
