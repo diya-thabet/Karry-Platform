@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Aggregates, value objects, domain events and rules of Sync. No EF Core, ASP.NET or infrastructure dependencies. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../Karry.SharedKernel/Karry.SharedKernel.csproj" />
+  </ItemGroup>
+</Project>

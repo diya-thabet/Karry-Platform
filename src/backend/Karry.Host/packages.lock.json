@@ -492,6 +492,39 @@
           "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": "[10.0.3, )"
         }
       },
+      "karry.modules.sync.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Sync.Application": "[1.0.0, )",
+          "Karry.Modules.Sync.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Sync.Contracts": "[1.0.0, )",
+          "Karry.Modules.Sync.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sync.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Sync.Application": "[1.0.0, )"
+        }
+      },
       "karry.modules.tenancy.api": {
         "type": "Project",
         "dependencies": {

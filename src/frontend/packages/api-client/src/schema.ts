@@ -1236,6 +1236,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetSyncChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1376,6 +1392,19 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /**
+         * @description The answer of `GET /sync/changes` (ADR-0028 §5, `@karry/offline``ChangeSet`): a snapshot without a
+         *     cursor, else the changes since it; string ChangeSet.Cursor is what the tablet sends next time.
+         */
+        ChangeSet: {
+            full: boolean;
+            cursor: string;
+            /** Format: date-time */
+            serverTime: string;
+            changes: {
+                [key: string]: components["schemas"]["CollectionChanges"];
+            };
+        };
         /** @description New terms for a subscription: plan by code (its newest version unless `PlanVersion` is given) and the rest in full. */
         ChangeSubscription: {
             planCode: string;
@@ -1396,6 +1425,12 @@ export interface components {
         };
         ChangeUserRoles: {
             roles: null | components["schemas"]["RoleAssignment"][];
+        };
+        /** @description One collection of a change set: rows to keep, IDs to drop; bool CollectionChanges.Replace: the rows are the whole collection. */
+        CollectionChanges: {
+            upserts: unknown[];
+            removes: string[];
+            replace: boolean;
         };
         ConversionFactorResponse: {
             name: string;
@@ -6928,6 +6963,55 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetSyncChanges: {
+        parameters: {
+            query?: {
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChangeSet"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -63,6 +63,16 @@ describe("reference data (US-P1-OFF-03 AC1/AC2)", () => {
     expect(await db.syncState.get("assets")).toEqual({ collection: "assets", cursor: "c2", lastSuccessAt: "2026-10-28T10:05:00Z", lastFullAt: "2026-10-28T10:00:00Z" });
   });
 
+  it("a collection marked replace is replaced whole even in a delta (a deleted shift pattern version)", async () => {
+    const version = (id: string, effectiveFrom: string) => ({ id, siteId: site, effectiveFrom, shifts: [{ code: "J", name: "Jour", start: "06:00", end: "18:00", days: ["mon", "tue"] }] });
+    await applyChanges(db, { full: true, cursor: "c1", serverTime: "2026-10-28T10:00:00Z", changes: allCollections({ shiftPatterns: { upserts: [version("p1", "2026-01-01"), version("p2", "2027-01-01")], removes: [], replace: true }, assets: { upserts: [asset(1)], removes: [] } }) });
+
+    await applyChanges(db, { full: false, cursor: "c2", serverTime: "2026-10-28T10:05:00Z", changes: { shiftPatterns: { upserts: [version("p1", "2026-01-01")], removes: [], replace: true }, assets: { upserts: [asset(2)], removes: [] } } });
+
+    expect((await db.shiftPatterns.toArray()).map((p) => p.id)).toEqual(["p1"]);
+    expect(await db.assets.count()).toBe(2);
+  });
+
   it("applies the same delta twice without change (the cursor overlap)", async () => {
     const delta: ChangeSet = { full: false, cursor: "c2", serverTime: "2026-10-28T10:05:00Z", changes: { assets: { upserts: [asset(1)], removes: [asset(7).id] } } };
     await applyChanges(db, delta);

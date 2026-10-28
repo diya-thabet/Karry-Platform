@@ -5959,6 +5959,65 @@
           }
         }
       }
+    },
+    "/api/v1/sync/changes": {
+      "get": {
+        "tags": [
+          "SyncModule"
+        ],
+        "operationId": "GetSyncChanges",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangeSet"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6554,6 +6613,34 @@
         },
         "description": "Replaces a custom role's name, description, permissions and field levels (a field left out gets its fallback)."
       },
+      "ChangeSet": {
+        "required": [
+          "full",
+          "cursor",
+          "serverTime",
+          "changes"
+        ],
+        "type": "object",
+        "properties": {
+          "full": {
+            "type": "boolean"
+          },
+          "cursor": {
+            "type": "string"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changes": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CollectionChanges"
+            }
+          }
+        },
+        "description": "The answer of `GET /sync/changes` (ADR-0028 §5, `@karry/offline``ChangeSet`): a snapshot without a\ncursor, else the changes since it; string ChangeSet.Cursor is what the tablet sends next time."
+      },
       "ChangeSubscription": {
         "required": [
           "planCode",
@@ -6654,6 +6741,30 @@
             }
           }
         }
+      },
+      "CollectionChanges": {
+        "required": [
+          "upserts",
+          "removes",
+          "replace"
+        ],
+        "type": "object",
+        "properties": {
+          "upserts": {
+            "type": "array"
+          },
+          "removes": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "replace": {
+            "type": "boolean"
+          }
+        },
+        "description": "One collection of a change set: rows to keep, IDs to drop; bool CollectionChanges.Replace: the rows are the whole collection."
       },
       "ConversionFactorResponse": {
         "required": [
@@ -9962,6 +10073,9 @@
     },
     {
       "name": "ImportsModule"
+    },
+    {
+      "name": "SyncModule"
     }
   ]
 }

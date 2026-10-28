@@ -39,6 +39,11 @@
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Domain/Karry.Modules.Organization.Domain.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Infrastructure/Karry.Modules.Organization.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Api/Karry.Modules.Sync.Api.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Application/Karry.Modules.Sync.Application.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Contracts/Karry.Modules.Sync.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Domain/Karry.Modules.Sync.Domain.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Infrastructure/Karry.Modules.Sync.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Application/Karry.Modules.Tenancy.Application.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
@@ -58,6 +63,7 @@
     <Project Path="src/backend/Modules/Imports/Karry.Modules.Imports.Tests/Karry.Modules.Imports.Tests.csproj" />
     <Project Path="src/backend/Modules/Materials/Karry.Modules.Materials.Tests/Karry.Modules.Materials.Tests.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Tests/Karry.Modules.Organization.Tests.csproj" />
+    <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Tests/Karry.Modules.Sync.Tests.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Tests/Karry.Modules.Tenancy.Tests.csproj" />
     <Project Path="src/backend/Modules/Trust/Karry.Modules.Trust.Tests/Karry.Modules.Trust.Tests.csproj" />
     <Project Path="tests/Karry.ArchitectureTests/Karry.ArchitectureTests.csproj" />

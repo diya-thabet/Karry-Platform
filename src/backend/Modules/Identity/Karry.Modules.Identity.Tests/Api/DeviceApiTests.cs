@@ -1,12 +1,7 @@
-using System.Buffers.Text;
 using System.Net;
-using System.Net.Http.Headers;
-using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using Karry.BuildingBlocks.Idempotency;
 using Karry.Modules.Identity.Domain;
+using Karry.Testing;
 using Npgsql;
 
 namespace Karry.Modules.Identity.Tests.Api;
@@ -36,7 +31,7 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
         created.GetProperty("url").GetString().Should().Be($"https://{company.Slug}.field.karry.test/enroll#{code}");
         created.GetProperty("expiresAt").GetDateTimeOffset().Should().Be(host.Clock.GetUtcNow().AddMinutes(15));
 
-        using var tablet = new Tablet(host);
+        using var tablet = new TestTablet(host.Client, host.Clock.GetUtcNow);
         var enrolled = await TenantMembers.JsonAsync(await tablet.EnrollAsync(company.Slug, code), HttpStatusCode.Created);
         enrolled.GetProperty("tenantId").GetGuid().Should().Be(company.Id);
         enrolled.GetProperty("siteId").GetGuid().Should().Be(company.Site);
@@ -60,7 +55,7 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
     {
         var company = await CompanyAsync();
         var other = await CompanyAsync();
-        using var tablet = new Tablet(host);
+        using var tablet = new TestTablet(host.Client, host.Clock.GetUtcNow);
 
         var code = await CodeAsync(company);
         await TenantMembers.ExpectProblemAsync(await tablet.EnrollAsync(other.Slug, code), HttpStatusCode.NotFound, "devices.enrollment_unknown");
@@ -71,7 +66,7 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
         // Typed carelessly (lower case, spaces, O for 0) it still works, once.
         var typed = code.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal).Replace('0', 'o');
         (await tablet.EnrollAsync(company.Slug, typed)).StatusCode.Should().Be(HttpStatusCode.Created);
-        using var second = new Tablet(host);
+        using var second = new TestTablet(host.Client, host.Clock.GetUtcNow);
         await TenantMembers.ExpectProblemAsync(await second.EnrollAsync(company.Slug, code), HttpStatusCode.UnprocessableEntity, "devices.enrollment_expired");
 
         var late = await CodeAsync(company);
@@ -84,7 +79,7 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
     {
         var company = await CompanyAsync();
         var code = await CodeAsync(company);
-        using var tablet = new Tablet(host);
+        using var tablet = new TestTablet(host.Client, host.Clock.GetUtcNow);
         using var thief = ECDsa.Create(ECCurve.NamedCurves.nistP256);
 
         await TenantMembers.ExpectProblemAsync(await tablet.EnrollAsync(company.Slug, code, proofKey: thief), HttpStatusCode.BadRequest, "devices.key_invalid");
@@ -242,9 +237,9 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
         (await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Post, $"{Devices}/enrollments", company.Admin, new { siteId = site ?? company.Site }), HttpStatusCode.Created))
             .GetProperty("code").GetString()!;
 
-    private async Task<Tablet> EnrolAsync(Company company, Guid site)
+    private async Task<TestTablet> EnrolAsync(Company company, Guid site)
     {
-        var tablet = new Tablet(host);
+        var tablet = new TestTablet(host.Client, host.Clock.GetUtcNow);
         (await tablet.EnrollAsync(company.Slug, await CodeAsync(company, site))).StatusCode.Should().Be(HttpStatusCode.Created);
         return tablet;
     }
@@ -278,86 +273,4 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
     }
 
     private sealed record Company(Guid Id, string Slug, Guid Site, string Admin);
-
-    /// <summary>A tablet as the field app is: a P-256 key that signs its enrollment proof and every request (ADR-0028 §3).</summary>
-    private sealed class Tablet(IdentityHost host) : IDisposable
-    {
-        private readonly ECDsa key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-
-        public Guid Id { get; private set; }
-
-        public Guid Tenant { get; private set; }
-
-        public async Task<HttpResponseMessage> EnrollAsync(string slug, string code, ECDsa? proofKey = null)
-        {
-            var point = key.ExportParameters(false).Q;
-            var proof = (proofKey ?? key).SignData(Encoding.UTF8.GetBytes($"karry-enroll:{code}"), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-            var response = await Send(HttpMethod.Post, $"{Devices}/enroll", null, new
-            {
-                tenant = slug,
-                code,
-                publicKey = new { kty = "EC", crv = "P-256", x = Base64Url.EncodeToString(point.X), y = Base64Url.EncodeToString(point.Y) },
-                proof = Base64Url.EncodeToString(proof),
-                name = "Tablette pesage",
-                model = "Galaxy Tab A9",
-                platform = "Android 14",
-                appVersion = "1.0.0",
-            });
-            if (response.StatusCode == HttpStatusCode.Created)
-            {
-                var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
-                Id = body.GetProperty("deviceId").GetGuid();
-                Tenant = body.GetProperty("tenantId").GetGuid();
-            }
-
-            return response;
-        }
-
-        public Task<HttpResponseMessage> UnlockAsync(string employeeId, string pin) =>
-            SendAsync(HttpMethod.Post, $"{Devices}/unlock", new { employeeId, pin });
-
-        public Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body = null) =>
-            Send(method, path, Assertion(method.Method, path), body);
-
-        public Task<HttpResponseMessage> SendWithAsync(HttpMethod method, string path, string assertion) => Send(method, path, assertion, null);
-
-        /// <summary>A compact JWS ES256 for one request, issued now by the server's clock unless told otherwise.</summary>
-        public string Assertion(string method, string path, DateTimeOffset? issuedAt = null, TimeSpan? lifetime = null, Guid? tenant = null)
-        {
-            var iat = issuedAt ?? host.Clock.GetUtcNow();
-            var header = Part(new { alg = "ES256", typ = "karry-device+jwt", kid = Id.ToString("D") });
-            var payload = Part(new
-            {
-                tid = (tenant ?? Tenant).ToString("D"),
-                iat = iat.ToUnixTimeSeconds(),
-                exp = (iat + (lifetime ?? TimeSpan.FromMinutes(5))).ToUnixTimeSeconds(),
-                jti = Guid.NewGuid().ToString("N"),
-                htm = method,
-                htu = path,
-            });
-            var signature = key.SignData(Encoding.ASCII.GetBytes($"{header}.{payload}"), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-            return $"{header}.{payload}.{Base64Url.EncodeToString(signature)}";
-        }
-
-        public void Dispose() => key.Dispose();
-
-        private static string Part(object value) => Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(value));
-
-        private async Task<HttpResponseMessage> Send(HttpMethod method, string path, string? assertion, object? body)
-        {
-            using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
-            if (assertion is not null)
-            {
-                request.Headers.Authorization = new AuthenticationHeaderValue("Device", assertion);
-            }
-
-            request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
-            if (body is not null)
-            {
-                request.Content = JsonContent.Create(body);
-            }
-
-            return await host.Client.SendAsync(request, Ct);
-        }
-    }
 }

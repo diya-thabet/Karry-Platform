@@ -26,6 +26,7 @@ public static class IdentityInfrastructure
         services.Configure<MessagingOptions>(configuration.GetSection(MessagingOptions.Section));
 
         services.AddScoped<IIdentityStore, IdentityStore>();
+        services.AddScoped<BuildingBlocks.Sync.ISyncSource, IdentitySync>();
         services.AddScoped<BuildingBlocks.Entitlements.IUsageSource, OfficeSeats>();
         services.AddMemoryCache();
         services.AddScoped<RevocationCache>();

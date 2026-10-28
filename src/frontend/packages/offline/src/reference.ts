@@ -9,13 +9,14 @@ interface Rows {
   users: FieldUserRow;
 }
 
-/** One answer of `GET /sync/v1/changes` (ADR-0028 §5): rows to keep, IDs to drop, and where to continue. */
+/** One answer of `GET /api/v1/sync/changes` (ADR-0028 §5): rows to keep, IDs to drop, and where to continue. */
 export interface ChangeSet {
   /** A full snapshot replaces each collection it names; a delta only adds, replaces and removes rows. */
   full: boolean;
   cursor: string;
   serverTime: string;
-  changes: { [C in Collection]?: { upserts: Rows[C][]; removes: string[] } };
+  /** `replace`: the rows are the whole collection (small ones, such as the site's shift patterns), even in a delta. */
+  changes: { [C in Collection]?: { upserts: Rows[C][]; removes: string[]; replace?: boolean } };
 }
 
 /** Lower case, accents removed, split on anything not a letter or digit: "Pelle CAT-336" → ["pelle", "cat", "336"]. */
@@ -42,7 +43,7 @@ export async function applyChanges(db: KarryOfflineDb, set: ChangeSet): Promise<
       }
 
       const table = db.table(collection);
-      if (set.full) {
+      if (set.full || change.replace === true) {
         await table.clear();
       }
 

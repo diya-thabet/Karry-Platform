@@ -96,15 +96,20 @@ everything it later sends must be attributable to a trusted device. The question
 
 ### 5. Reference data and delta pulls (US-P1-OFF-03)
 
-- `GET /sync/v1/changes?cursor=…` (device-signed) answers the **collections of the device's scope**: its site and
-  shift patterns, the site's machines and their meters, the company's active materials, the site's field users (with
-  verifiers), plus the device settings. Each owning module implements **`ISyncSource`** (BuildingBlocks, like
-  `IImportTarget`): the Sync module never reads another module's tables.
-- A delta returns rows **changed since the cursor across the tenant**, each marked `upsert` (in scope) or `remove`
-  (out of scope: moved, archived, deactivated). Rows are ordered by `(changed_at, id)`; the cursor restarts **5
-  minutes before** the last row (a transaction that committed late with an earlier timestamp is not missed; the
-  client applies rows idempotently). The tablet also takes a **full snapshot every 24 h** (or when the server answers
-  `410 sync.cursor_expired`), which replaces each collection. The last successful refresh time is shown.
+- `GET /api/v1/sync/changes?cursor=…` (device-signed) answers the **collections of the device's scope**: its site and
+  shift patterns, the site's machines and their meters, the company's active materials, the field users of the site
+  or company-wide (with verifiers). The device settings come with `GET /identity/devices/me`. Each owning module
+  implements **`ISyncSource`** (BuildingBlocks, like `IImportTarget`): the Sync module never reads another module's
+  tables. `identity.users` gained `changed_at` (status, roles and PIN changes) for it.
+- A delta returns rows **changed since the cursor across the tenant**, as `upserts` (in scope) or `removes` (out of
+  scope: moved, archived, disposed, deactivated; a meter follows its machine). The cursor is the **server time at
+  which the pull began**; the next delta asks for rows changed from **5 minutes before** it (a transaction that
+  committed late with an earlier timestamp is not missed; the client applies rows idempotently). No paging in P1: a
+  big site is about 2,000 machines and 500 users. Collections that are tiny and whose rows can be deleted (the site,
+  its shift pattern versions) are sent whole with `replace: true` in every answer. The tablet also takes a **full
+  snapshot every 24 h** (or when the server answers `422 sync.cursor_expired`, for a cursor older than 7 days; an
+  unknown or future cursor is `400 sync.cursor_invalid`), which replaces each collection. The last successful
+  refresh time is shown.
 - **Dexie schema v1** (`@karry/offline`): `device`, `settings`, `sites`, `shiftPatterns`, `assets` (indexed by code,
   label code, name words), `meters`, `materials`, `users` (indexed by employee ID), `syncState`, `unlocks`,
   `outbox` (empty until Phase 2 commands, schema fixed now). Offline lists read IndexedDB only (TC-P1-OFF-004:
@@ -112,7 +117,7 @@ everything it later sends must be attributable to a trusted device. The question
 
 ### 6. Uploads (preparing Phase 2)
 
-- `POST /sync/v1/batches` accepts commands `{commandId (UUIDv7), sequence, type, payload, deviceTime, signature}`;
+- `POST /api/v1/sync/batches` accepts commands `{commandId (UUIDv7), sequence, type, payload, deviceTime, signature}`;
   the signature is over the **RFC 8785** canonical command (TypeScript canonicalizer checked against
   `tests/vectors/rfc8785.json`, the same vectors as the server's). Duplicates by `commandId`, a per-device gap-free
   sequence, and storage in `sync.inbox`. P1 has no command types yet: commands are stored, not processed;
