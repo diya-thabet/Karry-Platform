@@ -6,6 +6,7 @@ import { initErrorTracking } from "@karry/observability";
 import { openOfflineDb } from "@karry/offline";
 import { savedLanguage } from "@karry/ui";
 import { App } from "./App";
+import { pullChanges } from "./sync";
 import { codeOf, companyOf, deviceInfo, enrollTablet } from "./tablet";
 import { createUpdates } from "./updates";
 import "./index.css";
@@ -47,6 +48,7 @@ createRoot(root).render(
       company: companyOf(location.hostname),
       code,
       enroll: async (input) => enrollTablet(db, input, await deviceInfo(release)),
+      pull: () => pullChanges(db),
     }} />
   </StrictMode>,
 );

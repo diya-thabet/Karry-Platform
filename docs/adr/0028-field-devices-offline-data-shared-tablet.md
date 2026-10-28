@@ -115,6 +115,12 @@ everything it later sends must be attributable to a trusted device. The question
   label code, name words), `meters`, `materials`, `users` (indexed by employee ID), `syncState`, `unlocks`,
   `outbox` (empty until Phase 2 commands, schema fixed now). Offline lists read IndexedDB only (TC-P1-OFF-004:
   2,000 machines + 500 users in under 500 ms).
+- As built on the tablet (P1.15 slice 5b): the home screen refreshes on opening, every 5 minutes while open, when
+  the network returns and on request. A delta continues from the stored cursor; a snapshot is taken when there is
+  none, when the last one is 24 h old (by the corrected clock) or when the server refuses the cursor (422 or 400).
+  On `401 devices.clock_skew` the tablet stores the server's time as its clock offset and sends the request once
+  more. `401 devices.revoked` stops the refreshes and says so; the data already on the tablet is left as it is.
+  The screen shows the site, the last refresh time and how many machines and operators are kept offline.
 
 ### 6. Uploads (preparing Phase 2)
 

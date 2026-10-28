@@ -3,7 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 // Demo users from `Karry.Host seed-demo` (local stack only): <role>@<slug>.karry.test.
 const password = process.env.KARRY_DEMO_PASSWORD ?? "karry-demo-local-only";
 const portal = (slug: string) => `http://${slug}.localhost:5173`;
-const field = (slug: string) => `http://${slug}.localhost:5174`;
+// The built field app (vite preview, with its service worker); KARRY_E2E_FIELD_PORT runs it beside a dev server.
+const field = (slug: string) => `http://${slug}.localhost:${process.env.KARRY_E2E_FIELD_PORT ?? "5174"}`;
 
 async function signIn(page: Page, username: string) {
   await page.locator("#username").fill(username);
@@ -12,7 +13,7 @@ async function signIn(page: Page, username: string) {
 }
 
 test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
-  test("TC-P1-OFF-001: a site manager adds a tablet with a code, the field app enrols with it and the tablet is listed", async ({ browser, page }) => {
+  test("TC-P1-OFF-001/003: a site manager adds a tablet with a code, the tablet enrols, downloads its site's data, keeps it offline and is listed", async ({ browser, page }) => {
     const name = `Pont-bascule ${String(Date.now())}`;
     await page.goto(`${portal("demo-carriere-b")}/settings/tablets`);
     await signIn(page, "site-manager@demo-carriere-b.karry.test");
@@ -24,7 +25,8 @@ test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
     expect(code).toMatch(/^[0-9A-Z]{4}(-[0-9A-Z]{4}){3}$/);
 
     // The tablet: its own browser, no sign-in, opened from the link of the QR code.
-    const tablet = await (await browser.newContext({ locale: "fr-FR" })).newPage();
+    const context = await browser.newContext({ locale: "fr-FR" });
+    const tablet = await context.newPage();
     await tablet.goto(`${field("demo-carriere-b")}/enroll#${code}`);
     await expect(tablet.getByRole("heading", { level: 1, name: "Enregistrer cette tablette" })).toBeVisible();
     await expect(tablet.getByLabel(/Code d’enregistrement/)).toHaveValue(code);
@@ -33,8 +35,21 @@ test.describe("site tablets (US-P1-OFF-02, ADR-0028)", () => {
     await tablet.getByRole("button", { name: "Enregistrer la tablette" }).click();
 
     await expect(tablet.getByRole("heading", { level: 1, name: "Karry Terrain" })).toBeVisible();
+    const sync = tablet.getByRole("region", { name: "Synchronisation" });
+    await expect(sync.getByText("À jour", { exact: true })).toBeVisible();
+    await expect(sync.getByText(/^Site : /)).toBeVisible();
+    await expect(sync.getByText(/^Données mises à jour le /)).toBeVisible();
+    const kept = (await sync.getByText(/disponibles hors ligne$/).textContent()) ?? "";
+    expect(kept).toMatch(/^\d+ machines? et \d+ opérateurs? disponibles hors ligne$/);
+
+    // Offline: the app and its data come from the tablet (service worker and IndexedDB), the key stays enrolled.
+    await tablet.evaluate(async () => { await navigator.serviceWorker.ready; });
+    await context.setOffline(true);
     await tablet.reload();
     await expect(tablet.getByRole("heading", { level: 1, name: "Karry Terrain" }), "enrolled for good: the key is kept on the tablet").toBeVisible();
+    await expect(sync.getByText("Hors ligne", { exact: true })).toBeVisible();
+    await expect(sync.getByText(kept)).toBeVisible();
+    await context.setOffline(false);
 
     await page.reload();
     const row = page.getByRole("row").filter({ hasText: name });

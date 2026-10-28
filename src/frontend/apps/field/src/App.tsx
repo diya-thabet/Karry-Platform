@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Download, Droplets, Gauge, HardDriveDownload, Mountain, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb } from "@karry/offline";
-import { Button, LanguageSwitcher, StatusChip, ThemeProvider, ThemeSwitcher } from "@karry/ui";
+import { Button, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
 import { Enroll } from "./Enroll";
+import { ReferenceStatus } from "./ReferenceStatus";
+import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useUpdateAvailable, type AppUpdates } from "./updates";
 
@@ -25,6 +27,8 @@ export interface FieldEnvironment {
   /** The enrollment code of the opened link, if any. */
   code: string | null;
   enroll: (input: EnrollInput) => Promise<DeviceRecord | EnrollFailure>;
+  /** Refreshes the reference data (a delta, or a snapshot when one is due). */
+  pull: () => Promise<PullOutcome>;
 }
 
 /** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
@@ -63,8 +67,8 @@ function StorageWarning({ persisted }: { persisted: Promise<boolean> }) {
   );
 }
 
-/** Field home (US-P1-OFF-01 shell): large actions for gloves, sync status (real counts with the outbox, P1.15). */
-function Home({ environment }: { environment: FieldEnvironment }) {
+/** Field home (US-P1-OFF-01 shell): large actions for gloves, the state of the tablet's offline data. */
+function Home({ environment, device }: { environment: FieldEnvironment; device: DeviceRecord }) {
   const { t } = useTranslation();
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-4">
@@ -74,9 +78,7 @@ function Home({ environment }: { environment: FieldEnvironment }) {
       </header>
       <UpdateOffer updates={environment.updates} />
       <StorageWarning persisted={environment.persisted} />
-      <section aria-label={t("field.sync.label")} className="flex items-center gap-3">
-        <StatusChip status="pending">{t("field.sync.unknown")}</StatusChip>
-      </section>
+      <ReferenceStatus db={environment.db} device={device} pull={environment.pull} />
       <main>
         <nav aria-label={t("field.nav.label")}>
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -121,7 +123,7 @@ function Tablet({ environment }: { environment: FieldEnvironment }) {
     );
   }
 
-  return <Home environment={environment} />;
+  return <Home environment={environment} device={device} />;
 }
 
 /** Field app: outdoor high-contrast theme by default, field density (≥ 48 px targets, ≥ 16 px text). */
