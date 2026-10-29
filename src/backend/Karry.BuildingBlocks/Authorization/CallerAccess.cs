@@ -98,6 +98,21 @@ public sealed class CallerAccess
         return level;
     }
 
+    /// <summary>The built-in role of a support session (ADR-0029 §4); no company can create or hold it.</summary>
+    public const string SupportRole = "support";
+
+    /// <summary>
+    /// What Karry support may do in a support session: every read permission (<c>module.resource.read</c>) company-wide,
+    /// nothing else, and every sensitive field masked, whatever the company's own roles see.
+    /// </summary>
+    public static CallerAccess Support(AuthorizationCatalog catalog)
+    {
+        ArgumentNullException.ThrowIfNull(catalog);
+        var reads = catalog.Permissions.Select(p => p.Code).Where(code => code.EndsWith(".read", StringComparison.Ordinal)).ToFrozenSet(StringComparer.Ordinal);
+        var masked = catalog.SensitiveFields.ToFrozenDictionary(f => f.Code, _ => FieldAccess.Masked, StringComparer.Ordinal);
+        return From(catalog, [new AccessAssignment(SupportRole, reads, masked)]);
+    }
+
     public static CallerAccess From(AuthorizationCatalog catalog, IReadOnlyList<AccessAssignment> assignments)
     {
         ArgumentNullException.ThrowIfNull(catalog);

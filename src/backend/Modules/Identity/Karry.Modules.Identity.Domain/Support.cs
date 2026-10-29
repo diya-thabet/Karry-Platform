@@ -42,6 +42,14 @@ public sealed record SupportSessionStarted(
 public sealed record SupportSessionEnded(Guid SessionId, string? Actor, bool ByOperator) : DomainEvent;
 
 /// <summary>
+/// One request Karry support made in a session (ADR-0029 §4): method, route template (never the values in the
+/// address) and the status it got, including refusals such as a write (403 <c>support.read_only</c>).
+/// </summary>
+[EventType("identity.support_request.v1")]
+[AuditSubject("support_session", nameof(SessionId))]
+public sealed record SupportRequestMade(Guid SessionId, string Method, string Path, int Status) : DomainEvent;
+
+/// <summary>
 /// The code a Tenant Admin reads to Karry support so that support may look at the company (ADR-0029 §4): the
 /// enrollment-code format (80 bits, 16 characters), only its SHA-256 stored, valid 30 minutes, single use.
 /// </summary>
@@ -192,6 +200,21 @@ public sealed class SupportSession : AggregateRoot<SupportSessionId>, ITenantOwn
         EndedBy = actor;
         Raise(new SupportSessionEnded(Id.Value, actor, byOperator) { OccurredAt = now });
         return this;
+    }
+
+    public const int PathMaxLength = 300;
+
+    /// <summary>
+    /// Records a request of the session in the ledger. The session row does not change, so the parallel requests of
+    /// one page never conflict with each other.
+    /// </summary>
+    public void RecordRequest(TimeProvider clock, string method, string path, int status)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(method);
+        ArgumentNullException.ThrowIfNull(path);
+        Raise(new SupportRequestMade(Id.Value, method.ToUpperInvariant(), path.Length > PathMaxLength ? path[..PathMaxLength] : path, status)
+        { OccurredAt = clock.GetUtcNow() });
     }
 
     private static SupportSession Start(

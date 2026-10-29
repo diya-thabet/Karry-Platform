@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.SharedKernel.Authorization;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
@@ -115,6 +116,42 @@ public sealed class CallerAccessTests
 
     private static AccessAssignment Fields(FieldAccess price) =>
         new("custom", new HashSet<string>(), new Dictionary<string, FieldAccess> { ["probe.ticket.unit-price"] = price });
+
+    [Fact]
+    [Trait("Story", "US-P1-OPS-03")]
+    public void Support_access_holds_every_read_permission_company_wide_nothing_else_and_masks_every_field()
+    {
+        var support = CallerAccess.Support(Catalog);
+
+        support.Granted.Should().BeEquivalentTo(["probe.ticket.read"]);
+        support.ScopeOf("probe.ticket.read").TenantWide.Should().BeTrue();
+        support.Has("probe.billing.manage").Should().BeFalse();
+        support.Has("probe.stock.move").Should().BeFalse();
+        support.FieldAccessFor("probe.ticket.unit-price", siteId: Guid.CreateVersion7()).Should().Be(FieldAccess.Masked);
+        support.FieldAccessFor("probe.ticket.unit-price", siteId: null).Should().Be(FieldAccess.Masked);
+        support.Assignments.Should().ContainSingle().Which.Role.Should().Be(CallerAccess.SupportRole);
+    }
+
+    [Theory]
+    [Trait("Story", "US-P1-OPS-03")]
+    [InlineData("0192f0c1-0000-7000-8000-0000000000a1.0192f0c1-0000-7000-8000-0000000000b2", true)]
+    [InlineData("0192f0c1-0000-7000-8000-0000000000a1", false)]
+    [InlineData("0192f0c1-0000-7000-8000-0000000000a1.0192f0c1-0000-7000-8000-0000000000b2.x", false)]
+    [InlineData("00000000-0000-0000-0000-000000000000.0192f0c1-0000-7000-8000-0000000000b2", false)]
+    [InlineData("0192f0c1-0000-7000-8000-0000000000a1.00000000-0000-0000-0000-000000000000", false)]
+    [InlineData("0192f0c100007000800000000000000a1.0192f0c1-0000-7000-8000-0000000000b2", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void The_support_session_header_names_a_tenant_and_a_session(string? value, bool valid)
+    {
+        var parsed = SupportSessionHeader.Parse(value);
+
+        (parsed is not null).Should().Be(valid);
+        if (parsed is { } named)
+        {
+            SupportSessionHeader.Value(named.Tenant, named.SessionId).Should().Be(value);
+        }
+    }
 
     internal sealed class DeclaringModule : IModule
     {

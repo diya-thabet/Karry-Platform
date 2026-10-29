@@ -22,6 +22,7 @@ public static class TenancyExtensions
     {
         ArgumentNullException.ThrowIfNull(configuration);
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.TryAddScoped<SupportCallContext>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddKarryAuthorization();
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(options =>
