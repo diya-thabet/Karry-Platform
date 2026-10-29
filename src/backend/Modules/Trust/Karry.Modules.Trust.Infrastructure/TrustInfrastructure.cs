@@ -3,6 +3,7 @@ using Karry.BuildingBlocks.Ledger;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Trust.Application;
+using Karry.Modules.Trust.Domain;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -18,6 +19,8 @@ public static class TrustInfrastructure
         services.AddScoped<ILedgerReader, EfLedgerReader>();
         services.AddScoped<IAuditLog, EfAuditLog>();
         services.AddScoped<AuditLogQueries>();
+        services.AddScoped<IAuditExportStore, EfAuditExportStore>();
+        services.AddScoped<AuditExports>();
         services.AddScoped<IAnchorBookkeeping, EfAnchorBookkeeping>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
@@ -26,7 +29,7 @@ public static class TrustInfrastructure
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
         // The event type registry (every module's events in a host): the backfill and the audit viewer read entries
         // back as their typed events.
-        services.AddOutboxDispatcher<TrustDbContext>();
+        services.AddOutboxDispatcher<TrustDbContext>(eventAssemblies: typeof(AuditExport).Assembly);
         return services;
     }
 

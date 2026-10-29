@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Persistence;
+using Karry.Modules.Trust.Domain;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
@@ -119,6 +120,8 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
 
     public DbSet<VerificationRow> Verifications => Set<VerificationRow>();
 
+    public DbSet<AuditExport> Exports => Set<AuditExport>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -159,6 +162,17 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             verification.Property(v => v.Problem).HasMaxLength(1000);
             verification.Property(v => v.HeadHash).HasMaxLength(64).IsFixedLength();
             verification.HasIndex(v => new { v.TenantId, v.VerifiedAt });
+        });
+        modelBuilder.Entity<AuditExport>(export =>
+        {
+            export.ToTable("exports");
+            export.HasKey(e => e.Id);
+            export.Property(e => e.Id).HasConversion(id => id.Value, value => new AuditExportId(value)).ValueGeneratedNever();
+            export.Property(e => e.ExportedBy).HasMaxLength(200);
+            export.Property(e => e.Filters).HasMaxLength(2000);
+            export.HasIndex(e => new { e.TenantId, e.ExportedAt });
+            export.Ignore(e => e.DomainEvents);
+            export.Ignore(e => e.AggregateKey);
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

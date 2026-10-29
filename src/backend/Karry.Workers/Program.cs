@@ -144,6 +144,7 @@ builder.Services.AddOutboxDispatcherService<OrganizationDbContext>();
 builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
 builder.Services.AddOutboxDispatcherService<AssetsDbContext>();
 builder.Services.AddOutboxDispatcherService<ImportsDbContext>();
+builder.Services.AddOutboxDispatcherService<TrustDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {

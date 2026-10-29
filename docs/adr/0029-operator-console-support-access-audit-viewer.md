@@ -78,10 +78,23 @@ that nothing was altered. The questions:
   field is absent on both sides and **never listed**, so the caller cannot even learn that it changed.
 - **CSV export** `GET /api/v1/audit/entries/export.csv` with the same filters, reach and masking, streamed, at most
   100 000 rows (a larger range is refused with `audit.export_too_large`), UTF-8 with BOM for Excel, formula
-  injection neutralised. Each export is itself ledgered (`audit.entries_exported.v1` with the filters and row count).
+  injection neutralised. Each export is itself ledgered (`trust.audit_exported.v1` with the filters and row count;
+  event names take their module's assembly name, so `trust.`, although the routes are under `/audit`).
+- **CSV format (decided while building):** `;` between cells (the list separator of French Excel, which most users
+  have: a comma file opens as one column there), UTF-8 with a byte order mark, CRLF lines, RFC 4180 quoting (cells
+  containing `;`, `,`, quotes or line breaks are quoted). Columns, stable English codes for auditors' tools:
+  `sequence;occurred_at;event_type;actor;entity_type;entity_id;site_id;changes;event`. `occurred_at` in UTC with
+  microseconds; `changes` one `path: before → after` per line (JSON values); `event` the masked event as JSON. A
+  cell starting with `= + - @`, a tab or a carriage return gets a leading apostrophe.
 - **Integrity check** `POST /api/v1/audit/verify` (exists, AUD-03 AC1) now also **records the result**
   (`audit.verifications`, row-level security) and `GET /api/v1/audit/verifications/latest` returns the last one for
   the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (unchanged: the same roles as the log).
+- **As built (2026-10-29, slice 2c, export):** `AuditExports` checks the filters like the viewer, counts the matching
+  entries (refused above 100 000), records an `AuditExport` aggregate (`audit.exports`, RLS) whose
+  `trust.audit_exported.v1` event is ledgered in the same transaction **before any row is sent**, then streams the
+  entries up to the newest one counted (so the file holds exactly the recorded rows and never its own entry). Each row
+  goes through the same `AuditEntryResponse` as the JSON API (masking, changes). Trust's outbox is now dispatched by
+  `karry-workers`.
 - **As built (2026-10-29, slice 2b):** `IntegrityChecks` runs the existing `VerifyLedgerHandler` (unchanged, also used
   by the CLI) and keeps the result through `IVerificationRecords` in `audit.verifications` (append-only like the
   ledger: a past result is evidence of what was found). A check is not ledgered: it changes no business state.

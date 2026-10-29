@@ -29,6 +29,11 @@ public sealed record AuditPage(IReadOnlyList<AuditEntry> Entries, string? NextCu
 public interface IAuditLog
 {
     Task<IReadOnlyList<AuditEntry>> SearchAsync(AuditQuery query, CancellationToken cancellationToken);
+
+    Task<AuditSummary> SummaryAsync(AuditQuery query, CancellationToken cancellationToken);
+
+    /// <summary>Every entry the query matches, newest first, streamed (<c>Take</c> is ignored).</summary>
+    IAsyncEnumerable<AuditEntry> StreamAsync(AuditQuery query, CancellationToken cancellationToken);
 }
 
 /// <summary>

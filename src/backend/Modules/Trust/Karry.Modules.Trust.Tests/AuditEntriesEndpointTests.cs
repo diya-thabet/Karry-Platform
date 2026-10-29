@@ -61,10 +61,11 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
 
     private WebApplication app = null!;
     private HttpClient client = null!;
+    private KarryDatabase database = null!;
 
     public async ValueTask InitializeAsync()
     {
-        var database = await postgres.Server.NewKarryDatabaseAsync();
+        database = await postgres.Server.NewKarryDatabaseAsync();
         var builder = WebApplication.CreateBuilder();
         builder.WebHost.UseTestServer();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["ConnectionStrings:Karry"] = database.App });
@@ -72,7 +73,7 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TrustModule(), new AuditProbeModule()]);
-        builder.Services.AddSingleton(new EventSerializer([typeof(QuoteChanged).Assembly]));
+        builder.Services.AddSingleton(new EventSerializer([typeof(QuoteChanged).Assembly, typeof(Domain.AuditExport).Assembly]));
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin,
             new Dictionary<string, string> { ["controller"] = DefaultRoles.Controller, ["site-manager"] = DefaultRoles.SiteManager, ["operator"] = DefaultRoles.Operator },
             new Dictionary<string, Guid> { ["site-manager"] = SiteA });
@@ -189,6 +190,75 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
 
         refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         Sequences(await other.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken)).Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P1-AUD-005")]
+    public async Task The_export_is_a_csv_for_excel_and_is_itself_ledgered()
+    {
+        using var response = await ExportAsync("admin", "");
+        var bytes = await response.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken);
+        var lines = System.Text.Encoding.UTF8.GetString(bytes[3..]).Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Content.Headers.ContentType!.MediaType.Should().Be("text/csv");
+        response.Content.Headers.ContentDisposition!.FileNameStar.Should().StartWith("karry-audit-").And.EndWith(".csv");
+        bytes[..3].Should().Equal(new byte[] { 0xEF, 0xBB, 0xBF });
+        lines[0].Should().Be("sequence;occurred_at;event_type;actor;entity_type;entity_id;site_id;changes;event");
+        lines.Skip(1).Select(l => l.Split(';')[0]).Should().Equal("4", "3", "2", "1");
+        lines[4].Should().Contain("unitPrice: 41.5 → 39.9");
+
+        var exported = Entry(await SearchAsync("admin", "?eventType=trust.audit_exported.v1"), 5);
+        exported.GetProperty("actor").GetString().Should().Be("admin");
+        exported.GetProperty("entityType").GetString().Should().Be("audit_export");
+        exported.GetProperty("event").GetProperty("rows").GetInt64().Should().Be(4);
+        exported.GetProperty("event").GetProperty("upToSequence").GetInt64().Should().Be(4, "the export does not contain its own entry");
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P1-AUD-005")]
+    public async Task The_export_keeps_masking_reach_and_filters()
+    {
+        var masked = await (await ExportAsync("controller", "")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var site = await (await ExportAsync("site-manager", "")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        var filtered = await (await ExportAsync("admin", "?actor=bob")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        masked.Should().NotContain("39.9").And.NotContain("41.5").And.Contain("maskedFields");
+        Rows(site).Should().Equal("1");
+        Rows(filtered).Should().Equal("2");
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P1-AUD-005")]
+    public async Task Text_from_the_ledger_never_reaches_excel_as_a_formula()
+    {
+        await AppendAsync(app.Services, database.App, Blasted(Start.AddDays(4), null, "=HYPERLINK(\"http://evil\";\"x\")"));
+
+        var csv = await (await ExportAsync("admin", "?entityType=blast")).Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        csv.Should().Contain("\"'=HYPERLINK(\"\"http://evil\"\";\"\"x\"\")\"");
+        csv.Split("\r\n").Should().NotContain(l => l.Contains(";=", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task An_invalid_export_is_refused_and_leaves_no_trace()
+    {
+        using var response = await ExportAsync("admin", "?from=2026-10-03T00:00:00Z&to=2026-10-02T00:00:00Z");
+        using var refused = await ExportAsync("operator", "");
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        Sequences(await SearchAsync("admin", "")).Should().Equal(4L, 3L, 2L, 1L);
+    }
+
+    private static string[] Rows(string csv) =>
+        [.. csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries).Skip(1).Select(l => l.Split(';')[0])];
+
+    private Task<HttpResponseMessage> ExportAsync(string subject, string query)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/audit/entries/export.csv" + query);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant(Tenant, subject));
+        return client.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
     private static long[] Sequences(JsonElement page) =>
