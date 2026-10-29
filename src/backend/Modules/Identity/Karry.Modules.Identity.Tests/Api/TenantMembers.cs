@@ -95,9 +95,14 @@ public sealed class TenantMembers(IdentityHost host)
         return [.. (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).EnumerateArray().Select(r => r.GetProperty("name").GetString()!)];
     }
 
-    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? token, object? body = null)
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? token, object? body = null, IReadOnlyDictionary<string, string>? headers = null)
     {
         using var request = new HttpRequestMessage(method, new Uri(path, UriKind.Relative));
+        foreach (var (name, value) in headers ?? new Dictionary<string, string>())
+        {
+            request.Headers.Add(name, value);
+        }
+
         if (token is not null)
         {
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);

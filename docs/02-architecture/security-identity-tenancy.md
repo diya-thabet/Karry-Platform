@@ -4,7 +4,7 @@ area: architecture
 tags: [security, rbac, rls, tenancy, keycloak, threats]
 source: "MASTER_PLAN.md §14"
 status: baseline
-last_updated: 2026-10-24
+last_updated: 2026-10-29
 ---
 
 # Security, Identity & Multi-Tenancy
@@ -125,7 +125,7 @@ CREATE POLICY tenant_isolation ON fieldops.shift_entry
 | Roles | [`deploy/database/roles.sql`](../../deploy/database/roles.sql): `karry_owner` (schemas, tables, migrations via `Karry.Host migrate`), `karry_app` (DML only, owns nothing, no `BYPASSRLS`) | TC-P1-TEN-008 |
 | Policy | `migrationBuilder.EnableTenantRls(schema, table)` → ENABLE + FORCE + `tenant_isolation` policy (USING = WITH CHECK, `nullif` form). `allowPlatformRows: true` variant (`tenant_id IS NOT DISTINCT FROM …`) for tables that also hold no-tenant rows (`platform.idempotency_records`) | catalog check test; FORCE, nullif, WITH CHECK mutation-checked |
 | Tenant per transaction | `TenantCommandInterceptor`: command **outside** a transaction → `SET LOCAL app.tenant_id = '<uuid>';` prepended in the same batch (one round trip, implicit transaction); command **inside** a transaction → `SET LOCAL` once as the transaction's own statement. Every `SaveChanges` is transactional (`AutoTransactionBehavior.Always`). | TC-P1-TEN-001, pooled-session reuse with `No Reset On Close` (PgBouncer-like) |
-| Tenant source | `TenantResolutionMiddleware`: exactly one UUID `tenant_id` claim in the **validated** token; otherwise 401/403 before the endpoint runs (no database connection opened). Module endpoints require authentication and a tenant by default (`MapModules`); opt-out only with `.AllowAnonymous()` / `.AllowWithoutTenant()` | TC-P1-TEN-003 |
+| Tenant source | `TenantResolutionMiddleware`: exactly one UUID `tenant_id` claim in the **validated** token; otherwise 401/403 before the endpoint runs (no database connection opened). Module endpoints require authentication and a tenant by default (`MapModules`); opt-out only with `.AllowAnonymous()` / `.AllowWithoutTenant()`. Only exception: a platform operator's token in a running support session of their own (`Karry-Support-Session: <tenantId>.<sessionId>`, read only, fields masked, every request ledgered, [ADR-0029 §4](../adr/0029-operator-console-support-access-audit-viewer.md#4-support-access-a-ledgered-read-only-one-hour-support-session)) | TC-P1-TEN-003, TC-P1-OPS-004 |
 | Tenant address | `<slug>.<Tenancy:BaseDomain>` must match the token's tenant (`ITenantSlugLookup`, Tenancy module, 1-minute cache); unknown slug refused; platform names (`api`, `www`…) not checked | TC-P1-TEN-009 |
 | Operators | Provisioning requires policy `platform-operator` (claim `platform_role=operator`, provisional until roles in P1.8/P1.9) | Tenancy API tests |
 | EF filter | Every `ITenantOwned` entity gets a query filter on the scope's tenant (no tenant → matches nothing) | layer tested alone (admin connection bypassing RLS) |

@@ -70,6 +70,7 @@ public static class IdentityInfrastructure
         services.AddScoped<BuildingBlocks.Devices.IDeviceDirectory>(sp => sp.GetRequiredService<DeviceStore>());
         services.AddScoped<DeviceAdministration>();
         services.AddScoped<ISupportStore, SupportStore>();
+        services.AddScoped<BuildingBlocks.Tenancy.ISupportSessionAccess, SupportSessionAccess>();
         services.TryAddSingleton<ISupportNotifier, SupportNotifier>();
         services.AddSingleton<SupportMetrics>();
         services.AddScoped<SupportAccess>();

@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Observability;
 using Karry.SharedKernel.Results;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -28,6 +29,10 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
     public const string UnauthenticatedCode = "auth.unauthenticated";
 
     public const string RevokedCode = "auth.revoked";
+
+    public const string SupportSessionInvalidCode = "support.session_invalid";
+
+    public const string SupportReadOnlyCode = "support.read_only";
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -58,6 +63,11 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
                 return;
             }
         }
+        else if (required && context.Request.Headers.ContainsKey(SupportSessionHeader.Name))
+        {
+            await SupportAsync(context).ConfigureAwait(false);
+            return;
+        }
         else if (required)
         {
             // Normally authorization already answered 401 for anonymous callers; this is the fail-closed backstop.
@@ -70,6 +80,72 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
 
         await next(context).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// A platform operator's call in a support session (ADR-0029 §4): the header names the tenant and the session; the
+    /// session must be the operator's own, not ended and within its hour, looked up under that tenant. Only reads pass
+    /// (403 <c>support.read_only</c> otherwise), and every request, refused or not, is recorded in the tenant's ledger.
+    /// </summary>
+    private async Task SupportAsync(HttpContext context)
+    {
+        var services = context.RequestServices;
+        var subject = context.User.FindFirst("sub")?.Value;
+        var operatorCall = context.User.Identity?.IsAuthenticated == true
+            && context.User.HasClaim(KarryPolicies.PlatformRoleClaim, KarryPolicies.OperatorRole)
+            && !string.IsNullOrEmpty(subject);
+        if (!operatorCall || SupportSessionHeader.Parse(context.Request.Headers[SupportSessionHeader.Name]) is not { } named
+            || services.GetService<ISupportSessionAccess>() is not { } sessions)
+        {
+            await SupportRefused().ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        var (tenant, sessionId) = named;
+
+        if (await HostTenantAsync(context).ConfigureAwait(false) is { } hostTenant && hostTenant != tenant)
+        {
+            await Error.Forbidden("tenant.host_mismatch", "This account does not belong to this company's address.")
+                .ToProblem().ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        services.GetRequiredService<ITenantContext>().Set(tenant);
+        Activity.Current?.SetTag(TelemetryAttributes.TenantId, tenant.ToString());
+        if (!await sessions.IsActiveAsync(sessionId, subject!, context.RequestAborted).ConfigureAwait(false))
+        {
+            await SupportRefused().ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
+        services.GetRequiredService<SupportCallContext>().Set(new SupportCaller(tenant, sessionId, subject!));
+        var path = (context.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? context.Request.Path.Value ?? string.Empty;
+        try
+        {
+            if (HttpMethods.IsGet(context.Request.Method) || HttpMethods.IsHead(context.Request.Method))
+            {
+                await next(context).ConfigureAwait(false);
+            }
+            else
+            {
+                await Error.Forbidden(SupportReadOnlyCode, "Karry support can only look: ask the company to make this change.")
+                    .ToProblem().ExecuteAsync(context).ConfigureAwait(false);
+            }
+        }
+        catch
+        {
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError; // recorded as failed, then rethrown
+            throw;
+        }
+        finally
+        {
+            // After the response: the outcome is known. CancellationToken.None: a client that hung up was still served.
+            await sessions.RecordRequestAsync(tenant, sessionId, context.Request.Method, path, context.Response.StatusCode, CancellationToken.None)
+                .ConfigureAwait(false);
+        }
+    }
+
+    private static Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult SupportRefused() =>
+        Error.Forbidden(SupportSessionInvalidCode, "This support session is not yours, has ended or does not exist.").ToProblem();
 
     /// <summary>
     /// The tenant named by the request address (<c>&lt;slug&gt;.&lt;BaseDomain&gt;</c>), or null when the address is not a

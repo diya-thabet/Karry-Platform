@@ -188,6 +188,21 @@ that nothing was altered. The questions:
     session tables stay tenant data instead of becoming a platform table without row-level security.
   - Found while testing: a refusal by the framework (a failed `platform-operator` policy, a missing token) answered
     `server.unexpected_error`; it now says `auth.forbidden` / `auth.unauthenticated` ([API standards](../02-architecture/api-standards.md)).
+- **As built (2026-10-29, slice 5b, calls in a session):** an operator token **without** `tenant_id` that sends
+  `Karry-Support-Session: <tenantId>.<sessionId>` on a tenant endpoint goes through `TenantResolutionMiddleware`'s
+  support branch: the tenant is set from the header, the host address check applies, and
+  `ISupportSessionAccess.IsActiveAsync` (Identity, under that tenant's RLS) must find **that operator's** session,
+  not ended and within its hour; otherwise **403 `support.session_invalid`** (also for a malformed header or a token
+  that is not an operator's). A company's own token keeps its own tenant: the header never moves it. Then:
+  - `PermissionMiddleware` gives the built-in **`support`** access (`CallerAccess.Support`): every catalogue
+    permission whose action is `read`, company-wide, and **every sensitive field `Masked`** (shown as •••, whatever
+    the company's own roles see). Anything else answers the usual 403 `auth.forbidden`.
+  - Only `GET` and `HEAD` reach the endpoint; any other method answers **403 `support.read_only`**.
+  - Every request, refused or not, is ledgered after the response as `identity.support_request.v1`
+    (`sessionId`, `method`, `path` = the **route template**, never the IDs or query in the address, `status`). It is
+    raised on the session aggregate without changing its row, so the parallel requests of one page never conflict.
+    It is written in a scope of its own once the outcome is known; if that write fails, the response has already
+    left, so the API logs event **2205** at error level rather than pretending.
 
 ### 5. Operators: separate area, mandatory MFA, checked by the API too
 

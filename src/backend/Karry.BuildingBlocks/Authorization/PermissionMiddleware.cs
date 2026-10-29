@@ -72,10 +72,13 @@ public sealed partial class PermissionMiddleware(RequestDelegate next, ILogger<P
         var catalog = services.GetService<AuthorizationCatalog>() ?? AuthorizationCatalog.Empty;
         var subject = context.User.FindFirst("sub")?.Value;
         var signedInAt = SignedInAt(context);
-        var access = services.GetService<ITenantContext>()?.Current is { } tenant && !string.IsNullOrEmpty(subject)
-            && services.GetService<IAccessResolver>() is { } resolver
-            ? CallerAccess.From(catalog, await resolver.AssignmentsAsync(tenant, subject, context.RequestAborted).ConfigureAwait(false))
-            : CallerAccess.Nobody;
+        // A Karry operator in a support session holds no role in the company: the built-in support access applies.
+        var access = services.GetService<SupportCallContext>()?.Current is not null
+            ? CallerAccess.Support(catalog)
+            : services.GetService<ITenantContext>()?.Current is { } tenant && !string.IsNullOrEmpty(subject)
+                && services.GetService<IAccessResolver>() is { } resolver
+                ? CallerAccess.From(catalog, await resolver.AssignmentsAsync(tenant, subject, context.RequestAborted).ConfigureAwait(false))
+                : CallerAccess.Nobody;
         services.GetRequiredService<ICallerAccess>().Set(access, subject, signedInAt);
 
         foreach (var requirement in required)

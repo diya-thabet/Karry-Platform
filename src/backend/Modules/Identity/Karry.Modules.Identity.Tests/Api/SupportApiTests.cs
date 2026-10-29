@@ -8,7 +8,8 @@ namespace Karry.Modules.Identity.Tests.Api;
 /// <summary>
 /// Support access on the real pipeline (ADR-0029 §4, US-P1-OPS-03 AC3): a Tenant Admin's support code, a Karry
 /// operator's session with it or by break-glass, one hour, ended early by either side, everything in the company's
-/// ledger. What a session lets the operator read is the next slice.
+/// ledger; in a session, the operator reads with the built-in support access (reads only, costs masked) and every
+/// request is in the ledger.
 /// </summary>
 [Trait("Story", "US-P1-OPS-03")]
 [Trait("TestCase", "TC-P1-OPS-004")]
@@ -148,6 +149,80 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
         await TenantMembers.ExpectForbiddenAsync(await api.SendAsync(HttpMethod.Get, OperatorSessions(company.Id), company.Admin));
         await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Post, $"{Sessions}/{Guid.CreateVersion7()}/end", company.Admin), HttpStatusCode.NotFound, "support.session_not_found");
     }
+
+    [Fact]
+    public async Task In_a_session_the_operator_reads_with_costs_masked_cannot_write_and_every_request_is_ledgered()
+    {
+        var company = await CompanyAsync();
+        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
+        var session = await StartAsync(company, anna);
+        var header = Header(company.Id, session);
+
+        var quote = await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, "/api/v1/probe/quote", anna, headers: header), HttpStatusCode.OK);
+        quote.TryGetProperty("unitPrice", out _).Should().BeFalse("support sees costs masked, whatever the company's roles see");
+        quote.GetProperty("maskedFields").EnumerateArray().Select(f => f.GetString()).Should().Equal("unitPrice");
+        (await api.SendAsync(HttpMethod.Get, "/api/v1/identity/users", anna, headers: header)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await TenantMembers.ExpectForbiddenAsync(await api.SendAsync(HttpMethod.Get, "/api/v1/identity/devices", anna, headers: header));
+        await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Post, Consents, anna, headers: header), HttpStatusCode.Forbidden, "support.read_only");
+        await TenantMembers.ExpectProblemAsync(
+            await api.SendAsync(HttpMethod.Post, "/api/v1/identity/invitations", anna, new { firstName = "X", lastName = "Y", email = "x@y.test", roles = Array.Empty<object>() }, header),
+            HttpStatusCode.Forbidden, "support.read_only");
+        var someone = Guid.CreateVersion7();
+        (await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/users/{someone}", anna, headers: header)).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await api.SendAsync(HttpMethod.Get, Sessions, company.Admin)).StatusCode.Should().Be(HttpStatusCode.OK, "the company's own calls are not support requests");
+
+        var requests = (await api.LedgerAsync(company.Id)).Where(e => e.Type == "identity.support_request.v1").Select(e => e.Payload).ToList();
+        requests.Select(r => (r.GetProperty("method").GetString(), r.GetProperty("path").GetString(), r.GetProperty("status").GetInt32()))
+            .Should().Equal(
+                ("GET", "/api/v1/probe/quote", 200),
+                ("GET", "/api/v1/identity/users", 200),
+                ("GET", "/api/v1/identity/devices", 403),
+                ("POST", "/api/v1/identity/support/consents", 403),
+                ("POST", "/api/v1/identity/invitations", 403),
+                ("GET", "/api/v1/identity/users/{id:guid}", 404));
+        requests.Should().OnlyContain(r => r.GetProperty("sessionId").GetGuid() == session);
+        requests.Select(r => r.ToString()).Should().NotContain(r => r.Contains(someone.ToString(), StringComparison.Ordinal), "the route template, never the values in the address");
+    }
+
+    [Fact]
+    public async Task Only_the_operator_s_own_running_session_of_that_company_opens_its_data()
+    {
+        var company = await CompanyAsync();
+        var other = await CompanyAsync();
+        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
+        var omar = TestTokens.Create("op-omar", ("platform_role", "operator"));
+        var session = await StartAsync(company, anna);
+        const string Quote = "/api/v1/probe/quote";
+
+        async Task RefusedAsync(string token, string header) =>
+            await TenantMembers.ExpectProblemAsync(
+                await api.SendAsync(HttpMethod.Get, Quote, token, headers: new Dictionary<string, string> { ["Karry-Support-Session"] = header }),
+                HttpStatusCode.Forbidden, "support.session_invalid");
+
+        await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Get, Quote, anna), HttpStatusCode.Forbidden, "tenant.missing");
+        await RefusedAsync(omar, $"{company.Id}.{session}");
+        await RefusedAsync(anna, $"{other.Id}.{session}");
+        await RefusedAsync(anna, $"{company.Id}.{Guid.CreateVersion7()}");
+        await RefusedAsync(anna, $"{session}");
+        await RefusedAsync(anna, $"{company.Id}.{session}.{session}");
+        await RefusedAsync(anna, $"{Guid.Empty}.{session}");
+        await RefusedAsync(TestTokens.Create("op-anna"), $"{company.Id}.{session}"); // same subject, but not a platform operator
+
+        // A company's own token keeps its own company: the header does not move it elsewhere.
+        var otherAdmin = await api.MemberAsync(other.Id, (Roles.TenantAdmin, null));
+        var own = await api.SendAsync(HttpMethod.Get, Sessions, otherAdmin, headers: Header(company.Id, session));
+        (await TenantMembers.JsonAsync(own, HttpStatusCode.OK)).GetProperty("items").GetArrayLength().Should().Be(0);
+
+        (await api.SendAsync(HttpMethod.Get, Quote, anna, headers: Header(company.Id, session))).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await api.SendAsync(HttpMethod.Post, $"{Sessions}/{session}/end", company.Admin)).StatusCode.Should().Be(HttpStatusCode.OK);
+        await RefusedAsync(anna, $"{company.Id}.{session}");
+
+        var later = await StartAsync(company, anna);
+        host.Clock.Advance(TimeSpan.FromHours(1));
+        await RefusedAsync(anna, $"{company.Id}.{later}");
+    }
+
+    private static Dictionary<string, string> Header(Guid tenant, Guid session) => new() { ["Karry-Support-Session"] = $"{tenant}.{session}" };
 
     private async Task<Company> CompanyAsync()
     {
