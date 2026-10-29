@@ -86,6 +86,7 @@ export interface UsageLine {
 
 export const BillingReadPermission = "billing.subscription.read";
 export const DevicesManagePermission = "identity.devices.manage";
+export const SupportManagePermission = "identity.support.manage";
 
 /**
  * The company's usage against its plan (US-P1-BIL-04), for billing readers only (others never ask). Display only:

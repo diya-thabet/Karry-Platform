@@ -21,6 +21,7 @@ type ImportJob = components["schemas"]["ImportResponse"];
 type ImportIssue = components["schemas"]["ImportIssueResponse"];
 type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
 type Device = components["schemas"]["DeviceResponse"];
+type SupportSession = components["schemas"]["SupportSessionResponse"];
 type AuditEntry = components["schemas"]["AuditEntryResponse"];
 type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 type Verification = components["schemas"]["LatestVerificationResponse"];
@@ -92,6 +93,8 @@ export function fakeApi(options: {
   readings?: Record<string, Reading[]>;
   /** What the validation of every uploaded file finds (default: one site to create, no issue). */
   importReport?: { issues: ImportIssue[]; rows: ImportPlannedRow[] };
+  /** Support sessions of `GET /identity/support/sessions`, newest first (default: none). */
+  supportSessions?: SupportSession[];
   /** Tablets of `GET /identity/devices` (default: none). */
   devices?: Device[];
   /** The audit log, newest first (default: empty); people's names come from the entries. */
@@ -127,6 +130,7 @@ export function fakeApi(options: {
   const readings: Record<string, Reading[]> = { ...options.readings };
   const imports: ImportJob[] = [];
   const devices: Device[] = [...(options.devices ?? [])];
+  const supportSessions: SupportSession[] = [...(options.supportSessions ?? [])];
   let importSteps = 0;
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
   const requested: string[] = [];
@@ -338,6 +342,24 @@ export function fakeApi(options: {
 
         users[index] = { ...found, pinSet: true };
         return new Response(null, { status: 204 });
+      }
+      case request.method === "POST" && path === "/support/consents":
+        return json(201, { consentId: "0192f0c1-0000-7000-8000-00000000c001", code: "4HQX-2M7D-9RKA-TP3B", expiresAt: new Date(Date.now() + 30 * 60_000).toISOString() });
+      case request.method === "GET" && path === "/support/sessions":
+        return json(200, { items: supportSessions });
+      case request.method === "POST" && /^\/support\/sessions\/[^/]+\/end$/.test(path): {
+        const index = supportSessions.findIndex((s) => path.includes(s.id));
+        const found = supportSessions[index];
+        if (!found) {
+          return problem(404, "support.session_not_found");
+        }
+
+        if (!found.active) {
+          return problem(422, "support.session_ended");
+        }
+
+        supportSessions[index] = { ...found, active: false, endedAt: "2026-10-29T10:20:00Z" };
+        return json(200, supportSessions[index]);
       }
       case request.method === "GET" && path === "/devices":
         return json(200, devices);
@@ -848,5 +870,13 @@ export function subscriptionOf(overrides: Partial<Subscription> = {}): Subscript
     id: "01970000-0000-7000-8000-0000000000bb", status: "trial", statusSince: "2026-10-01T08:00:00Z", trialEndsAt: "2026-10-31T08:00:00Z",
     unpaidSince: null, planCode: "professional", planVersion: 1, period: "monthly", sites: 1, extraAssets: 0, addOns: {}, extraFeatures: [], limitOverrides: {},
     ...overrides,
+  };
+}
+
+/** A support session as the API lists it (default: a running session opened with the company's code). */
+export function supportSession(overrides: Partial<SupportSession> = {}): SupportSession {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000d001", tenantId: "0192f0c1-0000-7000-8000-0000000000a1", mode: "consent", operatorName: "Anna Support",
+    reason: null, startedAt: "2026-10-29T10:00:00Z", endsAt: "2026-10-29T11:00:00Z", endedAt: null, active: true, ...overrides,
   };
 }
