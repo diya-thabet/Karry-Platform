@@ -42,16 +42,46 @@ public sealed class VerifyEndpointTests(LedgerDatabase postgres) : IClassFixture
         using var client = app.GetTestClient();
         await SeedChainAsync(database.Admin, tenant);
 
+        var before = await LatestAsync(client, tenant);
         var intact = await VerifyAsync(client, tenant);
         await ExecuteAsync(database.Admin, "SET session_replication_role = replica; UPDATE audit.ledger_entries SET event_type = 'test.forged.v1' WHERE seq = 2;");
         var broken = await VerifyAsync(client, tenant);
-        var otherTenant = await VerifyAsync(client, Guid.CreateVersion7());
+        var other = Guid.CreateVersion7();
+        var otherTenant = await VerifyAsync(client, other);
 
         intact.GetProperty("valid").GetBoolean().Should().BeTrue();
         intact.GetProperty("entriesChecked").GetInt64().Should().Be(2);
         broken.GetProperty("valid").GetBoolean().Should().BeFalse();
         broken.GetProperty("firstBrokenSequence").GetInt64().Should().Be(2);
         otherTenant.GetProperty("entriesChecked").GetInt64().Should().Be(0, "another tenant sees an empty chain, never this one");
+
+        // Each check is kept; the screen shows the last one and who ran it (US-P1-AUD-03 AC2).
+        before.GetProperty("verification").ValueKind.Should().Be(JsonValueKind.Null);
+        var latest = await LatestAsync(client, tenant);
+        latest.GetProperty("verification").GetProperty("valid").GetBoolean().Should().BeFalse();
+        latest.GetProperty("verification").GetProperty("firstBrokenSequence").GetInt64().Should().Be(2);
+        latest.GetProperty("verification").GetProperty("problem").GetString().Should().Be(broken.GetProperty("problem").GetString());
+        latest.GetProperty("verifiedBy").GetString().Should().Be("user-1");
+        (await ScalarAsync(database.Admin, $"SELECT count(*) FROM audit.verifications WHERE tenant_id = '{tenant}'")).Should().Be(2);
+        (await LatestAsync(client, other)).GetProperty("verification").GetProperty("entriesChecked").GetInt64()
+            .Should().Be(0, "another company sees only its own check");
+    }
+
+    private static async Task<JsonElement> LatestAsync(HttpClient client, Guid tenant)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/audit/verifications/latest");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant(tenant));
+        var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+    }
+
+    private static async Task<long> ScalarAsync(string connectionString, string sql)
+    {
+        await using var connection = new NpgsqlConnection(connectionString);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand(sql, connection);
+        return (long)(await command.ExecuteScalarAsync(TestContext.Current.CancellationToken))!;
     }
 
     private static async Task<JsonElement> VerifyAsync(HttpClient client, Guid tenant)

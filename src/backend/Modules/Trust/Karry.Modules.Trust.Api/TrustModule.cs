@@ -54,13 +54,21 @@ public sealed class TrustModule : IModule
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
-        // Integrity check of the caller's tenant ledger (US-P1-AUD-03).
+        // Integrity check of the caller's tenant ledger (US-P1-AUD-03); each result is kept (AC2).
         endpoints.MapPost("/verify", VerifyAsync)
             .ExportAccess()
             .RequirePermission(LedgerVerify)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("VerifyLedger");
+
+        // The last integrity check, for the portal's "Integrity check" screen (US-P1-AUD-03 AC2).
+        endpoints.MapGet("/verifications/latest", LatestVerificationAsync)
+            .ExportAccess()
+            .RequirePermission(LedgerVerify)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("GetLatestLedgerVerification");
 
         // The audit log, newest first (US-P1-AUD-04). Readable whatever the subscription state, like exports.
         endpoints.MapGet("/entries", SearchEntriesAsync)
@@ -84,6 +92,12 @@ public sealed class TrustModule : IModule
             : result.Error.ToProblem();
     }
 
-    private static async Task<Ok<LedgerVerificationReport>> VerifyAsync([FromServices] VerifyLedgerHandler handler, CancellationToken cancellationToken) =>
-        TypedResults.Ok(await handler.HandleAsync(cancellationToken).ConfigureAwait(false));
+    private static async Task<Ok<LedgerVerificationReport>> VerifyAsync([FromServices] IntegrityChecks checks, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await checks.RunAsync(cancellationToken).ConfigureAwait(false));
+
+    private static async Task<Ok<LatestVerificationResponse>> LatestVerificationAsync([FromServices] IntegrityChecks checks, CancellationToken cancellationToken)
+    {
+        var latest = await checks.LatestAsync(cancellationToken).ConfigureAwait(false);
+        return TypedResults.Ok(new LatestVerificationResponse(latest?.Report, latest?.VerifiedBy));
+    }
 }

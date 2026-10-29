@@ -59,6 +59,33 @@ public sealed class LedgerSubjectRow : ITenantOwned
     public Guid? SiteId { get; init; }
 }
 
+/// <summary>
+/// One integrity check of the tenant's ledger and its result (US-P1-AUD-03 AC2). Append-only like the ledger: a past
+/// result is evidence of what was found at the time.
+/// </summary>
+public sealed class VerificationRow : ITenantOwned
+{
+    public Guid Id { get; init; }
+
+    public TenantId TenantId { get; init; }
+
+    public DateTimeOffset VerifiedAt { get; init; }
+
+    public string? VerifiedBy { get; init; }
+
+    public bool Valid { get; init; }
+
+    public long EntriesChecked { get; init; }
+
+    public long? FirstBrokenSequence { get; init; }
+
+    public string? Problem { get; init; }
+
+    public string? HeadHash { get; init; }
+
+    public int? AnchorsChecked { get; init; }
+}
+
 /// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
 public sealed class AnchorRow : ITenantOwned
 {
@@ -89,6 +116,8 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
     public DbSet<AnchorRow> Anchors => Set<AnchorRow>();
 
     public DbSet<LedgerSubjectRow> LedgerSubjects => Set<LedgerSubjectRow>();
+
+    public DbSet<VerificationRow> Verifications => Set<VerificationRow>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -121,6 +150,15 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             subject.HasIndex(s => new { s.TenantId, s.Actor, s.Seq });
             subject.HasIndex(s => new { s.TenantId, s.EntityType, s.EntityId, s.Seq });
             subject.HasIndex(s => new { s.TenantId, s.SiteId, s.Seq });
+        });
+        modelBuilder.Entity<VerificationRow>(verification =>
+        {
+            verification.ToTable("verifications");
+            verification.HasKey(v => v.Id);
+            verification.Property(v => v.VerifiedBy).HasMaxLength(200);
+            verification.Property(v => v.Problem).HasMaxLength(1000);
+            verification.Property(v => v.HeadHash).HasMaxLength(64).IsFixedLength();
+            verification.HasIndex(v => new { v.TenantId, v.VerifiedAt });
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

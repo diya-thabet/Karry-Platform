@@ -359,6 +359,29 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_subjects")).Should().Be(1);
     }
 
+    [Theory]
+    [Trait("Story", "US-P1-AUD-03")]
+    [InlineData("UPDATE audit.verifications SET valid = true")]
+    [InlineData("DELETE FROM audit.verifications")]
+    [InlineData("TRUNCATE audit.verifications")]
+    public async Task Nobody_can_change_or_delete_a_recorded_integrity_check(string sql)
+    {
+        await using (var scope = Scope(TenantA))
+        {
+            await scope.ServiceProvider.GetRequiredService<IVerificationRecords>().RecordAsync(
+                new RecordedVerification(new LedgerVerificationReport(false, 7, 3, "entry 3 was altered", null, null, clock.GetUtcNow()), "user-1"),
+                TestContext.Current.CancellationToken);
+        }
+
+        foreach (var role in new[] { database.App, database.Owner })
+        {
+            var act = () => ExecuteAsync(role, $"SET app.tenant_id = '{TenantA}'; {sql}");
+            (await act.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+        }
+
+        (await ScalarAsync<bool>(database.Admin, "SELECT valid FROM audit.verifications")).Should().BeFalse();
+    }
+
     [Fact]
     [Trait("Story", "US-P1-AUD-04")]
     public async Task The_subject_index_is_isolated_per_tenant()

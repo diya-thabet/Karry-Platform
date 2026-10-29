@@ -82,6 +82,10 @@ that nothing was altered. The questions:
 - **Integrity check** `POST /api/v1/audit/verify` (exists, AUD-03 AC1) now also **records the result**
   (`audit.verifications`, row-level security) and `GET /api/v1/audit/verifications/latest` returns the last one for
   the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (unchanged: the same roles as the log).
+- **As built (2026-10-29, slice 2b):** `IntegrityChecks` runs the existing `VerifyLedgerHandler` (unchanged, also used
+  by the CLI) and keeps the result through `IVerificationRecords` in `audit.verifications` (append-only like the
+  ledger: a past result is evidence of what was found). A check is not ledgered: it changes no business state.
+  `GET /api/v1/audit/verifications/latest` answers `{verification, verifiedBy}`, both null before the first check.
 - **As built (2026-10-29, slice 2a):** `AuditLogQueries` + `IAuditLog` (`EfAuditLog`: entries left-joined to the
   subject index, so an unknown event type still shows to company-wide readers when unfiltered), `AuditChanges`,
   `AuditEntryResponse` (typed event through the host's JSON options, `eventId`/`occurredAt` only on the entry). Errors:
