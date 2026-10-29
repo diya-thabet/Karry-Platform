@@ -210,6 +210,27 @@ public sealed class KeycloakLoginTests(KeycloakFixture keycloak) : IClassFixture
     }
 
     [Fact]
+    [Trait("Story", "US-P1-OPS-03")]
+    public async Task The_realm_upgrade_script_finds_a_freshly_imported_realm_up_to_date()
+    {
+        // deploy/keycloak/upgrade_realm.py brings existing environments to the realm file: on a fresh import it must
+        // see nothing to change, or it reads the realm differently from how Keycloak imports it.
+        var start = new System.Diagnostics.ProcessStartInfo("python3")
+        {
+            ArgumentList = { Path.Combine(PostgresServer.RepositoryRoot(), "deploy", "keycloak", "upgrade_realm.py"), "--url", Server.BaseUrl.ToString(), "--check" },
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Environment = { ["KEYCLOAK_ADMIN_USERNAME"] = "admin", ["KEYCLOAK_ADMIN_PASSWORD"] = "admin-test-only" },
+        };
+        using var process = System.Diagnostics.Process.Start(start)!;
+        var output = await process.StandardOutput.ReadToEndAsync(Cancel) + await process.StandardError.ReadToEndAsync(Cancel);
+        await process.WaitForExitAsync(Cancel);
+
+        process.ExitCode.Should().Be(0, output);
+        output.Should().Contain("realm up to date");
+    }
+
+    [Fact]
     [Trait("Story", "US-P1-IAM-02")]
     public async Task Users_without_a_privileged_role_are_not_asked_for_a_second_factor()
     {

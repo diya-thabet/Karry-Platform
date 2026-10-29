@@ -240,6 +240,8 @@ that nothing was altered. The questions:
   of the factor**, so the first token after enrolment says only `pwd`; the portal's error dialog then offers **Sign
   in again** (the step-up pop-up, `prompt=login`, which asks for the code) and reloads the screen's data. Operator
   accounts also hold `mfa-required`, so Keycloak asks for the factor at every sign-in (deploy/keycloak/README.md).
+  Keycloak imports the realm file only once, so existing realms get the change from `deploy/keycloak/upgrade_realm.py`
+  (idempotent, `--check`; the first realm upgrade of the project).
 - **As built (2026-10-29, slice 4b, portal):** the operator console is part of the portal app. A token with
   `platform_role=operator` and no `tenant_id` is an operator session (`isOperator`): the router gets
   `{ operator: true }` as context, the root shell renders the operator layout (no company branding, navigation, plan

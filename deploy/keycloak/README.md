@@ -6,6 +6,7 @@ Sign-in for Karry (ADR-0012, sub-phase P1.8). Everything Keycloak needs is in th
 |---|---|
 | `generate_realm.py` | **Source of the realm.** Edit it, then run it; `--check` (CI) fails when the JSON was edited by hand or not regenerated. |
 | `realm/karry-realm.json` | Generated: the `karry` realm (app clients, token lifetimes, brute-force protection, password policy, user profile, MFA browser flow, events). Imported on first start (`--import-realm`). |
+| `upgrade_realm.py` | Brings an **existing** realm to the realm file for changes made after its first import (Keycloak never re-imports). Idempotent; `--check` lists what differs. Run it after pulling a realm change: `python3 deploy/keycloak/upgrade_realm.py` (local admin by default; `KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` elsewhere). A live test checks it finds a fresh import up to date. |
 | `themes/karry/login/` | Login theme on top of Keycloak's `keycloak.v2`: FR (default) / EN messages, tenant branding script. Read live by Keycloak. |
 
 ## Clients
