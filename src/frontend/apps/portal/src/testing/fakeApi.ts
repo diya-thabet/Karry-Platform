@@ -22,6 +22,7 @@ type ImportIssue = components["schemas"]["ImportIssueResponse"];
 type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
 type Device = components["schemas"]["DeviceResponse"];
 type AuditEntry = components["schemas"]["AuditEntryResponse"];
+type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 type Verification = components["schemas"]["LatestVerificationResponse"];
 
 export interface Sent {
@@ -97,6 +98,10 @@ export function fakeApi(options: {
   verifyFinds?: { valid: boolean; firstBrokenSequence: number | null; problem: string | null };
   /** The export answers `audit.export_too_large` (more than 100 000 matching entries). */
   exportTooLarge?: boolean;
+  /** Companies of the operator console (`GET /tenancy/tenants`, default: none); new ones are added as trials. */
+  operatorTenants?: OperatorTenant[];
+  /** Whether the first administrator's invitation of a new company is delivered (default: yes). */
+  invitationDelivered?: boolean;
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -118,6 +123,8 @@ export function fakeApi(options: {
   const devices: Device[] = [...(options.devices ?? [])];
   let importSteps = 0;
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
+  const requested: string[] = [];
+  const operatorTenants: OperatorTenant[] = [...(options.operatorTenants ?? [])];
   let verification: Verification = { verification: null, verifiedBy: null, verifiedByName: null };
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
@@ -131,6 +138,7 @@ export function fakeApi(options: {
   const fetch = async (input: Request | URL | string, init?: RequestInit): Promise<Response> => {
     const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
+    requested.push(url.pathname);
     if (request.method === "GET" && url.pathname === "/api/v1/billing/entitlements") {
       return json(200, {
         planCode: "professional", planVersion: 1, status: options.status ?? "trial", trialEndsAt: "2026-11-24T08:00:00Z",
@@ -172,6 +180,28 @@ export function fakeApi(options: {
 
     if (request.method !== "GET" && options.needsStepUp?.() === true) {
       return problem(401, "auth.step_up_required");
+    }
+
+    if (url.pathname === "/api/v1/tenancy/tenants" && request.method === "GET") {
+      const mrr = new Map<string, number>();
+      for (const t of operatorTenants.filter((t) => t.mrr !== null && t.mrrCurrency)) {
+        mrr.set(t.mrrCurrency ?? "", (mrr.get(t.mrrCurrency ?? "") ?? 0) + Number(t.mrr));
+      }
+
+      return json(200, {
+        tenants: [...operatorTenants].sort((a, b) => a.name.localeCompare(b.name)),
+        mrr: [...mrr].map(([currency, amount]) => ({ currency, amount })),
+      });
+    }
+
+    if (url.pathname === "/api/v1/tenancy/tenants" && request.method === "POST") {
+      const input = body as { slug: string; name: string; admin: { email: string } | null };
+      const created = operatorTenant({ id: `0192f0c1-0000-7000-8000-0000000c${String(operatorTenants.length + 1).padStart(4, "0")}`, slug: input.slug, name: input.name, mrr: 0 });
+      operatorTenants.push(created);
+      return json(201, {
+        id: created.id, slug: created.slug, name: created.name, createdAt: "2026-10-29T08:00:00Z",
+        adminInvitation: input.admin ? { invited: true, delivered: options.invitationDelivered ?? true, error: null } : null,
+      });
     }
 
     if (url.pathname === "/api/v1/tenancy/settings" && request.method === "PUT") {
@@ -623,6 +653,8 @@ export function fakeApi(options: {
     sent,
     /** Calls of the audit API with their query (filters, cursor). */
     auditCalls,
+    /** Every path asked, in order (reads included). */
+    requested,
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };
@@ -749,5 +781,14 @@ export function auditEntry(overrides: Partial<AuditEntry> = {}): AuditEntry {
     actor: "user-ali", actorName: "Ali Ben Salah", entityType: "asset", entityId: "0192f0c1-0000-7000-8000-000000007001",
     siteId: "0192f0c1-0000-7000-8000-000000005001", event: recordedEvent({ assetId: "0192f0c1-0000-7000-8000-000000007001", before: { name: "Pelle" }, after: { name: "Pelle Cat 336" } }),
     changes: [{ path: "name", before: "Pelle", after: "Pelle Cat 336" }], ...overrides,
+  };
+}
+
+/** A company of the operator console: Carrière Nord on a Professional trial, 2 sites, 3 machines, 4 office users. */
+export function operatorTenant(overrides: Partial<OperatorTenant> = {}): OperatorTenant {
+  return {
+    id: "0192f0c1-0000-7000-8000-0000000c0001", slug: "carriere-nord", name: "Carrière Nord", createdAt: "2026-10-01T08:00:00Z",
+    planCode: "professional", planVersion: 1, status: "trial", trialEndsAt: "2026-10-31T08:00:00Z", mrr: 0, mrrCurrency: "EUR",
+    sites: 2, assets: 3, officeUsers: 4, lastActivity: "2026-10-28T16:00:00Z", complete: true, ...overrides,
   };
 }

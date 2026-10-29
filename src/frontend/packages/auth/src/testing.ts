@@ -14,7 +14,10 @@ export async function signedInAuth(
 ): Promise<Auth & { signOuts: number; stepUps: number }> {
   const subject = person.subject ?? "test-user";
   const user = new User({
-    access_token: `${base64url({ alg: "none" })}.${base64url({ sub: subject, tenant_id: person.tenantId ?? "0192f0c1-a2b3-7c4d-8e9f-001122334455" })}.test`,
+    // A platform operator has no company in the token unless one is given; everyone else belongs to the test company.
+    access_token: `${base64url({ alg: "none" })}.${base64url(person.platformRole
+      ? { sub: subject, platform_role: person.platformRole, ...(person.tenantId ? { tenant_id: person.tenantId } : {}) }
+      : { sub: subject, tenant_id: person.tenantId ?? "0192f0c1-a2b3-7c4d-8e9f-001122334455" })}.test`,
     id_token: "test-id-token",
     token_type: "Bearer",
     scope: "openid",

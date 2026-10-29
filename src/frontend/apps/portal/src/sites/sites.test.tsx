@@ -33,7 +33,8 @@ describe("sites (US-P1-ORG-01)", () => {
     expect(screen.getByText("Archived")).toBeInTheDocument();
   });
 
-  it("creates a site from typed coordinates and opens it (AC1)", async () => {
+  // The longest form of the portal (about 2 s alone): a full parallel run on a small machine can pass 5 s.
+  it("creates a site from typed coordinates and opens it (AC1)", { timeout: 15_000 }, async () => {
     const api = fakeApi({ permissions: manager, tenant: { timeZone: "Africa/Tunis" } });
     await renderAt("/sites/new", api);
 
