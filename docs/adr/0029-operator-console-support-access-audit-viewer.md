@@ -63,21 +63,30 @@ that nothing was altered. The questions:
   property that is neither `Guid` nor `string` (it would be stored as `ThingId { Value = … }`). Details:
   [trust layer §13.3.1](../02-architecture/trust-layer-signatures-audit.md#1331-as-implemented-p16-trust-module-schema-audit).
 
-### 2. The audit viewer API (Trust module)
+### 2. The audit viewer API (Trust module, routes under `/api/v1/audit`)
 
-- `GET /api/v1/trust/audit?actor=&entityType=&entityId=&eventType=&from=&to=&cursor=` (newest first, 50 a page,
-  keyset cursor on the sequence), permission **`audit.ledger.read`** (Tenant Admin, Controller, Auditor roles).
+- `GET /api/v1/audit/entries?actor=&entityType=&entityId=&siteId=&eventType=&from=&to=&cursor=&limit=` (newest
+  first, 50 a page by default, at most 200, keyset cursor on the sequence), permission **`audit.ledger.read`**: the
+  roles of the matrix row "Audit log / integrity check" (Tenant Admin, Executive, Finance company-wide; Controller and
+  Site Manager on their sites). A holder on some sites sees only those sites' entries (§1); asking for another site
+  does not widen it. Readable whatever the subscription state, like exports (ADR-0023).
 - Each entry is turned back into **its typed event** (the event type registry the outbox already uses) and written
   through the normal API JSON contract, so **`[Sensitive]` fields are masked exactly as everywhere else**. An entry
-  whose type is no longer known is shown as its event type with no payload.
-- **Before/after diff:** for events with `Before` and `After`, the server lists the changed fields
-  (`path`, `before`, `after`), after masking (a masked field shows as changed, without values).
-- **CSV export** `GET /api/v1/trust/audit/export.csv` with the same filters and the same masking, streamed, at most
-  100 000 rows (a larger range is refused with `trust.export_too_large`), UTF-8 with BOM for Excel, formula
-  injection neutralised. Each export is itself ledgered (`trust.audit_exported.v1` with the filters and row count).
-- **Integrity check** `POST /api/v1/trust/verify` (exists, AUD-03 AC1) now also **records the result**
-  (`trust.verifications`, row-level security) and `GET /api/v1/trust/verifications/latest` returns the last one for
-  the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (Tenant Admin, Auditor).
+  whose type is no longer known is shown with its event type and no event.
+- **Before/after diff:** for events with `before` and `after`, the server lists the changed values (`path`,
+  `before`, `after`; objects field by field, lists as a whole), computed on the event **after masking**: a masked
+  field is absent on both sides and **never listed**, so the caller cannot even learn that it changed.
+- **CSV export** `GET /api/v1/audit/entries/export.csv` with the same filters, reach and masking, streamed, at most
+  100 000 rows (a larger range is refused with `audit.export_too_large`), UTF-8 with BOM for Excel, formula
+  injection neutralised. Each export is itself ledgered (`audit.entries_exported.v1` with the filters and row count).
+- **Integrity check** `POST /api/v1/audit/verify` (exists, AUD-03 AC1) now also **records the result**
+  (`audit.verifications`, row-level security) and `GET /api/v1/audit/verifications/latest` returns the last one for
+  the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (unchanged: the same roles as the log).
+- **As built (2026-10-29, slice 2a):** `AuditLogQueries` + `IAuditLog` (`EfAuditLog`: entries left-joined to the
+  subject index, so an unknown event type still shows to company-wide readers when unfiltered), `AuditChanges`,
+  `AuditEntryResponse` (typed event through the host's JSON options, `eventId`/`occurredAt` only on the entry). Errors:
+  `audit.limit_invalid`, `audit.cursor_invalid`, `audit.range_invalid`, `audit.filter_invalid` (a filter over 200
+  characters).
 
 ### 3. The operator console reads tenants one at a time, through each module
 

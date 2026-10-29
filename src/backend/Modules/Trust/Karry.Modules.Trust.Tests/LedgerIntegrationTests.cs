@@ -25,7 +25,7 @@ public readonly record struct BlastId(Guid Value) : IEntityId<BlastId>
 
 [EventType("ledgerprobe.blast_recorded.v1")]
 [AuditSubject("blast", nameof(BlastId))]
-public sealed record BlastRecorded(Guid BlastId, decimal Tonnes, Guid? SiteId = null) : DomainEvent;
+public sealed record BlastRecorded(Guid BlastId, decimal Tonnes, Guid? SiteId = null, string? Actor = null) : DomainEvent;
 
 public sealed class Blast : AggregateRoot<BlastId>, ITenantOwned
 {

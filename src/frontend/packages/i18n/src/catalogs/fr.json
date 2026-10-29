@@ -173,6 +173,7 @@
   "permissions.identity.users.manage": "Inviter, modifier et désactiver des personnes",
   "permissions.identity.roles.read": "Voir les rôles",
   "permissions.identity.roles.manage": "Créer et modifier les rôles et les niveaux des champs",
+  "permissions.audit.ledger.read": "Consulter le journal d’audit",
   "permissions.audit.ledger.verify": "Vérifier l’intégrité du journal d’audit",
   "roles.tenant-admin": "Administrateur",
   "roles.executive": "Direction",
