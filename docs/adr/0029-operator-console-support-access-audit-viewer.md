@@ -211,6 +211,19 @@ that nothing was altered. The questions:
   monospaced, with "Valid until HH:MM"; at expiry the dialog replaces the code with a notice and offers a new one
   (a dead code is never left on screen). **End now** on a running session asks first, then ends it; Karry support
   loses access at its next request. The support error codes have their own messages in both languages.
+- **As built (2026-10-29, slice 5c-2, the operator's visit):** the company page of the console has a **Support
+  access** card: **Open support** with the company's code (trimmed, upper-cased) or **Emergency access** (a warning
+  that the administrators are e-mailed and on-call is paged, then a reason of 30 to 500 characters, counted as typed),
+  and the company's sessions, with **Continue** on the operator's own running one. Once the API opens the session
+  the tab shows the **company's own portal** (navigation, screens, permissions from `/me/access`, which answers the
+  `support` access) on the platform address, with a **fresh query cache** per visit (nothing of the console or of
+  another visit shows in it). Every call of the visit carries `Karry-Support-Session: <tenantId>.<sessionId>`; the
+  console's own calls never do. A **red banner fixed at the bottom**, which cannot be closed, says whose screens these
+  are, that they are read only and when the session ends, with **End support**. The visit stops, with a message and
+  back on that company's console page, when the operator ends it, when its hour is over (a timer), or on the first
+  `support.session_invalid` (the company ended it). The visit is kept in this tab's `sessionStorage` so a reload
+  keeps it (the API checks the session on every call; an expired one is not resumed); another tab starts in the
+  console.
 
 ### 5. Operators: separate area, mandatory MFA, checked by the API too
 

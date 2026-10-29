@@ -131,6 +131,7 @@ export function fakeApi(options: {
   const imports: ImportJob[] = [];
   const devices: Device[] = [...(options.devices ?? [])];
   const supportSessions: SupportSession[] = [...(options.supportSessions ?? [])];
+  const supportCalls: { method: string; path: string; header: string | null }[] = [];
   let importSteps = 0;
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
   const requested: string[] = [];
@@ -151,6 +152,20 @@ export function fakeApi(options: {
     const request = input instanceof Request ? input : new Request(input, init);
     const url = new URL(request.url);
     requested.push(url.pathname);
+    // A support visit (ADR-0029 §4): the named session must be running; then reads only.
+    const named = request.headers.get("Karry-Support-Session");
+    supportCalls.push({ method: request.method, path: url.pathname, header: named });
+    if (named !== null) {
+      const visited = supportSessions.find((s) => named === `${s.tenantId}.${s.id}`);
+      if (!visited?.active) {
+        return problem(403, "support.session_invalid");
+      }
+
+      if (!["GET", "HEAD"].includes(request.method)) {
+        return problem(403, "support.read_only");
+      }
+    }
+
     if (request.method === "GET" && url.pathname === "/api/v1/billing/entitlements") {
       return json(200, {
         planCode: "professional", planVersion: 1, status: options.status ?? "trial", trialEndsAt: "2026-11-24T08:00:00Z",
@@ -359,6 +374,36 @@ export function fakeApi(options: {
         }
 
         supportSessions[index] = { ...found, active: false, endedAt: "2026-10-29T10:20:00Z" };
+        return json(200, supportSessions[index]);
+      }
+      case request.method === "GET" && /^\/tenants\/[^/]+\/support-sessions$/.test(path):
+        return json(200, { items: supportSessions.filter((s) => path.includes(s.tenantId)) });
+      case request.method === "POST" && /^\/tenants\/[^/]+\/support-sessions$/.test(path): {
+        const input = body as { code: string | null; reason: string | null };
+        if (input.code !== null && input.code !== "4HQX-2M7D-9RKA-TP3B") {
+          return problem(422, "support.consent_invalid");
+        }
+
+        if (input.code === null && (input.reason ?? "").trim().length < 30) {
+          return problem(400, "support.reason_required");
+        }
+
+        const opened = supportSession({
+          id: `0192f0c1-0000-7000-8000-00000000d${String(supportSessions.length + 101)}`, tenantId: path.split("/")[2] ?? "",
+          mode: input.code === null ? "break_glass" : "consent", operatorName: "Ops Karry", reason: input.code === null ? input.reason : null,
+          startedAt: new Date().toISOString(), endsAt: new Date(Date.now() + 60 * 60_000).toISOString(),
+        });
+        supportSessions.unshift(opened);
+        return json(201, opened);
+      }
+      case request.method === "POST" && /^\/tenants\/[^/]+\/support-sessions\/[^/]+\/end$/.test(path): {
+        const index = supportSessions.findIndex((s) => path.includes(s.id));
+        const found = supportSessions[index];
+        if (!found?.active) {
+          return problem(found ? 422 : 404, found ? "support.session_ended" : "support.session_not_found");
+        }
+
+        supportSessions[index] = { ...found, active: false, endedAt: new Date().toISOString() };
         return json(200, supportSessions[index]);
       }
       case request.method === "GET" && path === "/devices":
@@ -726,6 +771,16 @@ export function fakeApi(options: {
     auditCalls,
     /** Every path asked, in order (reads included). */
     requested,
+    /** Every call with its `Karry-Support-Session` header (null without one). */
+    supportCalls,
+    /** The company ends a session (Settings › Support access): its next call is refused. */
+    endSupport: (id: string) => {
+      const index = supportSessions.findIndex((s) => s.id === id);
+      const found = supportSessions[index];
+      if (found) {
+        supportSessions[index] = { ...found, active: false, endedAt: new Date().toISOString() };
+      }
+    },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };

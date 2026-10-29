@@ -5,18 +5,21 @@ import type { ApiClient } from "@karry/api-client";
 import { AuthProvider, useAuth, type Auth } from "@karry/auth";
 import { I18nProvider, type I18n } from "@karry/i18n";
 import { ThemeProvider, ToastProvider } from "@karry/ui";
+import { useApi } from "./api";
 import { ApiProvider } from "./ApiProvider";
 import { ErrorDialogProvider } from "./ErrorDialog";
 import { FlagsProvider } from "./FlagsProvider";
 import { isOperator } from "./operator/api";
+import { SupportBanner, SupportVisitProvider } from "./operator/support";
+import { supportClient, useSupportVisit, type SupportVisit } from "./operator/supportVisit";
 import { createQueryClient } from "./queryClient";
 import { useReportError } from "./reportError";
 import { createPortalRouter } from "./router";
 
-function DataLayer({ history, operator }: { history?: RouterHistory | undefined; operator: boolean }) {
+function DataLayer({ history, operator, lastCompany }: { history?: RouterHistory | undefined; operator: boolean; lastCompany?: string | undefined }) {
   const report = useReportError();
   const [client] = useState(() => createQueryClient(report));
-  const [router] = useState(() => createPortalRouter(history, { operator }));
+  const [router] = useState(() => createPortalRouter(history, { operator, lastCompany }));
   return (
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
@@ -26,17 +29,38 @@ function DataLayer({ history, operator }: { history?: RouterHistory | undefined;
 
 /**
  * A company's portal, or the operator console for Karry staff signed in on the platform address (ADR-0029 §5): they
- * have no company, so no company flags are asked for them.
+ * have no company, so no company flags are asked for them. During a support visit the operator sees the company's
+ * portal, every call naming the session, under the support banner (ADR-0029 §4).
  */
 function Session({ history }: { history?: RouterHistory | undefined }) {
   const { user } = useAuth();
-  return isOperator(user)
-    ? <DataLayer history={history} operator />
-    : (
+  const { visit, lastCompany } = useSupportVisit();
+  if (!isOperator(user)) {
+    return (
       <FlagsProvider>
         <DataLayer history={history} operator={false} />
       </FlagsProvider>
     );
+  }
+
+  return visit ? <SupportedCompany key={visit.sessionId} visit={visit} history={history} /> : <DataLayer history={history} operator lastCompany={lastCompany} />;
+}
+
+/** The company's own screens with a fresh cache, so nothing of the console or of another visit shows in them. */
+function SupportedCompany({ visit, history }: { visit: SupportVisit; history?: RouterHistory | undefined }) {
+  const api = useApi();
+  const { leave } = useSupportVisit();
+  const [client] = useState(() => supportClient(api, visit, () => { leave("refused"); }));
+  return (
+    <div className="pb-24 sm:pb-16">
+      <ApiProvider client={client}>
+        <FlagsProvider>
+          <DataLayer history={history} operator={false} />
+        </FlagsProvider>
+      </ApiProvider>
+      <SupportBanner visit={visit} />
+    </div>
+  );
 }
 
 export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api: ApiClient; history?: RouterHistory }) {
@@ -47,7 +71,9 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
       <ThemeProvider defaultTheme="light" density="office">
         <ToastProvider label="Notifications">
           <ErrorDialogProvider>
-            <Session history={history} />
+            <SupportVisitProvider>
+              <Session history={history} />
+            </SupportVisitProvider>
           </ErrorDialogProvider>
         </ToastProvider>
       </ThemeProvider>

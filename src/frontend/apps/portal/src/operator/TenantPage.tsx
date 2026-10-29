@@ -9,6 +9,7 @@ import {
   actionsFor, invoicesKey, operatorTenantsKey, statusLook, usePlans, useOperatorTenants, useTenantInvoices, useTenantSubscription,
   type Invoice, type Subscription,
 } from "./api";
+import { SupportCard } from "./SupportCard";
 
 /** Today as `yyyy-mm-dd` where the operator is (invoice dates are calendar days). */
 function today(): string {
@@ -42,6 +43,7 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
         )
         : <EmptyState title={subscription.isPending ? t("common.loading") : t("portal.operator.noSubscription")} />}
       <InvoicesCard tenantId={tenantId} />
+      {tenant && <SupportCard tenantId={tenantId} tenantName={tenant.name} />}
     </div>
   );
 }
