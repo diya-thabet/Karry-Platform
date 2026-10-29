@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
 namespace Karry.Modules.Identity.Tests.Api;
@@ -48,6 +49,35 @@ public sealed class CapturingSupportNotifier : ISupportNotifier
     {
         Sent.Enqueue(notice);
         return Task.FromResult(notice.Recipients.Count);
+    }
+}
+
+/// <summary>Keeps the event IDs the host logs at warning or above, to check security-relevant log events.</summary>
+public sealed class CapturingLogs : ILoggerProvider
+{
+    public ConcurrentQueue<(int EventId, string Message)> Entries { get; } = new();
+
+    public ILogger CreateLogger(string categoryName) => new Logger(this);
+
+    public void Dispose()
+    {
+    }
+
+    private sealed class Logger(CapturingLogs logs) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Warning;
+
+        public void Log<TState>(
+            LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
+        {
+            if (IsEnabled(logLevel))
+            {
+                logs.Entries.Enqueue((eventId.Id, formatter(state, exception)));
+            }
+        }
     }
 }
 
@@ -109,6 +139,8 @@ public sealed class IdentityHost : IAsyncLifetime
 
     public CapturingSupportNotifier SupportNotices { get; } = new();
 
+    public CapturingLogs Logs { get; } = new();
+
     public SeatLimits SeatLimits { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
@@ -129,6 +161,7 @@ public sealed class IdentityHost : IAsyncLifetime
         Keycloak = await keycloak;
 
         var builder = WebApplication.CreateBuilder();
+        builder.Logging.AddProvider(Logs);
         builder.WebHost.UseTestServer();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {

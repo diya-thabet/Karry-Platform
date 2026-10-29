@@ -28,6 +28,7 @@ dist/
 .pnpm-store/
 playwright-report/
 test-results/
+.auth/
 
 # Python
 __pycache__/

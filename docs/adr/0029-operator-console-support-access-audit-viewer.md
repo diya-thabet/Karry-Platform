@@ -3,15 +3,15 @@ title: "ADR-0029: Operator console, consented support access and the tenant audi
 area: adr
 tags: [operator, console, support-access, break-glass, impersonation, audit, ledger, csv, masking, integrity, mfa]
 source: "Phase 1 sub-phase P1.16"
-status: proposed
-last_updated: 2026-10-28
+status: accepted
+last_updated: 2026-10-29
 ---
 
 # ADR-0029 — Operator console, consented support access and the tenant audit viewer
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (P1.16 slice 1, 2026-10-28)
+- **Status:** Accepted (2026-10-29, P1.16 done: PRs #104–#120, security review below; proposed 2026-10-28)
 - **Date:** 2026-10-28
 - **Deciders:** Product owner, software architect
 - **Related:** US-P1-OPS-03 (AC1–AC3), US-P1-AUD-04 (AC1–AC2), US-P1-AUD-03 AC2; TC-P1-OPS-004, TC-P1-AUD-005;
@@ -261,6 +261,30 @@ that nothing was altered. The questions:
   terms. Invoices are listed, recorded (number, amount, currency, issue and due dates) and marked paid today. The
   billing refusals an operator can meet and the company-creation ones (`tenant.slug_taken`, `slug_invalid`,
   `slug_reserved`, `name_invalid`) are explained in the error dialog.
+
+## Security review (2026-10-29, P1.16 close-out)
+
+A privileged-access pass over the whole of §4 and §5 (sub-phase card: two-reviewer rule), against threat T-14:
+
+| Check | Result |
+|---|---|
+| Who can open a session | Only a `platform-operator` token that carries a second factor (`amr` `otp`/`hwk`), checked by Keycloak at sign-in and by the API (401 `auth.mfa_required`) |
+| Consent codes | 16 characters of Crockford base32 (80 bits), single use, 30 minutes, created only by a Tenant Admin after a recent sign-in, stored as a hash |
+| Guessing codes | **Fixed:** a refused code was not logged. Now event **2206** (warning: `Support code refused for tenant {Tenant} by operator {Operator}`) on both refusals (unknown or used/expired code), so repeated attempts show in the logs; mutation-checked (removing the log fails `SupportApiTests`) |
+| Break-glass | Reason 30–500 characters, alert `KarryBreakGlassSupport` (page) with runbook, e-mail to every Tenant Admin, ledger entry in the company's chain |
+| What support can do | GET/HEAD only (writes 403 `support.read_only`), the built-in `support` access = every `*.read` permission with every sensitive field masked; people's names and contact details are visible, which the code or the alerted reason covers |
+| Scope and time | One company (the header names the tenant and session; the session must be the caller's and running), one hour, ended early by either side; row-level security still applies |
+| Trace | Every request in the session is in the company's ledger (`identity.support_request.v1`: route template, status), next to the session's start and end; the company sees the sessions in Settings › Support access |
+| Operator data at rest | Operator accounts have no `tenant_id`; demo operator creation refuses an existing account that has a company or is not an operator |
+
+Residual: an operator can read during a consented hour everything a read-only Tenant Admin could, costs aside; a
+narrower "support scope" chosen by the company is a later option (Consequences).
+
+**End-to-end (TC-P1-OPS-004, `src/frontend/e2e/tests/operator-console.spec.ts`):** an operator with TOTP creates a
+company and changes its plan; a company's administrator creates a support code; the operator opens support with it,
+sees the company's sites under the banner with no way to add one, ends the session; the company sees the session
+("with your code", ended) and runs the integrity check (intact). The E2E operator and the second factors it enrols
+are its own (`e2e-operator@karry.test`; secrets in the ignored `src/frontend/e2e/.auth/`).
 
 ## Options considered
 

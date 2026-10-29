@@ -52,6 +52,7 @@ public static class IdentityInfrastructure
             new PostgresKeycloakClientLock(connectionString)));
         services.TryAddSingleton<IIdentityProvider>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
         services.TryAddSingleton<ISignInEventSource>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
+        services.TryAddSingleton<IDemoOperatorAccounts>(sp => sp.GetRequiredService<KeycloakIdentityProvider>());
         services.TryAddSingleton<IInvitationSender, InvitationSender>();
         services.AddScoped<IImportCursor, ImportCursor>();
         services.AddSingleton<ImportSignInFailures>();

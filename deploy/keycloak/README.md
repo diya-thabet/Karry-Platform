@@ -45,7 +45,11 @@ SSO cookie ─or─ username + password
 
 **Operator accounts** (Karry staff, never a company's people): user attribute `platform_role=operator`, no
 `tenant_id`, and the realm role `mfa-required`, so every sign-in asks for the second factor (enrolment at the first
-one). Create them in the Keycloak admin console of the `karry` realm; the API checks `amr` as well.
+one). Create them in the Keycloak admin console of the `karry` realm; the API checks `amr` as well. Locally,
+`Karry.Host seed-demo` creates two (idempotent; it refuses an existing account that has a company): `operator@karry.test`
+for a person showing the console (they enrol their own authenticator at the first sign-in) and
+`e2e-operator@karry.test` for the browser tests, which keep the authenticators they enrol in the ignored
+`src/frontend/e2e/.auth/totp.json`.
 
 Keycloak fails a flow whose only steps are *alternatives none of which is configured*; that is why enrolment is a
 separate conditional sub-flow (`Condition - sub-flow executed`, "not executed").

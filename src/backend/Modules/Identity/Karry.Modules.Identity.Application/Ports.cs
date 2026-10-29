@@ -36,6 +36,17 @@ public interface IIdentityProvider
     Task EnsureTenantAsync(TenantId tenant, string slug, string name, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Karry operator accounts for local and demo environments only (<c>seed-demo</c>, refused in production): attribute
+/// <c>platform_role=operator</c>, no tenant, realm role <c>mfa-required</c> (ADR-0029 §5). Kept out of
+/// <see cref="IIdentityProvider"/> so that no request path can create an operator.
+/// </summary>
+public interface IDemoOperatorAccounts
+{
+    /// <summary>Creates the account enabled with this password, or leaves an existing one as it is; returns its subject.</summary>
+    Task<string> EnsureOperatorAsync(string email, string firstName, string lastName, string password, CancellationToken cancellationToken);
+}
+
 /// <summary>An invitation to deliver: the link is the only copy of the token (only its hash is stored).</summary>
 public sealed record InvitationMessage(InvitationChannel Channel, string Destination, string RecipientName, string CompanyName, Uri Link, DateTimeOffset ExpiresAt);
 
