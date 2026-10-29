@@ -133,6 +133,17 @@ that nothing was altered. The questions:
 - Create tenant, change plan or state, record invoices use the **existing operator endpoints** (P1.4, P1.10).
 - **MRR** is the monthly price of the subscription's plan version plus add-ons, in the plan's currency, zero during a
   trial or when suspended or ended; illustrative until the owner sets prices (N-01).
+- **As built (2026-10-29, slice 4a):** `ITenantSummarySource` (BuildingBlocks.Tenancy) returns a
+  `TenantSummaryPart` (plan code and version, subscription state, trial end, MRR and its currency, last activity);
+  parts are merged column by column. The counts reuse the existing **`IUsageSource`** meters (sites, machines, office
+  users), so Organization, Assets and Identity needed nothing new. Sources: Billing `BillingSummary`, Trust
+  `LedgerActivity` (newest ledger entry). `TenantOverview` (Tenancy.Application) lists tenants by name and opens one
+  scope per tenant with `ITenantContext` set; a tenant whose module fails is listed with `complete: false` (error log
+  6001) and never hides the others. **MRR decided while building** (`MonthlyRevenue`, Billing.Domain): the plan
+  version's price for the subscription's period in the **company's currency when the plan prices it, else the plan's
+  first currency**; sites × per-site price + extra machines × extra-asset price; an annual price ÷ 12, rounded to the
+  currency's minor units; billed states are active, past due and restricted; add-ons have no price yet and count for
+  nothing; a billed plan without prices (enterprise) has no figure (null). The list adds MRR totals by currency.
 
 ### 4. Support access: a ledgered, read-only, one-hour support session
 

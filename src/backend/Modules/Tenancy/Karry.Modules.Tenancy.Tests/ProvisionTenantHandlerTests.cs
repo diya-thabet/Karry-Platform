@@ -46,6 +46,8 @@ public sealed class ProvisionTenantHandlerTests
         public Task<Tenant?> FindBySlugAsync(TenantSlug slug, CancellationToken cancellationToken) =>
             Task.FromResult(Interlocked.Increment(ref lookups) == 1 ? null : winner);
 
+        public Task<IReadOnlyList<Tenant>> ListAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public Task<bool> TryAddAsync(Tenant tenant, CancellationToken cancellationToken) => Task.FromResult(false);
     }
 }

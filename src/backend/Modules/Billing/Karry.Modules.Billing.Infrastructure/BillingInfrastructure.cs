@@ -14,6 +14,7 @@ public static class BillingInfrastructure
         services.AddScoped<IPlanStore, PlanStore>();
         services.AddScoped<ISubscriptionStore, SubscriptionStore>();
         services.AddScoped<SubscriptionOperations>();
+        services.AddScoped<BuildingBlocks.Tenancy.ITenantSummarySource, BillingSummary>();
         services.AddScoped<Tenancy.Contracts.ITenantProvisionedHandler, TrialOnProvisioning>();
         services.AddSingleton<AdvanceSubscriptions>();
         services.AddMemoryCache();

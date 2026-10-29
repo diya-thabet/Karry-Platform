@@ -10,6 +10,9 @@ internal sealed class TenantRepository(TenancyDbContext db) : ITenantRepository
     public Task<Tenant?> FindBySlugAsync(TenantSlug slug, CancellationToken cancellationToken) =>
         db.Tenants.AsNoTracking().SingleOrDefaultAsync(t => t.Slug == slug, cancellationToken);
 
+    public async Task<IReadOnlyList<Tenant>> ListAsync(CancellationToken cancellationToken) =>
+        await db.Tenants.AsNoTracking().OrderBy(t => t.Name).ThenBy(t => t.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<bool> TryAddAsync(Tenant tenant, CancellationToken cancellationToken)
     {
         db.Tenants.Add(tenant);

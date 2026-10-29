@@ -93,6 +93,44 @@
             }
           }
         }
+      },
+      "get": {
+        "tags": [
+          "TenancyModule"
+        ],
+        "operationId": "ListTenants",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorTenantListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/tenancy/current": {
@@ -8992,6 +9030,27 @@
         },
         "description": "`Status`: ok or failed (replacement comes with field operations)."
       },
+      "MrrTotalResponse": {
+        "required": [
+          "currency",
+          "amount"
+        ],
+        "type": "object",
+        "properties": {
+          "currency": {
+            "type": "string"
+          },
+          "amount": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          }
+        },
+        "description": "The MRR of all tenants priced in one currency."
+      },
       "NonWorkingDayInput": {
         "required": [
           "kind",
@@ -9047,6 +9106,145 @@
           }
         },
         "description": "A non-working day; `Kind` is \"public-holiday\", \"closure\" or \"other\"."
+      },
+      "OperatorTenantListResponse": {
+        "required": [
+          "tenants",
+          "mrr"
+        ],
+        "type": "object",
+        "properties": {
+          "tenants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OperatorTenantResponse"
+            }
+          },
+          "mrr": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MrrTotalResponse"
+            }
+          }
+        },
+        "description": "Every tenant, by name, and the MRR totals by currency."
+      },
+      "OperatorTenantResponse": {
+        "required": [
+          "id",
+          "slug",
+          "name",
+          "createdAt",
+          "planCode",
+          "planVersion",
+          "status",
+          "trialEndsAt",
+          "mrr",
+          "mrrCurrency",
+          "sites",
+          "assets",
+          "officeUsers",
+          "lastActivity",
+          "complete"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "planCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "planVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "trialEndsAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "mrr": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "mrrCurrency": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sites": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "assets": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "officeUsers": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "lastActivity": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        },
+        "description": "A tenant in the operator console (US-P1-OPS-03 AC1). `Status` is the subscription state (trial, active,\npast_due, …); `Mrr` the monthly recurring revenue in `MrrCurrency` (zero when nothing is billed, null when\nthe plan has no price); counts are null when unknown. `Complete` false: a module failed for this tenant and its\ncolumns are empty."
       },
       "PayInvoice": {
         "required": [

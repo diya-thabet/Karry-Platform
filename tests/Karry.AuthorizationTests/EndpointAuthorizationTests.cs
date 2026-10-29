@@ -41,6 +41,7 @@ public sealed class EndpointAuthorizationTests
     private static readonly Dictionary<string, string> WithoutTenant = new(StringComparer.Ordinal)
     {
         ["ProvisionTenant"] = "Platform operators only (policy platform-operator).",
+        ["ListTenants"] = "Platform operators only (policy platform-operator): the operator console's tenant list; each tenant is summarized under its own tenant context (ADR-0029 §3).",
         ["ListPlans"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
         ["GetPlanVersions"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",
         ["PublishPlan"] = "Platform operators only (policy platform-operator): the plan catalogue is platform data.",

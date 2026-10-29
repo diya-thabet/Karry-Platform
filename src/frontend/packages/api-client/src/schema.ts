@@ -11,7 +11,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["ListTenants"];
         put?: never;
         post: operations["ProvisionTenant"];
         delete?: never;
@@ -1984,6 +1984,12 @@ export interface components {
         MeterStatusRequest: {
             status: null | string;
         };
+        /** @description The MRR of all tenants priced in one currency. */
+        MrrTotalResponse: {
+            currency: string;
+            /** Format: double */
+            amount: number | string;
+        };
         NonWorkingDayInput: {
             kind: null | string;
             name: null | string;
@@ -1997,6 +2003,43 @@ export interface components {
             date: string;
             kind: string;
             name: string;
+        };
+        /** @description Every tenant, by name, and the MRR totals by currency. */
+        OperatorTenantListResponse: {
+            tenants: components["schemas"]["OperatorTenantResponse"][];
+            mrr: components["schemas"]["MrrTotalResponse"][];
+        };
+        /**
+         * @description A tenant in the operator console (US-P1-OPS-03 AC1). `Status` is the subscription state (trial, active,
+         *     past_due, …); `Mrr` the monthly recurring revenue in `MrrCurrency` (zero when nothing is billed, null when
+         *     the plan has no price); counts are null when unknown. `Complete` false: a module failed for this tenant and its
+         *     columns are empty.
+         */
+        OperatorTenantResponse: {
+            /** Format: uuid */
+            id: string;
+            slug: string;
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            planCode: null | string;
+            /** Format: int32 */
+            planVersion: null | number | string;
+            status: null | string;
+            /** Format: date-time */
+            trialEndsAt: null | string;
+            /** Format: double */
+            mrr: null | number | string;
+            mrrCurrency: null | string;
+            /** Format: int64 */
+            sites: null | number | string;
+            /** Format: int64 */
+            assets: null | number | string;
+            /** Format: int64 */
+            officeUsers: null | number | string;
+            /** Format: date-time */
+            lastActivity: null | string;
+            complete: boolean;
         };
         PayInvoice: {
             /** Format: date */
@@ -2420,6 +2463,44 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ListTenants: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OperatorTenantListResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ProvisionTenant: {
         parameters: {
             query?: never;
