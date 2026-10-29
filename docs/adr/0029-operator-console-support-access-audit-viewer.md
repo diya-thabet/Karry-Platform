@@ -203,6 +203,14 @@ that nothing was altered. The questions:
     raised on the session aggregate without changing its row, so the parallel requests of one page never conflict.
     It is written in a scope of its own once the outcome is known; if that write fails, the response has already
     left, so the API logs event **2205** at error level rather than pretending.
+- **As built (2026-10-29, slice 5c-1, portal for the company):** **Settings › Support access**
+  (`/settings/support`, card shown only with `identity.support.manage`) explains the rules (look only, costs masked,
+  one hour, every request in the audit log, emergency access e-mails the Tenant Admins) and lists the company's
+  support sessions: when, who, how (**With your code** or **Emergency access** with Karry's written reason), until
+  when, and **Looking now** / **Over**. **Create a support code** asks first, then shows the code once, large and
+  monospaced, with "Valid until HH:MM"; at expiry the dialog replaces the code with a notice and offers a new one
+  (a dead code is never left on screen). **End now** on a running session asks first, then ends it; Karry support
+  loses access at its next request. The support error codes have their own messages in both languages.
 
 ### 5. Operators: separate area, mandatory MFA, checked by the API too
 

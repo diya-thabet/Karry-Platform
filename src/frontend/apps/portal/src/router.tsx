@@ -13,6 +13,7 @@ import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { Shell, ShellNotFound } from "./Shell";
 import { CompanyPage } from "./settings/CompanyPage";
 import { SettingsPage } from "./settings/SettingsPage";
+import { SupportPage } from "./settings/SupportPage";
 import { TabletsPage } from "./settings/TabletsPage";
 import { UsersPage } from "./settings/UsersPage";
 import { SitePage, SitesPage } from "./sites/SitesPages";
@@ -75,6 +76,7 @@ const users = createRoute({ getParentRoute: () => company, path: "/settings/user
 const plan = createRoute({ getParentRoute: () => company, path: "/settings/plan", component: PlanPage });
 const imports = createRoute({ getParentRoute: () => company, path: "/settings/imports", component: ImportsPage });
 const tablets = createRoute({ getParentRoute: () => company, path: "/settings/tablets", component: TabletsPage });
+const support = createRoute({ getParentRoute: () => company, path: "/settings/support", component: SupportPage });
 const companySettings = createRoute({ getParentRoute: () => company, path: "/settings/company", component: CompanyPage });
 const materials = createRoute({ getParentRoute: () => company, path: "/settings/materials", component: MaterialsPage });
 const newMaterial = createRoute({ getParentRoute: () => company, path: "/settings/materials/new", component: () => <MaterialPage /> });
@@ -112,7 +114,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, companySettings, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),
