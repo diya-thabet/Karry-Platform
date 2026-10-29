@@ -1,7 +1,10 @@
 /* Karry design system (US-P1-OFF-05). Apps import this file and add their own `@source` for their code. */
 @import "tailwindcss";
-/* Inter, bundled with the apps (no font CDN: the field app works offline). */
+/* Inter, bundled with the apps (no font CDN: the field app works offline). Arabic and N'Ko letters, which Inter does
+   not have, come from Noto: the browser downloads a face only when the page shows its script (unicode-range). */
 @import "@fontsource-variable/inter";
+@import "@fontsource-variable/noto-sans-arabic/wght.css";
+@import "@fontsource/noto-sans-nko/nko-400.css";
 
 @source "./";
 
@@ -62,7 +65,7 @@ body {
   margin: 0;
   background: var(--karry-background);
   color: var(--karry-text);
-  font-family: "Inter Variable", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+  font-family: "Inter Variable", "Noto Sans Arabic Variable", "Noto Sans NKo", system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
   font-size: var(--karry-font-body);
@@ -113,6 +116,14 @@ body {
   to { transform: translateX(-100%); }
 }
 
+@keyframes karry-slide-in-right {
+  from { transform: translateX(100%); }
+}
+
+@keyframes karry-slide-out-right {
+  to { transform: translateX(100%); }
+}
+
 @keyframes karry-toast-in {
   from { opacity: 0; transform: translateY(8px); }
 }
@@ -129,6 +140,9 @@ body {
 .karry-dialog[data-state="closed"] { animation: karry-dialog-out 150ms ease-in; }
 .karry-drawer[data-state="open"] { animation: karry-slide-in-left 250ms cubic-bezier(0.32, 0.72, 0, 1); }
 .karry-drawer[data-state="closed"] { animation: karry-slide-out-left 200ms ease-in; }
+/* Right to left (Arabic, N'Ko): the drawer sits on the right and slides in from there. */
+[dir="rtl"] .karry-drawer[data-state="open"] { animation-name: karry-slide-in-right; }
+[dir="rtl"] .karry-drawer[data-state="closed"] { animation-name: karry-slide-out-right; }
 .karry-toast[data-state="open"] { animation: karry-toast-in 200ms ease-out; }
 .karry-toast[data-state="closed"] { animation: karry-fade-out 150ms ease-in; }
 

@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, MaskedValue, PageHeader, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import { useSiteNames } from "../assets/api";
@@ -55,7 +55,7 @@ function IntegrityCheck() {
   });
   const report = latest.data?.verification;
   const by = latest.data?.verifiedByName ?? latest.data?.verifiedBy;
-  const at = (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const at = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 
   return (
     <Card
@@ -136,7 +136,7 @@ function AuditLog() {
   };
 
   const person = (entry: { actor: string | null; actorName: string | null }) => entry.actorName ?? entry.actor ?? t("portal.audit.system");
-  const at = (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
+  const at = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "short", timeStyle: "medium" }).format(new Date(value));
 
   return (
     <section aria-labelledby="audit-log" className="flex flex-col gap-4">
@@ -239,20 +239,20 @@ function EntryDialog({ entry, person, at, onClose }: { entry: AuditEntry | null;
           <p><code translate="no">{entry.eventType}</code></p>
           {entry.changes.length > 0
             ? (
-              <table className="w-full text-left">
+              <table className="w-full text-start">
                 <caption className="sr-only">{t("portal.audit.changes")}</caption>
                 <thead>
                   <tr className="text-text-muted">
-                    <th scope="col" className="py-1 pr-2 font-medium">{t("portal.audit.field")}</th>
-                    <th scope="col" className="py-1 pr-2 font-medium">{t("portal.audit.before")}</th>
+                    <th scope="col" className="py-1 pe-2 font-medium">{t("portal.audit.field")}</th>
+                    <th scope="col" className="py-1 pe-2 font-medium">{t("portal.audit.before")}</th>
                     <th scope="col" className="py-1 font-medium">{t("portal.audit.after")}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {entry.changes.map((change) => (
                     <tr key={change.path} className="border-t border-divider align-top">
-                      <th scope="row" className="py-1 pr-2 font-normal"><code translate="no">{change.path}</code></th>
-                      <td className="break-all py-1 pr-2" translate="no">{shownValue(change.before)}</td>
+                      <th scope="row" className="py-1 pe-2 font-normal"><code translate="no">{change.path}</code></th>
+                      <td className="break-all py-1 pe-2" translate="no">{shownValue(change.before)}</td>
                       <td className="break-all py-1" translate="no">{shownValue(change.after)}</td>
                     </tr>
                   ))}

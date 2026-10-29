@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Download, Droplets, Gauge, HardDriveDownload, Lock, Mountain, ScanLine, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
-import { Button, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
+import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
 import { Enroll } from "./Enroll";
 import { MachineFinder } from "./MachineFinder";
 import { findMachine, type QrScanner } from "./machines";
@@ -177,7 +177,9 @@ export function App({ i18n, environment }: { i18n: I18n; environment: FieldEnvir
   return (
     <I18nProvider i18n={i18n}>
       <ThemeProvider defaultTheme="outdoor" density="field">
-        <Tablet environment={environment} />
+        <LanguageDirection>
+          <Tablet environment={environment} />
+        </LanguageDirection>
       </ThemeProvider>
     </I18nProvider>
   );

@@ -28,12 +28,12 @@ export function DataTable<T>(props: {
 
   return (
     <div className="overflow-x-auto rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface shadow-[var(--karry-card-shadow)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none">
-      <table role="table" className="w-full border-collapse text-left text-sm text-text max-sm:block">
+      <table role="table" className="w-full border-collapse text-start text-sm text-text max-sm:block">
         <caption className="sr-only">{props.caption}</caption>
         <thead role="rowgroup" className="bg-surface-muted max-sm:sr-only">
           <tr role="row">
             {props.columns.map((column) => (
-              <th key={column.key} role="columnheader" scope="col" className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted ${column.numeric ? "text-right" : ""}`}>{column.header}</th>
+              <th key={column.key} role="columnheader" scope="col" className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted ${column.numeric ? "text-end" : ""}`}>{column.header}</th>
             ))}
           </tr>
         </thead>
@@ -56,7 +56,7 @@ export function DataTable<T>(props: {
                     key={column.key}
                     role="cell"
                     data-label={typeof column.header === "string" ? column.header : undefined}
-                    className={`px-4 py-3 align-middle ${column.numeric ? "text-right tabular-nums" : ""} ${phoneCell}`}
+                    className={`px-4 py-3 align-middle ${column.numeric ? "text-end tabular-nums" : ""} ${phoneCell}`}
                   >
                     {column.cell(row)}
                   </td>
@@ -72,6 +72,6 @@ export function DataTable<T>(props: {
 
 /** On a phone: the first cell is the card's title, the others a line with the column's name before the value. */
 const phoneCell =
-  "max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-4 max-sm:px-0 max-sm:py-1.5 max-sm:text-right " +
-  "max-sm:before:text-left max-sm:before:text-xs max-sm:before:font-medium max-sm:before:uppercase max-sm:before:tracking-wide max-sm:before:text-text-muted max-sm:before:content-[attr(data-label)] " +
-  "max-sm:first:mb-1 max-sm:first:block max-sm:first:border-b-[length:var(--karry-border-width)] max-sm:first:border-divider max-sm:first:pb-2.5 max-sm:first:text-left max-sm:first:text-base max-sm:first:font-semibold max-sm:first:before:content-none";
+  "max-sm:flex max-sm:items-center max-sm:justify-between max-sm:gap-4 max-sm:px-0 max-sm:py-1.5 max-sm:text-end " +
+  "max-sm:before:text-start max-sm:before:text-xs max-sm:before:font-medium max-sm:before:uppercase max-sm:before:tracking-wide max-sm:before:text-text-muted max-sm:before:content-[attr(data-label)] " +
+  "max-sm:first:mb-1 max-sm:first:block max-sm:first:border-b-[length:var(--karry-border-width)] max-sm:first:border-divider max-sm:first:pb-2.5 max-sm:first:text-start max-sm:first:text-base max-sm:first:font-semibold max-sm:first:before:content-none";

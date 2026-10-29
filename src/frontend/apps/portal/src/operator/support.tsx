@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { LifeBuoy } from "lucide-react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, useToast } from "@karry/ui";
 import { useApi } from "../api";
 import { savedVisit, saveVisit, SupportVisitContext, useSupportVisit, type LeaveReason, type SupportVisit } from "./supportVisit";
@@ -52,7 +52,7 @@ export function SupportBanner({ visit }: { visit: SupportVisit }) {
     return () => { clearTimeout(timer); };
   }, [visit.endsAt, leave]);
 
-  const until = new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(visit.endsAt));
+  const until = new Intl.DateTimeFormat(intlLocale(i18n.language), { hour: "2-digit", minute: "2-digit" }).format(new Date(visit.endsAt));
   return (
     <aside
       aria-label={t("portal.operator.support.banner")}

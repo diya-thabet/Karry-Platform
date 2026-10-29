@@ -23,7 +23,7 @@ export function SelectField(props: FieldProps & {
       <Select.Root value={props.value ?? ""} onValueChange={props.onValueChange} disabled={props.disabled ?? false}>
         <Select.Trigger
           id={ids.id}
-          className={cn(controlClasses, "flex items-center justify-between gap-2 text-left")}
+          className={cn(controlClasses, "flex items-center justify-between gap-2 text-start")}
           aria-describedby={ids.describedBy}
           aria-invalid={props.error ? true : undefined}
         >
@@ -40,7 +40,7 @@ export function SelectField(props: FieldProps & {
                   className="flex min-h-[var(--karry-control-height)] cursor-pointer select-none items-center gap-2 rounded-md px-3 outline-none data-[highlighted]:bg-primary-soft data-[highlighted]:text-text data-[state=checked]:font-semibold"
                 >
                   <Select.ItemText>{option.label}</Select.ItemText>
-                  <Select.ItemIndicator className="ml-auto"><Check aria-hidden className="size-4" /></Select.ItemIndicator>
+                  <Select.ItemIndicator className="ms-auto"><Check aria-hidden className="size-4" /></Select.ItemIndicator>
                 </Select.Item>
               ))}
             </Select.Viewport>

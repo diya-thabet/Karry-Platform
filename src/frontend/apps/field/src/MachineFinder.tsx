@@ -82,7 +82,7 @@ export function MachineFinder({ find, scanner, onBack }: {
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-5 p-4">
       <header className="flex items-center gap-3">
         <Button variant="secondary" onClick={onBack} aria-label={t("field.machines.back")}>
-          <ArrowLeft aria-hidden className="size-6" />
+          <ArrowLeft aria-hidden className="size-6 rtl:-scale-x-100" />
         </Button>
         <h1 className="text-3xl font-bold">{t("field.machines.title")}</h1>
       </header>
@@ -114,7 +114,7 @@ export function MachineFinder({ find, scanner, onBack }: {
               <ul aria-label={t("field.machines.results")} className="flex flex-col gap-2">
                 {lookup.machines.map((machine) => (
                   <li key={machine.id}>
-                    <Button block variant="secondary" onClick={() => { setSelected(machine); }} className="justify-start text-left">
+                    <Button block variant="secondary" onClick={() => { setSelected(machine); }} className="justify-start text-start">
                       <span className="font-mono font-bold">{machine.code}</span>
                       <span>{machine.name}</span>
                     </Button>

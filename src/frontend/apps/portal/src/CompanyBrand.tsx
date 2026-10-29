@@ -45,8 +45,7 @@ export function CompanyLanguage() {
   const language = tenant?.language;
   useEffect(() => {
     if (savedLanguage() === null && isLanguage(language) && i18n.language !== language) {
-      void i18n.changeLanguage(language);
-      document.documentElement.lang = language;
+      void i18n.changeLanguage(language); // the page's lang and dir follow
     }
   }, [i18n, language]);
   return null;

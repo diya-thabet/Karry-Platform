@@ -17,7 +17,6 @@ initErrorTracking({
 
 // Company default language arrives with tenant settings (P1.11); until then: user choice, browser, French.
 const language = resolveLanguage({ user: savedLanguage(), browser: navigator.languages });
-document.documentElement.lang = language;
 const i18n = await createI18n({ language, pseudo: import.meta.env.VITE_PSEUDO_LOCALE === "1" });
 
 // Sign-in before anything renders (US-P1-IAM-01): back from Keycloak, or on the way there. Tokens stay in memory.

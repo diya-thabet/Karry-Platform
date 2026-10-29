@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
-import { supportedLanguages, useTranslation } from "@karry/i18n";
+import { intlLocale, supportedLanguages, useTranslation } from "@karry/i18n";
 import { Button, buttonVariants, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
 import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../api";
 import { currencies } from "../currencies";
@@ -83,7 +83,7 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
     event.target.value = "";
   };
 
-  const monthName = (month: number) => new Intl.DateTimeFormat(i18n.language, { month: "long", timeZone: "UTC" }).format(Date.UTC(2026, month - 1, 1));
+  const monthName = (month: number) => new Intl.DateTimeFormat(intlLocale(i18n.language), { month: "long", timeZone: "UTC" }).format(Date.UTC(2026, month - 1, 1));
   const zoneOptions = zones();
   return (
     <div className="flex max-w-3xl flex-col gap-6">

@@ -21,8 +21,11 @@ public sealed record TenantSettings(
 {
     public const int LegalNameMaxLength = 200;
 
-    /// <summary>Languages the apps are translated into (ADR-0020 catalogs).</summary>
-    public static IReadOnlyList<string> Languages { get; } = ["fr", "en"];
+    /// <summary>
+    /// Languages the apps are translated into (ADR-0020 catalogs, `supportedLanguages` of @karry/i18n): French, English,
+    /// Arabic, Malinké in Latin script (`emk`) and in N'Ko script (`nqo`).
+    /// </summary>
+    public static IReadOnlyList<string> Languages { get; } = ["fr", "en", "ar", "emk", "nqo"];
 
     /// <summary>
     /// Brand colours must carry white text (the apps' header and the sign-in button): contrast at least 4.5:1 against

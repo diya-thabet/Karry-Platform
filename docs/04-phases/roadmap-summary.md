@@ -4,7 +4,7 @@ area: phases
 tags: [roadmap, milestones, gantt]
 source: "MASTER_PLAN.md §21"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-29
 ---
 
 # Roadmap Summary
@@ -255,7 +255,7 @@ gantt
 - Weibull/ML reliability, MILP maintenance scheduling.
 - Drone survey integration (automatic stockpile volumes from point clouds).
 - HSE module expansion (incidents, permits, inspections).
-- Native Arabic RTL, Spanish/Portuguese for new markets.
+- Spanish/Portuguese for new markets (Arabic and Malinké arrived early, 2026-10-29: [ADR-0030](../adr/0030-arabic-and-malinke-languages.md)).
 - Cross-tenant anonymised benchmarking (opt-in).
 - Carbon/energy reporting (diesel → CO₂e per tonne) — increasingly demanded by large clients.
 - Dedicated/on-prem deployment packaging for large mining groups.

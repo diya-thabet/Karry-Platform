@@ -13,7 +13,7 @@
 | `02-architecture/` | Architecture overview, principles, stack, C4 views, modular-monolith decision, data, offline sync, trust layer, security, AI, analytics, integrations, API standards, NFRs, repo layout | [README](02-architecture/README.md) |
 | `03-domain/` | Business logic: spec corrections, bounded contexts, formulas & engines, glossary, catalogues (roles, detection rules, notifications, documents) | [README](03-domain/README.md) |
 | `04-phases/` | Roadmap, conventions, story index, traceability, and **one folder per phase** (plan, later test reports and exit reviews) | [README](04-phases/README.md) |
-| `05-quality/` | Testing strategy, delivery framework (DoR/DoD), cross-cutting acceptance criteria, defect severity, test environments & devices | [README](05-quality/README.md) |
+| `05-quality/` | Testing strategy, delivery framework (DoR/DoD), cross-cutting acceptance criteria, defect severity, test environments & devices, translation review | [README](05-quality/README.md) |
 | `06-operations/` | Infrastructure, DevOps & observability, release management, runbooks | [README](06-operations/README.md) |
 | `07-management/` | Team & governance, risk register, open questions, everything still wanted from the team | [README](07-management/README.md) |
 | `08-user-help/` | End-user help articles in French and English (from Phase 1) | [README](08-user-help/README.md) |
@@ -48,6 +48,7 @@
 | What a phase delivers and its exit gate | `04-phases/phase-NN-*/plan.md` ([overview](04-phases/phases-overview.md)) |
 | Criteria every story must meet (`CC-…`) | [05-quality/cross-cutting-acceptance-criteria.md](05-quality/cross-cutting-acceptance-criteria.md) |
 | Definition of Ready / Done, sprint cadence | [05-quality/delivery-framework.md](05-quality/delivery-framework.md) |
+| Languages of the apps, translation status, Arabic / Malinké / N'Ko review, glossary | [05-quality/translation-review.md](05-quality/translation-review.md), [ADR-0030](adr/0030-arabic-and-malinke-languages.md) |
 | Tenancy, RLS, RBAC, threat model | [02-architecture/security-identity-tenancy.md](02-architecture/security-identity-tenancy.md) |
 | Signatures, hash-chained ledger, scale ticket rules | [02-architecture/trust-layer-signatures-audit.md](02-architecture/trust-layer-signatures-audit.md) |
 | Offline storage & sync protocol | [02-architecture/offline-sync.md](02-architecture/offline-sync.md) |

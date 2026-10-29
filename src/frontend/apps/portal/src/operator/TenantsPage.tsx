@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState, type SyntheticEvent } from "react";
 import { Building2, Coins } from "lucide-react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, Dialog, EmptyState, PageHeader, StatCard, StatusChip, TextField, useToast } from "@karry/ui";
 import { useApi } from "../api";
 import { operatorTenantsKey, slugFrom, slugValid, statusLook, useOperatorTenants, type OperatorTenant } from "./api";
@@ -17,9 +17,9 @@ export function TenantsPage() {
   const [creating, setCreating] = useState(false);
   const rows = tenants.data?.tenants ?? [];
   const money = (amount: number | string, currency: string) =>
-    new Intl.NumberFormat(i18n.language, { style: "currency", currency }).format(Number(amount));
-  const count = (value: number | string | null) => (value === null ? "—" : new Intl.NumberFormat(i18n.language).format(Number(value)));
-  const day = (value: string | null) => (value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(value)) : "—");
+    new Intl.NumberFormat(intlLocale(i18n.language), { style: "currency", currency }).format(Number(amount));
+  const count = (value: number | string | null) => (value === null ? "—" : new Intl.NumberFormat(intlLocale(i18n.language)).format(Number(value)));
+  const day = (value: string | null) => (value ? new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium" }).format(new Date(value)) : "—");
 
   return (
     <div className="flex flex-col gap-6">

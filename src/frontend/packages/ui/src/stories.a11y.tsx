@@ -1,8 +1,10 @@
 import { composeStories } from "@storybook/react-vite";
 import { cleanup, render } from "@testing-library/react";
 import axe from "axe-core";
+import { page } from "vitest/browser";
 import { createI18n, I18nProvider } from "@karry/i18n";
 import "./styles.css";
+import { LanguageDirection } from "./components/LanguageDirection";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { themeNames } from "./theme/tokens";
 
@@ -28,7 +30,7 @@ function show(Story: () => React.JSX.Element, theme: (typeof themeNames)[number]
   return render(
     <I18nProvider i18n={i18n}>
       <ThemeProvider key={`${theme}-${density}`} defaultTheme={theme} density={density} remember={false}>
-        <main><Story /></main>
+        <LanguageDirection><main><Story /></main></LanguageDirection>
       </ThemeProvider>
     </I18nProvider>,
   );
@@ -52,6 +54,48 @@ describe("accessibility of every story in every theme (TC-P1-OFF-006)", () => {
       expect(serious).toEqual([]);
     },
   );
+});
+
+describe("right to left: Arabic and N'Ko", () => {
+  afterAll(async () => { await i18n.changeLanguage("fr"); });
+
+  it.each((["ar", "nqo"] as const).flatMap((language) => stories.map((story) => [language, story.id, story] as const)))(
+    "%s · %s: no serious or critical axe violation, the page mirrored",
+    async (language, _id, { Story, density }) => {
+      await i18n.changeLanguage(language);
+      show(Story, "light", density);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      expect(document.documentElement.dir).toBe("rtl");
+      const result = await axe.run(document, { resultTypes: ["violations"] });
+      const serious = result.violations
+        .filter((v) => v.impact === "serious" || v.impact === "critical")
+        .map((v) => `${v.id} (${v.impact ?? "?"}): ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`);
+      expect(serious).toEqual([]);
+    },
+  );
+
+  it("opens the drawer from the right and puts a table's numbers on the left", async () => {
+    await i18n.changeLanguage("ar");
+    const drawer = stories.find((s) => s.id === "Layout/MobileDrawer");
+    const table = stories.find((s) => s.id === "Data/Table");
+    if (!drawer || !table) throw new Error("stories Layout/MobileDrawer and Data/Table are needed");
+
+    show(drawer.Story, "light", "office");
+    const panel = document.querySelector<HTMLElement>(".karry-drawer");
+    expect(panel).not.toBeNull();
+    expect(Math.round(panel?.getBoundingClientRect().right ?? 0)).toBe(document.documentElement.clientWidth);
+    cleanup();
+
+    await page.viewport(1280, 800); // the office layout: on a phone every cell is a label and its value
+    show(table.Story, "light", "office");
+    const numbers = [...document.querySelectorAll<HTMLElement>("td.tabular-nums, th.tabular-nums")];
+    expect(numbers.length).toBeGreaterThan(0);
+    for (const cell of numbers) {
+      expect(["end", "left"]).toContain(getComputedStyle(cell).textAlign); // the end of an Arabic line is its left
+    }
+    await page.viewport(414, 896);
+  });
 });
 
 describe("field density (US-P1-OFF-05 AC2)", () => {

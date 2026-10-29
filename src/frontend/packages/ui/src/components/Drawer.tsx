@@ -20,7 +20,7 @@ export function Drawer(props: {
         <RadixDialog.Overlay className="karry-overlay fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]" />
         <RadixDialog.Content
           aria-describedby={undefined}
-          className="karry-drawer fixed inset-y-0 left-0 z-50 flex w-[min(18rem,calc(100vw-3rem))] flex-col border-r-[length:var(--karry-border-width)] border-divider bg-surface text-text shadow-2xl"
+          className="karry-drawer fixed inset-y-0 start-0 z-50 flex w-[min(18rem,calc(100vw-3rem))] flex-col border-e-[length:var(--karry-border-width)] border-divider bg-surface text-text shadow-2xl"
         >
           <RadixDialog.Title className="sr-only">{props.title}</RadixDialog.Title>
           <div className="flex h-16 shrink-0 items-center justify-between gap-2 border-b-[length:var(--karry-border-width)] border-divider px-4">

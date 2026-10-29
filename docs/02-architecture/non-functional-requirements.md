@@ -4,7 +4,7 @@ area: architecture
 tags: [nfr, sla, performance, offline, security]
 source: "MASTER_PLAN.md §5"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-29
 ---
 
 # Non-Functional Requirements
@@ -22,7 +22,7 @@ last_updated: 2026-10-21
 | **Security** | OWASP ASVS **Level 2** baseline; MFA for privileged roles; encryption in transit (TLS 1.2+) and at rest; annual pen test. |
 | **Privacy** | GDPR-aligned (data minimisation, DPA, right to access); location/photo data with explicit purpose; configurable retention. |
 | **RPO / RTO** | RPO ≤ 5 min (PITR), RTO ≤ 4 h. Quarterly restore drills. |
-| **i18n / l10n** | French & English at launch (Arabic RTL-ready architecture), locale-aware numbers/dates, metric + imperial units, multi-currency. |
+| **i18n / l10n** | French & English at launch; **Arabic (MSA, right to left) and Malinké in Latin and N'Ko (right to left) in the apps since 2026-10-29**, drafts until reviewed ([ADR-0030](../adr/0030-arabic-and-malinke-languages.md)); locale-aware numbers/dates, metric + imperial units, multi-currency. |
 | **Accessibility** | WCAG 2.2 AA for desktop apps; field UI: large touch targets (≥ 48 px), high-contrast outdoor mode, glove-friendly. |
 | **Auditability** | Every state change attributable to user, device, time (device + server), location where captured. |
 | **Maintainability** | Module boundaries enforced by architecture tests; ≥ 80 % coverage on domain/math code; ADRs for decisions. |

@@ -2,8 +2,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { checkCatalogs, findUsedKeys } from "./check.ts";
-import en from "./catalogs/en.json" with { type: "json" };
-import fr from "./catalogs/fr.json" with { type: "json" };
+import { catalogs } from "./catalogs.ts";
 
 const root = new URL("../../../", import.meta.url).pathname;
 // User-facing text lives in the apps and the design system only.
@@ -19,8 +18,8 @@ function files(directory: string): string[] {
 }
 
 const used = sources.flatMap((path) => findUsedKeys(readFileSync(path, "utf8")));
-const problems = checkCatalogs({ fr, en }, used);
+const problems = checkCatalogs(catalogs, used);
 for (const problem of problems) console.error(`✗ ${problem}`);
 const count = (n: number) => String(n);
-console.log(`${count(Object.keys(fr).length)} keys in fr and en, ${count(new Set(used).size)} used in ${count(sources.length)} source files: ${count(problems.length)} problem(s)`);
+console.log(`${count(Object.keys(catalogs.fr).length)} keys in ${Object.keys(catalogs).join(", ")}, ${count(new Set(used).size)} used in ${count(sources.length)} source files: ${count(problems.length)} problem(s)`);
 process.exit(problems.length === 0 ? 0 : 1);

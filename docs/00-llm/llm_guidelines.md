@@ -227,7 +227,7 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 - Server state via TanStack Query; local UI state via React state; offline state via `packages/offline` (Dexie). No ad-hoc `fetch`: use the generated API client.
 - Forms: React Hook Form + Zod schemas shared/generated from OpenAPI.
 - Components: small, accessible, from `packages/ui`; no inline styles except dynamic values; Tailwind tokens only.
-- All user-visible strings via i18next keys (FR + EN added together).
+- All user-visible strings via i18next keys, added in all five catalogs together (fr, en, ar, emk, nqo; drafts listed in [translation review §5](../05-quality/translation-review.md#5-waiting-for-review-keys-added-or-changed-after-the-drafts); N'Ko with `python3 tools/i18n/nko_from_latin.py --missing`).
 - Money/quantities: dedicated types and formatting helpers, never raw `number` math for money.
 
 ### 6.4 Python (analytics sidecar)
@@ -311,7 +311,7 @@ dotnet test --solution Karry.slnx --configuration Release   # Microsoft Testing 
 cd src/frontend
 pnpm install --frozen-lockfile
 pnpm lint && pnpm typecheck && pnpm test && pnpm build
-pnpm --filter @karry/i18n check:catalogs   # FR/EN complete, valid ICU, same placeholders, every t("key") exists (TC-P1-OFF-007)
+pnpm --filter @karry/i18n check:catalogs   # fr/en/ar/emk/nqo complete, valid ICU, same placeholders, every t("key") exists (TC-P1-OFF-007)
 pnpm --filter @karry/ui exec playwright install chromium && pnpm --filter @karry/ui test:a11y   # axe on every story x theme (TC-P1-OFF-006)
 pnpm --filter @karry/ui storybook                                                                # design system at http://localhost:6006
 pnpm --filter @karry/api-client generate          # after the API contract changed (dotnet build regenerates openapi/v1.json); CI: check:generated
@@ -569,7 +569,7 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 - **Field app ergonomics**: touch targets ≥ 48 px, body text ≥ 16 px, outdoor high-contrast theme, minimal typing (scan QR, pick lists, steppers), clear sync status, works with gloves, readable in sunlight.
 - **Performance budgets on the reference low-end device**: initial JS ≤ 250 KB gzipped for the field app shell; interaction ≤ 100 ms; cached cold start ≤ 3 s. Bundle size is checked in CI.
 - **Accessibility**: WCAG 2.2 AA for portal; semantic HTML; labels; focus management; keyboard paths; axe checks in component tests.
-- **i18n**: no hardcoded strings; FR and EN keys added together; ICU plurals; locale-aware numbers/dates/units; pseudo-localization check for truncation; RTL-safe CSS (logical properties) for future Arabic.
+- **i18n**: no hardcoded strings; keys added to all five catalogs together; ICU plurals (Arabic has six forms); locale-aware numbers/dates/units through `intlLocale(i18n.language)`, never `i18n.language` directly; pseudo-localization check for truncation; **logical CSS only** (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`; no `ml-`, `left-`, `text-right`) because Arabic and N'Ko are right to left ([ADR-0030](../adr/0030-arabic-and-malinke-languages.md)).
 - **States**: every screen designs loading, empty, error, offline, permission-denied and plan-locked (upgrade) states.
 - **Charts**: use `packages/charts` wrappers (ECharts); units in axes and tooltips; data-table fallback; server-side downsampling for long ranges.
 - **Destructive or signing actions** require explicit confirmation showing exactly what is being signed.
@@ -769,7 +769,7 @@ When you ask, give **a recommendation with reasoning**, not just options.
 - [ ] Migrations follow expand/contract; RLS checklist done; SQL reviewed
 - [ ] OpenAPI updated; generated client regenerated; no unversioned breaking change
 - [ ] Observability: traces/metrics/logs added; alert + runbook if needed
-- [ ] i18n FR/EN; accessibility checked; offline behaviour defined (field features)
+- [ ] i18n in all five catalogs (new keys listed for review); right to left checked; accessibility checked; offline behaviour defined (field features)
 - [ ] Entitlement/feature flag wiring if plan-gated
 - [ ] Docs updated (ADR, formulas, help article, CHANGELOG, test plan rows)
 - [ ] `docs/llm_hands_off.md` updated

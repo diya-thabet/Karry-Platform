@@ -4,7 +4,7 @@ area: quality
 tags: [quality, testing, qa, definition-of-done, acceptance-criteria]
 source: "created 2026-10-21"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-29
 ---
 
 # 05-quality — Quality Engineering
@@ -20,3 +20,4 @@ How we prove the software works. The binding testing rules for agents are in [ll
 | [cross-cutting-acceptance-criteria.md](cross-cutting-acceptance-criteria.md) | CC-01…CC-18: criteria implicitly part of every story |
 | [defect-severity-and-triage.md](defect-severity-and-triage.md) | Sev-1…Sev-4 definitions, response and fix targets |
 | [test-environments-and-devices.md](test-environments-and-devices.md) | Environments, test data & anonymisation, field device matrix |
+| [translation-review.md](translation-review.md) | Status of each language (fr, en, ar, emk, nqo), native-speaker review steps, glossary, keys waiting for review |

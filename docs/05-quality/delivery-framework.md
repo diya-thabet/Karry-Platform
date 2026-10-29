@@ -4,7 +4,7 @@ area: quality
 tags: [scrum, definition-of-ready, definition-of-done, test-levels, releases]
 source: "PHASES_DETAILED_PLAN.md §4"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-29
 ---
 
 # Delivery Framework (Cadence, DoR, DoD)
@@ -33,7 +33,7 @@ last_updated: 2026-10-21
 - [ ] API contract sketched (endpoints, payloads) when the story touches the backend.
 - [ ] Permissions identified (which roles, which scope, which fields masked).
 - [ ] Audit events identified (what goes in the ledger).
-- [ ] i18n keys identified (FR/EN copy reviewed by PO).
+- [ ] i18n keys identified (FR/EN copy reviewed by PO; Arabic and Malinké drafts listed in the [translation review](translation-review.md)).
 - [ ] Dependencies resolved or scheduled.
 - [ ] Size ≤ M (L stories split).
 - [ ] Test cases drafted by QA (IDs reserved).
@@ -88,7 +88,7 @@ last_updated: 2026-10-21
 | Performance | QA/DevOps | k6 | Per phase + before release |
 | Security | Security champion | ZAP, dependency scanning, manual review, external pen test (P10) | Per phase |
 | Accessibility | QA/UX | axe-core + manual | Per release |
-| Localization | PO/QA | FR/EN review, pseudo-localization build | Per release |
+| Localization | PO/QA | FR/EN review, pseudo-localization build; native review of ar/emk/nqo drafts ([translation review](translation-review.md)); right-to-left check | Per release |
 | UAT | Pilot users + PO | Scripted scenarios | Per phase from P2 |
 | AI evaluation | Dev/QA | Golden sets | Every prompt/model change |
 

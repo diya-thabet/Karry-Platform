@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { encode } from "uqr";
 import type { components } from "@karry/api-client";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, SelectField, StatusChip, useToast } from "@karry/ui";
 import { DevicesManagePermission, useAccess, useApi } from "../api";
 import { useSites } from "../sites/api";
@@ -34,7 +34,7 @@ export function TabletsPage() {
     return site ? `${site.code} · ${site.name}` : "—";
   };
   const dateTime = (value: string | null) =>
-    value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
+    value ? new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)) : "—";
 
   return (
     <div className="flex flex-col gap-6">
@@ -122,7 +122,7 @@ function EnrollDialog({ onClose }: { onClose: () => void }) {
     onClose();
   };
   const until = enrollment
-    ? new Intl.DateTimeFormat(i18n.language, { hour: "2-digit", minute: "2-digit" }).format(new Date(enrollment.expiresAt))
+    ? new Intl.DateTimeFormat(intlLocale(i18n.language), { hour: "2-digit", minute: "2-digit" }).format(new Date(enrollment.expiresAt))
     : "";
 
   return (

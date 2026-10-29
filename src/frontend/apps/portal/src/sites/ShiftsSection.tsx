@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import {
@@ -97,7 +97,7 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
 
   const summary = (pattern: ShiftPattern) =>
     pattern.shifts.map((shift) => {
-      const days = shift.days.length === 7 ? "" : ` (${shift.days.map((d) => dayName(i18n.language, dayCodes.indexOf(d as typeof dayCodes[number]), "short")).join(" ")})`;
+      const days = shift.days.length === 7 ? "" : ` (${shift.days.map((d) => dayName(intlLocale(i18n.language), dayCodes.indexOf(d as typeof dayCodes[number]), "short")).join(" ")})`;
       return `${shift.name} ${shift.start}–${shift.end}${days}`;
     }).join(" · ");
 
@@ -170,7 +170,7 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
                       checked={shift.days.includes(day)}
                       onChange={(e) => { setRow(index, { days: e.target.checked ? dayCodes.filter((d) => d === day || shift.days.includes(d)) : shift.days.filter((d) => d !== day) }); }}
                     />
-                    <span>{dayName(i18n.language, dayIndex, "long")}</span>
+                    <span>{dayName(intlLocale(i18n.language), dayIndex, "long")}</span>
                   </label>
                 ))}
               </div>
@@ -285,8 +285,8 @@ function Upcoming({ site }: { site: Site }) {
     queryKey: [...siteKey(site.id), "instances"],
     queryFn: async () => (await api.GET("/api/v1/organization/sites/{siteId}/shift-instances", { params: { path: { siteId: site.id } } })).data?.items ?? [],
   });
-  const time = new Intl.DateTimeFormat(i18n.language, { timeZone: site.timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
-  const date = new Intl.DateTimeFormat(i18n.language, { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
+  const time = new Intl.DateTimeFormat(intlLocale(i18n.language), { timeZone: site.timeZone, hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
+  const date = new Intl.DateTimeFormat(intlLocale(i18n.language), { timeZone: "UTC", weekday: "short", day: "numeric", month: "short" });
   const length = (minutes: number) => (minutes % 60 === 0 ? t("portal.upcoming.hours", { hours: minutes / 60 }) : t("portal.upcoming.hoursMinutes", { hours: Math.floor(minutes / 60), minutes: minutes % 60 }));
 
   return (
