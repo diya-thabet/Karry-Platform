@@ -8,6 +8,7 @@ import { ReportContext } from "./reportError";
 /** Problems the person can act on get their own words; any other shows the generic text and the support reference. */
 const explained = new Set([
   "auth.step_up_required",
+  "auth.mfa_required",
   "billing.feature_not_in_plan",
   "billing.limit_reached",
   "billing.subscription_restricted",
@@ -148,11 +149,23 @@ const explained = new Set([
  */
 export function ErrorDialogProvider({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
-  const { signOut } = useAuth();
+  const { signOut, stepUp } = useAuth();
   const [error, setError] = useState<unknown>(null);
+  const [reload, setReload] = useState<(() => void) | undefined>();
   const code = error instanceof ApiError && explained.has(error.code) ? error.code : undefined;
   const mismatch = code === "tenant.host_mismatch";
-  const report = useCallback((reported: unknown) => { setError(reported); }, []);
+  // A Karry operator signed in without a second factor (ADR-0029 §5): sign in again in the pop-up, then reload.
+  const mfa = code === "auth.mfa_required";
+  const report = useCallback((reported: unknown, then?: () => void) => {
+    setError(reported);
+    setReload(() => then);
+  }, []);
+  const signInAgain = async () => {
+    if (await stepUp()) {
+      setError(null);
+      reload?.();
+    }
+  };
   const value = useMemo(() => report, [report]);
 
   return (
@@ -167,6 +180,7 @@ export function ErrorDialogProvider({ children }: { children: ReactNode }) {
         footer={
           <>
             {mismatch && <Button onClick={() => void signOut()}>{t("common.error.signOut")}</Button>}
+            {mfa && <Button onClick={() => void signInAgain()}>{t("common.error.signInAgain")}</Button>}
             <Button variant="secondary" onClick={() => { setError(null); }}>{t("common.close")}</Button>
           </>
         }

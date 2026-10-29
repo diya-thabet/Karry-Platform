@@ -138,6 +138,34 @@ public sealed class TenantResolutionTests : IAsyncLifetime
         otherUser.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    public static TheoryData<string, string?, int, string> OperatorSignIns => new()
+    {
+        { "password and one-time password", Token(("platform_role", "operator"), ("amr", "pwd"), ("amr", "otp")), 200, "" },
+        { "hardware key", Token(("platform_role", "operator"), ("amr", "hwk")), 200, "" },
+        { "password only", Token(("platform_role", "operator"), ("amr", "pwd")), 401, KarryPolicies.MfaRequiredCode },
+        { "no amr at all", Token(("platform_role", "operator")), 401, KarryPolicies.MfaRequiredCode },
+        { "factor names are exact", Token(("platform_role", "operator"), ("amr", "OTP")), 401, KarryPolicies.MfaRequiredCode },
+        { "a company's user with a second factor", Token(("tenant_id", TenantA.ToString()), ("amr", "otp")), 403, "auth.forbidden" },
+        { "a company's user without a second factor", Token(("tenant_id", TenantA.ToString()), ("amr", "pwd")), 403, "auth.forbidden" },
+        { "another platform role", Token(("platform_role", "auditor"), ("amr", "otp")), 403, "auth.forbidden" },
+        { "no token", null, 401, "auth.unauthenticated" },
+    };
+
+    [Theory]
+    [MemberData(nameof(OperatorSignIns))]
+    [Trait("Story", "US-P1-OPS-03")]
+    public async Task Operator_endpoints_need_a_second_factor_in_the_token(string scenario, string? token, int status, string code)
+    {
+        var response = await SendAsync("/api/v1/probe/operators", token);
+
+        ((int)response.StatusCode).Should().Be(status, scenario);
+        if (code.Length > 0)
+        {
+            var problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).RootElement;
+            problem.GetProperty("code").GetString().Should().Be(code, scenario);
+        }
+    }
+
     [Fact]
     public async Task An_endpoint_that_opts_out_works_without_a_tenant_but_still_needs_authentication()
     {
@@ -228,6 +256,7 @@ public sealed class TenantResolutionTests : IAsyncLifetime
             endpoints.MapGet("/notes", async (CountingDbContext db) => await db.OutboxMessages.CountAsync()).AllowAnyTenantMember();
             endpoints.MapGet("/whoami", (ITenantContext tenant) => tenant.Current?.ToString()).AllowAnyTenantMember();
             endpoints.MapGet("/platform", () => "ok").AllowWithoutTenant();
+            endpoints.MapGet("/operators", () => "ok").AllowWithoutTenant().RequireAuthorization(KarryPolicies.PlatformOperator);
         }
     }
 }

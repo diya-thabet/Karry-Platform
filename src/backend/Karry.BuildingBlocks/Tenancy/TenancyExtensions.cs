@@ -34,6 +34,7 @@ public static class TenancyExtensions
             options.TokenValidationParameters.ValidateAudience = !string.IsNullOrEmpty(options.Audience);
         }).AddScheme<AuthenticationSchemeOptions, DeviceAuthenticationHandler>(DeviceAuthenticationHandler.SchemeName, null); // field tablets (ADR-0028 §3)
         services.AddAuthorization(KarryPolicies.Add);
+        services.AddSingleton<IAuthorizationMiddlewareResultHandler, SecondFactorResultHandler>();
         services.Configure<TenancyOptions>(configuration.GetSection(TenancyOptions.Section));
         return services;
     }

@@ -93,6 +93,12 @@ public sealed class TenantResolutionMiddleware(RequestDelegate next)
         var operatorCall = context.User.Identity?.IsAuthenticated == true
             && context.User.HasClaim(KarryPolicies.PlatformRoleClaim, KarryPolicies.OperatorRole)
             && !string.IsNullOrEmpty(subject);
+        if (operatorCall && !KarryPolicies.HasSecondFactor(context.User))
+        {
+            await KarryPolicies.MfaRequired().ExecuteAsync(context).ConfigureAwait(false);
+            return;
+        }
+
         if (!operatorCall || SupportSessionHeader.Parse(context.Request.Headers[SupportSessionHeader.Name]) is not { } named
             || services.GetService<ISupportSessionAccess>() is not { } sessions)
         {

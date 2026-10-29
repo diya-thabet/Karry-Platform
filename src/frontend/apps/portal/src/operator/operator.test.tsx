@@ -53,6 +53,21 @@ describe("operator console (US-P1-OPS-03 AC1)", () => {
     expect(api.requested.filter((path) => tenantPaths.includes(path))).toEqual([]);
   });
 
+  it("asks an operator signed in without a second factor to sign in again, then loads the console (ADR-0029 §5)", async () => {
+    const i18n = await createI18n({ language: "en" });
+    const auth = await signedInAuth({ platformRole: "operator", givenName: "Ops", familyName: "Karry" });
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], operatorWithoutMfa: () => auth.stepUps === 0 });
+    render(<App i18n={i18n} auth={auth} api={api.client} history={createMemoryHistory({ initialEntries: ["/operator"] })} />);
+
+    const dialog = await screen.findByRole("dialog", undefined, { timeout: 4000 }); // after the query's one retry
+    expect(within(dialog).getByText(/must sign in with their second factor/)).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Sign in again" }));
+
+    expect(await screen.findByRole("link", { name: "Carrière Nord" })).toBeInTheDocument();
+    expect(auth.stepUps).toBe(1);
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("is not for a company's people: they stay in their portal", async () => {
     const api = fakeApi({ permissions: [], operatorTenants: [nord] });
     await renderAs("/operator", api, { operator: false });

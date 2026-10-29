@@ -6,6 +6,7 @@ Sign-in for Karry (ADR-0012, sub-phase P1.8). Everything Keycloak needs is in th
 |---|---|
 | `generate_realm.py` | **Source of the realm.** Edit it, then run it; `--check` (CI) fails when the JSON was edited by hand or not regenerated. |
 | `realm/karry-realm.json` | Generated: the `karry` realm (app clients, token lifetimes, brute-force protection, password policy, user profile, MFA browser flow, events). Imported on first start (`--import-realm`). |
+| `upgrade_realm.py` | Brings an **existing** realm to the realm file for changes made after its first import (Keycloak never re-imports). Idempotent; `--check` lists what differs. Run it after pulling a realm change: `python3 deploy/keycloak/upgrade_realm.py` (local admin by default; `KEYCLOAK_ADMIN_USERNAME` / `KEYCLOAK_ADMIN_PASSWORD` elsewhere). A live test checks it finds a fresh import up to date. |
 | `themes/karry/login/` | Login theme on top of Keycloak's `keycloak.v2`: FR (default) / EN messages, tenant branding script. Read live by Keycloak. |
 
 ## Clients
@@ -30,6 +31,7 @@ them), plus `aud=karry-api`. They carry no roles: authorization is Karry's (P1.9
 | Password policy | ≥ 12 chars, not username/e-mail, history 5 | NIST 800-63B style: length over composition rules |
 | Registration | off | Users are invited (US-P1-IAM-03) |
 | Second factor | role `mfa-required` ⇒ WebAuthn or TOTP; TOTP enrolment forced when none | US-P1-IAM-02. The Identity module gives the role to holders of a privileged Karry role. |
+| Factors in the token | `amr` (RFC 8176) on the app clients: `pwd`, `otp`, `hwk` from each authenticator's reference config, valid for the SSO session (10 h) | ADR-0029 §5: the API refuses an operator token without `otp` or `hwk` (401 `auth.mfa_required`). Enrolling TOTP is a required action, not a use of the factor: the first token after enrolment says only `pwd`, and the portal asks to sign in again. |
 | Events | login, failures, credential changes; 30 days | `Karry.Workers` copies failures and lockouts of known users to the tenant ledger every minute (`import-sign-ins` once) |
 
 ### MFA flow (`karry browser`)
@@ -40,6 +42,10 @@ SSO cookie ─or─ username + password
                        ├─ user has WebAuthn or TOTP → ask for one of them   (karry configured factor)
                        └─ otherwise                 → TOTP enrolment first  (karry enrol factor)
 ```
+
+**Operator accounts** (Karry staff, never a company's people): user attribute `platform_role=operator`, no
+`tenant_id`, and the realm role `mfa-required`, so every sign-in asks for the second factor (enrolment at the first
+one). Create them in the Keycloak admin console of the `karry` realm; the API checks `amr` as well.
 
 Keycloak fails a flow whose only steps are *alternatives none of which is configured*; that is why enrolment is a
 separate conditional sub-flow (`Condition - sub-flow executed`, "not executed").

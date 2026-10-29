@@ -124,6 +124,28 @@ public sealed class RealmConfigurationTests
         Realm["roles"]!["realm"]!.AsArray().Select(r => r!["name"]!.GetValue<string>()).Should().Contain("mfa-required");
     }
 
+    [Theory]
+    [MemberData(nameof(AppClients))]
+    [Trait("Story", "US-P1-OPS-03")]
+    public void App_tokens_say_which_factors_were_used_and_every_factor_names_itself(string clientId)
+    {
+        Client(clientId)["protocolMappers"]!.AsArray().Should().Contain(m => m!["protocolMapper"]!.GetValue<string>() == "oidc-amr-mapper"
+            && m["config"]!["access.token.claim"]!.GetValue<string>() == "true", "KarryPolicies reads amr from the access token");
+        var configs = Realm["authenticatorConfig"]!.AsArray().ToDictionary(c => c!["alias"]!.GetValue<string>(), c => c!["config"]!);
+        var expected = new Dictionary<string, string> { ["auth-username-password-form"] = "pwd", ["auth-otp-form"] = "otp", ["webauthn-authenticator"] = "hwk" };
+        var factors = Realm["authenticationFlows"]!.AsArray().SelectMany(f => f!["authenticationExecutions"]!.AsArray())
+            .Where(e => e!["authenticator"] is { } a && expected.ContainsKey(a.GetValue<string>())).ToList();
+
+        factors.Should().HaveCount(4, "password, hardware key, and the one-time password asked or enrolled");
+        foreach (var factor in factors)
+        {
+            var reference = configs[factor!["authenticatorConfig"]!.GetValue<string>()];
+            reference["default.reference.value"]!.GetValue<string>().Should().Be(expected[factor["authenticator"]!.GetValue<string>()]);
+            reference["default.reference.maxAge"]!.GetValue<string>().Should().Be(Realm["ssoSessionMaxLifespan"]!.GetValue<int>().ToString(System.Globalization.CultureInfo.InvariantCulture),
+                "a factor counts for the whole SSO session, never longer");
+        }
+    }
+
     [Fact]
     public void Secrets_come_from_the_environment_with_local_only_defaults()
     {

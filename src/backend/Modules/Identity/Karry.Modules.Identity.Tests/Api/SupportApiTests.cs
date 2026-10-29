@@ -1,4 +1,5 @@
 using System.Net;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Domain;
 using Karry.Testing;
 using Npgsql;
@@ -29,7 +30,7 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     {
         var company = await CompanyAsync();
         var code = await CodeAsync(company);
-        var operatorToken = TestTokens.Create("op-anna", ("platform_role", "operator"), ("name", "Anna Support"));
+        var operatorToken = TestTokens.ForPlatformOperator("op-anna", ("name", "Anna Support"));
 
         // Read out loud over the phone: case, spaces and O for 0 do not matter.
         var typed = code.ToLowerInvariant().Replace("-", " ", StringComparison.Ordinal).Replace('0', 'o');
@@ -76,7 +77,7 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     {
         var company = await CompanyAsync();
         await EmailAsync(company.Id, "admin@quarry.test");
-        var operatorToken = TestTokens.Create("op-sami", ("platform_role", "operator"), ("given_name", "Sami"), ("family_name", "Ops"));
+        var operatorToken = TestTokens.ForPlatformOperator("op-sami", ("given_name", "Sami"), ("family_name", "Ops"));
         const string reason = "INC-42: weighbridge totals wrong, customer unreachable at night";
 
         var session = await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Post, OperatorSessions(company.Id), operatorToken, new { reason }), HttpStatusCode.Created);
@@ -98,8 +99,8 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     public async Task The_company_sees_its_sessions_and_ends_one_and_the_operator_ends_only_their_own()
     {
         var company = await CompanyAsync();
-        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
-        var omar = TestTokens.Create("op-omar", ("platform_role", "operator"));
+        var anna = TestTokens.ForPlatformOperator("op-anna");
+        var omar = TestTokens.ForPlatformOperator("op-omar");
         var first = await StartAsync(company, anna);
         var second = await StartAsync(company, anna);
 
@@ -125,7 +126,7 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     public async Task A_session_stops_being_active_after_its_hour_and_cannot_be_ended_then()
     {
         var company = await CompanyAsync();
-        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
+        var anna = TestTokens.ForPlatformOperator("op-anna");
         var id = await StartAsync(company, anna);
 
         host.Clock.Advance(TimeSpan.FromHours(1));
@@ -154,7 +155,7 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     public async Task In_a_session_the_operator_reads_with_costs_masked_cannot_write_and_every_request_is_ledgered()
     {
         var company = await CompanyAsync();
-        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
+        var anna = TestTokens.ForPlatformOperator("op-anna");
         var session = await StartAsync(company, anna);
         var header = Header(company.Id, session);
 
@@ -189,8 +190,8 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
     {
         var company = await CompanyAsync();
         var other = await CompanyAsync();
-        var anna = TestTokens.Create("op-anna", ("platform_role", "operator"));
-        var omar = TestTokens.Create("op-omar", ("platform_role", "operator"));
+        var anna = TestTokens.ForPlatformOperator("op-anna");
+        var omar = TestTokens.ForPlatformOperator("op-omar");
         var session = await StartAsync(company, anna);
         const string Quote = "/api/v1/probe/quote";
 
@@ -207,6 +208,13 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
         await RefusedAsync(anna, $"{company.Id}.{session}.{session}");
         await RefusedAsync(anna, $"{Guid.Empty}.{session}");
         await RefusedAsync(TestTokens.Create("op-anna"), $"{company.Id}.{session}"); // same subject, but not a platform operator
+
+        // ADR-0029 §5: an operator signed in without a second factor is asked to sign in again, here too.
+        var withoutMfa = TestTokens.Create("op-anna", (KarryPolicies.PlatformRoleClaim, KarryPolicies.OperatorRole), (KarryPolicies.AmrClaim, "pwd"));
+        await TenantMembers.ExpectProblemAsync(
+            await api.SendAsync(HttpMethod.Get, Quote, withoutMfa, headers: Header(company.Id, session)), HttpStatusCode.Unauthorized, KarryPolicies.MfaRequiredCode);
+        await TenantMembers.ExpectProblemAsync(
+            await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/tenants/{company.Id}/support-sessions", withoutMfa), HttpStatusCode.Unauthorized, KarryPolicies.MfaRequiredCode);
 
         // A company's own token keeps its own company: the header does not move it elsewhere.
         var otherAdmin = await api.MemberAsync(other.Id, (Roles.TenantAdmin, null));

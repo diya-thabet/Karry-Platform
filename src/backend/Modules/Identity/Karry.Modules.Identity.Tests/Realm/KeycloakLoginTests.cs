@@ -176,6 +176,61 @@ public sealed class KeycloakLoginTests(KeycloakFixture keycloak) : IClassFixture
     }
 
     [Fact]
+    [Trait("Story", "US-P1-OPS-03")]
+    public async Task Tokens_say_how_the_person_signed_in_so_the_api_can_require_a_second_factor_of_operators()
+    {
+        using var plain = new KeycloakBrowser(Server);
+        var passwordOnly = KeycloakBrowser.Claims((await SignInAsync(plain, await NewUserAsync(Guid.NewGuid().ToString()))).GetProperty("access_token").GetString()!);
+        passwordOnly.GetProperty("amr").EnumerateArray().Select(v => v.GetString()).Should().Equal("pwd");
+
+        var operatorName = await NewUserAsync(attributes: new Dictionary<string, string> { ["platform_role"] = "operator" }, roles: ["mfa-required"]);
+        using var browser = new KeycloakBrowser(Server);
+        var enrolment = await browser.FollowAsync(await browser.LoginAsync(await browser.StartAsync(cancellationToken: Cancel), operatorName, Password, Cancel), Cancel);
+        var secret = enrolment.Input("totpSecret")!;
+        var enrolled = await browser.SubmitAsync(enrolment, new Dictionary<string, string>
+        {
+            ["totp"] = KeycloakBrowser.Totp(secret, DateTimeOffset.UtcNow),
+            ["userLabel"] = "phone",
+        }, Cancel);
+        var (enrolledStatus, firstTokens) = await browser.ExchangeAsync(enrolled, Cancel);
+        enrolledStatus.Should().Be(HttpStatusCode.OK, firstTokens.ToString());
+        KeycloakBrowser.Claims(firstTokens.GetProperty("access_token").GetString()!).GetProperty("amr").EnumerateArray().Select(v => v.GetString())
+            .Should().Equal(["pwd"], "enrolling is a required action, not a use of the factor: the portal asks to sign in again (auth.mfa_required)");
+
+        using var next = new KeycloakBrowser(Server);
+        var askedForCode = await next.LoginAsync(await next.StartAsync(cancellationToken: Cancel), operatorName, Password, Cancel);
+        // The next 30-second window: the code used at enrolment cannot be used twice.
+        var signedIn = await next.SubmitAsync(askedForCode, new Dictionary<string, string> { ["otp"] = KeycloakBrowser.Totp(secret, DateTimeOffset.UtcNow.AddSeconds(30)) }, Cancel);
+        var (status, tokens) = await next.ExchangeAsync(signedIn, Cancel);
+
+        status.Should().Be(HttpStatusCode.OK, tokens.ToString());
+        var claims = KeycloakBrowser.Claims(tokens.GetProperty("access_token").GetString()!);
+        claims.GetProperty("platform_role").GetString().Should().Be("operator");
+        claims.GetProperty("amr").EnumerateArray().Select(v => v.GetString()).Should().Contain(["pwd", "otp"], "KarryPolicies.HasSecondFactor reads exactly this");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-OPS-03")]
+    public async Task The_realm_upgrade_script_finds_a_freshly_imported_realm_up_to_date()
+    {
+        // deploy/keycloak/upgrade_realm.py brings existing environments to the realm file: on a fresh import it must
+        // see nothing to change, or it reads the realm differently from how Keycloak imports it.
+        var start = new System.Diagnostics.ProcessStartInfo("python3")
+        {
+            ArgumentList = { Path.Combine(PostgresServer.RepositoryRoot(), "deploy", "keycloak", "upgrade_realm.py"), "--url", Server.BaseUrl.ToString(), "--check" },
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            Environment = { ["KEYCLOAK_ADMIN_USERNAME"] = "admin", ["KEYCLOAK_ADMIN_PASSWORD"] = "admin-test-only" },
+        };
+        using var process = System.Diagnostics.Process.Start(start)!;
+        var output = await process.StandardOutput.ReadToEndAsync(Cancel) + await process.StandardError.ReadToEndAsync(Cancel);
+        await process.WaitForExitAsync(Cancel);
+
+        process.ExitCode.Should().Be(0, output);
+        output.Should().Contain("realm up to date");
+    }
+
+    [Fact]
     [Trait("Story", "US-P1-IAM-02")]
     public async Task Users_without_a_privileged_role_are_not_asked_for_a_second_factor()
     {
