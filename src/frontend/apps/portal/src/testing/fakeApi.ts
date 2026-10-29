@@ -21,6 +21,8 @@ type ImportJob = components["schemas"]["ImportResponse"];
 type ImportIssue = components["schemas"]["ImportIssueResponse"];
 type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
 type Device = components["schemas"]["DeviceResponse"];
+type AuditEntry = components["schemas"]["AuditEntryResponse"];
+type Verification = components["schemas"]["LatestVerificationResponse"];
 
 export interface Sent {
   method: string;
@@ -89,6 +91,12 @@ export function fakeApi(options: {
   importReport?: { issues: ImportIssue[]; rows: ImportPlannedRow[] };
   /** Tablets of `GET /identity/devices` (default: none). */
   devices?: Device[];
+  /** The audit log, newest first (default: empty); people's names come from the entries. */
+  auditEntries?: AuditEntry[];
+  /** What a run of the integrity check finds (default: an intact trail of every audit entry). */
+  verifyFinds?: { valid: boolean; firstBrokenSequence: number | null; problem: string | null };
+  /** The export answers `audit.export_too_large` (more than 100 000 matching entries). */
+  exportTooLarge?: boolean;
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -109,6 +117,8 @@ export function fakeApi(options: {
   const imports: ImportJob[] = [];
   const devices: Device[] = [...(options.devices ?? [])];
   let importSteps = 0;
+  const auditCalls: { path: string; query: Record<string, string> }[] = [];
+  let verification: Verification = { verification: null, verifiedBy: null, verifiedByName: null };
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
     tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
@@ -185,6 +195,11 @@ export function fakeApi(options: {
     const imported = importsRoute(request.method, url);
     if (imported) {
       return imported;
+    }
+
+    const audited = auditRoute(request.method, url);
+    if (audited) {
+      return audited;
     }
 
     const machine = assetsRoute(request.method, url, body);
@@ -275,6 +290,49 @@ export function fakeApi(options: {
    * The Imports API with the worker's steps run at the next read of the job: an upload is "validating", then
    * "validated" with the report of `options.importReport`; a commit is "committing", then "committed".
    */
+  /** The audit viewer's API: filters by person, site and event, pages of `limit` by sequence, export, integrity check. */
+  function auditRoute(method: string, url: URL): Response | null {
+    if (!url.pathname.startsWith("/api/v1/audit")) {
+      return null;
+    }
+
+    const all = options.auditEntries ?? [];
+    const query = url.searchParams;
+    auditCalls.push({ path: url.pathname, query: Object.fromEntries(query) });
+    const matching = all.filter((e) =>
+      (!query.get("actor") || e.actor === query.get("actor"))
+      && (!query.get("siteId") || e.siteId === query.get("siteId"))
+      && (!query.get("eventType") || e.eventType === query.get("eventType"))
+      && (!query.get("cursor") || Number(e.sequence) < Number(query.get("cursor"))));
+    switch (true) {
+      case method === "GET" && url.pathname === "/api/v1/audit/entries": {
+        const limit = Number(query.get("limit") ?? 50);
+        const page = matching.slice(0, limit);
+        return json(200, { entries: page, nextCursor: matching.length > limit ? String(page.at(-1)?.sequence) : null });
+      }
+      case method === "GET" && url.pathname === "/api/v1/audit/actors": {
+        const people = new Map(all.filter((e) => e.actor !== null).map((e) => [e.actor ?? "", e.actorName]));
+        return json(200, { actors: [...people].sort(([a], [b]) => a.localeCompare(b)).map(([actor, name]) => ({ actor, name })) });
+      }
+      case method === "GET" && url.pathname === "/api/v1/audit/entries/export.csv" && options.exportTooLarge === true:
+        return problem(400, "audit.export_too_large");
+      case method === "GET" && url.pathname === "/api/v1/audit/entries/export.csv":
+        return new Response(`\uFEFFsequence;occurred_at\r\n${matching.map((e) => `${String(e.sequence)};${e.occurredAt}`).join("\r\n")}`, {
+          status: 200, headers: { "Content-Type": "text/csv; charset=utf-8" },
+        });
+      case method === "GET" && url.pathname === "/api/v1/audit/verifications/latest":
+        return json(200, verification);
+      case method === "POST" && url.pathname === "/api/v1/audit/verify": {
+        const found = options.verifyFinds ?? { valid: true, firstBrokenSequence: null, problem: null };
+        const report = { ...found, entriesChecked: all.length, headHash: null, anchorsChecked: 1, verifiedAt: "2026-10-29T09:15:00Z" };
+        verification = { verification: report, verifiedBy: "user-1", verifiedByName: "Amel Admin" };
+        return json(200, report);
+      }
+      default:
+        return problem(404, "test.unknown_route");
+    }
+  }
+
   function importsRoute(method: string, url: URL): Response | null {
     if (!url.pathname.startsWith("/api/v1/imports")) {
       return null;
@@ -563,6 +621,8 @@ export function fakeApi(options: {
   return {
     client,
     sent,
+    /** Calls of the audit API with their query (filters, cursor). */
+    auditCalls,
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };
@@ -674,5 +734,20 @@ export function meterOf(overrides: Partial<Meter> = {}): Meter {
   return {
     id: "0192f0c1-0000-7000-8000-000000008001", kind: "hours", unit: "h", initialReading: 0, installedOn: "2021-03-15", status: "ok", offset: 0,
     lastValue: 4250.5, lastReadAt: "2026-10-26T16:00:00Z", createdAt: "2026-10-27T08:00:00Z", ...overrides,
+  };
+}
+
+/** An event as an audit entry carries it (the schema types it as an opaque JSON object). */
+export function recordedEvent(value: Record<string, unknown>): AuditEntry["event"] {
+  return value as AuditEntry["event"];
+}
+
+/** An audit entry as the API answers it: Ali changed machine PEL-01's name on Carrière Nord. */
+export function auditEntry(overrides: Partial<AuditEntry> = {}): AuditEntry {
+  return {
+    sequence: 1, eventId: "0192f0c1-0000-7000-8000-00000000a001", eventType: "assets.asset_changed.v1", occurredAt: "2026-10-28T09:30:00Z",
+    actor: "user-ali", actorName: "Ali Ben Salah", entityType: "asset", entityId: "0192f0c1-0000-7000-8000-000000007001",
+    siteId: "0192f0c1-0000-7000-8000-000000005001", event: recordedEvent({ assetId: "0192f0c1-0000-7000-8000-000000007001", before: { name: "Pelle" }, after: { name: "Pelle Cat 336" } }),
+    changes: [{ path: "name", before: "Pelle", after: "Pelle Cat 336" }], ...overrides,
   };
 }
