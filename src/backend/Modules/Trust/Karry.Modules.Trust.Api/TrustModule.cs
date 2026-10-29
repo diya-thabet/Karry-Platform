@@ -78,6 +78,16 @@ public sealed class TrustModule : IModule
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("SearchAuditEntries");
+
+        // The same entries as CSV for Excel (US-P1-AUD-04 AC2): same filters, reach and masking; the export is ledgered.
+        endpoints.MapGet("/entries/export.csv", ExportEntriesAsync)
+            .ExportAccess()
+            .RequirePermission(LedgerRead)
+            .Produces(StatusCodes.Status200OK, contentType: "text/csv")
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("ExportAuditEntries");
     }
 
     private static async Task<Results<Ok<AuditEntryListResponse>, ProblemHttpResult>> SearchEntriesAsync(
@@ -90,6 +100,32 @@ public sealed class TrustModule : IModule
         return result.IsSuccess
             ? TypedResults.Ok(new AuditEntryListResponse([.. result.Value.Entries.Select(e => AuditEntryResponse.From(e, events, json.Value.SerializerOptions))], result.Value.NextCursor))
             : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<PushStreamHttpResult, ProblemHttpResult>> ExportEntriesAsync(
+        [FromServices] AuditExports exports, [FromServices] EventSerializer events, [FromServices] IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions> json,
+        [FromServices] TimeProvider clock, CancellationToken cancellationToken, string? actor = null, string? entityType = null, string? entityId = null,
+        Guid? siteId = null, string? eventType = null, DateTimeOffset? from = null, DateTimeOffset? to = null)
+    {
+        var run = await exports.StartAsync(new AuditSearch(actor, entityType, entityId, siteId, eventType, from, to, null, null), cancellationToken)
+            .ConfigureAwait(false);
+        if (!run.IsSuccess)
+        {
+            return run.Error.ToProblem();
+        }
+
+        var options = json.Value.SerializerOptions;
+        var fileName = $"karry-audit-{clock.GetUtcNow():yyyyMMdd-HHmm}.csv";
+        return TypedResults.Stream(async body =>
+        {
+            await using var writer = new StreamWriter(body, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true);
+            await writer.WriteAsync(AuditCsv.Header).ConfigureAwait(false);
+            await foreach (var entry in run.Value.Entries.WithCancellation(cancellationToken).ConfigureAwait(false))
+            {
+                var shown = AuditEntryResponse.From(entry, events, options); // masked exactly as in the JSON API
+                await writer.WriteAsync(AuditCsv.Row(entry, shown.Changes, shown.Event?.ToJsonString())).ConfigureAwait(false);
+            }
+        }, AuditCsv.ContentType, fileName);
     }
 
     private static async Task<Ok<LedgerVerificationReport>> VerifyAsync([FromServices] IntegrityChecks checks, CancellationToken cancellationToken) =>

@@ -116,6 +116,51 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.ToTable("processed_messages", "audit");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Trust.Domain.AuditExport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ExportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("exported_at");
+
+                    b.Property<string>("ExportedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("exported_by");
+
+                    b.Property<string>("Filters")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("filters");
+
+                    b.Property<long>("Rows")
+                        .HasColumnType("bigint")
+                        .HasColumnName("rows");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<long?>("UpToSequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("up_to_sequence");
+
+                    b.HasKey("Id")
+                        .HasName("pk_exports");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_exports_tenant_id");
+
+                    b.HasIndex("TenantId", "ExportedAt")
+                        .HasDatabaseName("ix_exports_tenant_id_exported_at");
+
+                    b.ToTable("exports", "audit");
+                });
+
             modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.AnchorRow", b =>
                 {
                     b.Property<Guid>("TenantId")
