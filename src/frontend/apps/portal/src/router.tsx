@@ -6,6 +6,7 @@ import { HomePage } from "./HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
 import { Section } from "./Layout";
 import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
+import { TenantPage } from "./operator/TenantPage";
 import { TenantsPage } from "./operator/TenantsPage";
 import { sections } from "./sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
@@ -45,6 +46,14 @@ const operatorArea = createRoute({
   },
 });
 const companies = createRoute({ getParentRoute: () => operatorArea, path: "/operator", component: TenantsPage });
+const operatorCompany = createRoute({
+  getParentRoute: () => operatorArea,
+  path: "/operator/companies/$tenantId",
+  component: function OperatorCompany() {
+    const { tenantId } = operatorCompany.useParams();
+    return <TenantPage tenantId={tenantId} />;
+  },
+});
 const routes = sections
   .filter((section) => !["/", "/settings", "/sites", "/assets", "/audit"].includes(section.path))
   .map((section) => createRoute({ getParentRoute: () => company, path: section.path, component: () => <Section titleKey={section.key} /> }));
@@ -105,7 +114,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
       company.addChildren([
         home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, companySettings, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
       ]),
-      operatorArea.addChildren([companies]),
+      operatorArea.addChildren([companies, operatorCompany]),
     ]),
     context,
     ...(history ? { history } : {}),

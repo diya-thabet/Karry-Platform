@@ -41,3 +41,42 @@ export function useOperatorTenants() {
     queryFn: async () => (await api.GET("/api/v1/tenancy/tenants")).data ?? { tenants: [], mrr: [] },
   });
 }
+
+export type Subscription = components["schemas"]["SubscriptionResponse"];
+export type Invoice = components["schemas"]["InvoiceResponse"];
+
+export const subscriptionKey = (tenantId: string) => ["operator", "tenants", tenantId, "subscription"] as const;
+export const invoicesKey = (tenantId: string) => ["operator", "tenants", tenantId, "invoices"] as const;
+
+/** What an operator may do to a subscription in each state (the API refuses the rest: `billing.transition_invalid`). */
+export const actionsFor: Record<string, readonly string[]> = {
+  trial: ["activate"], expired: ["activate"], active: ["missed-payment", "cancel"], past_due: ["payment"], restricted: ["payment"],
+  suspended: ["payment", "cancel"], cancelled: [], deleted: [],
+};
+
+/** A company's subscription, as operators manage it until the billing provider (US-P1-BIL-02). */
+export function useTenantSubscription(tenantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: subscriptionKey(tenantId),
+    queryFn: async () => (await api.GET("/api/v1/billing/tenants/{tenantId}/subscription", { params: { path: { tenantId } } })).data ?? null,
+  });
+}
+
+export function useTenantInvoices(tenantId: string) {
+  const api = useApi();
+  return useQuery({
+    queryKey: invoicesKey(tenantId),
+    queryFn: async () => (await api.GET("/api/v1/billing/tenants/{tenantId}/invoices", { params: { path: { tenantId } } })).data?.items ?? [],
+  });
+}
+
+/** The latest version of every plan (the terms form offers their codes). */
+export function usePlans() {
+  const api = useApi();
+  return useQuery({
+    queryKey: ["operator", "plans"],
+    queryFn: async () => (await api.GET("/api/v1/billing/plans")).data?.items ?? [],
+    staleTime: 60_000,
+  });
+}

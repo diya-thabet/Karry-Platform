@@ -182,6 +182,16 @@ that nothing was altered. The questions:
   MRR totals and creates a company (`POST /tenancy/tenants`; the address is suggested from the name, the first
   administrator is optional and all-or-nothing; the toast says whether the invitation left). The MFA check (`amr`) is
   still to come.
+- **As built (2026-10-29, slice 4c, portal):** a company's name in the list opens `/operator/companies/$tenantId`,
+  built on the Billing operator API (no new endpoint). The subscription card shows the state and its dates and offers
+  only the moves the state machine allows from it (`trial`/`expired` → activate; `active` → missed payment, cancel;
+  `past_due`/`restricted` → payment; `suspended` → payment, cancel; none when closed); cancelling asks for
+  confirmation. The terms form changes plan, period, sites and extra machines and sends the add-ons, extra features
+  and limit overrides back unchanged (the `PUT` replaces the whole terms); a different plan takes its latest version,
+  the same plan keeps the company's version; closed subscriptions (`cancelled`, `expired`, `deleted`) cannot change
+  terms. Invoices are listed, recorded (number, amount, currency, issue and due dates) and marked paid today. The
+  billing refusals an operator can meet and the company-creation ones (`tenant.slug_taken`, `slug_invalid`,
+  `slug_reserved`, `name_invalid`) are explained in the error dialog.
 
 ## Options considered
 

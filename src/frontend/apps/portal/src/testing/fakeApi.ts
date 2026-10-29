@@ -24,6 +24,8 @@ type Device = components["schemas"]["DeviceResponse"];
 type AuditEntry = components["schemas"]["AuditEntryResponse"];
 type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 type Verification = components["schemas"]["LatestVerificationResponse"];
+type Subscription = components["schemas"]["SubscriptionResponse"];
+type Invoice = components["schemas"]["InvoiceResponse"];
 
 export interface Sent {
   method: string;
@@ -102,6 +104,10 @@ export function fakeApi(options: {
   operatorTenants?: OperatorTenant[];
   /** Whether the first administrator's invitation of a new company is delivered (default: yes). */
   invitationDelivered?: boolean;
+  /** Each company's subscription for the operator console, by company ID (default: a professional trial). */
+  tenantSubscriptions?: Record<string, Subscription>;
+  /** Each company's invoices for the operator console, by company ID (default: none). */
+  tenantInvoices?: Record<string, Invoice[]>;
 }) {
   const roles = defaultRoles();
   const users = options.users ?? [];
@@ -125,6 +131,8 @@ export function fakeApi(options: {
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
   const requested: string[] = [];
   const operatorTenants: OperatorTenant[] = [...(options.operatorTenants ?? [])];
+  const tenantSubscriptions: Record<string, Subscription> = { ...options.tenantSubscriptions };
+  const tenantInvoices: Record<string, Invoice[]> = { ...options.tenantInvoices };
   let verification: Verification = { verification: null, verifiedBy: null, verifiedByName: null };
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
@@ -202,6 +210,47 @@ export function fakeApi(options: {
         id: created.id, slug: created.slug, name: created.name, createdAt: "2026-10-29T08:00:00Z",
         adminInvitation: input.admin ? { invited: true, delivered: options.invitationDelivered ?? true, error: null } : null,
       });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/billing/plans") {
+      return json(200, { items: ["starter", "professional", "business", "enterprise"].map((code) => ({ id: `plan-${code}`, code, version: 1, name: code, features: [], limits: {}, prices: [], publishedAt: "2026-09-01T00:00:00Z" })) });
+    }
+
+    const billed = /^\/api\/v1\/billing\/tenants\/([^/]+)\/(subscription|subscription\/actions|invoices|invoices\/([^/]+)\/payment)$/.exec(url.pathname);
+    if (billed) {
+      const [, tenantId = "", what, invoiceId] = billed;
+      const subscription = tenantSubscriptions[tenantId] ?? (tenantSubscriptions[tenantId] = subscriptionOf());
+      const invoices = tenantInvoices[tenantId] ?? (tenantInvoices[tenantId] = []);
+      switch (true) {
+        case request.method === "GET" && what === "subscription":
+          return json(200, subscription);
+        case request.method === "PUT" && what === "subscription":
+          return json(200, (tenantSubscriptions[tenantId] = { ...subscription, ...(body as Partial<Subscription>), planVersion: 1 }));
+        case request.method === "POST" && what === "subscription/actions": {
+          const status = { activate: "active", "missed-payment": "past_due", payment: "active", cancel: "cancelled" }[(body as { action: string }).action] ?? subscription.status;
+          return json(200, (tenantSubscriptions[tenantId] = { ...subscription, status, statusSince: "2026-10-29T08:00:00Z", unpaidSince: status === "past_due" ? "2026-10-29T08:00:00Z" : null }));
+        }
+        case request.method === "GET" && what === "invoices":
+          return json(200, { items: invoices });
+        case request.method === "POST" && what === "invoices": {
+          const input = body as Omit<Invoice, "id" | "paidOn">;
+          if (invoices.some((invoice) => invoice.number === input.number)) {
+            return problem(409, "billing.invoice_number_taken");
+          }
+
+          const invoice: Invoice = { ...input, id: `0192f0c1-0000-7000-8000-00000000f${String(invoices.length + 1).padStart(3, "0")}`, paidOn: null };
+          invoices.unshift(invoice);
+          return json(201, invoice);
+        }
+        case request.method === "POST" && invoiceId !== undefined: {
+          const invoice = invoices.find((candidate) => candidate.id === invoiceId);
+          if (invoice) {
+            invoice.paidOn = (body as { paidOn: string }).paidOn;
+          }
+
+          return json(200, invoice);
+        }
+      }
     }
 
     if (url.pathname === "/api/v1/tenancy/settings" && request.method === "PUT") {
@@ -790,5 +839,14 @@ export function operatorTenant(overrides: Partial<OperatorTenant> = {}): Operato
     id: "0192f0c1-0000-7000-8000-0000000c0001", slug: "carriere-nord", name: "Carrière Nord", createdAt: "2026-10-01T08:00:00Z",
     planCode: "professional", planVersion: 1, status: "trial", trialEndsAt: "2026-10-31T08:00:00Z", mrr: 0, mrrCurrency: "EUR",
     sites: 2, assets: 3, officeUsers: 4, lastActivity: "2026-10-28T16:00:00Z", complete: true, ...overrides,
+  };
+}
+
+/** A company's subscription as the API returns it (default: a professional trial on one site). */
+export function subscriptionOf(overrides: Partial<Subscription> = {}): Subscription {
+  return {
+    id: "01970000-0000-7000-8000-0000000000bb", status: "trial", statusSince: "2026-10-01T08:00:00Z", trialEndsAt: "2026-10-31T08:00:00Z",
+    unpaidSince: null, planCode: "professional", planVersion: 1, period: "monthly", sites: 1, extraAssets: 0, addOns: {}, extraFeatures: [], limitOverrides: {},
+    ...overrides,
   };
 }

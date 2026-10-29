@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useState, type SyntheticEvent } from "react";
 import { Building2, Coins } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
@@ -44,7 +45,7 @@ export function TenantsPage() {
             header: t("portal.operator.company"),
             cell: (tenant) => (
               <div className="flex flex-col">
-                <span className="font-semibold" translate="no">{tenant.name}</span>
+                <Link to="/operator/companies/$tenantId" params={{ tenantId: tenant.id }} className="font-semibold text-primary underline-offset-4 hover:underline" translate="no">{tenant.name}</Link>
                 <span className="text-xs text-text-muted" translate="no">{tenant.slug}</span>
               </div>
             ),

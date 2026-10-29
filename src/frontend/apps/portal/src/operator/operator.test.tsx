@@ -4,8 +4,8 @@ import axe from "axe-core";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
-import { fakeApi, operatorTenant } from "../testing/fakeApi";
-import { isOperator, slugFrom, slugValid } from "./api";
+import { fakeApi, operatorTenant, subscriptionOf } from "../testing/fakeApi";
+import { actionsFor, isOperator, slugFrom, slugValid } from "./api";
 
 const nord = operatorTenant();
 const sud = operatorTenant({
@@ -174,6 +174,189 @@ describe("operator console (US-P1-OPS-03 AC1)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "New company" }));
     await screen.findByRole("dialog", { name: "New company" });
 
+    const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+  });
+});
+
+const nordPage = `/operator/companies/${nord.id}`;
+const invoice = {
+  id: "0192f0c1-0000-7000-8000-00000000f001", number: "K-2026-001", amount: 590, currency: "EUR", issuedOn: "2026-10-01", dueOn: "2026-10-15", paidOn: null,
+};
+
+async function choose(label: string, option: string) {
+  fireEvent.click(await screen.findByRole("combobox", { name: label }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
+describe("operator console: one company (US-P1-OPS-03 AC1, US-P1-BIL-02)", () => {
+  it("opens a company from the list with its subscription and invoices", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord, sud], tenantInvoices: { [nord.id]: [invoice] } });
+    await renderAs("/operator", api);
+    fireEvent.click(await screen.findByRole("link", { name: "Carrière Nord" }));
+
+    expect(await screen.findByRole("heading", { level: 1, name: "Carrière Nord" })).toBeInTheDocument();
+    expect(await screen.findByText("Trial ends")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Plan" })).toHaveTextContent("professional v1");
+    expect(screen.getByLabelText("Sites")).toHaveValue("1");
+    const invoices = await screen.findByRole("table", { name: "Invoices" });
+    expect(within(invoices).getByText("K-2026-001")).toBeInTheDocument();
+    expect(within(invoices).getByText("€590.00")).toBeInTheDocument();
+    expect(api.requested).toContain(`/api/v1/billing/tenants/${nord.id}/subscription`);
+    fireEvent.click(screen.getByRole("link", { name: "Back to the companies" }));
+    expect(await screen.findByRole("table", { name: "Companies" })).toBeInTheDocument();
+  });
+
+  it("offers only the moves the subscription can make, and activates a trial", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord] });
+    await renderAs(nordPage, api);
+    await screen.findByText("Trial ends");
+
+    expect(screen.queryByRole("button", { name: "Record a missed payment" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Cancel the subscription" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Activate" }));
+
+    expect(await screen.findByText("Subscription now Active")).toBeInTheDocument();
+    expect(api.sent.find((s) => s.path.endsWith("/subscription/actions"))?.body).toEqual({ action: "activate" });
+    expect(await screen.findByRole("button", { name: "Record a missed payment" })).toBeInTheDocument();
+    expect(screen.queryByText("Trial ends")).not.toBeInTheDocument();
+  });
+
+  it("records a missed payment", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ status: "active", trialEndsAt: null }) } });
+    await renderAs(nordPage, api);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Record a missed payment" }));
+    expect(await screen.findByText("Unpaid since")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Record the payment" })).toBeInTheDocument();
+    expect(api.sent.find((s) => s.path.endsWith("/subscription/actions"))?.body).toEqual({ action: "missed-payment" });
+  });
+
+  it("cancels only after confirmation, and then the terms are closed", async () => {
+    const api2 = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ status: "suspended", trialEndsAt: null }) } });
+    await renderAs(nordPage, api2);
+    fireEvent.click(await screen.findByRole("button", { name: "Cancel the subscription" }));
+    const dialog = await screen.findByRole("dialog", { name: "Cancel this subscription?" });
+    expect(api2.sent.filter((s) => s.path.endsWith("/subscription/actions"))).toEqual([]);
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel the subscription" }));
+
+    expect(await screen.findByText("Subscription now Cancelled")).toBeInTheDocument();
+    expect(api2.sent.find((s) => s.path.endsWith("/subscription/actions"))?.body).toEqual({ action: "cancel" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save the terms" })).toBeDisabled();
+    expect(screen.getAllByText("This subscription is closed: its terms can no longer change.").length).toBeGreaterThan(0);
+  });
+
+  it("changes plan, period and quantities and keeps the rest of the terms", async () => {
+    const terms = subscriptionOf({ status: "active", addOns: { "weighbridge-integration": 1 }, extraFeatures: ["fuel"], limitOverrides: { users: 40 } });
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: terms } });
+    await renderAs(nordPage, api);
+
+    await choose("Plan", "business");
+    expect(screen.getByText("The company moves to the latest version of this plan.")).toBeInTheDocument();
+    await choose("Period", "Annual");
+    fireEvent.change(screen.getByLabelText("Sites"), { target: { value: "3" } });
+    fireEvent.change(screen.getByLabelText("Extra machines"), { target: { value: "12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the terms" }));
+
+    expect(await screen.findByText("Terms saved")).toBeInTheDocument();
+    expect(api.sent.find((s) => s.method === "PUT")?.body).toEqual({
+      planCode: "business", planVersion: null, period: "annual", sites: 3, extraAssets: 12,
+      addOns: { "weighbridge-integration": 1 }, extraFeatures: ["fuel"], limitOverrides: { users: 40 },
+    });
+  });
+
+  it("keeps the plan version when the plan stays, and refuses quantities that are not whole", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ planVersion: 2 }) } });
+    await renderAs(nordPage, api);
+
+    fireEvent.change(await screen.findByLabelText("Sites"), { target: { value: "0" } });
+    fireEvent.change(screen.getByLabelText("Extra machines"), { target: { value: "1.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the terms" }));
+    expect(await screen.findByText("At least 1 site.")).toBeInTheDocument();
+    expect(screen.getByText("A whole number, 0 or more.")).toBeInTheDocument();
+    expect(api.sent.filter((s) => s.method === "PUT")).toEqual([]);
+
+    fireEvent.change(screen.getByLabelText("Sites"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Extra machines"), { target: { value: "0" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the terms" }));
+    expect(await screen.findByText("Terms saved")).toBeInTheDocument();
+    expect(api.sent.find((s) => s.method === "PUT")?.body).toMatchObject({ planCode: "professional", planVersion: 2, sites: 1, extraAssets: 0 });
+  });
+
+  it("records an invoice and its payment", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord] });
+    await renderAs(nordPage, api);
+    fireEvent.click(await screen.findByRole("button", { name: "Record an invoice" }));
+    const dialog = await screen.findByRole("dialog", { name: "Record an invoice" });
+
+    fireEvent.change(within(dialog).getByLabelText("Number"), { target: { value: " K-2026-002 " } });
+    fireEvent.change(within(dialog).getByLabelText("Amount"), { target: { value: "590,50" } });
+    fireEvent.change(within(dialog).getByLabelText("Issued"), { target: { value: "2026-10-01" } });
+    fireEvent.change(within(dialog).getByLabelText("Due"), { target: { value: "2026-10-31" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Record" }));
+
+    expect(await screen.findByText("Invoice recorded")).toBeInTheDocument();
+    expect(api.sent.find((s) => s.method === "POST" && s.path.endsWith("/invoices"))?.body).toEqual({ number: "K-2026-002", amount: "590.50", currency: "EUR", issuedOn: "2026-10-01", dueOn: "2026-10-31" });
+    const invoices = screen.getByRole("table", { name: "Invoices" });
+    fireEvent.click(await within(invoices).findByRole("button", { name: "Mark invoice K-2026-002 paid" }));
+
+    expect(await screen.findByText("Payment recorded")).toBeInTheDocument();
+    expect(api.sent.find((s) => s.path.endsWith("/payment"))?.body).toEqual({ paidOn: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) as unknown });
+    expect(await within(invoices).findByText(/^Paid /)).toBeInTheDocument();
+  });
+
+  it("refuses an invoice without number, with a bad amount or due before issue, and explains a number used twice", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantInvoices: { [nord.id]: [invoice] } });
+    await renderAs(nordPage, api);
+    fireEvent.click(await screen.findByRole("button", { name: "Record an invoice" }));
+    const dialog = await screen.findByRole("dialog", { name: "Record an invoice" });
+
+    fireEvent.change(within(dialog).getByLabelText("Amount"), { target: { value: "0" } });
+    fireEvent.change(within(dialog).getByLabelText("Issued"), { target: { value: "2026-10-10" } });
+    fireEvent.change(within(dialog).getByLabelText("Due"), { target: { value: "2026-10-09" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Record" }));
+    expect(await within(dialog).findByText("Give the invoice number.")).toBeInTheDocument();
+    expect(within(dialog).getByText(/An amount above 0/)).toBeInTheDocument();
+    expect(within(dialog).getByText("The due date cannot be before the issue date.")).toBeInTheDocument();
+    expect(api.sent.filter((s) => s.method === "POST")).toEqual([]);
+
+    fireEvent.change(within(dialog).getByLabelText("Number"), { target: { value: "K-2026-001" } });
+    fireEvent.change(within(dialog).getByLabelText("Amount"), { target: { value: "ten" } });
+    fireEvent.change(within(dialog).getByLabelText("Due"), { target: { value: "2026-10-10" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Record" }));
+    await new Promise((settled) => setTimeout(settled, 100)); // a request would have left by now
+    expect(api.sent.filter((s) => s.method === "POST")).toEqual([]);
+
+    fireEvent.change(within(dialog).getByLabelText("Amount"), { target: { value: "10" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Record" }));
+    expect(await screen.findByText("An invoice with this number is already recorded.")).toBeInTheDocument();
+  });
+
+  it("matches the subscription's transitions", () => {
+    expect(actionsFor).toEqual({
+      trial: ["activate"], expired: ["activate"], active: ["missed-payment", "cancel"], past_due: ["payment"], restricted: ["payment"],
+      suspended: ["payment", "cancel"], cancelled: [], deleted: [],
+    });
+  });
+
+  it("has no hard-coded text and no serious accessibility violation", async () => {
+    await renderAs(nordPage, fakeApi({ permissions: [], operatorTenants: [nord], tenantInvoices: { [nord.id]: [invoice] } }), { pseudo: true });
+    await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr")).toHaveLength(1); });
+    await vi.waitFor(() => { expect(document.querySelectorAll("dl div").length).toBeGreaterThan(2); });
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const untranslated: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent?.trim() ?? "";
+      const hidden = node.parentElement?.closest("[aria-hidden=true], [translate=no], time, script, style, option, select") !== null;
+      const data = /^[a-z]+ v\d+$/.test(text); // a plan code and version, shown as it is
+      if (text !== "" && !hidden && !data && !text.includes(pseudoOpen) && !text.includes(pseudoClose)) {
+        untranslated.push(text);
+      }
+    }
+
+    expect(untranslated).toEqual([]);
     const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
   });
