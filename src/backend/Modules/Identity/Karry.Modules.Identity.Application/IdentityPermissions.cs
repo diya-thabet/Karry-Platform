@@ -23,6 +23,9 @@ public static class IdentityPermissions
     /// <summary>Enrol site tablets, see and revoke them, on the caller's sites (US-P1-OFF-02).</summary>
     public const string DevicesManage = "identity.devices.manage";
 
+    /// <summary>Create support codes for Karry support, see and end support sessions (ADR-0029 §4, US-P1-OPS-03 AC3).</summary>
+    public const string SupportManage = "identity.support.manage";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(UsersRead, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Executive, Roles.SiteManager),
@@ -30,6 +33,7 @@ public static class IdentityPermissions
         new(RolesRead, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Executive),
         new(RolesManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
         new(DevicesManage, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.SiteManager),
+        new(SupportManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
     ];
 }
 

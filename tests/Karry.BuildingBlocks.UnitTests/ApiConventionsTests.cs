@@ -46,6 +46,7 @@ public sealed class ApiConventionsTests : IAsyncLifetime
             ErrorKind.Forbidden => Error.Forbidden("thing.forbidden", "Not allowed."),
             _ => Error.BusinessRule("meter.backwards", "Hour meters never go backwards."),
         }).ToProblem());
+        app.MapGet("/status/{code:int}", (int code) => Results.StatusCode(code)); // as the authorization middleware answers
         app.MapGet("/boom", IResult () => throw new InvalidOperationException("Npgsql: password authentication failed for user karry_app at 10.0.0.5"));
         app.MapPost("/things", (CreateThing thing) => TypedResults.Created($"/things/{thing.Code}", thing)).Validate<CreateThing>();
 
@@ -142,6 +143,17 @@ public sealed class ApiConventionsTests : IAsyncLifetime
         (await ReadProblem(notFound)).GetProperty("code").GetString().Should().Be("route.not_found");
         badJson.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await ReadProblem(badJson)).GetProperty("code").GetString().Should().Be(ProblemTypes.ValidationCode);
+    }
+
+    [Theory]
+    [InlineData(401, "auth.unauthenticated")]
+    [InlineData(403, "auth.forbidden")]
+    public async Task A_refusal_by_the_framework_says_what_it_is_not_an_unexpected_error(int status, string code)
+    {
+        var response = await client!.GetAsync(new Uri($"/status/{status}", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        ((int)response.StatusCode).Should().Be(status);
+        (await ReadProblem(response)).GetProperty("code").GetString().Should().Be(code);
     }
 
     private static async Task<JsonElement> ReadProblem(HttpResponseMessage response) =>

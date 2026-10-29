@@ -35,6 +35,28 @@ public sealed class MessagingOptions
     public string PhoneMode { get; set; } = "none";
 }
 
+/// <summary>Sends one message with the configured SMTP server (invitations, support notices).</summary>
+internal static class Smtp
+{
+    public static async Task SendAsync(MessagingOptions settings, MimeMessage mail, CancellationToken cancellationToken)
+    {
+        var host = settings.SmtpHost ?? throw new InvalidOperationException("No SMTP host is configured.");
+        using var smtp = new SmtpClient();
+        await smtp.ConnectAsync(host, settings.SmtpPort,
+            settings.RequireTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken).ConfigureAwait(false);
+        if (!string.IsNullOrEmpty(settings.SmtpUsername))
+        {
+            await smtp.AuthenticateAsync(settings.SmtpUsername, settings.SmtpPassword ?? string.Empty, cancellationToken).ConfigureAwait(false);
+        }
+
+        await smtp.SendAsync(mail, cancellationToken).ConfigureAwait(false);
+        await smtp.DisconnectAsync(quit: true, cancellationToken).ConfigureAwait(false);
+    }
+
+    public static bool IsDeliveryFailure(Exception ex) =>
+        ex is MailKit.ProtocolException or MailKit.CommandException or IOException or System.Net.Sockets.SocketException or AuthenticationException;
+}
+
 /// <summary>
 /// Delivers invitations by e-mail (SMTP) and, until a provider is chosen, previews phone invitations in Mailpit. The
 /// message is bilingual (FR, then EN): the invitee's language is unknown until they sign in. The link is never logged.
@@ -74,19 +96,10 @@ internal sealed partial class InvitationSender(IOptions<MessagingOptions> option
 
         try
         {
-            using var smtp = new SmtpClient();
-            await smtp.ConnectAsync(settings.SmtpHost, settings.SmtpPort,
-                settings.RequireTls ? SecureSocketOptions.StartTls : SecureSocketOptions.None, cancellationToken).ConfigureAwait(false);
-            if (!string.IsNullOrEmpty(settings.SmtpUsername))
-            {
-                await smtp.AuthenticateAsync(settings.SmtpUsername, settings.SmtpPassword ?? string.Empty, cancellationToken).ConfigureAwait(false);
-            }
-
-            await smtp.SendAsync(mail, cancellationToken).ConfigureAwait(false);
-            await smtp.DisconnectAsync(quit: true, cancellationToken).ConfigureAwait(false);
+            await Smtp.SendAsync(settings, mail, cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (Exception ex) when (ex is MailKit.ProtocolException or MailKit.CommandException or IOException or System.Net.Sockets.SocketException or AuthenticationException)
+        catch (Exception ex) when (Smtp.IsDeliveryFailure(ex))
         {
             LogDeliveryFailed(logger, message.Channel, ex);
             return false;

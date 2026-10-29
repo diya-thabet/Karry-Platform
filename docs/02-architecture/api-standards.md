@@ -4,7 +4,7 @@ area: architecture
 tags: [api, rest, openapi, errors, idempotency]
 source: "MASTER_PLAN.md §18"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # API Design Standards
@@ -33,6 +33,7 @@ last_updated: 2026-10-26
 | NotFound | 404 | `asset.not_found` |
 | Conflict | 409 | `asset.duplicate_code`, `idempotency.request_in_progress` |
 | BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
+| (framework refusal: no or bad token, failed policy such as `platform-operator`) | 401 / 403 | `auth.unauthenticated` / `auth.forbidden` (same codes as the tenant and permission checks) |
 | (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
 
 **Authentication and tenant (P1.5).** Module endpoints (`/api/v1/{module}/…`) require a bearer token and a tenant **by default**. The tenant comes only from the validated token's `tenant_id` claim (exactly one UUID), never from a header, path or body. No or invalid token → **401**; a valid token without exactly one tenant → **403 `tenant.missing`**. Both are answered before the endpoint runs. An endpoint opts out explicitly with `.AllowAnonymous()` (public) and/or `.AllowWithoutTenant()` (platform operator, branding lookup), and the opt-out is reviewed.

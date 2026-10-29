@@ -56,6 +56,10 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
 
     public DbSet<DeviceAssertionRow> DeviceAssertions => Set<DeviceAssertionRow>();
 
+    public DbSet<SupportConsent> SupportConsents => Set<SupportConsent>();
+
+    public DbSet<SupportSession> SupportSessions => Set<SupportSession>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -188,6 +192,37 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             device.HasIndex(d => new { d.TenantId, d.SiteId });
             device.Ignore(d => d.DomainEvents);
             device.Ignore(d => d.AggregateKey);
+        });
+
+        modelBuilder.Entity<SupportConsent>(consent =>
+        {
+            consent.ToTable("support_consents");
+            consent.HasKey(c => c.Id);
+            consent.Property(c => c.Id).HasConversion(id => id.Value, value => new SupportConsentId(value)).ValueGeneratedNever();
+            consent.Property(c => c.CodeHash).HasMaxLength(64).IsFixedLength();
+            consent.Property(c => c.CreatedBy).HasMaxLength(64);
+            consent.Property<uint>("xmin").IsRowVersion(); // the same code typed by two operators at once: one wins
+            consent.HasIndex(c => new { c.TenantId, c.CodeHash }).IsUnique();
+            consent.Ignore(c => c.DomainEvents);
+            consent.Ignore(c => c.AggregateKey);
+        });
+
+        modelBuilder.Entity<SupportSession>(session =>
+        {
+            session.ToTable("support_sessions");
+            session.HasKey(s => s.Id);
+            session.Property(s => s.Id).HasConversion(id => id.Value, value => new SupportSessionId(value)).ValueGeneratedNever();
+            session.Property(s => s.Mode).HasConversion<string>().HasMaxLength(12);
+            session.Property(s => s.OperatorSubject).HasMaxLength(64);
+            session.Property(s => s.OperatorName).HasMaxLength(SupportSession.OperatorNameMaxLength);
+            session.Property(s => s.Reason).HasMaxLength(SupportSession.ReasonMaxLength);
+            session.Property(s => s.ConsentId).HasConversion(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<SupportConsentId, Guid>(id => id.Value, value => new SupportConsentId(value)));
+            session.Property(s => s.EndedBy).HasMaxLength(64);
+            session.Property<uint>("xmin").IsRowVersion();
+            session.HasIndex(s => new { s.TenantId, s.StartedAt });
+            session.Ignore(s => s.Until);
+            session.Ignore(s => s.DomainEvents);
+            session.Ignore(s => s.AggregateKey);
         });
 
         modelBuilder.Entity<DeviceAssertionRow>(assertion =>
