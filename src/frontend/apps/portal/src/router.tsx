@@ -21,6 +21,8 @@ import { SitePage, SitesPage } from "./sites/SitesPages";
 /** Who the router serves: a platform operator without a company gets the operator console (ADR-0029 §5). */
 export interface PortalContext {
   operator: boolean;
+  /** The company of the operator's last support visit: back in the console, its page opens instead of the list. */
+  lastCompany?: string | undefined;
 }
 
 const root = createRootRouteWithContext<PortalContext>()({ component: Shell, notFoundComponent: ShellNotFound });
@@ -30,6 +32,10 @@ const company = createRoute({
   getParentRoute: () => root,
   id: "company",
   beforeLoad: ({ context }) => {
+    if (context.operator && context.lastCompany) {
+      redirect({ to: "/operator/companies/$tenantId", params: { tenantId: context.lastCompany }, throw: true });
+    }
+
     if (context.operator) {
       redirect({ to: "/operator", throw: true });
     }

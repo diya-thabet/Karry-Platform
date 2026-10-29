@@ -8,7 +8,7 @@ import { QuantityInput, type MaterialState } from "./QuantityInput";
 import { MaskedValue, SensitiveValue } from "./MaskedValue";
 import { StatusChip } from "./StatusChip";
 import { EmptyState, ErrorState, UpgradeCard } from "./States";
-import { TextField } from "./TextField";
+import { TextAreaField, TextField } from "./TextField";
 import { ThemeProvider, useTheme } from "../theme/ThemeProvider";
 
 const i18n = await createI18n({ language: "en" });
@@ -59,6 +59,24 @@ describe("TextField", () => {
     render(<TextField label="Code" />);
 
     expect(screen.getByRole("textbox", { name: "Code" })).not.toHaveAttribute("aria-invalid");
+  });
+});
+
+describe("TextAreaField", () => {
+  it("labels the text area and wires help text and error for screen readers", () => {
+    render(<TextAreaField label="Reason" description="At least 30 characters" error="Too short" />);
+    const area = screen.getByRole("textbox", { name: "Reason" });
+
+    expect(area.tagName).toBe("TEXTAREA");
+    expect(area).toHaveAttribute("rows", "3");
+    expect(area).toHaveAttribute("aria-invalid", "true");
+    expect(area).toHaveAccessibleDescription("At least 30 characters Too short");
+  });
+
+  it("is not marked invalid without an error", () => {
+    render(<TextAreaField label="Reason" />);
+
+    expect(screen.getByRole("textbox", { name: "Reason" })).not.toHaveAttribute("aria-invalid");
   });
 });
 

@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
 import { QuantityInput, type MaterialState, type QuantityInputProps } from "./QuantityInput";
 import { SelectField } from "./SelectField";
-import { TextField } from "./TextField";
+import { TextAreaField, TextField } from "./TextField";
 
 const meta = { title: "Components/Fields" } satisfies Meta;
 export default meta;
@@ -11,6 +11,9 @@ type Story = StoryObj<typeof meta>;
 export const Text: Story = { render: () => <TextField label="Immatriculation" placeholder="AB-123-CD" /> };
 export const TextWithHelpAndError: Story = {
   render: () => <TextField label="Code engin" description="Code interne, 10 caractères au plus." error="Ce code est déjà utilisé." defaultValue="EX-01" required />,
+};
+export const TextArea: Story = {
+  render: () => <TextAreaField label="Motif" description="30 caractères au moins." defaultValue="INC-42 : les totaux du pont-bascule sont faux la nuit." />,
 };
 export const TextDisabled: Story = { render: () => <TextField label="Site" defaultValue="Carrière Nord" disabled /> };
 
