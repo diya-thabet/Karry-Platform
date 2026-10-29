@@ -45,6 +45,7 @@ public sealed class TenancyModule : IModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddTenancyInfrastructure(connectionString);
         services.AddScoped<ProvisionTenantHandler>();
+        services.AddScoped<TenantOverview>();
         services.AddScoped<IValidator<ProvisionTenant>, ProvisionTenantValidator>();
     }
 
@@ -61,6 +62,15 @@ public sealed class TenancyModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("ProvisionTenant");
+
+        // The operator console's tenant list (US-P1-OPS-03 AC1, ADR-0029 §3): platform operators only; each tenant is
+        // summarized under its own tenant context, so row-level security applies to every module's answer.
+        endpoints.MapGet("/tenants", ListTenantsAsync)
+            .AllowWithoutTenant()
+            .RequireAuthorization(KarryPolicies.PlatformOperator)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("ListTenants");
 
         // The caller's own company (portal header). Tenant-scoped: the tenant comes from the token only.
         // Name, slug and branding of the caller's own company: every member needs it for the app header.
@@ -132,6 +142,17 @@ public sealed class TenancyModule : IModule
     /// In its own scope: the invitation works under the new tenant, while this request stays a platform request. The
     /// tenant exists whatever happens here; the operator repeats the (idempotent) provisioning to retry the invitation.
     /// </summary>
+    private static async Task<Ok<OperatorTenantListResponse>> ListTenantsAsync([FromServices] TenantOverview overview, CancellationToken cancellationToken)
+    {
+        var rows = await overview.ListAsync(cancellationToken).ConfigureAwait(false);
+        var totals = rows
+            .Where(r => r.Summary.Mrr is not null && r.Summary.MrrCurrency is not null)
+            .GroupBy(r => r.Summary.MrrCurrency!, StringComparer.Ordinal)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .Select(g => new MrrTotalResponse(g.Key, g.Sum(r => r.Summary.Mrr!.Value)));
+        return TypedResults.Ok(new OperatorTenantListResponse([.. rows.Select(OperatorTenantResponse.From)], [.. totals]));
+    }
+
     private static async Task<AdminInvitationResponse> InviteFirstAdminAsync(
         Guid tenant, FirstAdmin admin, ClaimsPrincipal caller, IServiceScopeFactory scopes, CancellationToken cancellationToken)
     {
@@ -255,6 +276,47 @@ public sealed record ProvisionedTenantResponse(Guid Id, string Slug, string Name
 
 /// <summary><c>Invited</c> is false when the tenant already had an administrator, or on <c>Error</c>.</summary>
 public sealed record AdminInvitationResponse(bool Invited, bool Delivered, string? Error);
+
+/// <summary>
+/// A tenant in the operator console (US-P1-OPS-03 AC1). <c>Status</c> is the subscription state (trial, active,
+/// past_due, …); <c>Mrr</c> the monthly recurring revenue in <c>MrrCurrency</c> (zero when nothing is billed, null when
+/// the plan has no price); counts are null when unknown. <c>Complete</c> false: a module failed for this tenant and its
+/// columns are empty.
+/// </summary>
+public sealed record OperatorTenantResponse(
+    Guid Id,
+    string Slug,
+    string Name,
+    DateTimeOffset CreatedAt,
+    string? PlanCode,
+    int? PlanVersion,
+    string? Status,
+    DateTimeOffset? TrialEndsAt,
+    decimal? Mrr,
+    string? MrrCurrency,
+    long? Sites,
+    long? Assets,
+    long? OfficeUsers,
+    DateTimeOffset? LastActivity,
+    bool Complete)
+{
+    public static OperatorTenantResponse From(TenantOverviewRow row)
+    {
+        ArgumentNullException.ThrowIfNull(row);
+        long? Count(string metric) => row.Usage.TryGetValue(metric, out var value) ? value : null;
+        var summary = row.Summary;
+        return new(row.Tenant.Id.Value, row.Tenant.Slug.Value, row.Tenant.Name, row.Tenant.CreatedAt, summary.PlanCode, summary.PlanVersion,
+            summary.SubscriptionStatus, summary.TrialEndsAt, summary.Mrr, summary.MrrCurrency,
+            Count(SharedKernel.Entitlements.Metrics.Sites), Count(SharedKernel.Entitlements.Metrics.Assets), Count(SharedKernel.Entitlements.Metrics.OfficeUsers),
+            summary.LastActivity, row.Complete);
+    }
+}
+
+/// <summary>The MRR of all tenants priced in one currency.</summary>
+public sealed record MrrTotalResponse(string Currency, decimal Amount);
+
+/// <summary>Every tenant, by name, and the MRR totals by currency.</summary>
+public sealed record OperatorTenantListResponse(IReadOnlyList<OperatorTenantResponse> Tenants, IReadOnlyList<MrrTotalResponse> Mrr);
 
 /// <summary>Public sign-in branding: no data beyond what the sign-in page shows.</summary>
 public sealed record TenantBrandingResponse(string Slug, string Name, string? PrimaryColour, string? LogoUrl);

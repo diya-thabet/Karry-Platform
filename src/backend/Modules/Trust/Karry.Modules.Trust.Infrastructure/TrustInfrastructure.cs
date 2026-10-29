@@ -25,6 +25,7 @@ public static class TrustInfrastructure
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
         services.AddScoped<IVerificationRecords, EfVerificationRecords>();
+        services.AddScoped<BuildingBlocks.Tenancy.ITenantSummarySource, LedgerActivity>();
         services.AddScoped<IntegrityChecks>();
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
         // The event type registry (every module's events in a host): the backfill and the audit viewer read entries

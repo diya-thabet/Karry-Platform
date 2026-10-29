@@ -41,6 +41,7 @@ public sealed partial class MaskingSuite : IDisposable
         ["PublishPlan.prices"] = "The same price book, sent by a platform operator when publishing a plan version.",
         ["InvoiceResponse.amount"] = "Karry's invoice to the tenant itself, not the tenant's business data; behind billing.subscription.read (admin, executive, finance) or operators.",
         ["RecordInvoice.amount"] = "The same invoice amount, recorded by a platform operator.",
+        ["MrrTotalResponse.amount"] = "Karry's own recurring revenue from its customers (operator console, platform operators only), not a customer's business data.",
     };
 
     /// <summary>Success responses that are not JSON (files): each must be written with <see cref="SensitiveExport"/>.</summary>

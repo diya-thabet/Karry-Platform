@@ -69,6 +69,18 @@ public sealed class SyncHost : IAsyncLifetime
         return await Client.SendAsync(request);
     }
 
+    /// <summary>
+    /// Starts the company's trial as Billing does on provisioning (this host has no Keycloak, so the provisioning message
+    /// fails at Identity's handler before Billing's); idempotent like the handler.
+    /// </summary>
+    public async Task StartTrialAsync(Company company)
+    {
+        await using var scope = factory!.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new SharedKernel.Tenancy.TenantId(company.Id));
+        var trial = scope.ServiceProvider.GetServices<Modules.Tenancy.Contracts.ITenantProvisionedHandler>().OfType<Modules.Billing.Application.TrialOnProvisioning>().Single();
+        await trial.HandleAsync(new Modules.Tenancy.Contracts.TenantSummary(new SharedKernel.Tenancy.TenantId(company.Id), company.Slug, company.Slug), CancellationToken.None);
+    }
+
     /// <summary>A tablet of the company, enrolled on its North site.</summary>
     public async Task<TestTablet> TabletAsync(Company company)
     {
