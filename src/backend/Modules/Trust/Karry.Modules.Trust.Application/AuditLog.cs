@@ -34,6 +34,9 @@ public interface IAuditLog
 
     /// <summary>Every entry the query matches, newest first, streamed (<c>Take</c> is ignored).</summary>
     IAsyncEnumerable<AuditEntry> StreamAsync(AuditQuery query, CancellationToken cancellationToken);
+
+    /// <summary>The distinct actors of the entries the query matches (at most <c>Take</c>), in order.</summary>
+    Task<IReadOnlyList<string>> ActorsAsync(AuditQuery query, CancellationToken cancellationToken);
 }
 
 /// <summary>
@@ -47,6 +50,8 @@ public sealed class AuditLogQueries(IAuditLog log, ICallerAccess caller)
     public const int DefaultLimit = 50;
 
     public const int MaxLimit = 200;
+
+    public const int MaxActors = 500;
 
     public static readonly Error LimitInvalid = Error.Validation("audit.limit_invalid", $"Ask for 1 to {MaxLimit} entries.");
 
@@ -70,6 +75,14 @@ public sealed class AuditLogQueries(IAuditLog log, ICallerAccess caller)
         return found.Count > take
             ? new AuditPage([.. found.Take(take)], found[take - 1].Sequence.ToString(CultureInfo.InvariantCulture))
             : new AuditPage(found, null);
+    }
+
+    /// <summary>Who appears in the entries the caller may read, for the viewer's "person" filter (at most <see cref="MaxActors"/>).</summary>
+    public Task<IReadOnlyList<string>> ActorsAsync(CancellationToken cancellationToken)
+    {
+        var scope = caller.Current.ScopeOf(ReadPermission);
+        return log.ActorsAsync(
+            new AuditQuery(null, null, null, null, null, null, null, scope.TenantWide ? null : scope.Sites, null, MaxActors), cancellationToken);
     }
 
     /// <summary>The store query for a search and the caller's reach (one more row than the page, to know if more follow).</summary>

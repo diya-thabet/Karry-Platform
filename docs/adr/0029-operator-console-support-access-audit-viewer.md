@@ -83,12 +83,20 @@ that nothing was altered. The questions:
 - **CSV format (decided while building):** `;` between cells (the list separator of French Excel, which most users
   have: a comma file opens as one column there), UTF-8 with a byte order mark, CRLF lines, RFC 4180 quoting (cells
   containing `;`, `,`, quotes or line breaks are quoted). Columns, stable English codes for auditors' tools:
-  `sequence;occurred_at;event_type;actor;entity_type;entity_id;site_id;changes;event`. `occurred_at` in UTC with
+  `sequence;occurred_at;event_type;actor;actor_name;entity_type;entity_id;site_id;changes;event`. `occurred_at` in UTC with
   microseconds; `changes` one `path: before → after` per line (JSON values); `event` the masked event as JSON. A
   cell starting with `= + - @`, a tab or a carriage return gets a leading apostrophe.
 - **Integrity check** `POST /api/v1/audit/verify` (exists, AUD-03 AC1) now also **records the result**
   (`audit.verifications`, row-level security) and `GET /api/v1/audit/verifications/latest` returns the last one for
   the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (unchanged: the same roles as the log).
+- **People's names (decided while building, slice 3a):** the trail stores the actor's Keycloak subject (an
+  opaque ID), which an auditor cannot read. Trust asks Identity through its contract **`IUserNames`**
+  (`Identity.Contracts`, subject → "First Last", row-level security keeps it inside the company) and adds
+  **`actorName`** to each entry and an **`actor_name`** CSV column (empty for a system actor or a person removed
+  from the company; the subject stays the reference). **`GET /api/v1/audit/actors`** (`audit.ledger.read`) lists the
+  people present in the trail within the caller's reach (at most 500, by subject) with their names, for the
+  viewer's "person" filter. Names are not ledgered: they are resolved when read, so a renamed person shows their
+  current name (the event payload is unchanged evidence).
 - **As built (2026-10-29, slice 2c, export):** `AuditExports` checks the filters like the viewer, counts the matching
   entries (refused above 100 000), records an `AuditExport` aggregate (`audit.exports`, RLS) whose
   `trust.audit_exported.v1` event is ledgered in the same transaction **before any row is sent**, then streams the

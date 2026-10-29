@@ -40,6 +40,7 @@ public static class IdentityInfrastructure
         services.AddScoped<IRoleStore, RoleStore>();
         services.AddScoped<RoleDirectory>();
         services.AddScoped<UserAdministration>();
+        services.AddScoped<IUserNames, UserNames>();
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up. Changes to
         // the shared portal client are serialized with the other processes through the database.

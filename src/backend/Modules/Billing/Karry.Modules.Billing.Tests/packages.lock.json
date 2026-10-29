@@ -462,6 +462,7 @@
       "karry.modules.trust.api": {
         "type": "Project",
         "dependencies": {
+          "Karry.Modules.Identity.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Application": "[1.0.0, )",
           "Karry.Modules.Trust.Infrastructure": "[1.0.0, )"
         }

@@ -37,10 +37,10 @@ public sealed class AuditCsvTests
             "user-1", "asset", "a-1", site, "{}");
         var changes = new[] { new AuditChange("name", JsonValue.Create("Pelle"), JsonValue.Create("Pelle 2")), new AuditChange("hours", null, JsonValue.Create(12)) };
 
-        var row = AuditCsv.Row(entry, changes, """{"assetId":"a-1"}""");
+        var row = AuditCsv.Row(entry, "Ali Ben Salah", changes, """{"assetId":"a-1"}""");
 
-        row.Should().Be($"42;2026-10-29T08:30:00.000000Z;assets.asset_changed.v1;user-1;asset;a-1;{site};\"name: \"\"Pelle\"\" → \"\"Pelle 2\"\"\nhours: null → 12\";\"{{\"\"assetId\"\":\"\"a-1\"\"}}\"\r\n");
-        AuditCsv.Header.Should().Be("sequence;occurred_at;event_type;actor;entity_type;entity_id;site_id;changes;event\r\n");
+        row.Should().Be($"42;2026-10-29T08:30:00.000000Z;assets.asset_changed.v1;user-1;Ali Ben Salah;asset;a-1;{site};\"name: \"\"Pelle\"\" → \"\"Pelle 2\"\"\nhours: null → 12\";\"{{\"\"assetId\"\":\"\"a-1\"\"}}\"\r\n");
+        AuditCsv.Header.Should().Be("sequence;occurred_at;event_type;actor;actor_name;entity_type;entity_id;site_id;changes;event\r\n");
     }
 
     [Fact]
@@ -72,6 +72,7 @@ public sealed class AuditCsvTests
         export.Filters.Should().Be("""{"actor":"alice","entityType":"asset"}""", "an export is the whole result: cursor and page size are dropped");
         export.DomainEvents.Should().ContainSingle().Which.Should().BeOfType<AuditExported>();
         result.Value.Rows.Should().Be(AuditExports.MaxRows);
+        result.Value.Actors.Should().Equal("alice");
         await foreach (var _ in result.Value.Entries)
         {
         }
@@ -118,6 +119,9 @@ public sealed class AuditCsvTests
         public Task<IReadOnlyList<AuditEntry>> SearchAsync(AuditQuery query, CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<AuditSummary> SummaryAsync(AuditQuery query, CancellationToken cancellationToken) => Task.FromResult(new AuditSummary(count, newest));
+
+        public Task<IReadOnlyList<string>> ActorsAsync(AuditQuery query, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<string>>(["alice"]);
 
         public async IAsyncEnumerable<AuditEntry> StreamAsync(AuditQuery query, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
