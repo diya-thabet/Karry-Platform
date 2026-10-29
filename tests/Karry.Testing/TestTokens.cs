@@ -35,8 +35,12 @@ public static class TestTokens
     public static string ForTenant(Guid tenantId, string subject = "user-1") =>
         Create(subject, (TenantResolutionMiddleware.TenantClaim, tenantId.ToString()));
 
-    public static string ForPlatformOperator(string subject = "operator-1") =>
-        Create(subject, (KarryPolicies.PlatformRoleClaim, KarryPolicies.OperatorRole));
+    /// <summary>A Karry operator signed in with password and one-time password (ADR-0029 §5 requires the second factor).</summary>
+    public static string ForPlatformOperator(string subject = "operator-1", params (string Type, string Value)[] claims) =>
+        Create(subject, [(KarryPolicies.PlatformRoleClaim, KarryPolicies.OperatorRole), .. SecondFactor, .. claims]);
+
+    /// <summary>The <c>amr</c> claims of a sign-in with password and one-time password.</summary>
+    public static readonly (string Type, string Value)[] SecondFactor = [(KarryPolicies.AmrClaim, "pwd"), (KarryPolicies.AmrClaim, "otp")];
 
     public static string Create(string subject, params (string Type, string Value)[] claims) =>
         new JsonWebTokenHandler().CreateToken(new SecurityTokenDescriptor

@@ -39,6 +39,14 @@ def attr_mapper(attr):
 audience = {"name": "karry-api audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "consentRequired": False,
             "config": {"included.client.audience": "karry-api", "access.token.claim": "true", "id.token.claim": "false", "introspection.token.claim": "true"}}
 
+# ADR-0029 §5: tokens say how the person signed in (RFC 8176 `amr`), so the API can refuse an operator without a second
+# factor. Keycloak takes each value from the authenticator's "reference" config below, while the SSO session lasts.
+amr = {"name": "amr", "protocol": "openid-connect", "protocolMapper": "oidc-amr-mapper", "consentRequired": False,
+       "config": {"access.token.claim": "true", "id.token.claim": "true", "introspection.token.claim": "true", "userinfo.token.claim": "false"}}
+
+def reference(alias, value):
+    return {"alias": alias, "config": {"default.reference.value": value, "default.reference.maxAge": "36000"}}
+
 def app_client(client_id, name, port):
     origins = [f"http://localhost:{port}", f"http://127.0.0.1:{port}",
                f"http://demo-carriere-a.localhost:{port}", f"http://demo-carriere-b.localhost:{port}"]
@@ -52,7 +60,7 @@ def app_client(client_id, name, port):
       "fullScopeAllowed": False,
       "defaultClientScopes": ["web-origins", "acr", "basic", "profile", "email"],
       "optionalClientScopes": [],
-      "protocolMappers": [attr_mapper("tenant_id"), attr_mapper("platform_role"), audience],
+      "protocolMappers": [attr_mapper("tenant_id"), attr_mapper("platform_role"), audience, amr],
     }
 
 def flow(alias, description, top, executions):
@@ -115,13 +123,15 @@ realm = {
   "clientScopeMappings": {"realm-management": [{"client": "karry-identity", "roles": IDENTITY_ROLES}]},
   "authenticatorConfig": [
     {"alias": "karry privileged role", "config": {"condUserRole": "mfa-required", "negate": "false"}},
-    {"alias": "karry no configured factor", "config": {"flow_to_check": "karry configured factor", "check_result": "not-executed"}}],
+    {"alias": "karry no configured factor", "config": {"flow_to_check": "karry configured factor", "check_result": "not-executed"}},
+    reference("karry amr password", "pwd"), reference("karry amr hardware key", "hwk"),
+    reference("karry amr otp", "otp"), reference("karry amr otp enrolment", "otp")],
   "authenticationFlows": [
     flow("karry browser", "Karry browser login: SSO cookie, or password then MFA for privileged users", True, [
       step("auth-cookie", "ALTERNATIVE", 10),
       sub("karry browser forms", "ALTERNATIVE", 30)]),
     flow("karry browser forms", "Username/password, then the privileged-user MFA step", False, [
-      step("auth-username-password-form", "REQUIRED", 10),
+      step("auth-username-password-form", "REQUIRED", 10, "karry amr password"),
       sub("karry privileged mfa", "CONDITIONAL", 20)]),
     flow("karry privileged mfa", "US-P1-IAM-02: users with the mfa-required role must use, or first enrol, a second factor", False, [
       step("conditional-user-role", "REQUIRED", 10, "karry privileged role"),
@@ -129,11 +139,11 @@ realm = {
       sub("karry enrol factor", "CONDITIONAL", 30)]),
     flow("karry configured factor", "The user already has WebAuthn or TOTP: ask for one of them", False, [
       step("conditional-user-configured", "REQUIRED", 10),
-      step("webauthn-authenticator", "ALTERNATIVE", 20),
-      step("auth-otp-form", "ALTERNATIVE", 30)]),
+      step("webauthn-authenticator", "ALTERNATIVE", 20, "karry amr hardware key"),
+      step("auth-otp-form", "ALTERNATIVE", 30, "karry amr otp")]),
     flow("karry enrol factor", "No second factor yet: TOTP enrolment is forced before any token is issued", False, [
       step("conditional-sub-flow-executed", "REQUIRED", 10, "karry no configured factor"),
-      step("auth-otp-form", "REQUIRED", 20)]),
+      step("auth-otp-form", "REQUIRED", 20, "karry amr otp enrolment")]),
   ],
   "components": {"org.keycloak.userprofile.UserProfileProvider": [
     {"providerId": "declarative-user-profile", "subComponents": {}, "config": {"kc.user.profile.config": [json.dumps(profile, separators=(",", ":"))]}}]},

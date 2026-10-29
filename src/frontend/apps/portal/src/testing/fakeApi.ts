@@ -105,6 +105,8 @@ export function fakeApi(options: {
   exportTooLarge?: boolean;
   /** Companies of the operator console (`GET /tenancy/tenants`, default: none); new ones are added as trials. */
   operatorTenants?: OperatorTenant[];
+  /** The operator's token has no second factor yet (`auth.mfa_required` on the operator console) while this says so. */
+  operatorWithoutMfa?: () => boolean;
   /** Whether the first administrator's invitation of a new company is delivered (default: yes). */
   invitationDelivered?: boolean;
   /** Each company's subscription for the operator console, by company ID (default: a professional trial). */
@@ -207,6 +209,10 @@ export function fakeApi(options: {
 
     if (request.method !== "GET" && options.needsStepUp?.() === true) {
       return problem(401, "auth.step_up_required");
+    }
+
+    if (url.pathname === "/api/v1/tenancy/tenants" && options.operatorWithoutMfa?.() === true) {
+      return problem(401, "auth.mfa_required");
     }
 
     if (url.pathname === "/api/v1/tenancy/tenants" && request.method === "GET") {
