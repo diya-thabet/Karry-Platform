@@ -484,6 +484,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/actors": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListAuditActors"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/entries/export.csv": {
         parameters: {
             query?: never;
@@ -1441,6 +1457,14 @@ export interface components {
             defaultMeters: string[];
             components: string[];
         };
+        AuditActorListResponse: {
+            actors: components["schemas"]["AuditActorResponse"][];
+        };
+        /** @description Someone who appears in the audit log the caller may read; `Name` null for a system actor. */
+        AuditActorResponse: {
+            actor: string;
+            name: null | string;
+        };
         /** @description One changed value between an event's `before` and `after`: a JSON path and both values. */
         AuditChange: {
             path: string;
@@ -1455,6 +1479,8 @@ export interface components {
          * @description A ledger entry as the audit viewer shows it. `Event` is the entry turned back into its typed event and written
          *     through the API's JSON contract, so sensitive fields are masked as in every response (ADR-0029 §2); null when this
          *     version does not know the event type. `Changes`: the before/after diff of events that have both.
+         *     `ActorName`: the person's name when the actor is one of the company's people (else null: a system name such as
+         *     `seed-demo`, or someone no longer known).
          */
         AuditEntryResponse: {
             /** Format: int64 */
@@ -1465,6 +1491,7 @@ export interface components {
             /** Format: date-time */
             occurredAt: string;
             actor: null | string;
+            actorName: null | string;
             entityType: null | string;
             entityId: null | string;
             /** Format: uuid */
@@ -1853,10 +1880,14 @@ export interface components {
             /** Format: int32 */
             skip: null | number | string;
         };
-        /** @description The last integrity check of the company's ledger and who ran it; both null before the first one. */
+        /**
+         * @description The last integrity check of the company's ledger and who ran it (their name when they are one of the company's
+         *     people); all null before the first one.
+         */
         LatestVerificationResponse: {
             verification: null | components["schemas"]["LedgerVerificationReport"];
             verifiedBy: null | string;
+            verifiedByName: null | string;
         };
         LedgerVerificationReport: {
             valid: boolean;
@@ -4113,6 +4144,44 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListAuditActors: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditActorListResponse"];
                 };
             };
             /** @description Unauthorized */

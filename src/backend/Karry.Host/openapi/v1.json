@@ -2106,6 +2106,46 @@
         }
       }
     },
+    "/api/v1/audit/actors": {
+      "get": {
+        "tags": [
+          "TrustModule"
+        ],
+        "operationId": "ListAuditActors",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditActorListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit/entries/export.csv": {
       "get": {
         "tags": [
@@ -6883,6 +6923,39 @@
         },
         "description": "A machine type: its default meters (`hours`, `km`) and component templates; the apps translate the codes."
       },
+      "AuditActorListResponse": {
+        "required": [
+          "actors"
+        ],
+        "type": "object",
+        "properties": {
+          "actors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditActorResponse"
+            }
+          }
+        }
+      },
+      "AuditActorResponse": {
+        "required": [
+          "actor",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "actor": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "Someone who appears in the audit log the caller may read; `Name` null for a system actor."
+      },
       "AuditChange": {
         "required": [
           "path",
@@ -6945,6 +7018,7 @@
           "eventType",
           "occurredAt",
           "actor",
+          "actorName",
           "entityType",
           "entityId",
           "siteId",
@@ -6973,6 +7047,12 @@
             "format": "date-time"
           },
           "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "actorName": {
             "type": [
               "null",
               "string"
@@ -7014,7 +7094,7 @@
             }
           }
         },
-        "description": "A ledger entry as the audit viewer shows it. `Event` is the entry turned back into its typed event and written\nthrough the API's JSON contract, so sensitive fields are masked as in every response (ADR-0029 §2); null when this\nversion does not know the event type. `Changes`: the before/after diff of events that have both."
+        "description": "A ledger entry as the audit viewer shows it. `Event` is the entry turned back into its typed event and written\nthrough the API's JSON contract, so sensitive fields are masked as in every response (ADR-0029 §2); null when this\nversion does not know the event type. `Changes`: the before/after diff of events that have both.\n`ActorName`: the person's name when the actor is one of the company's people (else null: a system name such as\n`seed-demo`, or someone no longer known)."
       },
       "BatchReceipt": {
         "required": [
@@ -8507,7 +8587,8 @@
       "LatestVerificationResponse": {
         "required": [
           "verification",
-          "verifiedBy"
+          "verifiedBy",
+          "verifiedByName"
         ],
         "type": "object",
         "properties": {
@@ -8526,9 +8607,15 @@
               "null",
               "string"
             ]
+          },
+          "verifiedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The last integrity check of the company's ledger and who ran it; both null before the first one."
+        "description": "The last integrity check of the company's ledger and who ran it (their name when they are one of the company's\npeople); all null before the first one."
       },
       "LedgerVerificationReport": {
         "required": [

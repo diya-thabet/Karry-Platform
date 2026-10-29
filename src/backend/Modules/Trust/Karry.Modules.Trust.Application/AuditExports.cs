@@ -17,7 +17,7 @@ public interface IAuditExportStore
 }
 
 /// <summary>An export about to be written: how many rows, and the entries in order (read while the response streams).</summary>
-public sealed record AuditExportRun(long Rows, IAsyncEnumerable<AuditEntry> Entries);
+public sealed record AuditExportRun(long Rows, IReadOnlyList<string> Actors, IAsyncEnumerable<AuditEntry> Entries);
 
 /// <summary>
 /// The CSV export of the audit log (US-P1-AUD-04 AC2, ADR-0029 §2): the viewer's filters and reach, at most
@@ -57,7 +57,8 @@ public sealed class AuditExports(
         // Up to the newest entry counted: entries written since (this export's own entry first) stay out, so the file
         // holds exactly the rows recorded.
         var upTo = query.Value with { Before = (summary.Newest ?? 0) + 1 };
-        return new AuditExportRun(summary.Count, log.StreamAsync(upTo, cancellationToken));
+        var actors = await log.ActorsAsync(upTo with { Take = int.MaxValue }, cancellationToken).ConfigureAwait(false);
+        return new AuditExportRun(summary.Count, actors, log.StreamAsync(upTo, cancellationToken));
     }
 }
 
@@ -73,18 +74,18 @@ public static class AuditCsv
     public const char Separator = ';';
 
     public static readonly IReadOnlyList<string> Columns =
-        ["sequence", "occurred_at", "event_type", "actor", "entity_type", "entity_id", "site_id", "changes", "event"];
+        ["sequence", "occurred_at", "event_type", "actor", "actor_name", "entity_type", "entity_id", "site_id", "changes", "event"];
 
     public static string Header => Line(Columns);
 
-    public static string Row(AuditEntry entry, IReadOnlyList<AuditChange> changes, string? eventJson)
+    public static string Row(AuditEntry entry, string? actorName, IReadOnlyList<AuditChange> changes, string? eventJson)
     {
         ArgumentNullException.ThrowIfNull(entry);
         ArgumentNullException.ThrowIfNull(changes);
         return Line([
             entry.Sequence.ToString(CultureInfo.InvariantCulture),
             entry.OccurredAt.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss.ffffff'Z'", CultureInfo.InvariantCulture),
-            entry.EventType, entry.Actor, entry.EntityType, entry.EntityId, entry.SiteId?.ToString("D"),
+            entry.EventType, entry.Actor, actorName, entry.EntityType, entry.EntityId, entry.SiteId?.ToString("D"),
             Changes(changes), eventJson,
         ]);
     }

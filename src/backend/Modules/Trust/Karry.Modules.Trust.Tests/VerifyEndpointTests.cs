@@ -12,6 +12,7 @@ using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Karry.Modules.Trust.Tests;
@@ -33,6 +34,7 @@ public sealed class VerifyEndpointTests(LedgerDatabase postgres) : IClassFixture
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.Controller);
+        builder.Services.AddScoped<Identity.Contracts.IUserNames, People>();
         await using var app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -62,9 +64,20 @@ public sealed class VerifyEndpointTests(LedgerDatabase postgres) : IClassFixture
         latest.GetProperty("verification").GetProperty("firstBrokenSequence").GetInt64().Should().Be(2);
         latest.GetProperty("verification").GetProperty("problem").GetString().Should().Be(broken.GetProperty("problem").GetString());
         latest.GetProperty("verifiedBy").GetString().Should().Be("user-1");
+        latest.GetProperty("verifiedByName").GetString().Should().Be("Amel Controller");
+        before.GetProperty("verifiedByName").ValueKind.Should().Be(JsonValueKind.Null);
         (await ScalarAsync(database.Admin, $"SELECT count(*) FROM audit.verifications WHERE tenant_id = '{tenant}'")).Should().Be(2);
         (await LatestAsync(client, other)).GetProperty("verification").GetProperty("entriesChecked").GetInt64()
             .Should().Be(0, "another company sees only its own check");
+    }
+
+    /// <summary>The company's people as Identity would name them.</summary>
+    private sealed class People : Identity.Contracts.IUserNames
+    {
+        public Task<IReadOnlyDictionary<string, string>> BySubjectAsync(IReadOnlyCollection<string> subjects, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(subjects.Contains("user-1")
+                ? new Dictionary<string, string> { ["user-1"] = "Amel Controller" }
+                : new Dictionary<string, string>());
     }
 
     private static async Task<JsonElement> LatestAsync(HttpClient client, Guid tenant)

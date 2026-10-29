@@ -28,6 +28,10 @@ internal sealed class EfAuditLog(TrustDbContext db) : IAuditLog
         }
     }
 
+    public async Task<IReadOnlyList<string>> ActorsAsync(AuditQuery query, CancellationToken cancellationToken) =>
+        await Filtered(query).Where(r => r.Subject != null && r.Subject.Actor != null).Select(r => r.Subject!.Actor!)
+            .Distinct().OrderBy(a => a).Take(query.Take).ToListAsync(cancellationToken).ConfigureAwait(false);
+
     private static IQueryable<AuditEntry> Entries(IQueryable<Row> rows) =>
         rows.Select(r => new AuditEntry(
             r.Entry.Seq, r.Entry.EventId, r.Entry.EventType, r.Entry.OccurredAt,

@@ -74,6 +74,7 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TrustModule(), new AuditProbeModule()]);
         builder.Services.AddSingleton(new EventSerializer([typeof(QuoteChanged).Assembly, typeof(Domain.AuditExport).Assembly]));
+        builder.Services.AddScoped<Identity.Contracts.IUserNames, People>();
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin,
             new Dictionary<string, string> { ["controller"] = DefaultRoles.Controller, ["site-manager"] = DefaultRoles.SiteManager, ["operator"] = DefaultRoles.Operator },
             new Dictionary<string, Guid> { ["site-manager"] = SiteA });
@@ -109,6 +110,8 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
         var quote = Entry(page, 1);
         quote.GetProperty("eventType").GetString().Should().Be("ledgerprobe.quote_changed.v1");
         quote.GetProperty("actor").GetString().Should().Be("alice");
+        quote.GetProperty("actorName").GetString().Should().Be("Alice Ben Salah");
+        Entry(page, 2).GetProperty("actorName").ValueKind.Should().Be(JsonValueKind.Null, "bob is not one of the company's people");
         quote.GetProperty("entityType").GetString().Should().Be("quote");
         quote.GetProperty("entityId").GetString().Should().Be(Quote.ToString());
         quote.GetProperty("siteId").GetGuid().Should().Be(SiteA);
@@ -204,7 +207,9 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
         response.Content.Headers.ContentType!.MediaType.Should().Be("text/csv");
         response.Content.Headers.ContentDisposition!.FileNameStar.Should().StartWith("karry-audit-").And.EndWith(".csv");
         bytes[..3].Should().Equal(new byte[] { 0xEF, 0xBB, 0xBF });
-        lines[0].Should().Be("sequence;occurred_at;event_type;actor;entity_type;entity_id;site_id;changes;event");
+        lines[0].Should().Be("sequence;occurred_at;event_type;actor;actor_name;entity_type;entity_id;site_id;changes;event");
+        lines[1].Split(';')[4].Should().BeEmpty("the unknown event has no actor");
+        lines[2].Split(';')[3..5].Should().Equal("alice", "Alice Ben Salah");
         lines.Skip(1).Select(l => l.Split(';')[0]).Should().Equal("4", "3", "2", "1");
         lines[4].Should().Contain("unitPrice: 41.5 → 39.9");
 
@@ -249,6 +254,35 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         refused.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         Sequences(await SearchAsync("admin", "")).Should().Equal(4L, 3L, 2L, 1L);
+    }
+
+    [Fact]
+    public async Task The_people_in_the_log_are_listed_with_their_names_within_the_callers_reach()
+    {
+        var all = await GetJsonAsync("admin", "/api/v1/audit/actors");
+        var site = await GetJsonAsync("site-manager", "/api/v1/audit/actors");
+
+        all.GetProperty("actors").EnumerateArray().Select(a => (a.GetProperty("actor").GetString(), a.GetProperty("name").GetString()))
+            .Should().Equal(("alice", "Alice Ben Salah"), ("bob", null));
+        site.GetProperty("actors").EnumerateArray().Select(a => a.GetProperty("actor").GetString()).Should().Equal("alice");
+    }
+
+    private async Task<JsonElement> GetJsonAsync(string subject, string path)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, path);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant(Tenant, subject));
+        using var response = await client.SendAsync(request, TestContext.Current.CancellationToken);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        return await response.Content.ReadFromJsonAsync<JsonElement>(TestContext.Current.CancellationToken);
+    }
+
+    /// <summary>The company's people as Identity would name them: alice is one, bob is not (a departed or system actor).</summary>
+    private sealed class People : Identity.Contracts.IUserNames
+    {
+        public Task<IReadOnlyDictionary<string, string>> BySubjectAsync(IReadOnlyCollection<string> subjects, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<string, string>>(subjects.Contains("alice")
+                ? new Dictionary<string, string> { ["alice"] = "Alice Ben Salah" }
+                : new Dictionary<string, string>());
     }
 
     private static string[] Rows(string csv) =>
