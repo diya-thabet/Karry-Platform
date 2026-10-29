@@ -46,3 +46,6 @@ public sealed record AuditEntryResponse(
         }
     }
 }
+
+/// <summary>The last integrity check of the company's ledger and who ran it; both null before the first one.</summary>
+public sealed record LatestVerificationResponse(LedgerVerificationReport? Verification, string? VerifiedBy);

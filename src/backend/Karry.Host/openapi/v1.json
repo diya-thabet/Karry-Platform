@@ -1943,6 +1943,46 @@
         }
       }
     },
+    "/api/v1/audit/verifications/latest": {
+      "get": {
+        "tags": [
+          "TrustModule"
+        ],
+        "operationId": "GetLatestLedgerVerification",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LatestVerificationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit/entries": {
       "get": {
         "tags": [
@@ -8366,6 +8406,32 @@
           }
         },
         "description": "Labels to print in this order on A4 sheets; `Skip` leaves the first labels of a partly used sheet empty."
+      },
+      "LatestVerificationResponse": {
+        "required": [
+          "verification",
+          "verifiedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "verification": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/LedgerVerificationReport"
+              }
+            ]
+          },
+          "verifiedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The last integrity check of the company's ledger and who ran it; both null before the first one."
       },
       "LedgerVerificationReport": {
         "required": [

@@ -292,13 +292,72 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.HasIndex("TenantId", "Actor", "Seq")
                         .HasDatabaseName("ix_ledger_subjects_tenant_id_actor_seq");
 
-                    b.HasIndex("TenantId", "EntityType", "EntityId", "Seq")
-                        .HasDatabaseName("ix_ledger_subjects_tenant_id_entity_type_entity_id_seq");
-
                     b.HasIndex("TenantId", "SiteId", "Seq")
                         .HasDatabaseName("ix_ledger_subjects_tenant_id_site_id_seq");
 
+                    b.HasIndex("TenantId", "EntityType", "EntityId", "Seq")
+                        .HasDatabaseName("ix_ledger_subjects_tenant_id_entity_type_entity_id_seq");
+
                     b.ToTable("ledger_subjects", "audit");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.VerificationRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("AnchorsChecked")
+                        .HasColumnType("integer")
+                        .HasColumnName("anchors_checked");
+
+                    b.Property<long>("EntriesChecked")
+                        .HasColumnType("bigint")
+                        .HasColumnName("entries_checked");
+
+                    b.Property<long?>("FirstBrokenSequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("first_broken_sequence");
+
+                    b.Property<string>("HeadHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("head_hash")
+                        .IsFixedLength();
+
+                    b.Property<string>("Problem")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("problem");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<bool>("Valid")
+                        .HasColumnType("boolean")
+                        .HasColumnName("valid");
+
+                    b.Property<DateTimeOffset>("VerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("verified_at");
+
+                    b.Property<string>("VerifiedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("verified_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_verifications");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_verifications_tenant_id");
+
+                    b.HasIndex("TenantId", "VerifiedAt")
+                        .HasDatabaseName("ix_verifications_tenant_id_verified_at");
+
+                    b.ToTable("verifications", "audit");
                 });
 #pragma warning restore 612, 618
         }
