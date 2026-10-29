@@ -52,6 +52,7 @@ The matrix above is the target for the whole product. In code it is the union of
 | `identity.devices.manage` | site | yes | Tenant Admin, Site Manager (their sites) | Site tablets: enrollment codes, device list, revocation (US-P1-OFF-02, ADR-0028) |
 | `identity.roles.read` | tenant | no | Tenant Admin, Executive | Users, roles, masking, policies |
 | `identity.roles.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F) |
+| `audit.ledger.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check (P1.16): on some sites, only the entries of those sites; entries without a site only company-wide |
 | `audit.ledger.verify` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check |
 | `organization.sites.read` | site | no | all 12 default roles (a site role: only its sites) | Every row that works on a site (P1.11: sites list and details) |
 | `organization.sites.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): create, change, archive and restore sites (each site is billed) |

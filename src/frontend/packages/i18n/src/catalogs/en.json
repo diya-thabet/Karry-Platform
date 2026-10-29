@@ -173,6 +173,7 @@
   "permissions.identity.users.manage": "Invite, change and deactivate people",
   "permissions.identity.roles.read": "See roles",
   "permissions.identity.roles.manage": "Create and change roles and field levels",
+  "permissions.audit.ledger.read": "Read the audit log",
   "permissions.audit.ledger.verify": "Check the integrity of the audit trail",
   "roles.tenant-admin": "Administrator",
   "roles.executive": "Executive",

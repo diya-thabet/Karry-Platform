@@ -452,6 +452,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SearchAuditEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/billing/plans": {
         parameters: {
             query?: never;
@@ -1393,6 +1409,37 @@ export interface components {
             defaultMeters: string[];
             components: string[];
         };
+        /** @description One changed value between an event's `before` and `after`: a JSON path and both values. */
+        AuditChange: {
+            path: string;
+            before: null | components["schemas"]["JsonNode"];
+            after: null | components["schemas"]["JsonNode"];
+        };
+        AuditEntryListResponse: {
+            entries: components["schemas"]["AuditEntryResponse"][];
+            nextCursor: null | string;
+        };
+        /**
+         * @description A ledger entry as the audit viewer shows it. `Event` is the entry turned back into its typed event and written
+         *     through the API's JSON contract, so sensitive fields are masked as in every response (ADR-0029 §2); null when this
+         *     version does not know the event type. `Changes`: the before/after diff of events that have both.
+         */
+        AuditEntryResponse: {
+            /** Format: int64 */
+            sequence: number | string;
+            /** Format: uuid */
+            eventId: string;
+            eventType: string;
+            /** Format: date-time */
+            occurredAt: string;
+            actor: null | string;
+            entityType: null | string;
+            entityId: null | string;
+            /** Format: uuid */
+            siteId: null | string;
+            event: null | components["schemas"]["JsonObject"];
+            changes: components["schemas"]["AuditChange"][];
+        };
         /** @description The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number. */
         BatchReceipt: {
             results: components["schemas"]["CommandReceipt"][];
@@ -1766,6 +1813,8 @@ export interface components {
             paidOn: null | string;
         };
         JsonElement: unknown;
+        JsonNode: unknown;
+        JsonObject: Record<string, never>;
         /** @description Labels to print in this order on A4 sheets; `Skip` leaves the first labels of a partly used sheet empty. */
         LabelSheetInput: {
             assetIds: null | string[];
@@ -3932,6 +3981,63 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LedgerVerificationReport"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SearchAuditEntries: {
+        parameters: {
+            query?: {
+                actor?: string;
+                entityType?: string;
+                entityId?: string;
+                siteId?: string;
+                eventType?: string;
+                from?: string;
+                to?: string;
+                cursor?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditEntryListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
             /** @description Unauthorized */

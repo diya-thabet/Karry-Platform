@@ -53,9 +53,12 @@ const machineCount = (db: KarryOfflineDb) => db.assets.count();
 describe("refreshing the reference data (US-P1-OFF-03, ADR-0028 §5)", () => {
   it("takes a snapshot first, then continues from the server's cursor with signed requests", async () => {
     const { db, seen, send, reply } = await setup();
-    const cursor = "2026-10-28T10:00:00.0000000Z";
-    reply(200, changeSet(true, cursor, "2026-10-28T10:00:00Z", [{ id: "a1", code: "PE-01" }, { id: "a2", code: "PE-02" }]));
-    reply(200, changeSet(false, "2026-10-28T10:05:00.0000000Z", "2026-10-28T10:05:00Z", [{ id: "a3", code: "PE-03" }]));
+    // Server times relative to now: a snapshot older than a day is replaced, so fixed dates would expire.
+    const snapshotAt = new Date(Date.now() - 5 * 60_000).toISOString();
+    const deltaAt = new Date().toISOString();
+    const cursor = "c-snapshot";
+    reply(200, changeSet(true, cursor, snapshotAt, [{ id: "a1", code: "PE-01" }, { id: "a2", code: "PE-02" }]));
+    reply(200, changeSet(false, "c-delta", deltaAt, [{ id: "a3", code: "PE-03" }]));
 
     expect(await pullChanges(db, send)).toBe("ok");
     expect(await pullChanges(db, send)).toBe("ok");
@@ -63,7 +66,7 @@ describe("refreshing the reference data (US-P1-OFF-03, ADR-0028 §5)", () => {
     expect(seen.map((s) => s.url)).toEqual([changesPath, `${changesPath}?cursor=${encodeURIComponent(cursor)}`]);
     expect(seen.map((s) => [s.claims.htm, s.claims.htu])).toEqual([["GET", changesPath], ["GET", changesPath]]);
     expect(await machineCount(db)).toBe(3);
-    expect(await lastRefresh(db)).toBe("2026-10-28T10:05:00Z");
+    expect(await lastRefresh(db)).toBe(deltaAt);
   });
 
   it("takes a new snapshot once the last one is a day old, even when deltas succeed", async () => {

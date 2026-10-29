@@ -203,6 +203,7 @@ export function fakeApi(options: {
             { code: "identity.users.manage", module: "identity", scope: "site", privileged: true },
             { code: "identity.roles.read", module: "identity", scope: "tenant", privileged: false },
             { code: "identity.roles.manage", module: "identity", scope: "tenant", privileged: true },
+            { code: "audit.ledger.read", module: "audit", scope: "site", privileged: false },
             { code: "audit.ledger.verify", module: "audit", scope: "site", privileged: false },
           ],
           sensitiveFields: [{ code: "probe.quote.unit-price", module: "probe", fallback: "masked" }],

@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using Karry.BuildingBlocks.Ledger;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Trust.Application;
 using Microsoft.Extensions.Configuration;
@@ -15,10 +16,15 @@ public static class TrustInfrastructure
         services.AddModuleDbContext<TrustDbContext>(connectionString);
         services.AddSingleton<ILedgerWriter, PostgresLedgerWriter>();
         services.AddScoped<ILedgerReader, EfLedgerReader>();
+        services.AddScoped<IAuditLog, EfAuditLog>();
+        services.AddScoped<AuditLogQueries>();
         services.AddScoped<IAnchorBookkeeping, EfAnchorBookkeeping>();
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
+        // The event type registry (every module's events in a host): the backfill and the audit viewer read entries
+        // back as their typed events.
+        services.AddOutboxDispatcher<TrustDbContext>();
         return services;
     }
 
