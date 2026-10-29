@@ -165,6 +165,29 @@ that nothing was altered. The questions:
   and the company's Settings › Support access lists past and current sessions with an "End now" button.
 - **Read-only is the default this ADR decides.** Support that needs to change data asks the customer to do it, or
   uses the customer's own consent for a future write mode (not built). The owner may revisit (D46).
+- **As built (2026-10-29, slice 5a, Identity):** `SupportConsent` and `SupportSession` (Identity.Domain), tables
+  `identity.support_consents` and `identity.support_sessions`, both under tenant row-level security. The company:
+  `POST /api/v1/identity/support/consents` (permission **`identity.support.manage`**, Tenant Admin, privileged, and a
+  **recent sign-in**: letting an outsider read the company is a step-up action), `GET /support/sessions` (newest
+  100), `POST /support/sessions/{id}/end`. Karry: `GET|POST /api/v1/identity/tenants/{tenantId}/support-sessions`
+  and `POST …/{id}/end` (policy `platform-operator`), run in the company's own scope like Billing's operator
+  endpoints, so the code is looked up under that company's RLS (another company's code is not found) and every
+  change is in its ledger. Decisions made while building:
+  - **Expiry needs no separate entry:** `identity.support_session_started.v1` carries `endsAt`, and a session can
+    neither be extended nor reopened, so the ledger states the expiry when the session starts. An early end is
+    `identity.support_session_ended.v1` (`actor`, `byOperator`).
+  - An operator ends **only their own** session (another operator's is "not found"); a Tenant Admin ends any of the
+    company's. The company sees the operator's **name**, never their account ID.
+  - Break-glass: reason trimmed, 30 to 500 characters. The session is saved and ledgered **before** the e-mail, so a
+    mail outage never blocks an incident response. Log events 2200 (opened), 2201 (no administrator reached),
+    2202 (e-mail failed). Counter `karry.support.break_glass.sessions` and alert `KarryBreakGlassSupport` (severity
+    `page`, [runbook](../06-operations/runbooks/karry-break-glass-support.md)). Each active Tenant Admin with an
+    e-mail address gets their own message, in French then English.
+  - **Calls in a session (slice 5b) will name the tenant in the header** (`Karry-Support-Session: <tenantId>.<sessionId>`),
+    the way a tablet's assertion names its tenant: the session is then looked up under that tenant's RLS, and the
+    session tables stay tenant data instead of becoming a platform table without row-level security.
+  - Found while testing: a refusal by the framework (a failed `platform-operator` policy, a missing token) answered
+    `server.unexpected_error`; it now says `auth.forbidden` / `auth.unauthenticated` ([API standards](../02-architecture/api-standards.md)).
 
 ### 5. Operators: separate area, mandatory MFA, checked by the API too
 

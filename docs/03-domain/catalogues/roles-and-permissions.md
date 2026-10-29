@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Default Role & Permission Matrix
@@ -50,6 +50,7 @@ The matrix above is the target for the whole product. In code it is the union of
 | `identity.users.read` | site | no | Tenant Admin, Executive, Site Manager | Users, roles, masking, policies |
 | `identity.users.manage` | site | yes | Tenant Admin, Site Manager | Users (S) |
 | `identity.devices.manage` | site | yes | Tenant Admin, Site Manager (their sites) | Site tablets: enrollment codes, device list, revocation (US-P1-OFF-02, ADR-0028) |
+| `identity.support.manage` | tenant | yes | Tenant Admin | Support access: support codes for Karry support (recent sign-in), the company's support sessions, "End now" (US-P1-OPS-03 AC3, ADR-0029 §4) |
 | `identity.roles.read` | tenant | no | Tenant Admin, Executive | Users, roles, masking, policies |
 | `identity.roles.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F) |
 | `audit.ledger.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager | Audit log / integrity check (P1.16): on some sites, only the entries of those sites; entries without a site only company-wide |

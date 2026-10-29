@@ -12,6 +12,7 @@
 #                                            shift generation
 #   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
 #                                            exporter relabelled to it (wired with hosting in P1.17)
+#   karry_support_break_glass_sessions_total  Identity SupportMetrics (karry-api): break-glass support sessions opened
 #   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
 groups:
   - name: karry-api
@@ -149,3 +150,20 @@ groups:
           summary: "No complete shift generation for over 26 hours"
           description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"
+
+  - name: karry-security
+    rules:
+      - alert: KarryBreakGlassSupport
+        # A Karry operator opened a support session on a company without its code (ADR-0029 §4, threat T-14). Every
+        # one is reviewed: fires at once and stays 15 minutes. The second branch catches the first session after an
+        # API start, whose counter series appears directly at 1 (increase() sees no change on a new series).
+        expr: |
+          sum(increase(karry_support_break_glass_sessions_total[15m])) > 0
+          or
+          sum(karry_support_break_glass_sessions_total unless karry_support_break_glass_sessions_total offset 15m) > 0
+        labels:
+          severity: page
+        annotations:
+          summary: "A break-glass support session was opened"
+          description: "A Karry operator is reading a company's data without its code. Check the API logs (event 2200) and the company's audit log."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-break-glass-support.md"

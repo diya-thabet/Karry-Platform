@@ -27,6 +27,8 @@ public static partial class ApiConventions
             context.ProblemDetails.Extensions.TryAdd("code", context.ProblemDetails.Status switch
             {
                 StatusCodes.Status400BadRequest => ProblemTypes.ValidationCode,
+                StatusCodes.Status401Unauthorized => Tenancy.TenantResolutionMiddleware.UnauthenticatedCode, // no or bad token
+                StatusCodes.Status403Forbidden => Authorization.PermissionMiddleware.ForbiddenCode, // a policy refused (operator only)
                 StatusCodes.Status404NotFound => "route.not_found",
                 StatusCodes.Status405MethodNotAllowed => "route.method_not_allowed",
                 StatusCodes.Status415UnsupportedMediaType => "request.unsupported_media_type",

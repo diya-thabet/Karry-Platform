@@ -285,3 +285,44 @@ tests:
               summary: "No complete shift generation for over 26 hours"
               description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
               runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"
+
+  # --- Break-glass support session (ADR-0029 §4) -------------------------------------------------------------
+  - name: the first break-glass session after a start (new series at 1) fires at once
+    interval: 1m
+    input_series:
+      - series: 'karry_support_break_glass_sessions_total{job="karry-api"}'
+        values: '_x10 1x30'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: KarryBreakGlassSupport
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: KarryBreakGlassSupport
+        exp_alerts:
+          - exp_labels: {severity: page}
+            exp_annotations:
+              summary: "A break-glass support session was opened"
+              description: "A Karry operator is reading a company's data without its code. Check the API logs (event 2200) and the company's audit log."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-break-glass-support.md"
+      - eval_time: 35m
+        alertname: KarryBreakGlassSupport
+        exp_alerts: []
+
+  - name: another break-glass session on a running API fires
+    interval: 1m
+    input_series:
+      - series: 'karry_support_break_glass_sessions_total{job="karry-api"}'
+        values: '1x30 2x30'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: KarryBreakGlassSupport
+        exp_alerts: []
+      - eval_time: 32m
+        alertname: KarryBreakGlassSupport
+        exp_alerts:
+          - exp_labels: {severity: page}
+            exp_annotations:
+              summary: "A break-glass support session was opened"
+              description: "A Karry operator is reading a company's data without its code. Check the API logs (event 2200) and the company's audit log."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-break-glass-support.md"
+

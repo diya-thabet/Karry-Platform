@@ -39,6 +39,18 @@ public sealed class CapturingSender : IInvitationSender
 }
 
 /// <summary>Sites by code for the users import, as Organization's directory would answer (no tenant filter: codes are unique per test).</summary>
+/// <summary>Keeps the break-glass notices instead of e-mailing them; every recipient counts as reached.</summary>
+public sealed class CapturingSupportNotifier : ISupportNotifier
+{
+    public ConcurrentQueue<BreakGlassNotice> Sent { get; } = new();
+
+    public Task<int> BreakGlassAsync(BreakGlassNotice notice, CancellationToken cancellationToken)
+    {
+        Sent.Enqueue(notice);
+        return Task.FromResult(notice.Recipients.Count);
+    }
+}
+
 public sealed class TestSites : ISiteDirectory
 {
     public ConcurrentDictionary<Guid, SiteSummary> All { get; } = new();
@@ -95,6 +107,8 @@ public sealed class IdentityHost : IAsyncLifetime
 
     public CapturingSender Sender { get; } = new();
 
+    public CapturingSupportNotifier SupportNotices { get; } = new();
+
     public SeatLimits SeatLimits { get; } = new();
 
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
@@ -133,6 +147,8 @@ public sealed class IdentityHost : IAsyncLifetime
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IdentityModule(), new TrustModule(), new ProbeModule(), new Imports.Api.ImportsModule()]);
         builder.Services.RemoveAll<IInvitationSender>();
         builder.Services.AddSingleton<IInvitationSender>(Sender);
+        builder.Services.RemoveAll<ISupportNotifier>();
+        builder.Services.AddSingleton<ISupportNotifier>(SupportNotices);
         builder.Services.AddSingleton(SeatLimits);
         builder.Services.AddSingleton<ISiteDirectory>(Sites);
         builder.Services.AddScoped<ILimitGuard, SeatLimitGuard>();

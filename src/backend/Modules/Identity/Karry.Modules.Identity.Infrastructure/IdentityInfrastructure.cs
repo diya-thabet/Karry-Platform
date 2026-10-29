@@ -69,6 +69,11 @@ public static class IdentityInfrastructure
         services.AddScoped<IDeviceStore>(sp => sp.GetRequiredService<DeviceStore>());
         services.AddScoped<BuildingBlocks.Devices.IDeviceDirectory>(sp => sp.GetRequiredService<DeviceStore>());
         services.AddScoped<DeviceAdministration>();
+        services.AddScoped<ISupportStore, SupportStore>();
+        services.TryAddSingleton<ISupportNotifier, SupportNotifier>();
+        services.AddSingleton<SupportMetrics>();
+        services.AddScoped<SupportAccess>();
+        services.AddScoped<SupportSessions>();
         services.AddScoped<EnrollDeviceHandler>();
         services.AddScoped<TabletSession>();
         services.AddScoped<IImportTarget, UserImport>();

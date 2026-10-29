@@ -4,7 +4,7 @@ area: operations
 tags: [runbooks, alerts, incidents, on-call]
 source: "created 2026-10-21"
 status: baseline
-last_updated: 2026-10-23
+last_updated: 2026-10-29
 ---
 
 # Runbooks
@@ -26,3 +26,4 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-tenant-over-limit](karry-tenant-over-limit.md) | A company above a plan limit at the last usage snapshot | ticket |
 | [karry-usage-snapshot-stale](karry-usage-snapshot-stale.md) | No complete daily usage snapshot for 26 h (or worker silent) | ticket |
 | [karry-shift-instances-stale](karry-shift-instances-stale.md) | No complete daily shift generation for 26 h (or worker silent) | ticket |
+| [karry-break-glass-support](karry-break-glass-support.md) | A Karry operator opened a support session without the company's code | page |
