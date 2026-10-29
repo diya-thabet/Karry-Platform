@@ -4,7 +4,7 @@ area: architecture
 tags: [security, threat-model, stride, tenancy, sync, signatures, ledger, fraud]
 source: "Phase 0 WP-P0-18"
 status: draft
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Threat Model v1 (STRIDE)
@@ -74,7 +74,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | T-11 | Information disclosure | Tenant context leaks across pooled connections | Transaction-local setting only (`SET LOCAL` per command or transaction); session-level SET forbidden | TC-P0-RLS-005/006; P1.5 framework: pooled-session reuse test with `No Reset On Close` (mutation "session-level SET" caught) |
 | T-12 | Denial of service | Sync flood from a compromised device or shift-change burst | Rate limits per device/tenant; batch size limits; queue back-pressure; load tests | US-P2-OFF-03, k6 shift-change test |
 | T-13 | Elevation of privilege | User grants themselves admin rights; controller approves own entries | Privileged permission changes require step-up auth and are ledgered; SoD enforced in domain | US-P1-IAM-05, US-P2-VER-02; **verified P1.9** for roles: no change of one's own roles, no grant beyond one's sites or rights (`identity.escalation`, `identity.scope_exceeded`), step-up (RFC 9470, 5 min) on privileged role and assignment changes, ledger before/after, Keycloak MFA follows the roles (TC-P1-IAM-009, allow/deny matrix; mutation checks caught); SoD on approvals in Phase 2 |
-| T-14 | Elevation of privilege | Karry support staff browse customer data | Consent-based, time-boxed, audited support access in tenant ledger; break-glass alerts | US-P1-OPS-03 |
+| T-14 | Elevation of privilege | Karry support staff browse customer data | Consent-based, time-boxed, audited support access in tenant ledger; break-glass alerts | US-P1-OPS-03; **verified P1.16** ([ADR-0029](../adr/0029-operator-console-support-access-audit-viewer.md#security-review-2026-10-29-p116-close-out)): operator MFA checked by the API (`amr`), single-use 30-minute consent codes (refusals logged, event 2206), break-glass reason + page alert + e-mail to Tenant Admins, read-only masked `support` access for one company and one hour, every request in the company's ledger (TC-P1-OPS-004 API and E2E, mutation-checked) |
 | T-15 | Info disclosure / Tampering | Prompt injection via remarks makes the copilot reveal masked data or mislead | Tools enforce RBAC/masking; user text delimited as data; no write tools; red-team set | ADR-0013, US-P8-AI-11, TC-P8-AI-004 |
 | T-16 | Tampering | Weight spoofing at the indicator / edge PC | mTLS client certs, signed readings, stability window, ANPR match, physical seals procedure | US-P6-EDG-02, US-P9-EDG-01 |
 | T-17 | Information disclosure | Lost/stolen tablet exposes cached data | Device revocation, auto-lock, short offline session, minimal cached scope; quarantine of revoked device uploads | US-P1-OFF-02/04 |
@@ -99,6 +99,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
+| 2026-10-29 | P1.16 | T-14 verified: support access by consent code or alerted break-glass, read-only and masked, one hour, ledgered; operator MFA enforced by Keycloak and the API; refused codes logged (security review in ADR-0029) | Software architect |
 | 2026-10-23 | P1.6 | T-06: append-only ledger enforced by triggers and privileges, written in the business transaction, tampering detected at the exact sequence | Software architect |
 | 2026-10-23 | P1.5 | T-09 and T-11 verified against the real framework: RLS + EF filter + save check + token-only tenant source + tenant address check; migration linter; isolation suite on every API operation as required CI check (TC-P1-TEN-001…004, 009); R-07 added | Software architect |
 | 2026-10-23 | P1.4 | T-18 added (telemetry data leaks) and mitigated | Software architect |

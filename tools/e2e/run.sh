@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Browser end-to-end tests (src/frontend/e2e) against the running local stack: TC-P1-IAM-001/002, tokens in memory.
+# Browser end-to-end tests (src/frontend/e2e) against the running local stack: TC-P1-IAM-001/002, tokens in memory,
+# the operator console and support access (TC-P1-OPS-004).
 # Needs: `docker compose -f deploy/docker/compose.yaml up -d --wait`, `Karry.Host migrate` and `seed-demo` done
-# (deploy/docker/smoke-test.sh with KEEP_STACK=1 does all three). Starts Karry.Host (:5000) and both apps
+# (deploy/docker/smoke-test.sh with KEEP_STACK=1 does all three). Starts Karry.Workers, Karry.Host (:5000) and both apps
 # (vite preview :5173 portal, :5174 field), runs Playwright, stops what it started.
 #   E2E_INSTALL_DEPS=1  also install Chromium's system libraries (CI runners)
 set -euo pipefail
@@ -18,6 +19,11 @@ wait_for() { # url, name
 }
 
 dotnet build "$root/src/backend/Karry.Host" -c Release >/dev/null
+dotnet build "$root/src/backend/Karry.Workers" -c Release >/dev/null
+# The outbox's subscribers run in Karry.Workers: a company created in the console gets its trial and its sign-in setup there.
+(cd "$root/src/backend/Karry.Workers/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development \
+  exec dotnet Karry.Workers.dll) >"${TMPDIR:-/tmp}/karry-e2e-workers.log" 2>&1 &
+pids+=("$!")
 (cd "$root/src/backend/Karry.Host/bin/Release/net10.0" && DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
   exec dotnet Karry.Host.dll --urls http://127.0.0.1:5000) >"${TMPDIR:-/tmp}/karry-e2e-host.log" 2>&1 &
 pids+=("$!")

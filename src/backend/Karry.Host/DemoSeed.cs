@@ -151,6 +151,16 @@ internal static class DemoSeed
     /// <summary>Local-only default (meets the realm's 12-character policy); never used outside seed-demo.</summary>
     public const string DemoPassword = "karry-demo-local-only";
 
+    /// <summary>
+    /// Demo Karry operators (ADR-0029 §5): one to show the console, one for the browser tests (each enrols its own
+    /// authenticator at its first sign-in, so the two never share a second factor).
+    /// </summary>
+    public static readonly (string Email, string FirstName, string LastName)[] Operators =
+    [
+        ("operator@karry.test", "Demo", "Operator"),
+        ("e2e-operator@karry.test", "E2E", "Operator"),
+    ];
+
     public static async Task RunAsync(IServiceProvider services, CancellationToken cancellationToken)
     {
         foreach (var tenant in Tenants)
@@ -234,6 +244,19 @@ internal static class DemoSeed
             var created = await users.ServiceProvider.GetRequiredService<DemoUsersSeeder>().SeedAsync(
                 new TenantId(result.Value.Id), configuration["Identity:DemoPassword"] ?? DemoPassword, cancellationToken).ConfigureAwait(false);
             Console.WriteLine($"{tenant.Slug}: {created} demo user(s) created");
+        }
+
+        var appSettings = services.GetRequiredService<IConfiguration>();
+        if (string.IsNullOrWhiteSpace(appSettings["Identity:Keycloak:BaseUrl"]))
+        {
+            return;
+        }
+
+        var operators = services.GetRequiredService<IDemoOperatorAccounts>();
+        foreach (var (email, firstName, lastName) in Operators)
+        {
+            await operators.EnsureOperatorAsync(email, firstName, lastName, appSettings["Identity:DemoPassword"] ?? DemoPassword, cancellationToken).ConfigureAwait(false);
+            Console.WriteLine($"operator {email}: ready (second factor enrolled at the first sign-in)");
         }
     }
 }

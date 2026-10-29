@@ -136,14 +136,17 @@ public sealed partial class SupportSessions(
         {
             var normalized = EnrollmentCode.Normalize(command.Code);
             var consent = normalized is null ? null : await store.FindConsentAsync(EnrollmentCode.Hash(normalized), cancellationToken).ConfigureAwait(false);
+            // A refused code is logged (security review 2026-10-29): an operator trying codes must be visible.
             if (consent is null)
             {
+                LogCodeRefused(logger, current.ToString(), by.Subject);
                 return SupportConsent.Invalid;
             }
 
             var used = consent.Use(clock);
             if (!used.IsSuccess)
             {
+                LogCodeRefused(logger, current.ToString(), by.Subject);
                 return used.Error;
             }
 
@@ -221,6 +224,9 @@ public sealed partial class SupportSessions(
 
     [LoggerMessage(EventId = 2200, Level = LogLevel.Warning, Message = "Break-glass support session {Session} opened on tenant {Tenant} by operator {Operator}")]
     private static partial void LogBreakGlass(ILogger logger, string tenant, Guid session, string @operator);
+
+    [LoggerMessage(EventId = 2206, Level = LogLevel.Warning, Message = "Support code refused on tenant {Tenant} for operator {Operator}")]
+    private static partial void LogCodeRefused(ILogger logger, string tenant, string @operator);
 
     [LoggerMessage(EventId = 2201, Level = LogLevel.Error, Message = "No Tenant Admin of tenant {Tenant} was e-mailed about break-glass session {Session}")]
     private static partial void LogNotNotified(ILogger logger, string tenant, Guid session);

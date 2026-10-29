@@ -61,6 +61,8 @@ public sealed class SupportApiTests(IdentityHost host) : IClassFixture<IdentityH
 
         await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Post, OperatorSessions(other.Id), operatorToken, new { code }), HttpStatusCode.UnprocessableEntity, "support.consent_invalid");
         await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Post, OperatorSessions(company.Id), operatorToken, new { code = "0000-0000-0000-0000" }), HttpStatusCode.UnprocessableEntity, "support.consent_invalid");
+        host.Logs.Entries.Should().Contain(e => e.EventId == 2206 && e.Message.Contains(company.Id.ToString(), StringComparison.Ordinal),
+            "an operator trying codes is visible in the logs");
         await TenantMembers.ExpectProblemAsync(await api.SendAsync(HttpMethod.Post, OperatorSessions(company.Id), operatorToken, new { code = "not a code" }), HttpStatusCode.UnprocessableEntity, "support.consent_invalid");
         (await api.SendAsync(HttpMethod.Post, OperatorSessions(company.Id), operatorToken, new { })).StatusCode.Should().Be(HttpStatusCode.BadRequest);
         (await api.SendAsync(HttpMethod.Post, OperatorSessions(company.Id), operatorToken, new { code, reason = new string('r', 40) })).StatusCode.Should().Be(HttpStatusCode.BadRequest);

@@ -123,6 +123,28 @@ public sealed class KeycloakIdentityProviderTests(KeycloakFixture keycloak) : IC
     }
 
     [Fact]
+    [Trait("Story", "US-P1-OPS-03")]
+    public async Task A_demo_operator_has_no_company_needs_a_second_factor_and_is_created_once()
+    {
+        var email = $"ops-{Guid.NewGuid():N}@karry.test";
+
+        var subject = await provider.EnsureOperatorAsync(email, "Demo", "Operator", "correct-horse-battery-staple", Ct);
+        var again = await provider.EnsureOperatorAsync(email, "Demo", "Operator", "correct-horse-battery-staple", Ct);
+
+        again.Should().Be(subject);
+        var user = await JsonAsync($"users/{subject}");
+        user.GetProperty("enabled").GetBoolean().Should().BeTrue();
+        Strings(user.GetProperty("attributes"), "platform_role").Should().Equal("operator");
+        user.GetProperty("attributes").TryGetProperty("tenant_id", out _).Should().BeFalse("an operator belongs to no company");
+        (await JsonAsync($"users/{subject}/role-mappings/realm")).EnumerateArray().Select(r => r.GetProperty("name").GetString()).Should().Contain("mfa-required");
+
+        var member = new NewAccount(new TenantId(Guid.CreateVersion7()), $"member-{Guid.NewGuid():N}@karry.test", null, "Com", "Pany", false);
+        await provider.CreateAccountAsync(member, Ct);
+        var takeOver = () => provider.EnsureOperatorAsync(member.Username, "Demo", "Operator", "correct-horse-battery-staple", Ct);
+        await takeOver.Should().ThrowAsync<InvalidOperationException>("a company's account is never turned into an operator");
+    }
+
+    [Fact]
     public async Task Disabling_twice_or_an_unknown_account_is_harmless()
     {
         var subject = (await provider.CreateAccountAsync(

@@ -4,7 +4,7 @@ area: phases
 tags: [phase-1, sub-phases, execution-plan, sequencing, definition-of-done, ci, tenancy, identity, billing, ledger, pwa]
 source: "Phase 1 plan (plan.md) broken into executable steps"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Phase 1 Execution Plan: Sub-Phases P1.0 – P1.18
@@ -650,6 +650,7 @@ A sub-phase is ✅ only when **all** of these are true:
 
 - **Two-reviewer rule:** security review pass (privileged access).
 - **Done when:** demo steps 1, 5 and 6 work locally; threat T-14 marked verified.
+- *(Done 2026-10-29, PRs #104–#120: TC-P1-OPS-004 and TC-P1-AUD-005 pass in the API tests, the E2E row in `src/frontend/e2e/tests/operator-console.spec.ts`; security review and T-14 verification in [ADR-0029](../../adr/0029-operator-console-support-access-audit-viewer.md#security-review-2026-10-29-p116-close-out).)*
 
 ---
 

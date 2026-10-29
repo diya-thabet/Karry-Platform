@@ -38,9 +38,11 @@ public sealed class KeycloakOptions
 /// </summary>
 internal sealed class KeycloakIdentityProvider(
     HttpClient http, IOptions<KeycloakOptions> options, IOptions<IdentityOptions> identity, TimeProvider clock, IKeycloakClientLock? processes = null)
-    : IIdentityProvider, ISignInEventSource, IDisposable
+    : IIdentityProvider, ISignInEventSource, IDemoOperatorAccounts, IDisposable
 {
     private const string TenantAttribute = "tenant_id";
+
+    private const string PlatformRoleAttribute = "platform_role";
 
     /// <summary>
     /// One lock per Keycloak realm for every adapter in the process (a host can build more than one); <c>processes</c>
@@ -215,6 +217,40 @@ internal sealed class KeycloakIdentityProvider(
 
     private static bool Contains(JsonNode? list, string value) =>
         list is JsonArray array && array.Any(item => item?.GetValue<string>() == value);
+
+    public async Task<string> EnsureOperatorAsync(string email, string firstName, string lastName, string password, CancellationToken cancellationToken)
+    {
+        using var created = await SendAsync(HttpMethod.Post, "users", new
+        {
+            username = email,
+            email,
+            emailVerified = true,
+            firstName,
+            lastName,
+            enabled = true,
+            attributes = new Dictionary<string, string[]> { [PlatformRoleAttribute] = ["operator"] },
+            credentials = new[] { new { type = "password", value = password, temporary = false } },
+        }, cancellationToken).ConfigureAwait(false);
+        string subject;
+        if (created.StatusCode == HttpStatusCode.Conflict)
+        {
+            using var found = await SendAsync(HttpMethod.Get, $"users?username={Uri.EscapeDataString(email)}&exact=true", null, cancellationToken).ConfigureAwait(false);
+            var user = (await Ensure(found, "find operator").Content.ReadFromJsonAsync<JsonArray>(cancellationToken).ConfigureAwait(false))?.SingleOrDefault();
+            if (user is null || !Contains(user["attributes"]?[PlatformRoleAttribute], "operator") || user["attributes"]?[TenantAttribute] is not null)
+            {
+                throw new InvalidOperationException($"{email} exists in Keycloak but is not a Karry operator: it is left as it is.");
+            }
+
+            subject = user["id"]!.GetValue<string>();
+        }
+        else
+        {
+            subject = Ensure(created, "create operator").Headers.Location!.Segments[^1];
+        }
+
+        await SetMfaRequiredAsync(subject, required: true, cancellationToken).ConfigureAwait(false);
+        return subject;
+    }
 
     /// <summary>A disabled account of the same tenant with this username, left by an invitation that failed after creating it.</summary>
     private async Task<string?> FindAdoptableAsync(NewAccount account, CancellationToken cancellationToken)
