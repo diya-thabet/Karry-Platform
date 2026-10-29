@@ -95,7 +95,7 @@ that nothing was altered. The questions:
   **`actorName`** to each entry and an **`actor_name`** CSV column (empty for a system actor or a person removed
   from the company; the subject stays the reference). **`GET /api/v1/audit/actors`** (`audit.ledger.read`) lists the
   people present in the trail within the caller's reach (at most 500, by subject) with their names, for the
-  viewer's "person" filter. Names are not ledgered: they are resolved when read, so a renamed person shows their
+  viewer's "person" filter; the latest integrity check names its verifier the same way (`verifiedByName`). Names are not ledgered: they are resolved when read, so a renamed person shows their
   current name (the event payload is unchanged evidence).
 - **As built (2026-10-29, slice 2c, export):** `AuditExports` checks the filters like the viewer, counts the matching
   entries (refused above 100 000), records an `AuditExport` aggregate (`audit.exports`, RLS) whose
@@ -106,7 +106,7 @@ that nothing was altered. The questions:
 - **As built (2026-10-29, slice 2b):** `IntegrityChecks` runs the existing `VerifyLedgerHandler` (unchanged, also used
   by the CLI) and keeps the result through `IVerificationRecords` in `audit.verifications` (append-only like the
   ledger: a past result is evidence of what was found). A check is not ledgered: it changes no business state.
-  `GET /api/v1/audit/verifications/latest` answers `{verification, verifiedBy}`, both null before the first check.
+  `GET /api/v1/audit/verifications/latest` answers `{verification, verifiedBy}`, both null before the first check (`verifiedByName` added in slice 3a).
 - **As built (2026-10-29, slice 2a):** `AuditLogQueries` + `IAuditLog` (`EfAuditLog`: entries left-joined to the
   subject index, so an unknown event type still shows to company-wide readers when unfiltered), `AuditChanges`,
   `AuditEntryResponse` (typed event through the host's JSON options, `eventId`/`occurredAt` only on the entry). Errors:

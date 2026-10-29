@@ -166,9 +166,11 @@ public sealed class TrustModule : IModule
     private static async Task<Ok<LedgerVerificationReport>> VerifyAsync([FromServices] IntegrityChecks checks, CancellationToken cancellationToken) =>
         TypedResults.Ok(await checks.RunAsync(cancellationToken).ConfigureAwait(false));
 
-    private static async Task<Ok<LatestVerificationResponse>> LatestVerificationAsync([FromServices] IntegrityChecks checks, CancellationToken cancellationToken)
+    private static async Task<Ok<LatestVerificationResponse>> LatestVerificationAsync(
+        [FromServices] IntegrityChecks checks, [FromServices] IUserNames? people, CancellationToken cancellationToken)
     {
         var latest = await checks.LatestAsync(cancellationToken).ConfigureAwait(false);
-        return TypedResults.Ok(new LatestVerificationResponse(latest?.Report, latest?.VerifiedBy));
+        var names = await NamesAsync(people, [latest?.VerifiedBy], cancellationToken).ConfigureAwait(false);
+        return TypedResults.Ok(new LatestVerificationResponse(latest?.Report, latest?.VerifiedBy, ActorName(names, latest?.VerifiedBy)));
     }
 }

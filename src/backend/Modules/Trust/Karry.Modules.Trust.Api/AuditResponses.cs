@@ -49,8 +49,11 @@ public sealed record AuditEntryResponse(
     }
 }
 
-/// <summary>The last integrity check of the company's ledger and who ran it; both null before the first one.</summary>
-public sealed record LatestVerificationResponse(LedgerVerificationReport? Verification, string? VerifiedBy);
+/// <summary>
+/// The last integrity check of the company's ledger and who ran it (their name when they are one of the company's
+/// people); all null before the first one.
+/// </summary>
+public sealed record LatestVerificationResponse(LedgerVerificationReport? Verification, string? VerifiedBy, string? VerifiedByName);
 
 /// <summary>Someone who appears in the audit log the caller may read; <c>Name</c> null for a system actor.</summary>
 public sealed record AuditActorResponse(string Actor, string? Name);

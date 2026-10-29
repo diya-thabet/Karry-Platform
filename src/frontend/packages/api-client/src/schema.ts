@@ -1880,10 +1880,14 @@ export interface components {
             /** Format: int32 */
             skip: null | number | string;
         };
-        /** @description The last integrity check of the company's ledger and who ran it; both null before the first one. */
+        /**
+         * @description The last integrity check of the company's ledger and who ran it (their name when they are one of the company's
+         *     people); all null before the first one.
+         */
         LatestVerificationResponse: {
             verification: null | components["schemas"]["LedgerVerificationReport"];
             verifiedBy: null | string;
+            verifiedByName: null | string;
         };
         LedgerVerificationReport: {
             valid: boolean;

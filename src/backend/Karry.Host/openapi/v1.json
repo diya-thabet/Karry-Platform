@@ -8587,7 +8587,8 @@
       "LatestVerificationResponse": {
         "required": [
           "verification",
-          "verifiedBy"
+          "verifiedBy",
+          "verifiedByName"
         ],
         "type": "object",
         "properties": {
@@ -8606,9 +8607,15 @@
               "null",
               "string"
             ]
+          },
+          "verifiedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
-        "description": "The last integrity check of the company's ledger and who ran it; both null before the first one."
+        "description": "The last integrity check of the company's ledger and who ran it (their name when they are one of the company's\npeople); all null before the first one."
       },
       "LedgerVerificationReport": {
         "required": [
