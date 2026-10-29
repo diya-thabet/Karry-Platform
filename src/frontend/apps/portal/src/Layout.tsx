@@ -160,7 +160,7 @@ function initials(name: string): string {
 }
 
 /** Who is signed in (US-P1-IAM-01), with the language, the theme and sign-out in one menu. */
-function AccountMenu() {
+export function AccountMenu() {
   const { t, i18n } = useTranslation();
   const { user, signOut } = useAuth();
   const { theme, setTheme } = useTheme();

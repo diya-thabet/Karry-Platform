@@ -2,25 +2,41 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider, type RouterHistory } from "@tanstack/react-router";
 import { useState } from "react";
 import type { ApiClient } from "@karry/api-client";
-import { AuthProvider, type Auth } from "@karry/auth";
+import { AuthProvider, useAuth, type Auth } from "@karry/auth";
 import { I18nProvider, type I18n } from "@karry/i18n";
 import { ThemeProvider, ToastProvider } from "@karry/ui";
 import { ApiProvider } from "./ApiProvider";
 import { ErrorDialogProvider } from "./ErrorDialog";
 import { FlagsProvider } from "./FlagsProvider";
+import { isOperator } from "./operator/api";
 import { createQueryClient } from "./queryClient";
 import { useReportError } from "./reportError";
 import { createPortalRouter } from "./router";
 
-function DataLayer({ history }: { history?: RouterHistory | undefined }) {
+function DataLayer({ history, operator }: { history?: RouterHistory | undefined; operator: boolean }) {
   const report = useReportError();
   const [client] = useState(() => createQueryClient(report));
-  const [router] = useState(() => createPortalRouter(history));
+  const [router] = useState(() => createPortalRouter(history, { operator }));
   return (
     <QueryClientProvider client={client}>
       <RouterProvider router={router} />
     </QueryClientProvider>
   );
+}
+
+/**
+ * A company's portal, or the operator console for Karry staff signed in on the platform address (ADR-0029 §5): they
+ * have no company, so no company flags are asked for them.
+ */
+function Session({ history }: { history?: RouterHistory | undefined }) {
+  const { user } = useAuth();
+  return isOperator(user)
+    ? <DataLayer history={history} operator />
+    : (
+      <FlagsProvider>
+        <DataLayer history={history} operator={false} />
+      </FlagsProvider>
+    );
 }
 
 export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api: ApiClient; history?: RouterHistory }) {
@@ -31,9 +47,7 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
       <ThemeProvider defaultTheme="light" density="office">
         <ToastProvider label="Notifications">
           <ErrorDialogProvider>
-            <FlagsProvider>
-              <DataLayer history={history} />
-            </FlagsProvider>
+            <Session history={history} />
           </ErrorDialogProvider>
         </ToastProvider>
       </ThemeProvider>

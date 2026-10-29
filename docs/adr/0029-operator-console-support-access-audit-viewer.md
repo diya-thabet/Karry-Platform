@@ -173,6 +173,15 @@ that nothing was altered. The questions:
 - Operator accounts get the realm role `mfa-required` (MFA at every login, as privileged tenant roles). The API also
   requires it: tokens carry the **`amr`** claim (Keycloak's AMR mapper on the portal client), and the
   `platform-operator` policy refuses an operator token without `otp` or `hwk` in it (401 `auth.mfa_required`).
+- **As built (2026-10-29, slice 4b, portal):** the operator console is part of the portal app. A token with
+  `platform_role=operator` and no `tenant_id` is an operator session (`isOperator`): the router gets
+  `{ operator: true }` as context, the root shell renders the operator layout (no company branding, navigation, plan
+  or usage banners) and no company call is made (`/tenancy/current`, `/billing/entitlements`, `/flags`,
+  `/me/access`). Company screens sit under a pathless `company` route that sends an operator to `/operator`; the
+  `operator` route sends anyone else back to `/`. `/operator` lists the companies (`GET /tenancy/tenants`) with the
+  MRR totals and creates a company (`POST /tenancy/tenants`; the address is suggested from the name, the first
+  administrator is optional and all-or-nothing; the toast says whether the invitation left). The MFA check (`amr`) is
+  still to come.
 
 ## Options considered
 
