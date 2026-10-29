@@ -4,7 +4,7 @@ area: management
 tags: [owner, inputs, decisions, providers, accounts, hardware, questions, checklist]
 source: "collected 2026-10-25 from the hand-off log, Phase 0/1 trackers, sub-phase cards and phase plans P2–P10"
 status: live
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Still Wanted From the Team
@@ -73,6 +73,7 @@ Legend: 🔴 needed now / blocks the next step · 🟠 needed within Phase 1 · 
 | D-06 | **Demo attendance** and **Sev-1 / Sev-2 triage decisions** during the pilot | P1.18 | M1 cannot pass |
 | D-07 | **Golden datasets** from the pilot candidate (WP-P0-05) | Phase 0 exit; Phase 2 | Tests use synthetic data |
 | D-08 | **Legal review** with counsel (WP-P0-06), including **legal retention periods** for tickets, waybills and financial records (open question 11) | Before pilot data is stored in production | Retention defaults may be wrong for the country |
+| D-09 | **Native-speaker reviewers** for the Arabic draft (about 1 day) and the Malinké drafts in Latin and N'Ko (about 3 days, one person who writes both; tones in N'Ko) | Before customers use these languages; demos can show the drafts | The drafts stay marked "waiting for review"; Keycloak pages, e-mails and templates stay French/English ([translation review](../05-quality/translation-review.md), [ADR-0030](../adr/0030-arabic-and-malinke-languages.md)) |
 
 ## 5. Hardware
 

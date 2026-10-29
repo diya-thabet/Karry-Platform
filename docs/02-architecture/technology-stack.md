@@ -4,7 +4,7 @@ area: architecture
 tags: [stack, dotnet, react, postgresql, keycloak, python]
 source: "MASTER_PLAN.md §7"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Technology Stack
@@ -23,7 +23,7 @@ last_updated: 2026-10-26
 | **Signatures (client)** | signature_pad (vector strokes), WebCrypto (ECDSA P-256, non-extractable keys) | Standard, no native app needed | Native wrappers |
 | **Charts** | Apache ECharts (time-series, heatmaps, large datasets via canvas/WebGL), Recharts for small widgets | ECharts handles 100k+ points smoothly; Recharts is SVG and slows beyond ~5k points | Highcharts (commercial), uPlot |
 | **Maps** | MapLibre GL JS + PostGIS vector tiles (pg_tileserv / Martin) | Open source, offline tile caching possible | Mapbox (licensed), Leaflet |
-| **i18n** | i18next + ICU message format | Pluralisation, FR/EN, RTL-ready | FormatJS |
+| **i18n** | i18next + ICU message format | Pluralisation; fr, en, ar, emk, nqo with right to left for Arabic and N'Ko ([ADR-0030](../adr/0030-arabic-and-malinke-languages.md)) | FormatJS |
 | **Optional native shell** | Capacitor (Phase 7+) | Only if MDM / kiosk / Bluetooth scale / camera control demands it | — |
 | **Backend runtime** | **.NET 10 LTS**, ASP.NET Core Minimal APIs + endpoint groups | Performance, strong typing, LTS to Nov 2028, great PostgreSQL support | Node/NestJS, Java/Spring |
 | **ORM / data access** | EF Core 10 (Npgsql) for writes; Dapper / raw SQL for analytics reads | Productivity + control where needed | Marten (event store), Linq2DB |
@@ -96,6 +96,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | vite-plugin-pwa (workbox-build / workbox-window pinned to 7.4.0, see `pnpm-workspace.yaml` overrides; P1.15 field app) | 2.0.0 | maplibre-gl | 6.15.0 |
 | vitest | 5.0.5 | @testing-library/react | 16.3.3 |
 | @playwright/test / playwright (browser E2E `src/frontend/e2e` from P1.8; Vitest browser mode) | 1.64.1 | axe-core (in Vitest browser mode, P1.7) | 4.14.0 |
+| @fontsource-variable/noto-sans-arabic / @fontsource/noto-sans-nko (Arabic and N'Ko letters, ADR-0030) | 5.3.0 / 5.3.0 | @radix-ui/react-direction (menus follow the writing direction) | 1.2.0 |
 | storybook (+ react-vite, addon-a11y) | 10.6.2 (P1.7) | eslint / typescript-eslint | 10.12.0 / 8.71.2 |
 | openapi-typescript / openapi-fetch (`@karry/api-client`, P1.7) | 7.13.0 / 0.17.0 (peer `typescript ^5` allowed for TS 6, output type-checked) | uqr (QR code of a tablet enrollment, drawn in the browser so the code goes nowhere else; no dependencies, MIT) | 0.1.3 (P1.15: newest ≥ 7 days old) |
 | oidc-client-ts (`@karry/auth`, P1.8: Authorization Code + PKCE, in-memory user store) | 3.5.0 |

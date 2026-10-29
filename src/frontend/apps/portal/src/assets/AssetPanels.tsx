@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, buttonVariants, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import {
@@ -15,9 +15,9 @@ const photoTypes = "image/jpeg,image/png,image/webp";
 function useFormat() {
   const { i18n } = useTranslation();
   return {
-    number: (value: number | string) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(Number(value)),
-    date: (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`)),
-    dateTime: (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)),
+    number: (value: number | string) => new Intl.NumberFormat(intlLocale(i18n.language), { maximumFractionDigits: 1 }).format(Number(value)),
+    date: (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value.slice(0, 10)}T00:00:00Z`)),
+    dateTime: (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value)),
   };
 }
 

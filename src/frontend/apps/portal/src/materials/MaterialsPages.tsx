@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, QuantityInput, SelectField, StatusChip, TextField, useToast, type MaterialState } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant, useWithStepUp } from "../api";
 import { addDays, todayIn } from "../sites/api";
@@ -13,7 +13,7 @@ import {
 /** Numbers as the person reads them (decimal comma in French); the API's values stay exact underneath. */
 function useNumber() {
   const { i18n } = useTranslation();
-  return (value: number | string, digits = 4) => new Intl.NumberFormat(i18n.language, { maximumFractionDigits: digits }).format(Number(value));
+  return (value: number | string, digits = 4) => new Intl.NumberFormat(intlLocale(i18n.language), { maximumFractionDigits: digits }).format(Number(value));
 }
 
 /** The company's materials (US-P1-AST-04): code, name, kind and the densities valid today; archived ones on request. */
@@ -342,7 +342,7 @@ function Densities({ material, today }: { material: Material; today: string }) {
   const [effectiveFrom, setEffectiveFrom] = useState(tomorrow);
   const [draft, setDraft] = useState<DensityDraft | null>(null);
   const [checked, setChecked] = useState(false);
-  const date = (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  const date = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
   const optional = (value: number | string | null) => (value === null ? "—" : number(value));
   const percent = (value: number | string | null) => (value === null ? "—" : `${number(Number(value) * 100, 2)} %`);
 

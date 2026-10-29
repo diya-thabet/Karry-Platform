@@ -47,8 +47,8 @@ export interface QuantityInputProps extends FieldProps, Omit<InputHTMLAttributes
 }
 
 const toggleClasses =
-  "min-h-[var(--karry-control-height)] min-w-14 px-3 font-semibold first:rounded-l-md last:rounded-r-md " +
-  "border-[length:var(--karry-border-width)] border-border -ml-[var(--karry-border-width)] first:ml-0 " +
+  "min-h-[var(--karry-control-height)] min-w-14 px-3 font-semibold first:rounded-s-md last:rounded-e-md " +
+  "border-[length:var(--karry-border-width)] border-border -ms-[var(--karry-border-width)] first:ms-0 " +
   "bg-surface text-text aria-pressed:bg-primary aria-pressed:text-primary-text aria-pressed:border-primary disabled:cursor-not-allowed disabled:opacity-60";
 
 function Toggle<T extends string>(props: { label: string | undefined; options: readonly { value: T; text: string; name: string }[]; selected: T | undefined; onSelect?: ((value: T) => void) | undefined; disabled?: boolean | undefined }) {
@@ -92,7 +92,7 @@ export function QuantityInput({
       <div className="flex flex-wrap items-stretch gap-2">
         <input
           id={ids.id}
-          className={cn(controlClasses, "min-w-24 flex-1 text-right tabular-nums", className)}
+          className={cn(controlClasses, "min-w-24 flex-1 text-end tabular-nums", className)}
           inputMode="decimal"
           autoComplete="off"
           value={value}

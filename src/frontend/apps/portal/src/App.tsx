@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { ApiClient } from "@karry/api-client";
 import { AuthProvider, useAuth, type Auth } from "@karry/auth";
 import { I18nProvider, type I18n } from "@karry/i18n";
-import { ThemeProvider, ToastProvider } from "@karry/ui";
+import { LanguageDirection, ThemeProvider, ToastProvider } from "@karry/ui";
 import { useApi } from "./api";
 import { ApiProvider } from "./ApiProvider";
 import { ErrorDialogProvider } from "./ErrorDialog";
@@ -69,6 +69,7 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
     <ApiProvider client={api}>
     <I18nProvider i18n={i18n}>
       <ThemeProvider defaultTheme="light" density="office">
+      <LanguageDirection>
         <ToastProvider label="Notifications">
           <ErrorDialogProvider>
             <SupportVisitProvider>
@@ -76,6 +77,7 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
             </SupportVisitProvider>
           </ErrorDialogProvider>
         </ToastProvider>
+      </LanguageDirection>
       </ThemeProvider>
     </I18nProvider>
     </ApiProvider>

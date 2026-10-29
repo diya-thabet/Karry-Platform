@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant } from "../api";
 import { currencies } from "../currencies";
@@ -250,7 +250,7 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
             label={t("portal.sites.country")}
             value={draft.country}
             onValueChange={(value) => { set("country", value); }}
-            options={countries(i18n.language)}
+            options={countries(intlLocale(i18n.language))}
             disabled={!editable}
           />
           <TextField

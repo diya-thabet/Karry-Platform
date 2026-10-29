@@ -2,11 +2,12 @@
   "name": "@karry/i18n",
   "private": true,
   "version": "0.0.0",
-  "description": "FR/EN message catalogs (ICU), i18next setup, language resolution and pseudo-localization (US-P1-OFF-06).",
+  "description": "Message catalogs (ICU: fr, en, ar, emk, nqo), i18next setup, language resolution and pseudo-localization (US-P1-OFF-06).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./check": "./src/check.ts"
+    "./check": "./src/check.ts",
+    "./catalogs": "./src/catalogs.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

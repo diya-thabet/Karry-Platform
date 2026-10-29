@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState, type SyntheticEvent } from "react";
 import { useAuth } from "@karry/auth";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextAreaField, TextField } from "@karry/ui";
 import { useApi } from "../api";
 import { tenantSupportKey, useSupportVisit, type SupportSession } from "./supportVisit";
@@ -25,7 +25,7 @@ export function SupportCard({ tenantId, tenantName }: { tenantId: string; tenant
     queryKey: tenantSupportKey(tenantId),
     queryFn: async () => (await api.GET("/api/v1/identity/tenants/{tenantId}/support-sessions", { params: { path: { tenantId } } })).data?.items ?? [],
   });
-  const dateTime = (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
+  const dateTime = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
   const visit = (session: SupportSession) => { start({ tenantId, tenantName, sessionId: session.id, endsAt: session.endsAt }); };
 
   return (

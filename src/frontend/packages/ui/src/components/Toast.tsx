@@ -28,14 +28,14 @@ export function ToastProvider({ children, label }: { children: ReactNode; label:
             key={message.id}
             type={message.status === "error" ? "foreground" : "background"}
             onOpenChange={(open) => { if (!open) setMessages((current) => current.filter((m) => m.id !== message.id)); }}
-            className="karry-toast rounded-xl border-[length:var(--karry-border-width)] border-divider border-l-4 border-l-success bg-surface p-4 text-text shadow-lg data-[status=error]:border-l-danger data-[status=warning]:border-l-warning data-[status=pending]:border-l-primary"
+            className="karry-toast rounded-xl border-[length:var(--karry-border-width)] border-divider border-s-4 border-s-success bg-surface p-4 text-text shadow-lg data-[status=error]:border-s-danger data-[status=warning]:border-s-warning data-[status=pending]:border-s-primary"
             data-status={message.status}
           >
             <RadixToast.Title className="text-sm font-semibold">{message.title}</RadixToast.Title>
             {message.description && <RadixToast.Description className="text-sm text-text-muted">{message.description}</RadixToast.Description>}
           </RadixToast.Root>
         ))}
-        <RadixToast.Viewport className="fixed bottom-4 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2" />
+        <RadixToast.Viewport className="fixed bottom-4 end-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2" />
       </RadixToast.Provider>
     </ToastContext>
   );

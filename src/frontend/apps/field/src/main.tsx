@@ -22,7 +22,6 @@ initErrorTracking({
 });
 
 const language = resolveLanguage({ user: savedLanguage(), browser: navigator.languages });
-document.documentElement.lang = language;
 const i18n = await createI18n({ language, pseudo: import.meta.env.VITE_PSEUDO_LOCALE === "1" });
 
 // No sign-in: the tablet is an enrolled device that signs its requests, operators unlock it with their PIN (ADR-0028).

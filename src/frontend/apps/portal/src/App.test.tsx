@@ -44,6 +44,32 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     expect(window.location.href).toBe(href);
   });
 
+  it("mirrors the whole portal for Arabic and N'Ko, chosen from the account menu, and remembers the choice", async () => {
+    localStorage.removeItem("karry.language");
+    const i18n = await renderPortal();
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Connecté/ }), { key: "Enter" });
+    fireEvent.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "العربية" }));
+
+    await vi.waitFor(() => { expect([document.documentElement.lang, document.documentElement.dir]).toEqual(["ar", "rtl"]); }); // the catalog loads first
+    expect(within(screen.getByRole("navigation", { name: "التنقل الرئيسي" })).getAllByRole("link").map((link) => link.textContent))
+      .toEqual(["الرئيسية", "المواقع", "الآلات", "التدقيق", "الإعدادات"]);
+    expect(localStorage.getItem("karry.language")).toBe("ar");
+    fireEvent.keyDown(screen.getByRole("button", { name: /^مسجّل الدخول باسم/ }), { key: "Enter" });
+    expect(await screen.findByRole("menu")).toHaveAttribute("dir", "rtl"); // menus and selects follow the direction
+    fireEvent.keyDown(screen.getByRole("menu"), { key: "Escape" });
+
+    await act(async () => { await i18n.changeLanguage("nqo"); });
+    expect([document.documentElement.lang, document.documentElement.dir]).toEqual(["nqo", "rtl"]);
+    expect(screen.getByRole("navigation", { name: "ߛߌߙߊ ߞߎ߲ߓߊ" })).toBeInTheDocument();
+
+    await act(async () => { await i18n.changeLanguage("emk"); });
+    expect([document.documentElement.lang, document.documentElement.dir]).toEqual(["emk", "ltr"]);
+    expect(screen.getByRole("navigation", { name: "Sira kunba" })).toBeInTheDocument();
+    const languages = await axe.run(document, { runOnly: ["html-has-lang", "html-lang-valid", "valid-lang"] });
+    expect(languages.violations.map((v) => v.id)).toEqual([]);
+    localStorage.removeItem("karry.language");
+  });
+
   it("shows who is signed in and signs out through Keycloak (US-P1-IAM-01)", async () => {
     const i18n = await createI18n({ language: "fr", pseudo: false });
     const auth = await signedInAuth({ givenName: "Karim", familyName: "Trabelsi" });

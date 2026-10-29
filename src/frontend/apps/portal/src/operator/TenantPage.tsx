@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useState, type SyntheticEvent } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useApi } from "../api";
 import { currencies } from "../currencies";
@@ -55,7 +55,7 @@ function SubscriptionCard({ tenantId, subscription }: { tenantId: string; subscr
   const toast = useToast();
   const queryClient = useQueryClient();
   const [cancelling, setCancelling] = useState(false);
-  const day = (value: string | null) => (value ? new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium" }).format(new Date(value)) : "—");
+  const day = (value: string | null) => (value ? new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium" }).format(new Date(value)) : "—");
   const act = useMutation({
     mutationFn: async (action: string) => (await api.POST("/api/v1/billing/tenants/{tenantId}/subscription/actions", {
       params: { path: { tenantId } }, body: { action },
@@ -195,8 +195,8 @@ function InvoicesCard({ tenantId }: { tenantId: string }) {
   const queryClient = useQueryClient();
   const invoices = useTenantInvoices(tenantId);
   const [recording, setRecording] = useState(false);
-  const day = (value: string) => new Intl.DateTimeFormat(i18n.language, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
-  const money = (invoice: Invoice) => new Intl.NumberFormat(i18n.language, { style: "currency", currency: invoice.currency }).format(Number(invoice.amount));
+  const day = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
+  const money = (invoice: Invoice) => new Intl.NumberFormat(intlLocale(i18n.language), { style: "currency", currency: invoice.currency }).format(Number(invoice.amount));
   const pay = useMutation({
     mutationFn: async (invoiceId: string) => (await api.POST("/api/v1/billing/tenants/{tenantId}/invoices/{invoiceId}/payment", {
       params: { path: { tenantId, invoiceId } }, body: { paidOn: today() },

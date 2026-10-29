@@ -86,7 +86,7 @@ export function HomePage() {
                         <span className="text-sm font-medium text-text">{action.label}</span>
                         <span className="text-xs text-text-muted">{action.hint}</span>
                       </span>
-                      <ArrowRight aria-hidden className="size-4 text-text-muted group-hover:text-primary" />
+                      <ArrowRight aria-hidden className="size-4 text-text-muted group-hover:text-primary rtl:-scale-x-100" />
                     </Link>
                   </li>
                 );
@@ -111,7 +111,7 @@ export function HomePage() {
                           <span className="truncate text-sm font-medium" translate="no">{site.name}</span>
                           <span className="text-xs text-text-muted">{`${site.code} · ${t(`portal.sites.type.${site.type}`)} · ${site.address.city}`}</span>
                         </span>
-                        <ArrowRight aria-hidden className="size-4 shrink-0 text-text-muted" />
+                        <ArrowRight aria-hidden className="size-4 shrink-0 text-text-muted rtl:-scale-x-100" />
                       </Link>
                     </li>
                   ))}

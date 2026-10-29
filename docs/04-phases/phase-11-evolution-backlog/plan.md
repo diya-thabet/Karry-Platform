@@ -4,7 +4,7 @@ area: phases
 tags: [phase-11, backlog]
 source: "PHASES_DETAILED_PLAN.md §18"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-10-29
 ---
 
 # Phase 11+ — Continuous Evolution Backlog
@@ -23,7 +23,7 @@ Prioritized by revenue impact after GA (re-scored quarterly using customer feedb
 | Contractor & equipment hire billing | Quarries hire machines; invoice by verified hours | Builds on verified shifts |
 | Customer portal (B2B buyers see orders, tickets, delivery notes) | Stickiness, reduces calls | Public signed documents |
 | Driver app for haulers (queue booking at weighbridge) | Throughput & customer satisfaction | |
-| Native Arabic (RTL), Spanish, Portuguese | New markets | i18n ready since P1 |
+| Spanish, Portuguese (Arabic and Malinké done early, 2026-10-29, [ADR-0030](../../adr/0030-arabic-and-malinke-languages.md)) | New markets | i18n ready since P1; add a catalog and a row in the translation review |
 | SOC 2 Type II / ISO 27001 | Enterprise procurement | Process started at GA |
 | Voice input in field app (FR/EN/local languages) | Literacy & glove use | |
 | Cross-tenant anonymised benchmarks (opt-in) | Unique data product ("your L/h vs industry") | Strong upsell and marketing content |

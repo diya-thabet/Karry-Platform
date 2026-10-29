@@ -15,10 +15,12 @@ export function savedLanguage(): Language | null {
   }
 }
 
-/** The person's language choice: applied at once (both catalogs are bundled) and remembered on this device. */
+/**
+ * The person's language choice: applied at once (every catalog is bundled; the page's `lang` and `dir` follow) and
+ * remembered on this device.
+ */
 export function chooseLanguage(i18n: I18n, language: string): void {
   void i18n.changeLanguage(language);
-  document.documentElement.lang = language;
   try {
     globalThis.localStorage.setItem(languageKey, language);
   } catch {
@@ -26,7 +28,7 @@ export function chooseLanguage(i18n: I18n, language: string): void {
   }
 }
 
-/** Switches the language instantly (no reload: both catalogs are bundled) and remembers it (US-P1-OFF-06 AC1). */
+/** Switches the language instantly (no reload: every catalog is bundled) and remembers it (US-P1-OFF-06 AC1). */
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
   return (

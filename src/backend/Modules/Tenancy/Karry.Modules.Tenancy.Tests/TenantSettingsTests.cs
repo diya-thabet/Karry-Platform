@@ -16,12 +16,20 @@ public sealed class TenantSettingsTests
     }
 
     [Theory]
+    [InlineData("ar")]
+    [InlineData("emk")]
+    [InlineData("nqo")]
+    public void A_company_can_default_to_Arabic_or_Malinke_in_either_script(string language) =>
+        TenantSettings.Create("Carrière", null, language, "XOF", "metric", "Africa/Conakry", 1).Value.Language.Should().Be(language);
+
+    [Theory]
     [InlineData("x", "#1F4E79", "fr", "EUR", "metric", "UTC", 1, "tenant.legal_name_invalid")]
     [InlineData("Carrière", "1F4E79", "fr", "EUR", "metric", "UTC", 1, "tenant.colour_invalid")]
     [InlineData("Carrière", "#1F4E7G", "fr", "EUR", "metric", "UTC", 1, "tenant.colour_invalid")]
     [InlineData("Carrière", "#FFD700", "fr", "EUR", "metric", "UTC", 1, "tenant.colour_contrast")]
     [InlineData("Carrière", "#777777", "fr", "EUR", "metric", "UTC", 1, "tenant.colour_contrast")]
     [InlineData("Carrière", null, "de", "EUR", "metric", "UTC", 1, "tenant.language_unsupported")]
+    [InlineData("Carrière", null, "AR", "EUR", "metric", "UTC", 1, "tenant.language_unsupported")]
     [InlineData("Carrière", null, "fr", "EUO", "metric", "UTC", 1, "tenant.currency_unsupported")]
     [InlineData("Carrière", null, "fr", "EUR", "imperial-ish", "UTC", 1, "tenant.unit_system_invalid")]
     [InlineData("Carrière", null, "fr", "EUR", "1", "UTC", 1, "tenant.unit_system_invalid")]

@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
-import { useTranslation } from "@karry/i18n";
+import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, buttonVariants, DataTable, EmptyState, SelectField, StatusChip, useToast } from "@karry/ui";
 import { useAccess, useApi } from "../api";
 import {
@@ -115,7 +115,7 @@ export function ImportsPage() {
             { key: "file", header: t("portal.imports.file"), cell: (job) => job.fileName },
             { key: "kind", header: t("portal.imports.kind"), cell: (job) => t(`portal.imports.kind.${job.kind}`, { defaultValue: job.kind }) },
             { key: "status", header: t("portal.imports.status"), cell: (job) => <JobStatus job={job} /> },
-            { key: "at", header: t("portal.imports.uploadedAt"), cell: (job) => new Date(job.uploadedAt).toLocaleString(i18n.language) },
+            { key: "at", header: t("portal.imports.uploadedAt"), cell: (job) => new Date(job.uploadedAt).toLocaleString(intlLocale(i18n.language)) },
           ]}
         />
       </section>
