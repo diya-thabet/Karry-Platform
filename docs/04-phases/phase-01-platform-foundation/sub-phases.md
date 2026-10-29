@@ -639,6 +639,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - Filter by actor, entity, date and event type; before/after diff.
     - CSV export that respects masking.
     - "Integrity check" button showing the last result and date.
+    - *(Built 2026-10-29, PRs #106–#111: API in the Trust module, portal Audit section; see [ADR-0029](../../adr/0029-operator-console-support-access-audit-viewer.md) as-built notes.)*
 - **Tests:**
 
   | Test | What it proves |

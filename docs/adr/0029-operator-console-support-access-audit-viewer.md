@@ -89,6 +89,14 @@ that nothing was altered. The questions:
 - **Integrity check** `POST /api/v1/audit/verify` (exists, AUD-03 AC1) now also **records the result**
   (`audit.verifications`, row-level security) and `GET /api/v1/audit/verifications/latest` returns the last one for
   the "Integrity check" screen (AUD-03 AC2). Permission `audit.ledger.verify` (unchanged: the same roles as the log).
+- **As built (2026-10-29, slice 3b, portal):** the portal's **Audit** section (`/audit`, `audit/AuditPage.tsx`) shows
+  the **Integrity check** card to holders of `audit.ledger.verify` (last result, entries and sealed copies checked,
+  first broken entry, when and by whom; "Check now") and the **audit log** to holders of `audit.ledger.read`: filters
+  person (from `/actors`), site, event code, kind of record, record ID and period (whole days where the person is),
+  applied together; 50 entries a page with "Show more"; an entry's dialog lists its before/after changes, the fields
+  the policy hides (lock, never their value) and the event as recorded; "Export to Excel (CSV)" downloads the
+  filtered entries and says the export is recorded. Someone with neither permission sees a notice, and nothing is
+  asked of the API. Event and record codes are shown as recorded (stable English codes, not translated).
 - **People's names (decided while building, slice 3a):** the trail stores the actor's Keycloak subject (an
   opaque ID), which an auditor cannot read. Trust asks Identity through its contract **`IUserNames`**
   (`Identity.Contracts`, subject → "First Last", row-level security keeps it inside the company) and adds
