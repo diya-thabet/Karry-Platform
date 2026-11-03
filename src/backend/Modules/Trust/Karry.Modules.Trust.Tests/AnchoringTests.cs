@@ -35,19 +35,7 @@ public sealed class AnchoringTests(LedgerDatabase postgres) : IClassFixture<Ledg
     public async ValueTask InitializeAsync()
     {
         database = await postgres.Server.NewKarryDatabaseAsync();
-        var collection = new ServiceCollection();
-        collection.AddLogging();
-        collection.AddSingleton<TimeProvider>(clock);
-        collection.AddTrustInfrastructure(database.App);
-        collection.AddModuleDbContext<LedgerProbeDbContext>(database.App);
-        collection.AddSingleton<ITenantDirectory>(new FixedDirectory(TenantA, TenantB));
-        collection.AddSingleton<IAnchorStore>(store);
-        collection.AddSingleton<IAnchorSigner>(signer);
-        collection.AddSingleton<IAnchorVerifier>(signer);
-        collection.AddMetrics();
-        collection.AddSingleton<AnchoringMetrics>();
-        collection.AddSingleton<AnchorLedgers>();
-        services = collection.BuildServiceProvider(validateScopes: true);
+        services = Process();
 
         await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).BuildServiceProvider())
         {
@@ -60,6 +48,24 @@ public sealed class AnchoringTests(LedgerDatabase postgres) : IClassFixture<Ledg
         await owner.Database.ExecuteSqlRawAsync(ddl);
         var rls = TenantRls.EnableSql("ledgerprobe", "blasts");
         await owner.Database.ExecuteSqlRawAsync(rls);
+    }
+
+    /// <summary>The services of one Workers process: its own singletons and pools, the shared database and bucket.</summary>
+    private ServiceProvider Process()
+    {
+        var collection = new ServiceCollection();
+        collection.AddLogging();
+        collection.AddSingleton<TimeProvider>(clock);
+        collection.AddTrustInfrastructure(database.App);
+        collection.AddModuleDbContext<LedgerProbeDbContext>(database.App);
+        collection.AddSingleton<ITenantDirectory>(new FixedDirectory(TenantA, TenantB));
+        collection.AddSingleton<IAnchorStore>(store);
+        collection.AddSingleton<IAnchorSigner>(signer);
+        collection.AddSingleton<IAnchorVerifier>(signer);
+        collection.AddMetrics();
+        collection.AddSingleton<AnchoringMetrics>();
+        collection.AddSingleton<AnchorLedgers>();
+        return collection.BuildServiceProvider(validateScopes: true);
     }
 
     public async ValueTask DisposeAsync()
@@ -184,6 +190,29 @@ public sealed class AnchoringTests(LedgerDatabase postgres) : IClassFixture<Ledg
         anchor.ObjectKey.Should().Be($"{TenantA}/00000000000000000042.json");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Two_workers_anchoring_at_the_same_time_write_each_anchor_once()
+    {
+        // Hardening plan H-C5: a rolling deploy starts the new Workers (its start-up run anchors at once) while the old
+        // one may be anchoring. Both read the same head; without a lock across processes both wrote its anchor, the
+        // second write became a newer version in the WORM bucket, and the verifier reported tampering for good.
+        await WriteAsync(TenantA, 3);
+        await WriteAsync(TenantB, 2);
+        store.Delay = TimeSpan.FromMilliseconds(300);
+        await using var otherProcess = Process();
+
+        var runs = await Task.WhenAll(
+            RunAsync(),
+            otherProcess.GetRequiredService<AnchorLedgers>().RunAsync(TestContext.Current.CancellationToken));
+
+        runs.Sum(r => r.Anchored).Should().Be(2, "one anchor per tenant head, whichever process wrote it");
+        runs.Sum(r => r.Failed).Should().Be(0);
+        store.VersionCounts.Should().AllBeEquivalentTo(1, "never a second version of an anchor");
+        (await VerifyAsync(TenantA)).Valid.Should().BeTrue();
+        (await VerifyAsync(TenantB)).Valid.Should().BeTrue();
+    }
+
     private Task<AnchoringRun> RunAsync() => services.GetRequiredService<AnchorLedgers>().RunAsync(TestContext.Current.CancellationToken);
 
     private async Task<LedgerVerificationReport> VerifyAsync(TenantId tenant)
@@ -271,19 +300,25 @@ public sealed class AnchoringTests(LedgerDatabase postgres) : IClassFixture<Ledg
 
         public TenantId? FailFor { get; set; }
 
+        /// <summary>How long a write takes (a slow bucket widens the window two processes could race in).</summary>
+        public TimeSpan Delay { get; set; }
+
         public IEnumerable<string> Keys => objects.Keys;
 
         public IEnumerable<int> VersionCounts => objects.Values.Select(v => v.Count);
 
-        public Task PutAsync(LedgerAnchor anchor, string document, CancellationToken cancellationToken)
+        public async Task PutAsync(LedgerAnchor anchor, string document, CancellationToken cancellationToken)
         {
             if (anchor.Tenant == FailFor)
             {
                 throw new IOException("storage unavailable");
             }
 
-            AddVersion(anchor.ObjectKey, document);
-            return Task.CompletedTask;
+            await Task.Delay(Delay, cancellationToken);
+            lock (objects)
+            {
+                AddVersion(anchor.ObjectKey, document);
+            }
         }
 
         public void AddVersion(string key, string document) => objects.GetOrAdd(key, _ => []).Add(document);

@@ -34,6 +34,16 @@ public interface IAnchorStore
 /// <summary>An anchor object as stored: its original document and how many versions exist under its key.</summary>
 public sealed record StoredAnchor(string Document, int Versions);
 
+/// <summary>
+/// One anchoring run at a time across every Workers process (hardening plan H-C5): two runs reading the same head
+/// would both write its anchor, and the second write is a newer version in the WORM bucket, which the verifier must
+/// (and does) report as tampering. Released when disposed, or when the process dies.
+/// </summary>
+public interface IAnchoringLock
+{
+    Task<IAsyncDisposable> AcquireAsync(CancellationToken cancellationToken);
+}
+
 /// <summary>The current tenant's chain head and anchoring bookkeeping (row-level security scopes it).</summary>
 public interface IAnchorBookkeeping
 {

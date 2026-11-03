@@ -22,6 +22,9 @@ public static class TrustInfrastructure
         services.AddScoped<IAuditExportStore, EfAuditExportStore>();
         services.AddScoped<AuditExports>();
         services.AddScoped<IAnchorBookkeeping, EfAnchorBookkeeping>();
+        // The process's one pool for this database (KarryDataSources, D50), so the lock costs no extra pool.
+        services.TryAddSingleton<KarryDataSources>();
+        services.AddSingleton<IAnchoringLock>(sp => new PostgresAnchoringLock(sp.GetRequiredService<KarryDataSources>().For(connectionString)));
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
         services.AddScoped<IVerificationRecords, EfVerificationRecords>();
