@@ -411,6 +411,7 @@
   "errors.billing.limit_reached": "I ka sosiyete sera a ka plan dan ma nin na. Dɔ bɔ walima Karry ɲininka ka plan yɛlɛma.",
   "errors.request.rate_limited": "Ɲininkali caman waati surun kɔnɔ. Miniti kelen makɔnɔ, ka a lajɛ tugun.",
   "errors.request.too_large": "I ka cili ka bon kojugu.",
+  "errors.server.unavailable": "Karry yɔrɔ dɔ tɛ sɔrɔ waati surun kɔnɔ. Miniti kelen makɔnɔ, ka a lajɛ tugun.",
   "portal.subscription.pastDue": "I ka sosiyete ka sarali kɔfɛtara. Foyi ma jɔ fɔlɔ; biro yɛlɛmalilu bɛ jɔ lon 14 kɔ ni sarali ma kɛ.",
   "portal.subscription.restricted": "Biro yɛlɛmalilu jɔra fo abɔnɛman ka sara. I bɛ se ka fɛn bɛɛ kalan hali bi, kɛnɛma sɛbɛnni bɛ taa a ɲɛ.",
   "portal.subscription.suspended": "Abɔnɛman jɔra fo a ka sara: fɛn bɛɛ ye kalanni dɔrɔn ye, kɛnɛma sɛbɛnni fana. I ka kunnafonilu bɛ se ka bɔ hali bi.",

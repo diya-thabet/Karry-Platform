@@ -126,6 +126,10 @@ jobs:
       - run: tools/ci/install-tool.sh k6
       - name: Load suite
         run: tests/load/run.sh
+      # Hardening plan H-L3: every company's audit ledger still verifies after the load (even when a threshold failed).
+      - name: Ledgers intact after the load
+        if: success() || failure()
+        run: tests/load/verify-ledgers.sh
       - name: Load results and host log
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

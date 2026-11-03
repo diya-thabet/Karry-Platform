@@ -49,6 +49,49 @@ public sealed class ObjectStoreTests(SeaweedFs seaweed) : IClassFixture<SeaweedF
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_stopped_storage_is_reported_unavailable_at_once()
+    {
+        // Hardening plan H-R4: nothing listens on port 1, so the connection is refused.
+        using var store = new S3ObjectStore(new ObjectStoreOptions
+        {
+            ServiceUrl = "http://127.0.0.1:1",
+            Bucket = "karry-files",
+            AccessKey = SeaweedFs.AccessKey,
+            SecretKey = SeaweedFs.SecretKey,
+        });
+        var key = ObjectKeys.ForTenant(Guid.NewGuid(), "assets", "a/photo-1");
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
+        await FluentActions.Awaiting(() => store.PutAsync(key, [1], "image/jpeg", Ct)).Should().ThrowAsync<ObjectStoreUnavailableException>();
+        await FluentActions.Awaiting(() => store.GetAsync(key, Ct)).Should().ThrowAsync<ObjectStoreUnavailableException>();
+        await FluentActions.Awaiting(() => store.DeleteAsync(key, Ct)).Should().ThrowAsync<ObjectStoreUnavailableException>();
+        watch.Elapsed.Should().BeLessThan(TimeSpan.FromSeconds(15));
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_storage_that_accepts_connections_but_never_answers_is_given_up_within_the_attempt_budget()
+    {
+        // A frozen server: the connection opens, no answer ever comes. One retry, each attempt bounded.
+        using var frozen = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        frozen.Start();
+        var port = ((System.Net.IPEndPoint)frozen.LocalEndpoint).Port;
+        using var store = new S3ObjectStore(new ObjectStoreOptions
+        {
+            ServiceUrl = $"http://127.0.0.1:{port}",
+            Bucket = "karry-files",
+            AccessKey = SeaweedFs.AccessKey,
+            SecretKey = SeaweedFs.SecretKey,
+        });
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+
+        await FluentActions.Awaiting(() => store.GetAsync(ObjectKeys.ForTenant(Guid.NewGuid(), "assets", "a/photo-1"), Ct))
+            .Should().ThrowAsync<ObjectStoreUnavailableException>();
+        watch.Elapsed.Should().BeLessThan((S3ObjectStore.AttemptTimeout * 2) + TimeSpan.FromSeconds(5), "the SDK default would wait 100 s, four retries");
+    }
+
+    [Fact]
     public void The_store_follows_the_configuration_and_a_store_registered_first_wins()
     {
         var bucket = new ServiceCollection().AddObjectStore(Configuration(new() { ["Storage:Bucket"] = "karry-files", ["Storage:ServiceUrl"] = seaweed.ServiceUrl }));

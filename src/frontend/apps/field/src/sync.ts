@@ -9,7 +9,7 @@ export const refreshEveryMs = 5 * 60 * 1000;
 /**
  * When to refresh next. Each tablet draws its own moment within 30 seconds either side of the five minutes, so the
  * tablets of a site that all opened at the start of the shift do not ask at the same second ever after. After a 429
- * the tablet waits longer than any `Retry-After` the API sends (60 s at most), plus up to 30 s of its own.
+ * or a 503 the tablet waits longer than any `Retry-After` the API sends (60 s at most), plus up to 30 s of its own.
  */
 export function nextRefreshMs(outcome: PullOutcome, random: () => number = Math.random): number {
   return outcome === "busy" ? 60_000 + random() * 30_000 : refreshEveryMs - 30_000 + random() * 60_000;
@@ -18,7 +18,7 @@ export function nextRefreshMs(outcome: PullOutcome, random: () => number = Math.
 /** A full snapshot at least this often, even when deltas succeed (ADR-0028 §5). */
 export const snapshotEveryMs = 24 * 60 * 60 * 1000;
 
-/** How a refresh of the reference data ended. `busy`: the server asked the tablet to wait (429, threat T-12). */
+/** How a refresh of the reference data ended. `busy`: the server asked the tablet to wait (429, threat T-12; or 503). */
 export type PullOutcome = "ok" | "offline" | "revoked" | "failed" | "busy";
 
 /**
@@ -70,7 +70,8 @@ export async function pullChanges(db: KarryOfflineDb, send: typeof fetch = fetch
       return "revoked";
     }
 
-    if (response.status === 429) {
+    // 429: too many requests (T-12); 503: a service of the API is down for a moment (H-R1, H-R4). Both say "come back".
+    if (response.status === 429 || response.status === 503) {
       return "busy";
     }
 

@@ -34,6 +34,27 @@ public static class ObjectKeys
     public static string ForTenant(Guid tenant, string module, string path) => $"tenants/{tenant:D}/{module}/{path}";
 }
 
+/// <summary>
+/// The storage is configured but does not answer (stopped, unreachable, overloaded): a temporary state, which the API
+/// reports as 503 <c>server.unavailable</c> with <c>Retry-After</c> (hardening plan H-R4), never as an unexpected error.
+/// </summary>
+public sealed class ObjectStoreUnavailableException : Exception
+{
+    public ObjectStoreUnavailableException()
+    {
+    }
+
+    public ObjectStoreUnavailableException(string message)
+        : base(message)
+    {
+    }
+
+    public ObjectStoreUnavailableException(string message, Exception innerException)
+        : base(message, innerException)
+    {
+    }
+}
+
 /// <summary>Section <c>Storage</c>: the bucket for company files (not the anchor bucket, which has Object Lock).</summary>
 public sealed class ObjectStoreOptions
 {
@@ -99,48 +120,87 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
             ForcePathStyle = !string.IsNullOrWhiteSpace(options.ServiceUrl),
             RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
             ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+
+            // A stopped or frozen storage must answer the user within seconds, not after the SDK's 100 s timeout and four
+            // retries (hardening plan H-R4): one retry, 10 s per attempt (a 5 MB photo on a slow link fits easily).
+            Timeout = AttemptTimeout,
+            MaxErrorRetry = 1,
         });
+
+    /// <summary>The longest one storage call may take before it counts as unavailable.</summary>
+    public static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(10);
 
     private readonly SemaphoreSlim bucketCheck = new(1, 1);
     private bool bucketReady = !options.CreateBucketIfMissing;
 
     public bool Available => true;
 
-    public async Task PutAsync(string key, byte[] content, string contentType, CancellationToken cancellationToken)
-    {
-        await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
-        using var body = new MemoryStream(content);
-        await client.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = key, InputStream = body, ContentType = contentType }, cancellationToken)
-            .ConfigureAwait(false);
-    }
-
-    public async Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken)
-    {
-        await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
-        try
+    public Task PutAsync(string key, byte[] content, string contentType, CancellationToken cancellationToken) =>
+        CallAsync(async () =>
         {
-            using var response = await client.GetObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
-            using var content = new MemoryStream();
-            await response.ResponseStream.CopyToAsync(content, cancellationToken).ConfigureAwait(false);
-            return new StoredObject(content.ToArray(), response.Headers.ContentType);
-        }
-        catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
-        {
-            return null;
-        }
-    }
+            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
+            using var body = new MemoryStream(content);
+            await client.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = key, InputStream = body, ContentType = contentType }, cancellationToken)
+                .ConfigureAwait(false);
+            return true;
+        }, cancellationToken);
 
-    public async Task DeleteAsync(string key, CancellationToken cancellationToken)
-    {
-        await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
-        await client.DeleteObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
-    }
+    public Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken) =>
+        CallAsync(async () =>
+        {
+            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                using var response = await client.GetObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
+                using var content = new MemoryStream();
+                await response.ResponseStream.CopyToAsync(content, cancellationToken).ConfigureAwait(false);
+                return new StoredObject(content.ToArray(), response.Headers.ContentType);
+            }
+            catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+        }, cancellationToken);
+
+    public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
+        CallAsync(async () =>
+        {
+            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
+            await client.DeleteObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
+            return true;
+        }, cancellationToken);
 
     public void Dispose()
     {
         client.Dispose();
         bucketCheck.Dispose();
     }
+
+    /// <summary>
+    /// A storage that cannot be reached, times out or answers 5xx is unavailable; anything else (a refused request, a
+    /// missing bucket) stays a fault of ours. The caller's own cancellation stays a cancellation.
+    /// </summary>
+    private static async Task<T> CallAsync<T>(Func<Task<T>> call, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await call().ConfigureAwait(false);
+        }
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested && IsOutage(ex))
+        {
+            throw new ObjectStoreUnavailableException("Object storage is not answering.", ex);
+        }
+    }
+
+    private static bool IsOutage(Exception exception) => exception switch
+    {
+        AmazonServiceException { StatusCode: >= System.Net.HttpStatusCode.InternalServerError } => true,
+        AmazonServiceException { StatusCode: 0 } service => service.InnerException is not null && IsOutage(service.InnerException),
+        AmazonServiceException => false,
+        HttpRequestException or TimeoutException or TaskCanceledException or IOException or System.Net.Sockets.SocketException => true,
+        AmazonClientException client => client.InnerException is null || IsOutage(client.InnerException),
+        _ => false,
+    };
 
     private async Task EnsureBucketAsync(CancellationToken cancellationToken)
     {

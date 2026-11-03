@@ -4,7 +4,7 @@ area: architecture
 tags: [api, rest, openapi, errors, idempotency]
 source: "MASTER_PLAN.md §18"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-03
 ---
 
 # API Design Standards
@@ -37,6 +37,7 @@ last_updated: 2026-10-29
 | A platform operator signed in without a second factor (`amr` has neither `otp` nor `hwk`, ADR-0029 §5) | 401 | `auth.mfa_required` (sign in again with the factor) |
 | Body above the endpoint's limit (request limits below) | 413 | `request.too_large`, with `maxBytes` |
 | Too many requests (rate limits below) | 429 | `request.rate_limited`, with the `Retry-After` header and `retryAfterSeconds` |
+| A dependency briefly down (PostgreSQL unreachable, object storage not answering) | 503 | `server.unavailable`, with `Retry-After: 30`; a warning in the log names the dependency (event 1002). Clients wait and try again: the field app treats it like 429 (`busy`), the portal explains it (hardening plan H-R1, H-R4) |
 | (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
 
 **Rate limits (P1.18a, threat T-12, `Karry.BuildingBlocks/Api/RateLimits.cs`).** Sliding one-minute windows (six

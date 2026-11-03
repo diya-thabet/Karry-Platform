@@ -113,7 +113,7 @@ public sealed class TenantResolutionTests : IAsyncLifetime
         // Positive control: proves the counter really sees database access, so the zeros above mean something.
         var response = await SendAsync("/api/v1/probe/notes", Token(("tenant_id", TenantA.ToString())));
 
-        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError, "the test database is unreachable on purpose");
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable, "the test database is unreachable on purpose (a dependency outage, H-R1)");
         connections.Opened.Should().BeGreaterThan(0);
     }
 

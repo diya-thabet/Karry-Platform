@@ -40,6 +40,7 @@ tools/ci/install-tool.sh k6                    # pinned k6 2.3.0, checksum verif
 # local stack up, migrated and seeded; Karry.Host (Release) started with the load-run limits:
 RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 dotnet Karry.Host.dll --urls http://127.0.0.1:5000
 tests/load/run.sh                              # all three runs, one at a time; summaries in tests/load/results/<time>/
+tests/load/verify-ledgers.sh                   # H-L3: every company's audit ledger still verifies
 ```
 
 - **Limits during a load run.** Six demo accounts stand for many people, and setup enrols 500 tablets from one
@@ -51,7 +52,8 @@ tests/load/run.sh                              # all three runs, one at a time; 
   the run ends, and `devices.js` signs in again during a long setup.
 - **Clean-up.** The tablets are revoked in teardown. Revoked rows stay in the local database.
 - **Nightly.** The `load` job of `.github/workflows/nightly.yml` brings the stack up as the `local-stack` job does,
-  runs `tests/load/run.sh`, writes the table to the job summary and keeps the results for 14 days.
+  runs `tests/load/run.sh`, then `tests/load/verify-ledgers.sh` (even when a threshold failed), writes the table
+  to the job summary and keeps the results for 14 days.
 - **The owner's machine (14 GB).** k6 needs about 1.4 GB for 500 tablets. Run one script at a time, with nothing
   else heavy open.
 
@@ -83,8 +85,6 @@ production sizing; laptop numbers are a baseline.
 
 ## 5. Not covered yet
 
-- **H-L3, ledger after load.** The integrity check needs a Tenant Admin, who signs in with a second factor, so a
-  script cannot run it unattended. It is planned with the resilience slice, through the Workers' scheduled check.
 - **Uploads under load.** Sync batches and photos under load belong to Phase 2: 300 devices, 10 commands and
   10 photos each within 15 minutes ([Phase 2 plan](../04-phases/phase-02-field-operations/plan.md)).
 - **Staging numbers** (P1.18b).
