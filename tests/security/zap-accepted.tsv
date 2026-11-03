@@ -1,0 +1,3 @@
+# ZAP findings accepted on purpose (tests/security/zap.sh, hardening plan H-W1). One per line:
+# <plugin id> TAB <why it is acceptable>. A medium finding not listed here fails the run.
+10055	CSP style-src 'unsafe-inline' in the portal and field app: Radix's scroll lock (react-style-singleton) and React insert <style> elements at run time; a static site cannot nonce them. Measured: style-src 'self' broke every page in the E2E run. Styles cannot run code; script-src stays 'self'.

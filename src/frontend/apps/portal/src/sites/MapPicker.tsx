@@ -71,6 +71,10 @@ export function MapPicker(props: {
       try {
         const maplibre = await import("maplibre-gl");
         await import("maplibre-gl/dist/maplibre-gl.css");
+        // MapLibre 6 starts its worker from a file next to its own module, an address it computes at run time, so the
+        // build never emitted it and the production map failed ("Worker failed to load"). `?url` makes Vite ship the
+        // file and gives its address.
+        maplibre.setWorkerUrl((await import("maplibre-gl/dist/maplibre-gl-worker.mjs?url")).default);
         if (state.disposed || !container.current) {
           return;
         }
