@@ -8,11 +8,15 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Karry.BuildingBlocks.Tenancy;
 
 public static class TenancyExtensions
 {
+    /// <summary>How far past its expiry (or before its start) a person's token is still accepted.</summary>
+    public static readonly TimeSpan TokenClockSkew = TimeSpan.FromSeconds(30);
+
     /// <summary>
     /// Bearer-token authentication and the tenant context. Tokens are validated against <c>Authentication:Authority</c>
     /// (the Keycloak realm, <c>deploy/keycloak</c>) and <c>Authentication:Audience</c> (<c>karry-api</c>). Without an
@@ -33,6 +37,12 @@ public static class TenancyExtensions
             options.RequireHttpsMetadata = configuration.GetValue("Authentication:RequireHttpsMetadata", true);
             options.MapInboundClaims = false; // keep "sub", "tenant_id" … as issued
             options.TokenValidationParameters.ValidateAudience = !string.IsNullOrEmpty(options.Audience);
+
+            // Hardening plan H-I1. Keycloak and the API are servers with synchronized clocks: a token is accepted at most
+            // 30 s past its expiry (the default, 5 minutes, doubled the life of a 5-minute access token), and only with
+            // the realm's RS256 signature (no algorithm a forged header could pick, such as "none" or HS256).
+            options.TokenValidationParameters.ClockSkew = TokenClockSkew;
+            options.TokenValidationParameters.ValidAlgorithms = [SecurityAlgorithms.RsaSha256];
         }).AddScheme<AuthenticationSchemeOptions, DeviceAuthenticationHandler>(DeviceAuthenticationHandler.SchemeName, null); // field tablets (ADR-0028 §3)
         services.AddAuthorization(KarryPolicies.Add);
         services.AddSingleton<IAuthorizationMiddlewareResultHandler, SecondFactorResultHandler>();

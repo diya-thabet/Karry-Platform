@@ -23,6 +23,19 @@ public sealed record LoginStep(HttpStatusCode Status, string Html, Uri? Location
 
     public bool HasInput(string name) => Html.Contains($"name=\"{name}\"", StringComparison.Ordinal);
 
+    /// <summary>The first link of the page whose address contains <paramref name="part"/> (e.g. "reset-credentials").</summary>
+    public Uri? Link(string part)
+    {
+        var match = Regex.Match(Html, $"href=\"([^\"]*{Regex.Escape(part)}[^\"]*)\"", RegexOptions.Singleline);
+        if (!match.Success)
+        {
+            return null;
+        }
+
+        var link = WebUtility.HtmlDecode(match.Groups[1].Value);
+        return link.StartsWith('/') ? new Uri(link, UriKind.Relative) : new Uri(link);
+    }
+
     internal Uri FormAction() =>
         new(WebUtility.HtmlDecode(Regex.Match(Html, "<form[^>]*?action=\"([^\"]+)\"", RegexOptions.Singleline).Groups[1].Value));
 }
@@ -95,6 +108,13 @@ public sealed partial class KeycloakBrowser : IDisposable
     {
         ArgumentNullException.ThrowIfNull(step);
         return GetAsync(step.Location ?? throw new InvalidOperationException("Not a redirect."), cancellationToken);
+    }
+
+    /// <summary>Opens an address in this browser (its cookies), e.g. a link of a page or of an e-mail.</summary>
+    public Task<LoginStep> OpenAsync(Uri url, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(url);
+        return GetAsync(url.IsAbsoluteUri ? url : new Uri(server.BaseUrl, url), cancellationToken);
     }
 
     /// <summary>Exchanges the code of the final redirect (with the PKCE verifier) for tokens.</summary>

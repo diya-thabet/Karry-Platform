@@ -80,7 +80,14 @@ IDENTITY_ROLES = ["manage-users", "view-users", "query-users", "manage-realm", "
 realm = {
   "realm": "karry", "displayName": "Karry", "enabled": True,
   "sslRequired": "external", "organizationsEnabled": True,
-  "registrationAllowed": False, "resetPasswordAllowed": True, "rememberMe": False,
+  "registrationAllowed": False, "rememberMe": False,
+  # Forgotten password (hardening plan H-I6): self-service by e-mail, through "karry reset credentials" below, never
+  # Keycloak's built-in flow (it asks no second factor and removes the user's OTP: the inbox alone would be enough).
+  "resetPasswordAllowed": True, "resetCredentialsFlow": "karry reset credentials",
+  # Keycloak's own e-mails (password reset). Placeholders are resolved at import from the environment: Mailpit on the
+  # local stack, the real relay in production (P1.17 sets KARRY_SMTP_*; the relay's credentials go to the vault, never here).
+  "smtpServer": {"host": "${KARRY_SMTP_HOST:mailpit}", "port": "${KARRY_SMTP_PORT:1025}", "from": "${KARRY_SMTP_FROM:no-reply@karry.test}",
+                 "fromDisplayName": "Karry", "starttls": "${KARRY_SMTP_STARTTLS:false}", "ssl": "false", "auth": "false"},
   "loginWithEmailAllowed": True, "duplicateEmailsAllowed": False, "editUsernameAllowed": False, "verifyEmail": False,
   "loginTheme": "karry", "emailTheme": "keycloak",
   "internationalizationEnabled": True, "supportedLocales": ["fr", "en"], "defaultLocale": "fr",
@@ -103,7 +110,7 @@ realm = {
   "eventsEnabled": True, "eventsExpiration": 2592000,
   "enabledEventTypes": ["LOGIN", "LOGIN_ERROR", "LOGOUT", "LOGOUT_ERROR", "CODE_TO_TOKEN_ERROR", "REFRESH_TOKEN_ERROR",
                         "UPDATE_CREDENTIAL", "REMOVE_CREDENTIAL", "UPDATE_TOTP", "REMOVE_TOTP", "EXECUTE_ACTIONS",
-                        "UPDATE_PASSWORD", "RESET_PASSWORD", "RESET_PASSWORD_ERROR"],
+                        "UPDATE_PASSWORD", "RESET_PASSWORD", "RESET_PASSWORD_ERROR", "SEND_RESET_PASSWORD", "SEND_RESET_PASSWORD_ERROR"],
   "adminEventsEnabled": True, "adminEventsDetailsEnabled": False,
   "browserFlow": "karry browser",
   "roles": {"realm": [{"name": "mfa-required", "description": "Set by Karry for users holding a privileged role (US-P1-IAM-02): TOTP or WebAuthn is mandatory at login."}]},
@@ -125,7 +132,10 @@ realm = {
     {"alias": "karry privileged role", "config": {"condUserRole": "mfa-required", "negate": "false"}},
     {"alias": "karry no configured factor", "config": {"flow_to_check": "karry configured factor", "check_result": "not-executed"}},
     reference("karry amr password", "pwd"), reference("karry amr hardware key", "hwk"),
-    reference("karry amr otp", "otp"), reference("karry amr otp enrolment", "otp")],
+    reference("karry amr otp", "otp"), reference("karry amr otp enrolment", "otp"),
+    {"alias": "karry reset privileged role", "config": {"condUserRole": "mfa-required", "negate": "false"}},
+    {"alias": "karry reset no configured factor", "config": {"flow_to_check": "karry reset configured factor", "check_result": "not-executed"}},
+    reference("karry reset amr hardware key", "hwk"), reference("karry reset amr otp", "otp"), reference("karry reset amr otp enrolment", "otp")],
   "authenticationFlows": [
     flow("karry browser", "Karry browser login: SSO cookie, or password then MFA for privileged users", True, [
       step("auth-cookie", "ALTERNATIVE", 10),
@@ -144,6 +154,25 @@ realm = {
     flow("karry enrol factor", "No second factor yet: TOTP enrolment is forced before any token is issued", False, [
       step("conditional-sub-flow-executed", "REQUIRED", 10, "karry no configured factor"),
       step("auth-otp-form", "REQUIRED", 20, "karry amr otp enrolment")]),
+    # H-I6: the e-mail link proves the inbox; a privileged user must then also pass (or, without one, enrol) the
+    # second factor, as at sign-in, before choosing a password. No "reset OTP" step: a reset never removes a factor.
+    # Keycloak needs distinct sub-flows and configs per parent, hence the "karry reset …" copies.
+    flow("karry reset credentials", "Forgotten password: e-mail link, the second factor for privileged users, then the new password", True, [
+      step("reset-credentials-choose-user", "REQUIRED", 10),
+      step("reset-credential-email", "REQUIRED", 20),
+      sub("karry reset privileged mfa", "CONDITIONAL", 30),
+      step("reset-password", "REQUIRED", 40)]),
+    flow("karry reset privileged mfa", "H-I6: users with the mfa-required role prove their second factor before a password reset", False, [
+      step("conditional-user-role", "REQUIRED", 10, "karry reset privileged role"),
+      sub("karry reset configured factor", "CONDITIONAL", 20),
+      sub("karry reset enrol factor", "CONDITIONAL", 30)]),
+    flow("karry reset configured factor", "The user already has WebAuthn or TOTP: ask for one of them", False, [
+      step("conditional-user-configured", "REQUIRED", 10),
+      step("webauthn-authenticator", "ALTERNATIVE", 20, "karry reset amr hardware key"),
+      step("auth-otp-form", "ALTERNATIVE", 30, "karry reset amr otp")]),
+    flow("karry reset enrol factor", "No second factor yet: TOTP enrolment is forced before any token is issued", False, [
+      step("conditional-sub-flow-executed", "REQUIRED", 10, "karry reset no configured factor"),
+      step("auth-otp-form", "REQUIRED", 20, "karry reset amr otp enrolment")]),
   ],
   "components": {"org.keycloak.userprofile.UserProfileProvider": [
     {"providerId": "declarative-user-profile", "subComponents": {}, "config": {"kc.user.profile.config": [json.dumps(profile, separators=(",", ":"))]}}]},

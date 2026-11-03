@@ -80,7 +80,7 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 | FluentValidation | 12.2.0 | ClosedXML (Excel import, MIT; reading and templates in the `Imports` module only; ADR-0027, P1.14) | 0.105.1 |
 | Sentry.AspNetCore | 6.12.1 | CsCheck (property tests, P1.3) | 4.9.1 |
 | NodaTime (company and site time zones, shift time; ADR-0024, P1.11) | 3.3.5 (3.3.6 < 7 days on 2026-10-26) | NetTopologySuite / Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite (site geometry in PostGIS; ADR-0024, P1.11) | 2.6.0 / 10.0.3 |
-| xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak runs from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |
+| xunit.v3 | 4.0.2 | Testcontainers.PostgreSql (Keycloak, and Mailpit beside it on a shared network, run from the core `ContainerBuilder`, no extra package, P1.8) | 4.16.0 |
 | Microsoft.Extensions.TimeProvider.Testing | 10.11.0 | ~~TngTech.ArchUnitNET.xUnitV3~~ (not used: type rules are plain reflection, P1.5) | n/a |
 | AwesomeAssertions (Apache-2.0 fork of FluentAssertions) | 9.6.0 | UUIDv7 | built-in `Guid.CreateVersion7` (no package) |
 | dotnet-stryker (mutation) | 5.0.0 | QRCoder (asset label QR matrix, MIT; the PDF is our own writer; ADR-0026, P1.13) | 1.8.1 |

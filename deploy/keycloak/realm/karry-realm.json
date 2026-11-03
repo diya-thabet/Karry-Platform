@@ -5,8 +5,18 @@
   "sslRequired": "external",
   "organizationsEnabled": true,
   "registrationAllowed": false,
-  "resetPasswordAllowed": true,
   "rememberMe": false,
+  "resetPasswordAllowed": true,
+  "resetCredentialsFlow": "karry reset credentials",
+  "smtpServer": {
+    "host": "${KARRY_SMTP_HOST:mailpit}",
+    "port": "${KARRY_SMTP_PORT:1025}",
+    "from": "${KARRY_SMTP_FROM:no-reply@karry.test}",
+    "fromDisplayName": "Karry",
+    "starttls": "${KARRY_SMTP_STARTTLS:false}",
+    "ssl": "false",
+    "auth": "false"
+  },
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
   "editUsernameAllowed": false,
@@ -69,7 +79,9 @@
     "EXECUTE_ACTIONS",
     "UPDATE_PASSWORD",
     "RESET_PASSWORD",
-    "RESET_PASSWORD_ERROR"
+    "RESET_PASSWORD_ERROR",
+    "SEND_RESET_PASSWORD",
+    "SEND_RESET_PASSWORD_ERROR"
   ],
   "adminEventsEnabled": true,
   "adminEventsDetailsEnabled": false,
@@ -286,6 +298,41 @@
         "default.reference.value": "otp",
         "default.reference.maxAge": "36000"
       }
+    },
+    {
+      "alias": "karry reset privileged role",
+      "config": {
+        "condUserRole": "mfa-required",
+        "negate": "false"
+      }
+    },
+    {
+      "alias": "karry reset no configured factor",
+      "config": {
+        "flow_to_check": "karry reset configured factor",
+        "check_result": "not-executed"
+      }
+    },
+    {
+      "alias": "karry reset amr hardware key",
+      "config": {
+        "default.reference.value": "hwk",
+        "default.reference.maxAge": "36000"
+      }
+    },
+    {
+      "alias": "karry reset amr otp",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "36000"
+      }
+    },
+    {
+      "alias": "karry reset amr otp enrolment",
+      "config": {
+        "default.reference.value": "otp",
+        "default.reference.maxAge": "36000"
+      }
     }
   ],
   "authenticationFlows": [
@@ -421,6 +468,131 @@
           "priority": 20,
           "userSetupAllowed": false,
           "authenticatorConfig": "karry amr otp enrolment"
+        }
+      ]
+    },
+    {
+      "alias": "karry reset credentials",
+      "description": "Forgotten password: e-mail link, the second factor for privileged users, then the new password",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "reset-credentials-choose-user",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "reset-credential-email",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "karry reset privileged mfa",
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "reset-password",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 40,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "karry reset privileged mfa",
+      "description": "H-I6: users with the mfa-required role prove their second factor before a password reset",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-role",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "karry reset privileged role"
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "karry reset configured factor",
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "karry reset enrol factor",
+          "requirement": "CONDITIONAL",
+          "priority": 30,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "karry reset configured factor",
+      "description": "The user already has WebAuthn or TOTP: ask for one of them",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "webauthn-authenticator",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "karry reset amr hardware key"
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "karry reset amr otp"
+        }
+      ]
+    },
+    {
+      "alias": "karry reset enrol factor",
+      "description": "No second factor yet: TOTP enrolment is forced before any token is issued",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-sub-flow-executed",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "karry reset no configured factor"
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false,
+          "authenticatorConfig": "karry reset amr otp enrolment"
         }
       ]
     }

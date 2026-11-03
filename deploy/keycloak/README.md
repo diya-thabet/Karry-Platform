@@ -32,7 +32,24 @@ them), plus `aud=karry-api`. They carry no roles: authorization is Karry's (P1.9
 | Registration | off | Users are invited (US-P1-IAM-03) |
 | Second factor | role `mfa-required` ⇒ WebAuthn or TOTP; TOTP enrolment forced when none | US-P1-IAM-02. The Identity module gives the role to holders of a privileged Karry role. |
 | Factors in the token | `amr` (RFC 8176) on the app clients: `pwd`, `otp`, `hwk` from each authenticator's reference config, valid for the SSO session (10 h) | ADR-0029 §5: the API refuses an operator token without `otp` or `hwk` (401 `auth.mfa_required`). Enrolling TOTP is a required action, not a use of the factor: the first token after enrolment says only `pwd`, and the portal asks to sign in again. |
-| Events | login, failures, credential changes; 30 days | `Karry.Workers` copies failures and lockouts of known users to the tenant ledger every minute (`import-sign-ins` once) |
+| Forgotten password | `karry reset credentials`: e-mail link (5 min, single use), then **for `mfa-required` users the second factor** (or its enrolment), then the new password; no step removes a factor | Hardening plan H-I6. Keycloak's built-in flow asks no second factor and *removes* the OTP, so a mailbox alone took over a Tenant Admin. The answer page is the same for unknown accounts (no enumeration). |
+| Keycloak's e-mails | `smtpServer` from `KARRY_SMTP_HOST`, `_PORT`, `_FROM`, `_STARTTLS` (import placeholders); default Mailpit (`mailpit:1025`) | Only the reset e-mail is Keycloak's (invitations are Karry's). The relay's user and password are never in this file: set them in the vault and the console (P1.17); `upgrade_realm.py` keeps them. |
+| One-time passwords | TOTP, HMAC-SHA1, 6 digits, 30 s, look-ahead 1 | RFC 6238's default and the only algorithm every authenticator app computes correctly. SHA-1's collision weakness does not apply to HMAC. |
+| API token check | 30 s clock tolerance, RS256 only | The framework default (5 minutes) doubled the token's life (H-I1) |
+| Events | login, failures, credential changes, reset e-mails sent; 30 days | `Karry.Workers` copies failures and lockouts of known users to the tenant ledger every minute (`import-sign-ins` once) |
+
+### Forgotten password (`karry reset credentials`)
+
+```
+username or e-mail ─► e-mail with a link (5 min) ─► the link
+                         └─ if role mfa-required:
+                              ├─ has WebAuthn or TOTP → ask for one of them      (karry reset configured factor)
+                              └─ otherwise            → TOTP enrolment            (karry reset enrol factor)
+                       ─► new password ─► signed in
+```
+
+Keycloak needs separate sub-flows and configs per parent, so the reset flow has its own copies (`karry reset …`).
+`KeycloakPasswordResetTests` drives it on a live Keycloak and reads the e-mail from Mailpit.
 
 ### MFA flow (`karry browser`)
 

@@ -17,7 +17,7 @@ last_updated: 2026-10-21
 | **Property-based** | FsCheck | Every formula: unit round-trips (`t→m³→t`), mass conservation in plant graph (Σin = Σout at steady state), RUL monotonicity, DSCR invariants |
 | **Mutation** | Stryker.NET | Math & trust modules, mutation score ≥ 70 % |
 | **Golden datasets** | Domain-expert spreadsheets | Real quarry cases recomputed by engines must match to tolerance |
-| Integration | Testcontainers (real PostgreSQL+extensions, Keycloak) | Repositories, RLS, migrations, outbox |
+| Integration | Testcontainers (real PostgreSQL+extensions, Keycloak with Mailpit for its e-mails) | Repositories, RLS, migrations, outbox, sign-in and password-reset flows |
 | **Tenant isolation** | Automated suite | Every endpoint called with tenant B token on tenant A data must 404/403 |
 | Contract | OpenAPI diff in CI | Breaking change detection |
 | E2E | Playwright | Critical journeys incl. **offline mode** (network emulation), multi-device sync, signature flow |

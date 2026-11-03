@@ -23,13 +23,12 @@ public static class TestTokens
     public static IServiceCollection TrustTestIssuer(this IServiceCollection services) =>
         services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
+            // Only the trust changes: the production rules (clock skew, RS256 only, lifetime) stay as the host set them.
             options.Authority = null;
-            options.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidIssuer = Issuer,
-                ValidAudience = Audience,
-                IssuerSigningKey = Key,
-            };
+            options.TokenValidationParameters.ValidIssuer = Issuer;
+            options.TokenValidationParameters.ValidateAudience = true;
+            options.TokenValidationParameters.ValidAudience = Audience;
+            options.TokenValidationParameters.IssuerSigningKey = Key;
         });
 
     public static string ForTenant(Guid tenantId, string subject = "user-1") =>
