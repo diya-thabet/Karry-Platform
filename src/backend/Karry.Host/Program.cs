@@ -8,7 +8,7 @@ using Karry.BuildingBlocks.Tenancy;
 using Karry.Host;
 using Karry.Host.Health;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Npgsql;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddKarryObservability("karry-api");
@@ -16,7 +16,9 @@ builder.AddKarryObservability("karry-api");
 var connectionString = builder.Configuration.GetConnectionString("Karry");
 if (!string.IsNullOrWhiteSpace(connectionString))
 {
-    builder.Services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+    // The health check uses the same pool as the modules (one pool per process, KarryDataSources).
+    builder.Services.TryAddSingleton<KarryDataSources>();
+    builder.Services.AddSingleton(services => services.GetRequiredService<KarryDataSources>().For(connectionString));
     builder.Services.AddIdempotency(connectionString);
 }
 

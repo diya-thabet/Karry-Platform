@@ -295,6 +295,8 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
         options.DelayAfter(30).Should().Be(TimeSpan.FromMinutes(10));
     }
 
+    private string connectionString = string.Empty;
+
     private async Task BuildAsync(bool withFlaky, int maxAttempts)
     {
         if (services is not null)
@@ -302,7 +304,7 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
             await services.DisposeAsync();
         }
 
-        var connectionString = postgres.NewDatabase();
+        connectionString = postgres.NewDatabase();
         var collection = new ServiceCollection();
         collection.AddLogging();
         collection.AddSingleton<TimeProvider>(clock);
@@ -329,7 +331,8 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
             System.Text.Json.JsonDocument.Parse(m.Payload).RootElement.GetProperty("sequence").GetInt32() == sequenceOfFirstProbe
             && (probeId is null || m.AggregateKey == $"Probe:{probeId}"));
 
-        var connection = new Npgsql.NpgsqlConnection(db.Database.GetConnectionString());
+        // Another worker's own connection (the context's data source does not reveal its password, by design).
+        var connection = new Npgsql.NpgsqlConnection(connectionString);
         await connection.OpenAsync(TestContext.Current.CancellationToken);
         var transaction = await connection.BeginTransactionAsync(TestContext.Current.CancellationToken);
         await using var command = new Npgsql.NpgsqlCommand("SELECT id FROM probe.outbox_messages WHERE id = @id FOR UPDATE", connection, transaction);

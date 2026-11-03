@@ -53,3 +53,6 @@ storybook-static/
 # Vitest browser-mode local artifacts
 .vitest/
 dist-pseudo/
+
+# Load test runs (tests/load/run.sh)
+tests/load/results/

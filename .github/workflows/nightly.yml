@@ -93,3 +93,45 @@ jobs:
           name: mutation-reports
           path: ${{ runner.temp }}/stryker/
 
+
+  # P1.18a load suite (docs/05-quality/load-testing.md): 500 signed tablets (burst and shift, H-L1), TC-P1-TEN-005
+  # (10,000 mixed requests of two companies, 0 leaks, p95 < 300 ms) and a 300-user spike, against the local stack.
+  load:
+    name: load
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - run: dotnet restore src/backend/Karry.Host --locked-mode
+      - name: Free disk space for the local stack
+        run: sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+      - name: Local stack, migrated and seeded
+        env:
+          KEEP_STACK: "1"
+        run: deploy/docker/smoke-test.sh
+      - name: Karry.Host with the load-run limits (tests/load/run.sh)
+        run: |
+          dotnet build src/backend/Karry.Host -c Release
+          cd src/backend/Karry.Host/bin/Release/net10.0
+          DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
+            RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 \
+            nohup dotnet Karry.Host.dll --urls http://127.0.0.1:5000 > /tmp/karry-load-host.log 2>&1 &
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:5000/health/ready && exit 0; sleep 2; done
+          cat /tmp/karry-load-host.log; exit 1
+      - run: tools/ci/install-tool.sh k6
+      - name: Load suite
+        run: tests/load/run.sh
+      - name: Load results and host log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: load-results
+          path: |
+            tests/load/results
+            /tmp/karry-load-host.log
+          retention-days: 14

@@ -10,7 +10,8 @@ public static class PersistenceExtensions
     /// <summary>
     /// Registers a module DbContext on PostgreSQL with Karry's conventions (snake_case, history table in the module
     /// schema) and records it for the migration runner. <paramref name="connectionString"/> is the runtime
-    /// connection (<c>karry_app</c>); migrations run separately as <c>karry_owner</c>. Tenant isolation is wired here:
+    /// connection (<c>karry_app</c>), served by the process's one pool for it (<see cref="KarryDataSources"/>);
+    /// migrations run separately as <c>karry_owner</c>. Tenant isolation is wired here:
     /// the scoped <see cref="ITenantContext"/> drives the RLS interceptor and the context's query filter.
     /// </summary>
     public static IServiceCollection AddModuleDbContext<TContext>(this IServiceCollection services, string connectionString)
@@ -18,10 +19,11 @@ public static class PersistenceExtensions
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         services.TryAddScoped<ITenantContext, TenantContext>();
+        services.TryAddSingleton<KarryDataSources>();
         // The interceptor reads the scope's tenant: every command of a tenant's unit of work carries SET LOCAL.
         services.AddDbContext<TContext>((scope, options) =>
         {
-            Configure(options, connectionString);
+            options.UseNpgsql(scope.GetRequiredService<KarryDataSources>().For(connectionString)).UseSnakeCaseNamingConvention();
             options.AddInterceptors(new TenantCommandInterceptor(scope.GetRequiredService<ITenantContext>()));
         });
         services.AddSingleton(new ModuleDatabase(typeof(TContext), ownerConnectionString =>

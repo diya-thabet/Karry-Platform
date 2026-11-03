@@ -4,7 +4,7 @@ area: quality
 tags: [quality, testing, qa, definition-of-done, acceptance-criteria]
 source: "created 2026-10-21"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-03
 ---
 
 # 05-quality — Quality Engineering
@@ -21,4 +21,5 @@ How we prove the software works. The binding testing rules for agents are in [ll
 | [defect-severity-and-triage.md](defect-severity-and-triage.md) | Sev-1…Sev-4 definitions, response and fix targets |
 | [test-environments-and-devices.md](test-environments-and-devices.md) | Environments, test data & anonymisation, field device matrix |
 | [translation-review.md](translation-review.md) | Status of each language (fr, en, ar, emk, nqo), native-speaker review steps, glossary, keys waiting for review |
+| [load-testing.md](load-testing.md) | k6 suite (`tests/load/`): 500 signed tablets, TC-P1-TEN-005 (0 leaks), spike; how to run, thresholds, results, findings (one connection pool per process) |
 | [ui-ux-review.md](ui-ux-review.md) | HCI review of the portal and field app (Hick, Fitts, Gestalt, Nielsen, WCAG): findings UX-01…UX-27 with status, **binding design rules for every new screen**, results |

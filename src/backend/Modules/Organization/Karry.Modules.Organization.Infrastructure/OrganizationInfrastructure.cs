@@ -6,6 +6,7 @@ using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Karry.Modules.Organization.Infrastructure;
 
@@ -16,6 +17,7 @@ public static class OrganizationInfrastructure
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddModuleDbContext<OrganizationDbContext>(connectionString);
+        services.AddSingleton(new DataSourcePlugin(builder => builder.UseNetTopologySuite())); // geometries on the shared pool
         services.AddOutboxDispatcher<OrganizationDbContext>(eventAssemblies: typeof(Domain.Site).Assembly);
         services.AddScoped<ISiteStore, SiteStore>();
         services.AddScoped<SiteOperations>();
