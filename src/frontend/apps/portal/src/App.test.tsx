@@ -241,6 +241,25 @@ describe("error dialog (US-P1-OPS-01 AC3)", () => {
     expect(queryFn).toHaveBeenCalledOnce();
   });
 
+  it("explains a service that is briefly down instead of an unexpected error (H-R1, H-R4)", async () => {
+    const i18n = await createI18n({ language: "en" });
+    const auth = await signedInAuth();
+    const queryFn = vi.fn(() => Promise.reject(new ApiError(503, "server.unavailable", "9b2e")));
+    function Down() {
+      useQuery({ queryKey: ["down"], queryFn, retryDelay: 0 });
+      return null;
+    }
+    function DownHarness() {
+      const report = useReportError();
+      const [client] = useState(() => createQueryClient(report, 1));
+      return <QueryClientProvider client={client}><Down /></QueryClientProvider>;
+    }
+    render(<AuthProvider auth={auth}><I18nProvider i18n={i18n}><ErrorDialogProvider><DownHarness /></ErrorDialogProvider></I18nProvider></AuthProvider>);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Part of Karry is briefly unavailable. Wait a minute, then try again.");
+  });
+
   it("still tries a query again after a server error", async () => {
     const client = createQueryClient(vi.fn(), 1);
     const queryFn = vi.fn(() => Promise.reject(new ApiError(503, "server.unavailable", undefined)));

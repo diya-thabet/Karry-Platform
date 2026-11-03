@@ -3,11 +3,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using FluentValidation;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Storage;
 using Karry.SharedKernel.Results;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Karry.BuildingBlocks.UnitTests;
 
@@ -48,6 +50,9 @@ public sealed class ApiConventionsTests : IAsyncLifetime
         }).ToProblem());
         app.MapGet("/status/{code:int}", (int code) => Results.StatusCode(code)); // as the authorization middleware answers
         app.MapGet("/boom", IResult () => throw new InvalidOperationException("Npgsql: password authentication failed for user karry_app at 10.0.0.5"));
+        app.MapGet("/down/storage", IResult () => throw new ObjectStoreUnavailableException("Object storage is not answering.", new HttpRequestException("10.0.0.9:8333 refused")));
+        app.MapGet("/down/database", IResult () => throw new InvalidOperationException("wrapped by EF Core", new NpgsqlException("Failed to connect to 10.0.0.5:5432", new System.Net.Sockets.SocketException(111))));
+        app.MapGet("/fault/database", IResult () => throw new NpgsqlException("not transient: a bug of ours"));
         app.MapPost("/things", (CreateThing thing) => TypedResults.Created($"/things/{thing.Code}", thing)).Validate<CreateThing>();
 
         await app.StartAsync();
@@ -104,6 +109,32 @@ public sealed class ApiConventionsTests : IAsyncLifetime
         problem.GetProperty("code").GetString().Should().Be(ProblemTypes.UnexpectedCode);
         problem.GetProperty("traceId").GetString().Should().NotBeNullOrEmpty();
         body.Should().NotContainAny("Npgsql", "password", "karry_app", "10.0.0.5", "InvalidOperationException", "at ");
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("/down/storage")]
+    [InlineData("/down/database")]
+    public async Task A_dependency_down_for_a_moment_is_a_503_with_retry_after_that_leaks_nothing(string path)
+    {
+        // Hardening plan H-R1, H-R4: clients wait and retry instead of reporting a fault.
+        var response = await client!.GetAsync(new Uri(path, UriKind.Relative), TestContext.Current.CancellationToken);
+        var body = await response.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+        response.Headers.RetryAfter!.Delta.Should().Be(TimeSpan.FromSeconds(Outages.RetryAfterSeconds));
+        JsonDocument.Parse(body).RootElement.GetProperty("code").GetString().Should().Be(ProblemTypes.UnavailableCode);
+        body.Should().NotContainAny("10.0.0", "5432", "8333", "Npgsql", "Exception");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_database_error_that_is_not_an_outage_stays_an_unexpected_error()
+    {
+        var response = await client!.GetAsync(new Uri("/fault/database", UriKind.Relative), TestContext.Current.CancellationToken);
+
+        response.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        response.Headers.RetryAfter.Should().BeNull();
     }
 
     [Fact]

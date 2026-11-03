@@ -85,6 +85,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-10-29 | all keys | ar, emk, nqo | First drafts |
 | 2026-10-29 | `portal.nav.breadcrumbs`, `field.action.soon` | ar, emk, nqo | UI/UX review (breadcrumbs, "coming soon" on the field actions) |
 | 2026-11-03 | `errors.request.rate_limited`, `errors.request.too_large`, `field.sync.state.busy` | ar, emk, nqo | P1.18a request limits (429, 413, a busy server on the tablet) |
+| 2026-11-03 | `errors.server.unavailable` | ar, emk, nqo | P1.18a resilience (503: a service of the API briefly down) |
 
 ## 6. Not translated yet
 

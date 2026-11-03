@@ -9,6 +9,7 @@ using Karry.SharedKernel.Authorization;
 using Karry.SharedKernel.Entitlements;
 using Karry.SharedKernel.Results;
 using Karry.SharedKernel.Tenancy;
+using Microsoft.Extensions.Logging;
 using NodaTime;
 using Roles = Karry.SharedKernel.Authorization.DefaultRoles;
 
@@ -100,8 +101,9 @@ public interface IAssetStore
 /// US-P1-AST-02: the company's machines, each change in the company's ledger. Registering an asset, or bringing a
 /// disposed one back, follows the asset limit (soft limit). A site role reads and manages only the assets on its sites.
 /// </summary>
-public sealed class AssetOperations(
-    IAssetStore store, IMeterStore meters, ILabelSheet labels, IObjectStore files, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+public sealed partial class AssetOperations(
+    IAssetStore store, IMeterStore meters, ILabelSheet labels, IObjectStore files, ISiteDirectory sites, ITenantDirectory tenants, ILimitGuard limits, ICallerAccess caller, ITenantContext tenant, TimeProvider clock,
+    ILogger<AssetOperations> logger)
 {
     public const int DefaultLimit = 50;
     public const int MaxLimit = 200;
@@ -235,7 +237,7 @@ public sealed class AssetOperations(
         await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
         if (old is not null)
         {
-            await files.DeleteAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
+            await RemoveReplacedAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
         }
 
         return asset;
@@ -261,9 +263,28 @@ public sealed class AssetOperations(
         }
 
         await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
-        await files.DeleteAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
+        await RemoveReplacedAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
         return asset;
     }
+
+    /// <summary>
+    /// The change is saved and ledgered by now: a storage outage at this point must not turn it into an error the caller
+    /// would retry (hardening plan H-R4). The orphaned object is logged; nothing points to it, so nobody can read it.
+    /// </summary>
+    private async Task RemoveReplacedAsync(string key, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await files.DeleteAsync(key, cancellationToken).ConfigureAwait(false);
+        }
+        catch (ObjectStoreUnavailableException ex)
+        {
+            LogOrphanedPhoto(logger, key, ex);
+        }
+    }
+
+    [LoggerMessage(EventId = 7301, Level = LogLevel.Warning, Message = "Replaced photo {Key} could not be removed (storage unavailable); the object is orphaned")]
+    private static partial void LogOrphanedPhoto(ILogger logger, string key, Exception exception);
 
     /// <summary>The photo of an asset the caller may see.</summary>
     public async Task<Result<(AssetPhoto Photo, byte[] Content)>> PhotoAsync(AssetId id, CancellationToken cancellationToken)

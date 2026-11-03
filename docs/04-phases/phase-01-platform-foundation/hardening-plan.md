@@ -45,7 +45,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 |---|---|---|---|---|
 | H-L1 | 500 tablets pull their reference data at shift start: all in one second (burst) and over a minute (shift) | 0 errors; every tablet gets only its own site; shift p95 < 800 ms; burst p95 recorded (alarm 3 s) | k6 `tests/load/devices.js`, nightly: burst 751 ms, shift 27 ms, 0 errors ([results](../../05-quality/load-testing.md#3-results)) | ✅ |
 | H-L2 | **TC-P1-TEN-005:** 10,000 mixed requests from people of two companies | **0 rows of the other company**; p95 < 300 ms; < 0.1 % errors | k6 `tests/load/tenants.js`, nightly: 0 leaks, p95 33 ms | ✅ |
-| H-L3 | After the load, the audit ledger still verifies | Integrity check green | With the resilience slice (the check needs a Tenant Admin with MFA, or the Workers' scheduled check) | ⬜ |
+| H-L3 | After the load, the audit ledger still verifies | Integrity check green | `tests/load/verify-ledgers.sh` (`karry-ledger verify` for every tenant with a ledger), nightly after the load suite; locally after the slice 2 runs: 10 ledgers intact, 4,834 entries for demo company A | ✅ |
 | H-L4 | A spike: 0 → 300 users in 10 s | No 5xx; no leak | k6 `tenants.js` `spike`, nightly: 0 server errors, p95 6 ms | ✅ |
 
 ### 2.2 Abuse and denial of service (threat T-12)
@@ -77,11 +77,11 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-R1 | PostgreSQL stops, then comes back | Readiness 503 while it is down, the API answers again within 30 s without a restart | resilience script | ⬜ |
-| H-R2 | Keycloak stops | Signed-in people keep working until their token expires (keys cached); sign-in shows an error page | resilience script | ⬜ |
-| H-R3 | Valkey (cache) stops | API still answers (cache is optional) | resilience script | ⬜ |
-| H-R4 | Object storage stops | Photo upload answers a clear error; nothing else breaks | resilience script | ⬜ |
-| H-R5 | Karry.Workers stops, then comes back | Outbox messages wait and are all delivered once, in order | resilience script | ⬜ |
+| H-R1 | PostgreSQL stops, then comes back; or stops answering (frozen, network cut) | Readiness 503 within the 5 s probe; requests get 503 `server.unavailable` + `Retry-After`, not 500; the API answers again within 30 s without a restart | `DatabaseOutageTests` (real stop/start at the same port, and a paused server). **Finding R-1 fixed:** a frozen database held the readiness probe 60 s (now a 3 s budget) | ✅ |
+| H-R2 | Keycloak stops | Signed-in people keep working until their token expires (keys cached); a token from an unknown key is a quick 401, never a 500; an API started during the outage trusts the realm again soon after it returns | `KeycloakOutageTests` (the API's real token settings against a stand-in realm stopped and restarted on a real socket). Sign-in itself is Keycloak's page: nothing of ours to test | ✅ |
+| H-R3 | Valkey (cache) stops | API still answers (cache is optional) | Nothing to break today: no Karry code uses Valkey (it is in the local stack for later phases). **Re-test when the first cache arrives** | ✅ (n/a) |
+| H-R4 | Object storage stops | Photo upload answers a clear error; nothing else breaks | `PhotosApiTests` (503 `server.unavailable` + `Retry-After`, assets and sites keep working, a change saved before the cut is not reported as failed), `ObjectStoreTests` (refused and frozen storage). **Finding R-2 fixed:** a stopped storage was a 500 after the SDK's 100 s timeout and four retries; **R-3 fixed:** removing the replaced photo after the save turned a saved change into an error | ✅ |
+| H-R5 | Karry.Workers stops, then comes back | Outbox messages wait and are all delivered once, in order | Existing `OutboxTests` (held rows, concurrent dispatchers, order, retries); new: the database session dies in the middle of a delivery, which rolls back and is delivered once, in order, later | ✅ |
 
 ### 2.5 Concurrency and integrity
 
@@ -113,7 +113,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | ✅ #127 |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2, H-W3); findings: no headers (W-1), the production map's missing worker (W-3), the anchoring race (H-C5, fixed in its own PR) | ✅ #129 |
-| 5 | Resilience scenarios (H-R1–R5) | ⬜ |
+| 5 | Resilience scenarios (H-R1–R5), ledger after load (H-L3); findings R-1 (readiness hung 60 s), R-2 (storage outage was a slow 500), R-3 (saved photo change reported as failed), all fixed; outages answer 503 `server.unavailable` (D54) | 🟡 |
 | 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3) | ⬜ |
 | 7 | Demo rehearsal, exit review draft | ⬜ |
 

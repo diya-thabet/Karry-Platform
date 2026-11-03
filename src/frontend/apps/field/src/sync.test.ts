@@ -129,9 +129,17 @@ describe("refreshing the reference data (US-P1-OFF-03, ADR-0028 §5)", () => {
     expect(await lastRefresh(db)).toBeNull();
   });
 
+  it("waits like a busy server when a service of the API is briefly down (503, hardening H-R1/H-R4)", async () => {
+    const { db, send, reply } = await setup();
+    reply(503, { code: "server.unavailable" });
+
+    expect(await pullChanges(db, send)).toBe("busy");
+    expect(await lastRefresh(db)).toBeNull();
+  });
+
   it("tells no connection from a server failure, and applies nothing in either case", async () => {
     const { db, send, reply } = await setup();
-    reply(503, { code: "unavailable" });
+    reply(500, { code: "server.unexpected_error" });
 
     expect(await pullChanges(db, send)).toBe("failed");
     expect(await pullChanges(db, vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))))).toBe("offline");

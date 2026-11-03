@@ -63,6 +63,18 @@ public static partial class ApiConventions
             }
 
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Karry.Api");
+
+            // A dependency down for a moment is not a bug: 503 and when to come back, so tablets and the portal retry later.
+            if (Outages.Describe(exception) is { } dependency)
+            {
+                LogDependencyDown(logger, context.Request.Method, context.Request.Path, dependency, exception);
+                context.Response.Headers.RetryAfter = Outages.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                await TypedResults.Problem(title: "The service is briefly unavailable. Try again in a minute.", statusCode: StatusCodes.Status503ServiceUnavailable,
+                    type: ProblemTypes.For(ProblemTypes.UnavailableCode).ToString(),
+                    extensions: new Dictionary<string, object?> { ["code"] = ProblemTypes.UnavailableCode }).ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
+
             LogUnhandled(logger, context.Request.Method, context.Request.Path, exception);
 
             context.Response.StatusCode = StatusCodes.Status500InternalServerError;
@@ -90,6 +102,9 @@ public static partial class ApiConventions
     public static TBuilder AllowPublicCrossOrigin<TBuilder>(this TBuilder builder)
         where TBuilder : IEndpointConventionBuilder =>
         builder.RequireCors(PublicCorsPolicy);
+
+    [LoggerMessage(EventId = 1002, Level = LogLevel.Warning, Message = "{Dependency} unavailable on {Method} {Path}; answered 503")]
+    private static partial void LogDependencyDown(ILogger logger, string method, PathString path, string dependency, Exception? exception);
 
     [LoggerMessage(EventId = 1000, Level = LogLevel.Error, Message = "Unhandled exception on {Method} {Path}")]
     private static partial void LogUnhandled(ILogger logger, string method, PathString path, Exception? exception);

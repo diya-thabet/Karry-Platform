@@ -103,6 +103,21 @@ public sealed class FlakySubscriber(FailureSwitch failures) : IDomainEventSubscr
     }
 }
 
+/// <summary>
+/// While <see cref="FailureSwitch.RemainingFailures"/> &gt; 0, ends its own database session in the middle of the delivery
+/// transaction, as a database restart or a network cut would (hardening plan H-R5).
+/// </summary>
+public sealed class ConnectionKillingSubscriber(FailureSwitch failures) : IDomainEventSubscriber<ProbeRenamed>
+{
+    public async Task HandleAsync(ProbeRenamed domainEvent, DomainEventContext context, CancellationToken cancellationToken)
+    {
+        if (failures.ShouldFail())
+        {
+            await context.Db.Database.ExecuteSqlRawAsync("SELECT pg_terminate_backend(pg_backend_pid())", cancellationToken);
+        }
+    }
+}
+
 public sealed class FailureSwitch
 {
     private int remainingFailures;

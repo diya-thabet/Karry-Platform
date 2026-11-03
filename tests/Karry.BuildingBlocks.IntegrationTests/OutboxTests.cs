@@ -285,6 +285,41 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_connection_lost_in_the_middle_of_a_delivery_rolls_it_back_and_the_message_is_delivered_once_later()
+    {
+        // Hardening plan H-R5: the database session dies after one subscriber wrote its effect, before the commit.
+        await BuildAsync(withFlaky: false, maxAttempts: 10, withConnectionKiller: true);
+        failures.RemainingFailures = 1;
+        var probe = Probe.Create(clock, "cut");
+        clock.Advance(TimeSpan.FromMilliseconds(1));
+        probe.Rename(clock, "cut+");
+        await SaveAsync(probe);
+
+        // Whether the dispatcher records the failure or the loop catches it (OutboxDispatcherService), nothing is lost.
+        try
+        {
+            await Dispatcher.DispatchPendingAsync(10, TestContext.Current.CancellationToken);
+        }
+        catch (Exception ex) when (ex is Npgsql.NpgsqlException or InvalidOperationException or DbUpdateException)
+        {
+        }
+
+        await using (var during = NewContext())
+        {
+            (await during.Logs.CountAsync(TestContext.Current.CancellationToken)).Should().Be(0, "the effect written before the cut was never committed");
+        }
+
+        clock.Advance(TimeSpan.FromMinutes(1));
+        (await Dispatcher.DispatchPendingAsync(10, TestContext.Current.CancellationToken)).Should().Be(2);
+
+        await using var after = NewContext();
+        var logs = await after.Logs.OrderBy(l => l.Id).ToListAsync(TestContext.Current.CancellationToken);
+        logs.Select(l => l.Sequence).Should().Equal([1, 2], "both events delivered once, in order, after the cut");
+        (await after.OutboxMessages.AllAsync(m => m.ProcessedAt != null, TestContext.Current.CancellationToken)).Should().BeTrue();
+    }
+
+    [Fact]
     public void Back_off_doubles_and_is_capped()
     {
         var options = new OutboxOptions();
@@ -297,7 +332,7 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
 
     private string connectionString = string.Empty;
 
-    private async Task BuildAsync(bool withFlaky, int maxAttempts)
+    private async Task BuildAsync(bool withFlaky, int maxAttempts, bool withConnectionKiller = false)
     {
         if (services is not null)
         {
@@ -315,6 +350,11 @@ public sealed class OutboxTests(PostgresFixture postgres) : IAsyncLifetime
         if (withFlaky)
         {
             collection.AddScoped<IDomainEventSubscriber<ProbeRenamed>, FlakySubscriber>();
+        }
+
+        if (withConnectionKiller)
+        {
+            collection.AddScoped<IDomainEventSubscriber<ProbeRenamed>, ConnectionKillingSubscriber>();
         }
 
         services = collection.BuildServiceProvider(validateScopes: true);

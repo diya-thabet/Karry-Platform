@@ -80,6 +80,66 @@ public sealed class PhotosApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await PutPhotoAsync(tenant, onSud, Png, token: TestTokens.ForTenant(tenant, AssetsHost.Operator))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task While_storage_is_down_photos_answer_503_with_retry_after_and_the_rest_keeps_working()
+    {
+        // Hardening plan H-R4. Removing a photo needs no storage until after it is saved (next test).
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant, "nord"));
+        await PutPhotoAsync(tenant, asset, Jpeg);
+        var ledger = await LedgerCountAsync(tenant);
+
+        host.Files.Down = true;
+        try
+        {
+            foreach (var response in new[]
+            {
+                await PutPhotoAsync(tenant, asset, Png),
+                await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/photo", Admin(tenant)),
+            })
+            {
+                response.StatusCode.Should().Be(HttpStatusCode.ServiceUnavailable);
+                (await Error(response)).Should().Be("server.unavailable");
+                response.Headers.RetryAfter!.Delta.Should().Be(TimeSpan.FromSeconds(30));
+            }
+
+            (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.OK, "only photos need the storage");
+            (await SiteAsync(tenant, "sud")).Should().NotBeEmpty();
+        }
+        finally
+        {
+            host.Files.Down = false;
+        }
+
+        (await LedgerCountAsync(tenant)).Should().Be(ledger, "no photo change was recorded");
+        var kept = await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/photo", Admin(tenant));
+        (await kept.Content.ReadAsByteArrayAsync(Ct)).Should().Equal(Jpeg, "the photo from before the outage is untouched");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_change_saved_before_the_storage_stops_is_not_reported_as_failed()
+    {
+        // The new photo and the asset are saved; only removing the replaced object fails.
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant, "nord"));
+        await PutPhotoAsync(tenant, asset, Jpeg);
+
+        host.Files.DeletesDown = true;
+        try
+        {
+            (await PutPhotoAsync(tenant, asset, Png)).StatusCode.Should().Be(HttpStatusCode.OK);
+            (await SendAsync(HttpMethod.Delete, $"/api/v1/assets/{asset}/photo", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+        finally
+        {
+            host.Files.DeletesDown = false;
+        }
+
+        (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/photo", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.NotFound, "the removal was saved");
+    }
+
     private static string Admin(Guid tenant) => TestTokens.ForTenant(tenant, "admin-1");
 
     private async Task<HttpResponseMessage> PutPhotoAsync(Guid tenant, Guid asset, byte[] content, string contentType = "image/jpeg", string? token = null)

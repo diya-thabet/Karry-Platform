@@ -15,6 +15,12 @@ public static class ProblemTypes
     /// <summary>Code of the generic 500 response; details stay in logs and traces.</summary>
     public const string UnexpectedCode = "server.unexpected_error";
 
+    /// <summary>
+    /// Code of a 503: a service the API depends on (database, object storage) is down for a moment. The answer carries
+    /// <c>Retry-After</c>; clients try again later instead of reporting a fault (hardening plan H-R1, H-R4).
+    /// </summary>
+    public const string UnavailableCode = "server.unavailable";
+
     /// <summary>Code of request validation failures (malformed or invalid input).</summary>
     public const string ValidationCode = "request.invalid";
 
