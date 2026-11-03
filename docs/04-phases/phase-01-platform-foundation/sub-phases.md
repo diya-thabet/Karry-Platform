@@ -4,7 +4,7 @@ area: phases
 tags: [phase-1, sub-phases, execution-plan, sequencing, definition-of-done, ci, tenancy, identity, billing, ledger, pwa]
 source: "Phase 1 plan (plan.md) broken into executable steps"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-03
 ---
 
 # Phase 1 Execution Plan: Sub-Phases P1.0 – P1.18
@@ -73,7 +73,7 @@ flowchart LR
 | P1.15 | Field app: install, enrollment, offline data, shared tablet | OFF-01 … OFF-04 | L | A real low-end Android tablet for device tests |
 | P1.16 | Platform operator console & audit viewer | OPS-03, AUD-04 | M | — |
 | P1.17 | Environments & continuous delivery | PLT-04 | L | **Hosting provider & region (WP-P0-14)**, cloud account, domain name |
-| P1.18 | Hardening, non-functional tests, demo & exit gate M1 | (exit gate) | M | Pilot master data; demo attendance |
+| P1.18 | Hardening, non-functional tests, demo & exit gate M1: **P1.18a** local and CI (started 2026-11-03), **P1.18b** after P1.17 | (exit gate) | M | Pilot master data; demo attendance |
 
 Size: **S** ≈ 1–3 PRs, **M** ≈ 3–6 PRs, **L** ≈ 6–10 PRs (PRs ≤ 400 changed lines each, [guidelines §20.3](../../00-llm/llm_guidelines.md#203-pull-requests)).
 
@@ -695,7 +695,11 @@ A sub-phase is ✅ only when **all** of these are true:
 **In plain words:** stress, security and recovery tests, loading the pilot customer's real data, the end-of-phase demo, and the formal "Phase 1 is done" check.
 
 - **Stories:** exit gate [plan §8.9](plan.md#89-exit-gate-m1--walking-skeleton); non-functional and security tests [plan §8.6](plan.md#86-test-plan-phase-1).
-- **Depends on:** P1.14, P1.15, P1.16, P1.17.
+- **Depends on:** P1.14, P1.15, P1.16, P1.17. **Split (owner, 2026-11-03):** the owner has not chosen a cloud provider
+  yet, so P1.18 runs in two parts. **P1.18a** (depends on P1.14 and P1.16) starts now: load, abuse, security,
+  resilience and review work on the local stack and in CI, per the [hardening plan](hardening-plan.md). **P1.18b**
+  (depends on P1.17 and P1.15) repeats the load and ZAP runs against staging and does the failover test, the UAT in
+  staging, the demo and the M1 gate.
 - **Owner inputs:** pilot customer master data (assisted import session = UAT); demo attendance; Sev-1/Sev-2 triage decisions.
 - **What gets done:**
   - **Load and resilience tests:**
