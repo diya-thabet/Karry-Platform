@@ -4,6 +4,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 async function renderAt(path: string, api: ReturnType<typeof fakeApi>) {
   const i18n = await createI18n({ language: "en", pseudo: false });
@@ -41,6 +42,6 @@ describe("subscription states in the portal (US-P1-BIL-05)", () => {
   it("still opens Plan & usage for billing readers after the end", async () => {
     await renderAt("/settings/plan", fakeApi({ permissions: ["billing.subscription.read"], status: "expired" }));
 
-    expect(await screen.findByRole("table", { name: "Usage" })).toBeInTheDocument();
+    expect(await findTable("Usage")).toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
 import type { AuthUser } from "@karry/auth";
 import type { Status } from "@karry/ui";
-import { useApi } from "../api";
+import { useApi } from "../app/api";
 
 export type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 export type MrrTotal = components["schemas"]["MrrTotalResponse"];

@@ -4,7 +4,8 @@ import { encode } from "uqr";
 import type { components } from "@karry/api-client";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, SelectField, StatusChip, useToast } from "@karry/ui";
-import { DevicesManagePermission, useAccess, useApi } from "../api";
+import { DevicesManagePermission, useAccess, useApi } from "../app/api";
+import { Trail } from "../shell/Trail";
 import { useSites } from "../sites/api";
 
 type Device = components["schemas"]["DeviceResponse"];
@@ -39,6 +40,7 @@ export function TabletsPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />}
         title={t("portal.tablets.title")}
         description={t("portal.tablets.description")}
         actions={manage && <Button onClick={() => { setEnrolling(true); }}>{t("portal.tablets.enrol")}</Button>}
@@ -48,7 +50,8 @@ export function TabletsPage() {
           caption={t("portal.tablets.title")}
           rows={devices.data ?? []}
           rowKey={(d) => d.id}
-          empty={<EmptyState title={devices.isPending && manage ? t("common.loading") : t("portal.tablets.empty")} />}
+          loading={devices.isPending && manage}
+          empty={<EmptyState title={t("portal.tablets.empty")} />}
           columns={[
             {
               key: "name",

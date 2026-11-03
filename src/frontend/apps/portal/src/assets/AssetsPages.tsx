@@ -1,9 +1,11 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { SearchX } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, SelectField, StatusChip, TextField, useToast, type Status } from "@karry/ui";
-import { useAccess, useApi, useCurrentTenant } from "../api";
+import { Button, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField, useToast, type Status } from "@karry/ui";
+import { useAccess, useApi, useCurrentTenant } from "../app/api";
+import { Trail } from "../shell/Trail";
 import { todayIn } from "../sites/api";
 import { LabelPrintDialog, LabelPanel, MetersPanel, PhotoPanel, PlacePanel } from "./AssetPanels";
 import {
@@ -67,17 +69,17 @@ export function AssetsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.nav.assets")}</h1>
-        {can(AssetsManagePermission) && (
-          <div className="flex flex-wrap gap-2">
+      <PageHeader
+        title={t("portal.nav.assets")}
+        actions={can(AssetsManagePermission) && (
+          <>
             <Button variant="secondary" disabled={rows.length === 0} onClick={() => { setPrinting(true); }}>{t("portal.assets.printLabels")}</Button>
             <Button asChild>
               <Link to="/assets/new">{t("portal.assets.new")}</Link>
             </Button>
-          </div>
+          </>
         )}
-      </div>
+      />
 
       <form role="search" className="flex flex-wrap items-end gap-2" onSubmit={search}>
         <TextField className="min-w-64" label={t("portal.assets.search")} description={t("portal.assets.searchHint")} type="search" value={typed} onChange={(e) => { setTyped(e.target.value); }} />
@@ -108,7 +110,8 @@ export function AssetsPage() {
         caption={t("portal.nav.assets")}
         rows={rows}
         rowKey={(asset) => asset.id}
-        empty={<EmptyState title={assets.isPending ? t("common.loading") : t("portal.assets.none")} />}
+        loading={assets.isPending}
+        empty={<EmptyState title={t("portal.assets.none")} />}
         columns={[
           { key: "code", header: t("portal.assets.code"), cell: (asset) => <span translate="no">{asset.code}</span> },
           {
@@ -151,15 +154,15 @@ export function AssetPage({ assetId }: { assetId?: string }) {
   }
 
   if (asset.isPending) {
-    return null;
+    return <PageSkeleton />;
   }
 
   if (!asset.data) {
-    return <EmptyState title={t("portal.notFound")} />;
+    return <EmptyState icon={SearchX} title={t("portal.notFound")} />;
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-4xl flex-col gap-8">
       <AssetForm key={asset.data.changedAt} asset={asset.data} />
       <PlacePanel asset={asset.data} />
       <div className="grid gap-8 lg:grid-cols-2">
@@ -244,15 +247,15 @@ function AssetForm({ asset }: { asset: Asset | null }) {
   const manageable = sites.filter((site) => site.status === "active");
   return (
     <div className="flex max-w-4xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link to="/assets" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.assets.back")}</Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight" translate={asset ? "no" : undefined}>{asset ? `${asset.code} · ${asset.name}` : t("portal.assets.new")}</h1>
-          {asset && <AssetStatusChip status={asset.status} />}
-        </div>
+      <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/assets", label: t("portal.nav.assets") }]} />}
+        title={asset ? `${asset.code} · ${asset.name}` : t("portal.assets.new")}
+        titleTranslate={asset ? "no" : undefined}
+        status={asset && <AssetStatusChip status={asset.status} />}
+      >
         {asset?.status === "disposed" && <p className="text-text-muted">{t("portal.assets.disposedHint")}</p>}
         {!can(AssetsManagePermission) && <p className="text-text-muted">{t("portal.assets.readOnly")}</p>}
-      </div>
+      </PageHeader>
 
       <form className="flex flex-col gap-6 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)] md:p-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-2">

@@ -23,7 +23,8 @@ async function signIn(page: Page, username: string) {
 async function operatorConsole(page: Page) {
   await page.goto(`${platform}/operator`);
   await signIn(page, operator);
-  const companies = page.getByRole("table", { name: "Entreprises" });
+  // The loaded list: while it loads the table shows skeleton rows and is busy (UI/UX review UX-12).
+  const companies = page.getByRole("table", { name: "Entreprises" }).and(page.locator(":not([aria-busy])"));
   const again = page.getByRole("button", { name: "Se reconnecter" });
   await expect(companies.or(again)).toBeVisible();
   if (await again.isVisible()) {

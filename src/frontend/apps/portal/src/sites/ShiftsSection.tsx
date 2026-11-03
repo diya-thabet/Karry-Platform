@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 import {
   addDays, dayCodes, dayKinds, ShiftsManagePermission, siteKey, todayIn,
   type NonWorkingDay, type ShiftInput, type ShiftInstance, type ShiftPattern, type Site,
@@ -109,7 +109,8 @@ function Patterns({ site, editable }: { site: Site; editable: boolean }) {
         caption={t("portal.shifts.title")}
         rows={patterns.data ?? []}
         rowKey={(pattern) => pattern.id}
-        empty={<EmptyState title={patterns.isPending ? t("common.loading") : t("portal.shifts.none")} />}
+        loading={patterns.isPending}
+        empty={<EmptyState title={t("portal.shifts.none")} />}
         columns={[
           { key: "from", header: t("portal.shifts.effectiveFrom"), cell: (pattern) => pattern.effectiveFrom },
           { key: "shifts", header: t("portal.shifts.shifts"), cell: (pattern) => <span translate="no">{summary(pattern)}</span> },
@@ -239,7 +240,8 @@ function NonWorkingDays({ site, editable }: { site: Site; editable: boolean }) {
         caption={t("portal.days.title")}
         rows={days.data ?? []}
         rowKey={(day) => day.date}
-        empty={<EmptyState title={days.isPending ? t("common.loading") : t("portal.days.none")} />}
+        loading={days.isPending}
+        empty={<EmptyState title={t("portal.days.none")} />}
         columns={[
           { key: "date", header: t("portal.days.date"), cell: (day) => day.date },
           { key: "kind", header: t("portal.days.kind"), cell: (day) => t(`portal.days.kind.${day.kind}`) },
@@ -297,7 +299,8 @@ function Upcoming({ site }: { site: Site }) {
         caption={t("portal.upcoming.title")}
         rows={(instances.data ?? []).slice(0, 14)}
         rowKey={(shift) => `${shift.date}-${shift.code}`}
-        empty={<EmptyState title={instances.isPending ? t("common.loading") : t("portal.upcoming.none")} />}
+        loading={instances.isPending}
+        empty={<EmptyState title={t("portal.upcoming.none")} />}
         columns={[
           { key: "date", header: t("portal.upcoming.date"), cell: (shift) => date.format(new Date(`${shift.date}T00:00:00Z`)) },
           { key: "shift", header: t("portal.upcoming.shift"), cell: (shift) => <span translate="no">{shift.name}</span> },

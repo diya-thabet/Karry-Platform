@@ -5,6 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, user } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 const admin = ["identity.roles.manage", "identity.roles.read", "identity.users.manage", "identity.users.read"];
 
@@ -33,7 +34,7 @@ describe("settings (US-P1-IAM-04/05/06/07)", () => {
   it("lists default roles by their translated name and offers a new role only to role managers", async () => {
     await renderAt("/settings/roles", fakeApi({ permissions: ["identity.roles.read"] }));
 
-    const table = await screen.findByRole("table", { name: "Rôles" });
+    const table = await findTable("Rôles");
     expect(await within(table).findByRole("link", { name: "Administrateur" })).toBeInTheDocument();
     expect(within(table).getByRole("link", { name: "Conducteur d’engin" })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Nouveau rôle" })).not.toBeInTheDocument();

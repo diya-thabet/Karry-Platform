@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 import { useSites } from "../sites/api";
 
 export type Asset = components["schemas"]["AssetResponse"];

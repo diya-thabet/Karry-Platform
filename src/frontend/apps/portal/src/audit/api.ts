@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 
 export type AuditEntry = components["schemas"]["AuditEntryResponse"];
 export type AuditChange = components["schemas"]["AuditChange"];

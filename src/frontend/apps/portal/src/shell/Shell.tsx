@@ -1,6 +1,7 @@
 import { useRouteContext } from "@tanstack/react-router";
-import { Layout, NotFound } from "./Layout";
-import { OperatorLayout, OperatorNotFound } from "./operator/OperatorConsole";
+import { Layout } from "./Layout";
+import { NotFound } from "./Placeholders";
+import { OperatorLayout, OperatorNotFound } from "../operator/OperatorConsole";
 
 /** The company's portal shell, or the operator console's for Karry staff; unknown addresses show inside it. */
 export function Shell() {

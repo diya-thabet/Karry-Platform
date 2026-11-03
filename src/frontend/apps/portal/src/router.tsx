@@ -2,15 +2,15 @@ import { createRootRouteWithContext, createRoute, createRouter, redirect, type R
 import { AssetPage, AssetsPage } from "./assets/AssetsPages";
 import { AuditPage } from "./audit/AuditPage";
 import { PlanPage } from "./billing/PlanPage";
-import { HomePage } from "./HomePage";
+import { HomePage } from "./home/HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
-import { Section } from "./Layout";
+import { ComingSoon } from "./shell/Placeholders";
 import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
 import { TenantPage } from "./operator/TenantPage";
 import { TenantsPage } from "./operator/TenantsPage";
-import { sections } from "./sections";
+import { sections } from "./shell/sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
-import { Shell, ShellNotFound } from "./Shell";
+import { Shell, ShellNotFound } from "./shell/Shell";
 import { CompanyPage } from "./settings/CompanyPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SupportPage } from "./settings/SupportPage";
@@ -63,7 +63,7 @@ const operatorCompany = createRoute({
 });
 const routes = sections
   .filter((section) => !["/", "/settings", "/sites", "/assets", "/audit"].includes(section.path))
-  .map((section) => createRoute({ getParentRoute: () => company, path: section.path, component: () => <Section titleKey={section.key} /> }));
+  .map((section) => createRoute({ getParentRoute: () => company, path: section.path, component: () => <ComingSoon titleKey={section.key} /> }));
 
 const home = createRoute({ getParentRoute: () => company, path: "/", component: HomePage });
 const audit = createRoute({ getParentRoute: () => company, path: "/audit", component: AuditPage });

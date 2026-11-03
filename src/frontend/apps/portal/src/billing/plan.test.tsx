@@ -5,6 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 async function renderAt(path: string, api: ReturnType<typeof fakeApi>) {
   const i18n = await createI18n({ language: "en", pseudo: false });
@@ -20,7 +21,7 @@ describe("Plan & usage (US-P1-BIL-04 AC2, AC3)", () => {
 
     expect(await screen.findByRole("heading", { name: "Professional" })).toBeInTheDocument();
     expect(screen.getByText("Trial")).toBeInTheDocument();
-    const table = await screen.findByRole("table", { name: "Usage" });
+    const table = await findTable("Usage");
     const row = await within(table).findByRole("row", { name: /Office users/ });
     expect(within(row).getByText("3")).toBeInTheDocument();
     expect(within(row).getByText("15")).toBeInTheDocument();
@@ -64,7 +65,7 @@ describe("the over-limit banner's kill switch (US-P1-PLT-05, ADR-0019)", () => {
       usage: [{ metric: "assets", usage: 22, limit: 20, ceiling: 22, state: "blocked" }],
     }));
 
-    expect(await screen.findByRole("table", { name: "Usage" })).toBeInTheDocument();
+    expect(await findTable("Usage")).toBeInTheDocument();
     await new Promise((resolve) => setTimeout(resolve, 50)); // the flag provider has loaded
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });

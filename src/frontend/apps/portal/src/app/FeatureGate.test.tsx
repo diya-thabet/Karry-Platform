@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { createI18n, I18nProvider } from "@karry/i18n";
 import { ApiProvider } from "./ApiProvider";
 import { FeatureGate } from "./FeatureGate";
-import { fakeApi } from "./testing/fakeApi";
+import { fakeApi } from "../testing/fakeApi";
 
 async function renderGate(features: string[]) {
   const api = fakeApi({ permissions: [], features });

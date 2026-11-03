@@ -98,6 +98,27 @@ describe("right to left: Arabic and N'Ko", () => {
   });
 });
 
+describe("tables (UX-07)", () => {
+  afterAll(async () => { await i18n.changeLanguage("fr"); await page.viewport(414, 896); });
+
+  it.each(["fr", "ar"] as const)("%s: every column header is aligned like the column's cells", async (language) => {
+    await i18n.changeLanguage(language);
+    await page.viewport(1280, 800);
+    const table = stories.find((s) => s.id === "Data/Table");
+    if (!table) throw new Error("story Data/Table is needed");
+    show(table.Story, "light", "office");
+
+    const headers = [...document.querySelectorAll<HTMLElement>("thead th")];
+    const cells = [...document.querySelectorAll<HTMLElement>("tbody tr:first-child td")];
+    expect(headers.length).toBe(cells.length);
+    headers.forEach((header, index) => {
+      const cell = cells[index];
+      if (!cell) throw new Error("missing cell");
+      expect(getComputedStyle(header).textAlign, header.textContent).toBe(getComputedStyle(cell).textAlign);
+    });
+  });
+});
+
 describe("field density (US-P1-OFF-05 AC2)", () => {
   it.each(themeNames)("%s: every control is at least 48 px high and body text at least 16 px", (theme) => {
     const field = stories.find((s) => s.id === "Fields/FieldControls");

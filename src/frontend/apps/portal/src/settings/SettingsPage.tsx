@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Building2, CreditCard, FileSpreadsheet, Layers, LifeBuoy, ShieldCheck, Tablet, Users } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { PageHeader } from "@karry/ui";
-import { BillingReadPermission, DevicesManagePermission, SupportManagePermission, useAccess } from "../api";
+import { BillingReadPermission, DevicesManagePermission, SupportManagePermission, useAccess } from "../app/api";
 import { ImportsPermission } from "../imports/api";
 import { MaterialsReadPermission } from "../materials/api";
 

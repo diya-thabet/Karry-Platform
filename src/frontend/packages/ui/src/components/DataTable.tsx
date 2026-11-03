@@ -1,4 +1,6 @@
 import type { ReactNode } from "react";
+import { useTranslation } from "@karry/i18n";
+import { Skeleton } from "./Skeleton";
 
 export interface Column<T> {
   key: string;
@@ -11,7 +13,8 @@ export interface Column<T> {
 /**
  * Accessible data table: real <table>, caption for screen readers, row selection by keyboard. On a phone each row is a
  * card (first column as its title, the others as "label: value" lines); the explicit roles keep the table semantics
- * that some browsers drop when a table is not displayed as one.
+ * that some browsers drop when a table is not displayed as one. While the rows load, skeleton rows keep the table's
+ * shape (UX-12): the empty state is only for a list that is really empty.
  */
 export function DataTable<T>(props: {
   caption: string;
@@ -21,23 +24,37 @@ export function DataTable<T>(props: {
   empty: ReactNode;
   selectedKey?: string | undefined;
   onSelect?: ((row: T) => void) | undefined;
+  /** The first page of rows is on its way: skeleton rows instead of the empty state. */
+  loading?: boolean | undefined;
 }) {
-  if (props.rows.length === 0) {
+  const { t } = useTranslation();
+  const loading = props.loading === true && props.rows.length === 0;
+  if (props.rows.length === 0 && !loading) {
     return <>{props.empty}</>;
   }
 
   return (
     <div className="overflow-x-auto rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface shadow-[var(--karry-card-shadow)] max-sm:overflow-visible max-sm:rounded-none max-sm:border-0 max-sm:bg-transparent max-sm:shadow-none">
-      <table role="table" className="w-full border-collapse text-start text-sm text-text max-sm:block">
+      <table role="table" aria-busy={loading || undefined} className="w-full border-collapse text-start text-sm text-text max-sm:block">
         <caption className="sr-only">{props.caption}</caption>
         <thead role="rowgroup" className="bg-surface-muted max-sm:sr-only">
           <tr role="row">
             {props.columns.map((column) => (
-              <th key={column.key} role="columnheader" scope="col" className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted ${column.numeric ? "text-end" : ""}`}>{column.header}</th>
+              <th key={column.key} role="columnheader" scope="col" className={`whitespace-nowrap px-4 py-2.5 text-xs font-semibold uppercase tracking-wide text-text-muted ${column.numeric ? "text-end" : "text-start"}`}>{column.header}</th>
             ))}
           </tr>
         </thead>
         <tbody role="rowgroup" className="max-sm:flex max-sm:flex-col max-sm:gap-3">
+          {loading && [0, 1, 2].map((index) => (
+            <tr key={`loading-${String(index)}`} role="row" className="border-t-[length:var(--karry-border-width)] border-divider max-sm:block max-sm:rounded-xl max-sm:bg-surface max-sm:px-4 max-sm:py-3">
+              {props.columns.map((column, cell) => (
+                <td key={column.key} role="cell" className="px-4 py-3.5 max-sm:block max-sm:px-0 max-sm:py-1.5">
+                  {index === 0 && cell === 0 && <span className="sr-only">{t("common.loading")}</span>}
+                  <Skeleton className={`h-4 ${column.numeric ? "ms-auto w-16" : cell === 0 ? "w-3/4" : "w-1/2"}`} />
+                </td>
+              ))}
+            </tr>
+          ))}
           {props.rows.map((row) => {
             const key = props.rowKey(row);
             const selected = key === props.selectedKey;

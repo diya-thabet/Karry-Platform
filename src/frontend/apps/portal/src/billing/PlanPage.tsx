@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@karry/i18n";
-import { DataTable, EmptyState, StatusChip, type Status } from "@karry/ui";
-import { useApi, useEntitlements, useUsage, type UsageLine as Line } from "../api";
+import { DataTable, EmptyState, PageHeader, StatusChip, type Status } from "@karry/ui";
+import { useApi, useEntitlements, useUsage, type UsageLine as Line } from "../app/api";
+import { Trail } from "../shell/Trail";
 
 const chips: Record<string, Status> = { within: "ok", over: "warning", blocked: "error" };
 
@@ -19,7 +20,7 @@ export function PlanPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{t("portal.plan.title")}</h1>
+      <PageHeader breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />} title={t("portal.plan.title")} />
       <section aria-labelledby="plan-heading" className="flex flex-col gap-2 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
         <h2 id="plan-heading" className="text-base font-semibold">
           {planCode ? t(`plans.${planCode}`, { defaultValue: planCode }) : t("common.loading")}
@@ -42,7 +43,8 @@ export function PlanPage() {
         caption={t("portal.plan.usage")}
         rows={usage.items}
         rowKey={(line) => line.metric}
-        empty={<EmptyState title={usage.loaded ? t("common.empty.title") : t("common.loading")} />}
+        loading={!usage.loaded}
+        empty={<EmptyState title={t("common.empty.title")} />}
         columns={[
           { key: "metric", header: t("portal.plan.metric"), cell: (line) => t(`metrics.${line.metric}`, { defaultValue: line.metric }) },
           { key: "usage", header: t("portal.plan.used"), cell: (line) => line.usage },

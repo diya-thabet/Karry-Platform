@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useState } from "react";
+import { Checkbox } from "./Checkbox";
 import { QuantityInput, type MaterialState, type QuantityInputProps } from "./QuantityInput";
 import { SelectField } from "./SelectField";
 import { TextAreaField, TextField } from "./TextField";
@@ -14,6 +15,15 @@ export const TextWithHelpAndError: Story = {
 };
 export const TextArea: Story = {
   render: () => <TextAreaField label="Motif" description="30 caractères au moins." defaultValue="INC-42 : les totaux du pont-bascule sont faux la nuit." />,
+};
+export const Checkboxes: Story = {
+  render: () => (
+    <div className="flex flex-col">
+      <Checkbox label="Afficher les sites archivés" />
+      <Checkbox label="Envoyer un résumé chaque matin" defaultChecked />
+      <Checkbox label="Option indisponible" disabled />
+    </div>
+  ),
 };
 export const TextDisabled: Story = { render: () => <TextField label="Site" defaultValue="Carrière Nord" disabled /> };
 
@@ -44,15 +54,15 @@ export const QuantityTonnes: Story = { render: () => <Quantity /> };
 export const QuantityVolumeToggle: Story = { render: () => <Toggled /> };
 export const QuantityWithError: Story = { render: () => <Quantity error="Doit être un nombre positif." /> };
 
-export const Select: Story = {
-  render: () => {
-    const [value, setValue] = useState<string | undefined>(undefined);
-    return (
-      <SelectField label="Matériau" placeholder="Choisir…" value={value} onValueChange={setValue}
-        options={[{ value: "gravel", label: "Gravier 4/6" }, { value: "sand", label: "Sable 0/4" }]} />
-    );
-  },
-};
+function MaterialSelect() {
+  const [value, setValue] = useState<string | undefined>(undefined);
+  return (
+    <SelectField label="Matériau" placeholder="Choisir…" value={value} onValueChange={setValue}
+      options={[{ value: "gravel", label: "Gravier 4/6" }, { value: "sand", label: "Sable 0/4" }]} />
+  );
+}
+
+export const Select: Story = { render: () => <MaterialSelect /> };
 
 /** Field density: every control at least 48 px high, text at least 16 px (US-P1-OFF-05 AC2; checked in a11y tests). */
 export const FieldControls: Story = {

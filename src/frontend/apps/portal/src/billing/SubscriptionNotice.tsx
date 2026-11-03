@@ -2,7 +2,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useTranslation } from "@karry/i18n";
 import { EmptyState } from "@karry/ui";
-import { BillingReadPermission, endedStates, useAccess, useEntitlements } from "../api";
+import { BillingReadPermission, endedStates, useAccess, useEntitlements } from "../app/api";
 
 /**
  * What the subscription state means for the person (US-P1-BIL-05): a payment reminder for billing readers while

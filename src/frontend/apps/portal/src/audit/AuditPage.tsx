@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-q
 import { useState, type SyntheticEvent } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, MaskedValue, PageHeader, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 import { useSiteNames } from "../assets/api";
 import { saveFile } from "../imports/api";
 import {
@@ -189,15 +189,16 @@ function AuditLog() {
         caption={t("portal.audit.log")}
         rows={rows}
         rowKey={(entry) => String(entry.sequence)}
-        empty={<EmptyState title={entries.isPending ? t("common.loading") : t("portal.audit.none")} />}
+        loading={entries.isPending}
+        empty={<EmptyState title={t("portal.audit.none")} />}
         columns={[
-          { key: "at", header: t("portal.audit.when"), cell: (entry) => <time dateTime={entry.occurredAt}>{at(entry.occurredAt)}</time> },
-          { key: "who", header: t("portal.audit.person"), cell: (entry) => <span translate="no">{person(entry)}</span> },
+          { key: "at", header: t("portal.audit.when"), cell: (entry) => <time dateTime={entry.occurredAt} className="whitespace-nowrap">{at(entry.occurredAt)}</time> },
+          { key: "who", header: t("portal.audit.person"), cell: (entry) => <Identifier value={person(entry)} /> },
           { key: "what", header: t("portal.audit.eventType"), cell: (entry) => <code translate="no" className="text-xs">{entry.eventType}</code> },
           {
             key: "on",
             header: t("portal.audit.subject"),
-            cell: (entry) => entry.entityType ? <span translate="no">{entry.entityType} · {entry.entityId}</span> : "—",
+            cell: (entry) => entry.entityType ? <span translate="no" className="whitespace-nowrap">{entry.entityType} · <Identifier value={entry.entityId ?? ""} /></span> : "—",
           },
           { key: "site", header: t("portal.audit.site"), cell: (entry) => entry.siteId ? <span translate="no">{name(entry.siteId)}</span> : t("portal.audit.companyWide") },
           {
@@ -284,5 +285,24 @@ function EntryDialog({ entry, person, at, onClose }: { entry: AuditEntry | null;
         </div>
       )}
     </Dialog>
+  );
+}
+
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * An identifier as people can scan it in a list (UX-10): a UUID shortened to its first eight characters, the whole
+ * value in the tooltip and for screen readers; anything else as it is.
+ */
+function Identifier({ value }: { value: string }) {
+  if (!uuid.test(value)) {
+    return <span translate="no">{value}</span>;
+  }
+
+  return (
+    <span translate="no" title={value} className="font-mono text-xs">
+      <span aria-hidden>{`${value.slice(0, 8)}…`}</span>
+      <span className="sr-only">{value}</span>
+    </span>
   );
 }

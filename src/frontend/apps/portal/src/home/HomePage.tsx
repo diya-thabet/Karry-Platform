@@ -4,11 +4,11 @@ import { ArrowRight, FileSpreadsheet, Layers, MapPinned, Plus, Truck, UserPlus, 
 import { useAuth } from "@karry/auth";
 import { useTranslation } from "@karry/i18n";
 import { buttonVariants, Card, EmptyState, PageHeader, StatCard } from "@karry/ui";
-import { useAccess, useApi, useCurrentTenant } from "./api";
-import { AssetsManagePermission, AssetsReadPermission } from "./assets/api";
-import { ImportsPermission } from "./imports/api";
-import { MaterialsReadPermission, useMaterials } from "./materials/api";
-import { SitesManagePermission, SitesReadPermission, useSites } from "./sites/api";
+import { useAccess, useApi, useCurrentTenant } from "../app/api";
+import { AssetsManagePermission, AssetsReadPermission } from "../assets/api";
+import { ImportsPermission } from "../imports/api";
+import { MaterialsReadPermission, useMaterials } from "../materials/api";
+import { SitesManagePermission, SitesReadPermission, useSites } from "../sites/api";
 
 const countLimit = 200;
 
@@ -35,7 +35,8 @@ export function HomePage() {
     enabled: can("identity.users.read"),
   });
 
-  const count = (items: unknown[] | undefined, more = false) => (items === undefined ? "…" : more ? `${String(countLimit)}+` : String(items.length));
+  // undefined while loading: the card shows a skeleton (UX-14)
+  const count = (items: unknown[] | undefined, more = false) => (items === undefined ? undefined : more ? `${String(countLimit)}+` : String(items.length));
   const activeSites = sites.data?.filter((s) => s.status === "active");
   const stats = [
     can(SitesReadPermission) && { key: "sites", icon: MapPinned, label: t("portal.home.sites"), value: count(activeSites) },

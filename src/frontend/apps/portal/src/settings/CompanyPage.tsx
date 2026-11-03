@@ -1,11 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
 import { intlLocale, supportedLanguages, useTranslation } from "@karry/i18n";
-import { Button, buttonVariants, EmptyState, SelectField, TextField, useToast } from "@karry/ui";
-import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../api";
-import { currencies } from "../currencies";
+import { Button, buttonVariants, EmptyState, PageHeader, PageSkeleton, SelectField, TextField, useToast } from "@karry/ui";
+import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../app/api";
+import { currencies } from "../app/currencies";
+import { Trail } from "../shell/Trail";
 
 type Tenant = components["schemas"]["TenantResponse"];
 type Settings = components["schemas"]["UpdateTenantSettings"];
@@ -33,7 +33,7 @@ export function CompanyPage() {
   const { t } = useTranslation();
   const { loaded, tenant } = useCurrentTenant();
   if (!loaded) {
-    return null;
+    return <PageSkeleton />;
   }
 
   return tenant ? <CompanyForm key={tenant.settingsChangedAt ?? "new"} tenant={tenant} /> : <EmptyState title={t("portal.notFound")} />;
@@ -87,11 +87,9 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
   const zoneOptions = zones();
   return (
     <div className="flex max-w-3xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.company.back")}</Link>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.company.title")}</h1>
+      <PageHeader breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />} title={t("portal.company.title")}>
         {!editable && <p className="text-text-muted">{t("portal.company.readOnly")}</p>}
-      </div>
+      </PageHeader>
 
       <section aria-labelledby="company-logo" className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)]">
         <h2 id="company-logo" className="text-base font-semibold">{t("portal.company.logo")}</h2>
