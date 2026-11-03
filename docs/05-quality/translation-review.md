@@ -4,7 +4,7 @@ area: quality
 tags: [i18n, l10n, translation, review, arabic, malinke, maninka, nko, rtl, catalogs, native-speaker, glossary]
 source: "ADR-0030 (owner decisions 2026-10-29)"
 status: live
-last_updated: 2026-10-29
+last_updated: 2026-11-03
 ---
 
 # Translation review
@@ -25,7 +25,7 @@ reviewed by native speakers before customers rely on them (owner decision). This
 | Malinké, Latin script | `emk.json` | Agent draft, 2026-10-29 | **Low**: simple sentences, French technical loanwords, spelling closer to Bambara in places | ⏳ Waiting for a rewrite | *wanted* |
 | Malinké, N'Ko script | `nqo.json` | Generated from `emk.json` (`tools/i18n/nko_from_latin.py`) | **Low**: inherits the Latin draft, **no tone marks**, borrowed sounds guessed | ⏳ Waiting for a rewrite | *wanted* |
 
-Files: `src/frontend/packages/i18n/src/catalogs/`. Every catalog holds the same 1,041 keys (2026-10-29, after the UI/UX review removed seven back-link keys).
+Files: `src/frontend/packages/i18n/src/catalogs/`. Every catalog holds the same 1,044 keys (2026-11-03: three keys for request limits added after the UI/UX review).
 
 ## 2. Who is needed
 
@@ -84,6 +84,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 |---|---|---|---|
 | 2026-10-29 | all keys | ar, emk, nqo | First drafts |
 | 2026-10-29 | `portal.nav.breadcrumbs`, `field.action.soon` | ar, emk, nqo | UI/UX review (breadcrumbs, "coming soon" on the field actions) |
+| 2026-11-03 | `errors.request.rate_limited`, `errors.request.too_large`, `field.sync.state.busy` | ar, emk, nqo | P1.18a request limits (429, 413, a busy server on the tablet) |
 
 ## 6. Not translated yet
 

@@ -120,6 +120,15 @@ describe("refreshing the reference data (US-P1-OFF-03, ADR-0028 §5)", () => {
     expect(await machineCount(db)).toBe(1);
   });
 
+  it("says the server is busy when it refuses with 429, and applies nothing (T-12)", async () => {
+    const { db, send, reply } = await setup();
+    reply(429, { code: "request.rate_limited", retryAfterSeconds: 10 });
+
+    expect(await pullChanges(db, send)).toBe("busy");
+    expect(send).toHaveBeenCalledOnce();
+    expect(await lastRefresh(db)).toBeNull();
+  });
+
   it("tells no connection from a server failure, and applies nothing in either case", async () => {
     const { db, send, reply } = await setup();
     reply(503, { code: "unavailable" });
