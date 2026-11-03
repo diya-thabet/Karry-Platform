@@ -110,6 +110,7 @@ public sealed class TenancyModule : IModule
         endpoints.MapPut("/settings/logo", SetLogoAsync)
             .RequirePermission(TenancyPermissions.SettingsManage)
             .Accepts<IFormFile>("image/png", "image/jpeg", "image/webp")
+            .WithMaxBody(2L * TenantLogo.MaxBytes)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("SetTenantLogo");

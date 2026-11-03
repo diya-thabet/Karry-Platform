@@ -57,6 +57,7 @@ public sealed class ImportsModule : IModule
             .RequirePermission(ImportsPermissions.FilesManage)
             .RequireIdempotencyKey()
             .Accepts<IFormFile>(WorkbookContentType)
+            .WithMaxBody(2L * ImportErrors.MaxBytes)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)

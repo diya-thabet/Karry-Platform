@@ -55,9 +55,9 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | H-A1 | One tablet floods the sync API | 429 with `Retry-After` past its limit; other tablets unaffected; forged assertions naming it do not use up its limit | `RateLimitTests` | ✅ |
 | H-A2 | One person floods the API; one company floods the API | 429 per person and per company; colleagues and other companies unaffected | `RateLimitTests` | ✅ |
 | H-A3 | Anonymous flood of enrolment and public branding; flood of bad tokens; spoofed `X-Forwarded-For` | 429 per IP address, before authentication for bad tokens; only a known load balancer names the address | `RateLimitTests`, `RateLimitWiringTests` (real host) | ✅ |
-| H-A4 | Oversized body (sync batch > 8 MB, JSON > 1 MB elsewhere) | 413, nothing stored | integration tests | 🟡 (batch limit exists) |
-| H-A5 | A page size far above the maximum (`limit=1000000`) | Capped or 400, never a full table scan | integration tests | ⬜ |
-| H-A6 | Deeply nested or malformed JSON | 400 problem details, no 500 | integration tests | ⬜ |
+| H-A4 | Oversized body (sync batch > 8 MiB, JSON > 1 MiB elsewhere), declared or streamed | 413 `request.too_large` before the body is read, nothing stored | `RequestLimitTests` (Kestrel), `ContractAbuseTests` (every operation) | ✅ |
+| H-A5 | A page size far above the maximum (`limit=1000000`, -1, 0, 2^31, `ten`) | Capped at 200 or 400, never a 500 | `ContractAbuseTests` (every list) | ✅ |
+| H-A6 | Deeply nested, cut short, wrongly typed or invalid UTF-8 JSON; junk query values (SQL, 10 000 digits, control characters) | 400 problem details, no 500, no row changed | `RequestLimitTests`, `ContractAbuseTests` (every operation and query parameter) | ✅ |
 
 ### 2.3 Authentication and identity
 
@@ -101,8 +101,9 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | Slice | Content | Status |
 |---|---|---|
 | 0 | This plan, the P1.18a/P1.18b split | ✅ #123 |
-| 1a | Rate limiting and the load balancer's address (H-A1–A3) | 🟡 |
-| 1b | Request limits (H-A4–A6) | ⬜ |
+| 1a | Rate limiting and the load balancer's address (H-A1–A3) | ✅ #124 |
+| 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | 🟡 |
+| 1c | Clients: portal messages for 429 and 413, tablets wait for `Retry-After` with jitter | ⬜ |
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1–L4), nightly job | ⬜ |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5), authentication audit (H-I1, H-I3) | ⬜ |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |

@@ -329,6 +329,7 @@ public sealed class IsolationHost : IAsyncLifetime
         {
             builder.UseEnvironment("Testing");
             builder.UseSetting("ConnectionStrings:Karry", connectionString);
+            builder.UseSetting("RateLimits:Enabled", "false"); // one attacker calls every operation many times (limits: RateLimitTests)
             builder.ConfigureTestServices(services => services.TrustTestIssuer());
         }
     }
@@ -350,7 +351,7 @@ public sealed record SeededTenant(Guid Id, string Slug, string Name)
 /// </summary>
 [Trait("Story", "US-P1-TEN-03")]
 [Trait("TestCase", "TC-P1-TEN-002")]
-public sealed class TenantIsolationSuite(IsolationHost host) : IClassFixture<IsolationHost>
+public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFixture<IsolationHost>
 {
     /// <summary>Operations without tenant data, reviewed one by one. Adding one is a security decision.</summary>
     private static readonly Dictionary<string, string> Exemptions = new(StringComparer.Ordinal)
