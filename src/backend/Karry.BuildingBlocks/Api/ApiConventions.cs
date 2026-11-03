@@ -47,6 +47,18 @@ public static partial class ApiConventions
         app.UseExceptionHandler(handler => handler.Run(async context =>
         {
             var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+            // The client's fault, not ours: a body past the limit while it streamed in, or a body that could not be read.
+            if (exception is BadHttpRequestException bad)
+            {
+                await (bad.StatusCode == StatusCodes.Status413PayloadTooLarge
+                    ? RequestLimits.TooLarge(context, null)
+                    : TypedResults.Problem(title: "The request could not be read.", statusCode: StatusCodes.Status400BadRequest,
+                        type: ProblemTypes.For(ProblemTypes.ValidationCode).ToString(),
+                        extensions: new Dictionary<string, object?> { ["code"] = ProblemTypes.ValidationCode })).ExecuteAsync(context).ConfigureAwait(false);
+                return;
+            }
+
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Karry.Api");
             LogUnhandled(logger, context.Request.Method, context.Request.Path, exception);
 
@@ -64,6 +76,7 @@ public static partial class ApiConventions
             }).ConfigureAwait(false);
         }));
         app.UseStatusCodePages();
+        app.UseKarryRequestLimits();
 
         // Only endpoints with a CORS policy answer cross-origin requests; the default is same-origin only.
         app.UseCors();

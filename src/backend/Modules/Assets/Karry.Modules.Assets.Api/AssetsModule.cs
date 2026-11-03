@@ -91,6 +91,7 @@ public sealed class AssetsModule : IModule
         endpoints.MapPut("/{assetId:guid}/photo", SetPhotoAsync)
             .RequirePermission(AssetsPermissions.RegistryManage)
             .Accepts<IFormFile>("image/jpeg", "image/png", "image/webp")
+            .WithMaxBody(2L * AssetPhotos.MaxBytes)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)

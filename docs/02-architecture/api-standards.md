@@ -35,6 +35,7 @@ last_updated: 2026-10-29
 | BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
 | (framework refusal: no or bad token, failed policy such as `platform-operator`) | 401 / 403 | `auth.unauthenticated` / `auth.forbidden` (same codes as the tenant and permission checks) |
 | A platform operator signed in without a second factor (`amr` has neither `otp` nor `hwk`, ADR-0029 §5) | 401 | `auth.mfa_required` (sign in again with the factor) |
+| Body above the endpoint's limit (request limits below) | 413 | `request.too_large`, with `maxBytes` |
 | Too many requests (rate limits below) | 429 | `request.rate_limited`, with the `Retry-After` header and `retryAfterSeconds` |
 | (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
 
@@ -56,6 +57,15 @@ load balancer's networks (`X-Forwarded-For` from anyone else is ignored); **P1.1
 shares the load balancer's address. `RateLimits:Enabled` is false only in test hosts, and production refuses to start
 with it false. The local stack (`appsettings.Development.json`) raises the two address limits, since every browser
 there is 127.0.0.1. Metric `karry.rate_limit.rejected` (tag `limit`: address, device, person, anonymous, tenant).
+
+**Request limits (P1.18a, `Karry.BuildingBlocks/Api/RequestLimits.cs`).** A body is at most **1 MiB** unless the
+endpoint declares more with `.WithMaxBody(bytes)`: sync batches 8 MiB; uploads twice their module's limit (logo
+512 KiB, photo 10 MiB, workbook 20 MiB), so the module's own clearer message (`tenant.logo_too_large`, …) answers up to
+that size. The limit is set before anything reads the body (idempotency fingerprints it): a declared `Content-Length`
+above it is refused at once, a streamed body is cut off when it passes it; both answer `413 request.too_large`. A body
+that cannot be read (malformed, cut short, wrong type, invalid UTF-8, nested deeper than 64) is `400 request.invalid`.
+Lists accept `limit` 1–200 (400 outside, or capped). The contract-wide abuse tests (`ContractAbuseTests`) call every
+operation with broken and oversized bodies, absurd page sizes and junk query values: never a 500.
 
 **Authentication and tenant (P1.5).** Module endpoints (`/api/v1/{module}/…`) require a bearer token and a tenant **by default**. The tenant comes only from the validated token's `tenant_id` claim (exactly one UUID), never from a header, path or body. No or invalid token → **401**; a valid token without exactly one tenant → **403 `tenant.missing`**. Both are answered before the endpoint runs. **One exception, for Karry staff only:** a platform operator's token (no `tenant_id`) with the header `Karry-Support-Session: <tenantId>.<sessionId>` reads that tenant's data if the session is the operator's own, running and within its hour (support access, [ADR-0029 §4](../adr/0029-operator-console-support-access-audit-viewer.md#4-support-access-a-ledgered-read-only-one-hour-support-session)): reads only (`403 support.read_only` otherwise), every sensitive field masked, every request ledgered; otherwise `403 support.session_invalid`. A company's own token ignores the header. An endpoint opts out explicitly with `.AllowAnonymous()` (public) and/or `.AllowWithoutTenant()` (platform operator, branding lookup), and the opt-out is reviewed.
 

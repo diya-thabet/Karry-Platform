@@ -54,7 +54,7 @@ public sealed class SyncModule : IModule
         endpoints.MapPost("/batches", UploadAsync)
             .RequireDevice(allowRevoked: true)
             .Validate<UploadBatch>()
-            .WithMetadata(new RequestSizeLimitAttribute(MaxBatchBytes))
+            .WithMaxBody(MaxBatchBytes)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
