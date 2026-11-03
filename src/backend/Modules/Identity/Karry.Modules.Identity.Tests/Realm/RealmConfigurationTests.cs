@@ -90,7 +90,10 @@ public sealed class RealmConfigurationTests
     public void Brute_force_protection_locks_accounts_after_a_few_failures()
     {
         Realm["bruteForceProtected"]!.GetValue<bool>().Should().BeTrue("AC4");
-        Realm["failureFactor"]!.GetValue<int>().Should().BeInRange(3, 10);
+        Realm["failureFactor"]!.GetValue<int>().Should().Be(5, "hardening plan H-I5: locked after 5 failures");
+        Realm["maxFailureWaitSeconds"]!.GetValue<int>().Should().Be(900, "H-I5: for up to 15 minutes");
+        Realm["waitIncrementSeconds"]!.GetValue<int>().Should().BeInRange(30, 300);
+        Realm["quickLoginCheckMilliSeconds"]!.GetValue<int>().Should().BePositive("scripted guessing (faster than a person types) is slowed down too");
         Realm["permanentLockout"]!.GetValue<bool>().Should().BeFalse("a temporary lockout cannot be used to lock a colleague out for good");
         Realm["enabledEventTypes"]!.AsArray().Select(e => e!.GetValue<string>()).Should().Contain(["LOGIN", "LOGIN_ERROR"], "AC4: failures are recorded");
     }
@@ -136,7 +139,7 @@ public sealed class RealmConfigurationTests
         var factors = Realm["authenticationFlows"]!.AsArray().SelectMany(f => f!["authenticationExecutions"]!.AsArray())
             .Where(e => e!["authenticator"] is { } a && expected.ContainsKey(a.GetValue<string>())).ToList();
 
-        factors.Should().HaveCount(4, "password, hardware key, and the one-time password asked or enrolled");
+        factors.Should().HaveCount(7, "password, hardware key and the one-time password asked or enrolled at sign-in; the same factors at a password reset");
         foreach (var factor in factors)
         {
             var reference = configs[factor!["authenticatorConfig"]!.GetValue<string>()];
@@ -163,11 +166,73 @@ public sealed class RealmConfigurationTests
     }
 
     [Fact]
-    public void Tests_use_the_same_keycloak_image_as_the_local_stack()
+    public void Tests_use_the_same_keycloak_and_mailpit_images_as_the_local_stack()
     {
         var compose = File.ReadAllText(Path.Combine(PostgresServer.RepositoryRoot(), "deploy", "docker", "compose.yaml"));
 
-        compose.Should().Contain($"image: {KeycloakServer.Image}");
+        compose.Should().Contain($"image: {KeycloakServer.Image}").And.Contain($"image: {KeycloakServer.MailpitImage}");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-IAM-02")]
+    public void A_forgotten_password_needs_the_email_link_then_the_second_factor_of_a_privileged_user_and_never_removes_a_factor()
+    {
+        // H-I6: Keycloak's built-in "reset credentials" flow asks no second factor and removes the OTP, so the inbox alone
+        // took over a privileged account (KeycloakPasswordResetTests proves both on a live Keycloak).
+        Realm["resetCredentialsFlow"]!.GetValue<string>().Should().Be("karry reset credentials");
+        var flows = Realm["authenticationFlows"]!.AsArray().ToDictionary(f => f!["alias"]!.GetValue<string>(), f => f!["authenticationExecutions"]!.AsArray());
+        var configs = Realm["authenticatorConfig"]!.AsArray().ToDictionary(c => c!["alias"]!.GetValue<string>(), c => c!["config"]!);
+        static string Name(JsonNode? e) => e!["authenticatorFlow"]!.GetValue<bool>() ? e["flowAlias"]!.GetValue<string>() : e["authenticator"]!.GetValue<string>();
+
+        flows["karry reset credentials"].OrderBy(e => e!["priority"]!.GetValue<int>()).Select(Name).Should().Equal(
+            ["reset-credentials-choose-user", "reset-credential-email", "karry reset privileged mfa", "reset-password"],
+            "the e-mail proves the inbox, the second factor comes before the password can be chosen");
+        var condition = flows["karry reset privileged mfa"].Single(e => e!["authenticator"]?.GetValue<string>() == "conditional-user-role")!;
+        configs[condition["authenticatorConfig"]!.GetValue<string>()]["condUserRole"]!.GetValue<string>().Should().Be("mfa-required");
+        flows["karry reset configured factor"].Select(Name).Should().Contain(["webauthn-authenticator", "auth-otp-form"]);
+        flows["karry reset enrol factor"].Should().Contain(e => e!["authenticator"]!.GetValue<string>() == "auth-otp-form" && e["requirement"]!.GetValue<string>() == "REQUIRED");
+        configs["karry reset no configured factor"]["flow_to_check"]!.GetValue<string>().Should().Be("karry reset configured factor");
+        flows.Values.SelectMany(f => f).Select(Name).Should().NotContain("reset-otp", "a password reset never removes a second factor");
+        Realm["enabledEventTypes"]!.AsArray().Select(e => e!.GetValue<string>()).Should().Contain(["SEND_RESET_PASSWORD", "RESET_PASSWORD", "RESET_PASSWORD_ERROR"]);
+    }
+
+    [Fact]
+    public void Keycloak_mail_settings_come_from_the_environment_and_carry_no_credentials()
+    {
+        var smtp = Realm["smtpServer"]!.AsObject();
+
+        smtp["host"]!.GetValue<string>().Should().Be("${KARRY_SMTP_HOST:mailpit}", "Mailpit locally, the real relay from the environment in production");
+        smtp["from"]!.GetValue<string>().Should().StartWith("${KARRY_SMTP_FROM:");
+        smtp.Select(p => p.Key).Should().NotContain(["user", "password"], "relay credentials live in the vault (P1.17), never in the repository");
+    }
+
+    [Fact]
+    public void No_client_accepts_passwords_or_the_implicit_flow_and_only_the_identity_module_has_a_service_account()
+    {
+        foreach (var client in Realm["clients"]!.AsArray())
+        {
+            var id = client!["clientId"]!.GetValue<string>();
+            client["directAccessGrantsEnabled"]?.GetValue<bool>().Should().NotBe(true, $"{id}: passwords are only ever typed into Keycloak");
+            client["implicitFlowEnabled"]?.GetValue<bool>().Should().NotBe(true, $"{id}: tokens never travel in a URL fragment");
+            client["serviceAccountsEnabled"]?.GetValue<bool>().Should().Be(id == "karry-identity", $"{id}: service accounts are the Identity module's only");
+            client["defaultClientScopes"]?.AsArray().Select(s => s!.GetValue<string>()).Should().NotContain("offline_access", $"{id}: no tokens that outlive the SSO session");
+            client["optionalClientScopes"]?.AsArray().Select(s => s!.GetValue<string>()).Should().NotContain("offline_access", $"{id}: no tokens that outlive the SSO session");
+        }
+
+        int.Parse(Client("karry-identity")["attributes"]!["access.token.lifespan"]!.GetValue<string>(), System.Globalization.CultureInfo.InvariantCulture)
+            .Should().BeLessThanOrEqualTo(300, "the most powerful token of the realm lives a few minutes");
+    }
+
+    [Fact]
+    public void The_one_time_password_policy_is_what_every_authenticator_app_computes()
+    {
+        // HMAC-SHA1 is RFC 6238's default and the only algorithm every authenticator app gets right (several silently
+        // fall back to SHA-1, and the codes never match). SHA-1's collision weakness does not apply to HMAC.
+        Realm["otpPolicyType"]!.GetValue<string>().Should().Be("totp");
+        Realm["otpPolicyAlgorithm"]!.GetValue<string>().Should().Be("HmacSHA1");
+        Realm["otpPolicyDigits"]!.GetValue<int>().Should().Be(6);
+        Realm["otpPolicyPeriod"]!.GetValue<int>().Should().Be(30);
+        Realm["otpPolicyLookAheadWindow"]!.GetValue<int>().Should().BeLessThanOrEqualTo(1, "one window of clock drift, no more guesses than that");
     }
 
     [Fact]

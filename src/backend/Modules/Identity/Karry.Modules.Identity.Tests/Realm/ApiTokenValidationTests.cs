@@ -50,6 +50,40 @@ public sealed class ApiTokenValidationTests(KeycloakFixture keycloak) : IClassFi
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Real_realm_tokens_cannot_be_used_for_another_audience_altered_or_stripped_of_their_signature()
+    {
+        // Hardening plan H-I1 on tokens Keycloak really issued (TokenValidationTests covers the full matrix offline).
+        var tenant = Guid.NewGuid();
+        var username = $"a{Guid.NewGuid():N}"[..20];
+        await keycloak.Server.CreateUserAsync(username, Password, new Dictionary<string, string> { ["tenant_id"] = tenant.ToString() }, cancellationToken: Cancel);
+        using var browser = new KeycloakBrowser(keycloak.Server, "karry-portal", "http://localhost:5173");
+        var final = await browser.LoginAsync(await browser.StartAsync(cancellationToken: Cancel), username, Password, Cancel);
+        var token = (await browser.ExchangeAsync(final, Cancel)).Body.GetProperty("access_token").GetString()!;
+        var parts = token.Split('.');
+        var otherTenant = System.Text.Encoding.UTF8.GetString(Microsoft.IdentityModel.Tokens.Base64UrlEncoder.DecodeBytes(parts[1]))
+            .Replace(tenant.ToString(), Guid.NewGuid().ToString(), StringComparison.Ordinal);
+        await using var app = await ApiAsync(keycloak.Server.Issuer);
+        using var client = app.GetTestClient();
+
+        async Task<HttpStatusCode> CallAsync(string bearer)
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, new Uri("/whoami", UriKind.Relative));
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearer);
+            using var response = await client.SendAsync(request, Cancel);
+            return response.StatusCode;
+        }
+
+        (await CallAsync(token)).Should().Be(HttpStatusCode.OK, "the control: the untouched token works");
+        (await CallAsync(await keycloak.Server.ServiceTokenAsync(Cancel))).Should().Be(HttpStatusCode.Unauthorized,
+            "the realm's most powerful token (Identity's admin API account) is not for the API: wrong audience");
+        (await CallAsync($"{parts[0]}.{Microsoft.IdentityModel.Tokens.Base64UrlEncoder.Encode(otherTenant)}.{parts[2]}")).Should().Be(HttpStatusCode.Unauthorized,
+            "moving the token to another tenant breaks its signature");
+        (await CallAsync($"{Microsoft.IdentityModel.Tokens.Base64UrlEncoder.Encode("{\"alg\":\"none\",\"typ\":\"JWT\"}")}.{parts[1]}.")).Should().Be(HttpStatusCode.Unauthorized,
+            "the same claims without a signature");
+    }
+
+    [Fact]
     public void An_http_authority_is_refused_unless_the_local_stack_opts_out()
     {
         static bool RequiresHttps(Dictionary<string, string?> settings)

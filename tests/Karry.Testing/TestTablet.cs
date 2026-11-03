@@ -70,11 +70,14 @@ public sealed class TestTablet(HttpClient client, Func<DateTimeOffset> now) : ID
 
     public Task<HttpResponseMessage> SendWithAsync(HttpMethod method, string path, string assertion) => SendRawAsync(method, path, assertion, null);
 
-    /// <summary>A compact JWS ES256 for one request, issued now by the given clock unless told otherwise.</summary>
-    public string Assertion(string method, string path, DateTimeOffset? issuedAt = null, TimeSpan? lifetime = null, Guid? tenant = null)
+    /// <summary>
+    /// A compact JWS ES256 for one request, issued now by the given clock unless told otherwise; <paramref name="header"/>
+    /// replaces the protected header (still signed by this tablet's key), to try what an attacker would.
+    /// </summary>
+    public string Assertion(string method, string path, DateTimeOffset? issuedAt = null, TimeSpan? lifetime = null, Guid? tenant = null, object? header = null)
     {
         var iat = issuedAt ?? now();
-        var header = Part(new { alg = "ES256", typ = "karry-device+jwt", kid = Id.ToString("D") });
+        var protectedHeader = Part(header ?? new { alg = "ES256", typ = "karry-device+jwt", kid = Id.ToString("D") });
         var payload = Part(new
         {
             tid = (tenant ?? Tenant).ToString("D"),
@@ -84,8 +87,16 @@ public sealed class TestTablet(HttpClient client, Func<DateTimeOffset> now) : ID
             htm = method,
             htu = path,
         });
-        var signature = key.SignData(Encoding.ASCII.GetBytes($"{header}.{payload}"), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
-        return $"{header}.{payload}.{Base64Url.EncodeToString(signature)}";
+        var signature = key.SignData(Encoding.ASCII.GetBytes($"{protectedHeader}.{payload}"), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
+        return $"{protectedHeader}.{payload}.{Base64Url.EncodeToString(signature)}";
+    }
+
+    /// <summary>The same assertion with its signature in DER form (what most libraries emit), instead of JWS's fixed 64 bytes.</summary>
+    public string DerAssertion(string method, string path)
+    {
+        var parts = Assertion(method, path).Split('.');
+        var der = key.SignData(Encoding.ASCII.GetBytes($"{parts[0]}.{parts[1]}"), HashAlgorithmName.SHA256, DSASignatureFormat.Rfc3279DerSequence);
+        return $"{parts[0]}.{parts[1]}.{Base64Url.EncodeToString(der)}";
     }
 
     /// <summary>

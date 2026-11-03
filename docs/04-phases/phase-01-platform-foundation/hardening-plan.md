@@ -66,11 +66,12 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-I1 | Expired, wrong-issuer, wrong-audience, unsigned (`alg: none`) tokens | 401 | Existing: `Karry.AuthorizationTests` | 🟡 (audit the list) |
+| H-I1 | Expired, not yet valid, wrong-issuer, wrong-audience, unsigned (`alg: none`), re-signed (HS256 with the public key, RS512, PS256), tampered and garbage tokens; a token in the URL | 401 | `TokenValidationTests` (production rules, 18 cases); real Keycloak tokens in `ApiTokenValidationTests` (the Identity service token, a moved tenant, `alg: none`). **Fixed:** the API accepted a token 5 minutes past its expiry (framework default); now 30 s, RS256 only | ✅ |
 | H-I2 | A token of company A on company B's address | 403 | Existing: tenant isolation suite | ✅ |
-| H-I3 | A device assertion replayed, expired, for another method or path, from a revoked tablet | 401 / 403 | Existing: device authentication tests | 🟡 (audit) |
-| H-I4 | The realm's security settings drift (brute force, token lifetimes, PKCE, no direct grants, password policy) | CI fails | realm policy test (`deploy/keycloak`) | ⬜ |
-| H-I5 | Password guessing on the sign-in page | Account locked after 5 tries for up to 15 minutes | realm policy test + E2E | ⬜ |
+| H-I3 | A device assertion replayed, expired, for another method or path, from a revoked tablet; a forged header (`alg` none/ES384/HS256, other `typ`, the neighbour's `kid`), a DER signature; one captured assertion fired 20 times at once | 401; exactly one of the 20 gets through | `DeviceApiTests` (audit: replay, binding, lifetime, clock, tamper, other company, revoked were covered; header forgery and the replay race added) | ✅ |
+| H-I4 | The realm's security settings drift (brute force, token lifetimes, PKCE, no direct grants or implicit flow on any client, no `offline_access`, service account only for Identity, OTP policy, mail settings without credentials, the reset flow) | CI fails | `RealmConfigurationTests` (static, 17) and `KeycloakLoginTests` (live); `upgrade_realm.py --check` on a fresh import | ✅ |
+| H-I5 | Password guessing on the sign-in page | Account locked after 5 tries for up to 15 minutes | `RealmConfigurationTests` pins 5 and 900 s; `KeycloakLoginTests.Repeated_failures_lock_the_account_temporarily…` proves it live | ✅ |
+| H-I6 | **A forgotten password used to take over a privileged account.** Keycloak's built-in reset flow asks no second factor and removes the OTP: with mail configured, the inbox alone was enough | The e-mail link, then (privileged users) the second factor or its enrolment, then the password; no factor is ever removed; the same answer for unknown and disabled accounts, and no mail | `KeycloakPasswordResetTests` (live, mail through Mailpit). Mutation check: with the built-in flow, 2 of 5 fail | ✅ |
 
 ### 2.4 Resilience
 
@@ -107,8 +108,8 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 1a | Rate limiting and the load balancer's address (H-A1–A3) | ✅ #124 |
 | 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | ✅ #125 |
 | 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | ✅ #126 |
-| 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | 🟡 |
-| 3 | Realm policy test and Keycloak review (H-I4, H-I5), authentication audit (H-I1, H-I3) | ⬜ |
+| 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | ✅ #127 |
+| 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |
 | 5 | Resilience scenarios (H-R1–R5) | ⬜ |
 | 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3) | ⬜ |

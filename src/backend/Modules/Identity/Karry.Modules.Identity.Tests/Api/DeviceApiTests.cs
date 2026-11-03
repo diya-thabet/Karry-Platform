@@ -145,6 +145,54 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_validly_signed_assertion_with_a_forged_header_another_kid_or_a_der_signature_is_refused()
+    {
+        // Hardening plan H-I3: the header is part of what is signed, but it must also say exactly what Karry expects.
+        var company = await CompanyAsync();
+        using var tablet = await EnrolAsync(company, company.Site);
+        using var neighbour = await EnrolAsync(company, company.Site);
+        var me = $"{Devices}/me";
+        var kid = tablet.Id.ToString("D");
+
+        foreach (var header in new object[]
+        {
+            new { alg = "none", typ = "karry-device+jwt", kid },
+            new { alg = "ES384", typ = "karry-device+jwt", kid },
+            new { alg = "HS256", typ = "karry-device+jwt", kid },
+            new { alg = "ES256", typ = "JWT", kid },
+            new { alg = "ES256", kid },
+            new { alg = "ES256", typ = "karry-device+jwt", kid = neighbour.Id.ToString("D") }, // signed by this tablet, claims to be the neighbour
+        })
+        {
+            await TenantMembers.ExpectProblemAsync(await tablet.SendWithAsync(HttpMethod.Get, me, tablet.Assertion("GET", me, header: header)), HttpStatusCode.Unauthorized, "devices.assertion_invalid");
+        }
+
+        await TenantMembers.ExpectProblemAsync(await tablet.SendWithAsync(HttpMethod.Get, me, tablet.DerAssertion("GET", me)), HttpStatusCode.Unauthorized, "devices.assertion_invalid");
+        (await tablet.SendWithAsync(HttpMethod.Get, me, tablet.Assertion("GET", me))).StatusCode.Should().Be(HttpStatusCode.OK, "the control: the expected header works");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_captured_assertion_fired_many_times_at_once_gets_through_exactly_once()
+    {
+        // H-I3 and H-C: the single-use check is one atomic insert, so a race of replays cannot slip a second one through.
+        var company = await CompanyAsync();
+        using var tablet = await EnrolAsync(company, company.Site);
+        var me = $"{Devices}/me";
+        var captured = tablet.Assertion("GET", me);
+
+        var responses = await Task.WhenAll(Enumerable.Range(0, 20).Select(_ => tablet.SendWithAsync(HttpMethod.Get, me, captured)));
+
+        responses.Count(r => r.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        responses.Count(r => r.StatusCode == HttpStatusCode.Unauthorized).Should().Be(19);
+        foreach (var response in responses)
+        {
+            response.Dispose();
+        }
+    }
+
+    [Fact]
     public async Task A_device_reaches_only_device_endpoints_and_a_person_s_token_never_reaches_them()
     {
         var company = await CompanyAsync();

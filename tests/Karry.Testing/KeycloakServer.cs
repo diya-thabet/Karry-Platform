@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
+using DotNet.Testcontainers.Networks;
 
 namespace Karry.Testing;
 
@@ -13,11 +14,16 @@ namespace Karry.Testing;
 /// does: the Keycloak in <c>KARRY_TEST_KEYCLOAK</c> when set (e.g. the compose stack, <c>http://127.0.0.1:8080</c>),
 /// otherwise a Testcontainers instance of the local-stack image. Tests create their own users, tenants and slugs with
 /// random names, so one server serves a whole test run: <see cref="SharedAsync"/> (a Keycloak takes ~30 s and ~700 MB).
+/// Keycloak's e-mails (password reset) go to a Mailpit reachable as <c>mailpit:1025</c>, the realm's default: the
+/// compose stack's (read at <c>KARRY_TEST_MAILPIT</c>, default <c>http://127.0.0.1:8025</c>) or a container beside it.
 /// </summary>
 public sealed class KeycloakServer : IAsyncDisposable
 {
     /// <summary>Same image as <c>deploy/docker/compose.yaml</c> (a test keeps the two in step).</summary>
     public const string Image = "quay.io/keycloak/keycloak:26.8.1";
+
+    /// <summary>Same image as the compose stack's <c>mailpit</c> (a test keeps the two in step).</summary>
+    public const string MailpitImage = "axllent/mailpit:v1.31.6";
 
     public const string Realm = "karry";
 
@@ -28,20 +34,29 @@ public sealed class KeycloakServer : IAsyncDisposable
 
     private const ushort HttpPort = 8080;
     private const ushort ManagementPort = 9000;
+    private const ushort MailpitHttpPort = 8025;
 
     private static readonly Lazy<Task<KeycloakServer>> Shared = new(StartAsync);
 
     private readonly IContainer? container;
+    private readonly IContainer? mailpit;
+    private readonly INetwork? network;
     private readonly HttpClient http = new();
 
-    private KeycloakServer(Uri baseUrl, IContainer? container)
+    private KeycloakServer(Uri baseUrl, Uri mailUrl, IContainer? container = null, IContainer? mailpit = null, INetwork? network = null)
     {
         BaseUrl = baseUrl;
+        MailUrl = mailUrl;
         this.container = container;
+        this.mailpit = mailpit;
+        this.network = network;
     }
 
     /// <summary>Keycloak root, e.g. <c>http://127.0.0.1:32768/</c>.</summary>
     public Uri BaseUrl { get; }
+
+    /// <summary>The Mailpit that receives Keycloak's e-mails (its HTTP API).</summary>
+    public Uri MailUrl { get; }
 
     /// <summary>Issuer of the Karry realm (<c>…/realms/karry</c>, no trailing slash, as in tokens).</summary>
     public string Issuer => new Uri(BaseUrl, $"realms/{Realm}").ToString();
@@ -54,8 +69,19 @@ public sealed class KeycloakServer : IAsyncDisposable
         var external = Environment.GetEnvironmentVariable("KARRY_TEST_KEYCLOAK");
         if (!string.IsNullOrWhiteSpace(external))
         {
-            return new KeycloakServer(new Uri(external.TrimEnd('/') + "/"), null);
+            var mail = Environment.GetEnvironmentVariable("KARRY_TEST_MAILPIT");
+            return new KeycloakServer(new Uri(external.TrimEnd('/') + "/"), new Uri((string.IsNullOrWhiteSpace(mail) ? "http://127.0.0.1:8025" : mail).TrimEnd('/') + "/"));
         }
+
+        var network = new NetworkBuilder().Build();
+        await network.CreateAsync().ConfigureAwait(false);
+        var mailpit = new ContainerBuilder(MailpitImage)
+            .WithNetwork(network)
+            .WithNetworkAliases("mailpit")
+            .WithPortBinding(MailpitHttpPort, true)
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(request => request.ForPort(MailpitHttpPort).ForPath("/readyz")))
+            .Build();
+        await mailpit.StartAsync().ConfigureAwait(false);
 
         var keycloak = Path.Combine(PostgresServer.RepositoryRoot(), "deploy", "keycloak");
         var container = new ContainerBuilder(Image)
@@ -63,6 +89,7 @@ public sealed class KeycloakServer : IAsyncDisposable
             .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", "admin")
             .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", "admin-test-only")
             .WithEnvironment("KC_HEALTH_ENABLED", "true")
+            .WithNetwork(network)
             .WithResourceMapping(new DirectoryInfo(Path.Combine(keycloak, "realm")), "/opt/keycloak/data/import/")
             .WithResourceMapping(new DirectoryInfo(Path.Combine(keycloak, "themes")), "/opt/keycloak/themes/")
             .WithPortBinding(HttpPort, true)
@@ -71,7 +98,8 @@ public sealed class KeycloakServer : IAsyncDisposable
                 .ForPort(ManagementPort).ForPath("/health/ready")))
             .Build();
         await container.StartAsync().ConfigureAwait(false);
-        return new KeycloakServer(new Uri($"http://{container.Hostname}:{container.GetMappedPublicPort(HttpPort)}/"), container);
+        return new KeycloakServer(new Uri($"http://{container.Hostname}:{container.GetMappedPublicPort(HttpPort)}/"),
+            new Uri($"http://{mailpit.Hostname}:{mailpit.GetMappedPublicPort(MailpitHttpPort)}/"), container, mailpit, network);
     }
 
     /// <summary>A token of the Identity module's service account (client credentials), for the admin API.</summary>
@@ -133,12 +161,43 @@ public sealed class KeycloakServer : IAsyncDisposable
         return id;
     }
 
+    /// <summary>
+    /// The text of the newest e-mail Keycloak sent to <paramref name="address"/> (waits up to 20 s for it), or null when
+    /// none came. Each test uses its own random address, so mails of other tests never match.
+    /// </summary>
+    public async Task<string?> MailToAsync(string address, TimeSpan? wait = null, CancellationToken cancellationToken = default)
+    {
+        var until = DateTimeOffset.UtcNow + (wait ?? TimeSpan.FromSeconds(20));
+        do
+        {
+            var found = await http.GetFromJsonAsync<JsonElement>(new Uri(MailUrl, $"api/v1/search?query={Uri.EscapeDataString($"to:\"{address}\"")}"), cancellationToken).ConfigureAwait(false);
+            var messages = found.GetProperty("messages");
+            if (messages.GetArrayLength() > 0)
+            {
+                var message = await http.GetFromJsonAsync<JsonElement>(new Uri(MailUrl, $"api/v1/message/{messages[0].GetProperty("ID").GetString()}"), cancellationToken).ConfigureAwait(false);
+                return message.GetProperty("Text").GetString();
+            }
+
+            await Task.Delay(250, cancellationToken).ConfigureAwait(false);
+        }
+        while (DateTimeOffset.UtcNow < until);
+        return null;
+    }
+
     public async ValueTask DisposeAsync()
     {
         http.Dispose();
-        if (container is not null)
+        foreach (var started in new[] { container, mailpit })
         {
-            await container.DisposeAsync().ConfigureAwait(false);
+            if (started is not null)
+            {
+                await started.DisposeAsync().ConfigureAwait(false);
+            }
+        }
+
+        if (network is not null)
+        {
+            await network.DisposeAsync().ConfigureAwait(false);
         }
     }
 }
