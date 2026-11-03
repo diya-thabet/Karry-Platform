@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { SearchX } from "lucide-react";
 import { useState } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, QuantityInput, SelectField, StatusChip, TextField, useToast, type MaterialState } from "@karry/ui";
-import { useAccess, useApi, useCurrentTenant, useWithStepUp } from "../api";
+import { Button, Checkbox, DataTable, EmptyState, PageHeader, PageSkeleton, QuantityInput, SelectField, StatusChip, TextField, useToast, type MaterialState } from "@karry/ui";
+import { useAccess, useApi, useCurrentTenant, useWithStepUp } from "../app/api";
+import { Trail } from "../shell/Trail";
 import { addDays, todayIn } from "../sites/api";
 import {
   decimalText, looseFromSwell, materialKey, materialKinds, materialsKey, MaterialsManagePermission, materialStates, quantityUnits, shiftDecimal,
@@ -32,24 +34,22 @@ export function MaterialsPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.materials.backToSettings")}</Link>
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.materials.title")}</h1>
-        {can(MaterialsManagePermission) && (
+      <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />}
+        title={t("portal.materials.title")}
+        actions={can(MaterialsManagePermission) && (
           <Button asChild>
             <Link to="/settings/materials/new">{t("portal.materials.new")}</Link>
           </Button>
         )}
-      </div>
-      <label className="flex min-h-[var(--karry-control-height)] items-center gap-3">
-        <input type="checkbox" className="size-5" checked={includeArchived} onChange={(e) => { setIncludeArchived(e.target.checked); }} />
-        <span>{t("portal.materials.includeArchived")}</span>
-      </label>
+      />
+      <Checkbox label={t("portal.materials.includeArchived")} checked={includeArchived} onChange={(e) => { setIncludeArchived(e.target.checked); }} className="self-start" />
       <DataTable<Material>
         caption={t("portal.materials.title")}
         rows={materials.data ?? []}
         rowKey={(material) => material.id}
-        empty={<EmptyState title={materials.isPending && materials.fetchStatus !== "idle" ? t("common.loading") : t("portal.materials.none")} />}
+        loading={materials.isPending && materials.fetchStatus !== "idle"}
+        empty={<EmptyState title={t("portal.materials.none")} />}
         columns={[
           { key: "code", header: t("portal.materials.code"), cell: (material) => <span translate="no">{material.code}</span> },
           {
@@ -62,7 +62,7 @@ export function MaterialsPage() {
             ),
           },
           { key: "kind", header: t("portal.materials.kind"), cell: (material) => t(`portal.materials.kind.${material.kind}`) },
-          ...materialStates.map((state) => ({ key: state, header: t(`portal.materials.density.${state}`), cell: (material: Material) => density(material, state) })),
+          ...materialStates.map((state) => ({ key: state, header: t(`portal.materials.density.${state}`), cell: (material: Material) => density(material, state), numeric: true })),
           { key: "status", header: t("portal.materials.status"), cell: (material) => <MaterialStatus material={material} /> },
         ]}
       />
@@ -90,7 +90,7 @@ export function MaterialPage({ materialId }: { materialId?: string }) {
   const today = todayIn(tenant?.timeZone ?? "UTC");
 
   if (!loaded || (materialId !== undefined && material.isPending)) {
-    return null;
+    return <PageSkeleton />;
   }
 
   if (materialId === undefined) {
@@ -98,11 +98,11 @@ export function MaterialPage({ materialId }: { materialId?: string }) {
   }
 
   if (!material.data) {
-    return <EmptyState title={t("portal.notFound")} />;
+    return <EmptyState icon={SearchX} title={t("portal.notFound")} />;
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex max-w-4xl flex-col gap-8">
       <MaterialForm key={material.data.changedAt} material={material.data} today={today} />
       <ConversionPanel material={material.data} today={today} />
       <Densities key={`${material.data.changedAt}-densities`} material={material.data} today={today} />
@@ -262,15 +262,15 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
 
   return (
     <div className="flex max-w-4xl flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <Link to="/settings/materials" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.materials.back")}</Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight" translate={material ? "no" : undefined}>{material ? material.name : t("portal.materials.new")}</h1>
-          {material && <MaterialStatus material={material} />}
-        </div>
+      <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }, { to: "/settings/materials", label: t("portal.materials.title") }]} />}
+        title={material ? material.name : t("portal.materials.new")}
+        titleTranslate={material ? "no" : undefined}
+        status={material && <MaterialStatus material={material} />}
+      >
         {material?.status === "archived" && <p className="text-text-muted">{t("portal.materials.archivedHint")}</p>}
         {!can(MaterialsManagePermission) && <p className="text-text-muted">{t("portal.materials.readOnly")}</p>}
-      </div>
+      </PageHeader>
 
       <form className="flex flex-col gap-6 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-5 shadow-[var(--karry-card-shadow)] md:p-6" noValidate onSubmit={(event) => { event.preventDefault(); submit(); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-3">

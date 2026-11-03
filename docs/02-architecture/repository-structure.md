@@ -4,7 +4,7 @@ area: architecture
 tags: [repository, monorepo, folders]
 source: "MASTER_PLAN.md §26"
 status: baseline
-last_updated: 2026-10-26
+last_updated: 2026-10-29
 ---
 
 # Repository Structure
@@ -56,13 +56,16 @@ karry-platform/
 │   │   ├── apps/
 │   │   │   ├── field/                  offline-first PWA (operators, weighmaster, fuel, store counts)
 │   │   │   └── portal/                 controller, manager, executive, admin
+│   │   │       └── src/                app/ (providers, API hooks, flags, errors) · shell/ (layout, navigation,
+│   │   │                               account menu, breadcrumbs) · home/ · one folder per feature (sites/, assets/,
+│   │   │                               materials/, settings/, audit/, imports/, billing/, operator/) · testing/
 │   │   └── packages/
 │   │       ├── ui/                     design system (shadcn-based)
 │   │       ├── charts/                 ECharts wrappers
 │   │       ├── offline/                Dexie schema, outbox, sync client
 │   │       ├── crypto/                 WebCrypto device keys, envelopes
 │   │       ├── api-client/             generated from OpenAPI
-│   │       └── i18n/                   FR/EN catalogs
+│   │       └── i18n/                   catalogs: fr, en, ar, emk, nqo (ADR-0030)
 │   └── analytics/                      Python FastAPI sidecar (uv, ruff, pytest)
 ├── tests/                              cross-cutting tests (module tests live in Modules/<Name>/Karry.Modules.<Name>.Tests)
 │   ├── Karry.ArchitectureTests/        project-graph boundary rules (ADR-0001)

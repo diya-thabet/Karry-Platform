@@ -14,10 +14,11 @@ export function ListDetailPage(props: {
   detail?: ReactNode;
   detailLabel: string;
   description?: ReactNode;
+  breadcrumbs?: ReactNode;
 }) {
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={props.title} description={props.description} actions={props.actions} />
+      <PageHeader title={props.title} description={props.description} actions={props.actions} breadcrumbs={props.breadcrumbs} />
       {props.search}
       <div className="grid gap-4 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
         <div>{props.list}</div>

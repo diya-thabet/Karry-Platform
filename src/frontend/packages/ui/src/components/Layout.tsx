@@ -1,16 +1,35 @@
 import type { LucideIcon } from "lucide-react";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { cn } from "../cn";
+import { Skeleton } from "./Skeleton";
 
-/** A page's title with an optional line under it and its main actions on the right (wrap below on narrow screens). */
-export function PageHeader(props: { title: ReactNode; description?: ReactNode; actions?: ReactNode; back?: ReactNode }) {
+/**
+ * Every page's header (UX-06): breadcrumbs to the sections above it, the title with its status, a line under it and
+ * the page's main actions at the end (below on narrow screens). The one `h1` of the page.
+ */
+export function PageHeader(props: {
+  title: ReactNode;
+  description?: ReactNode;
+  actions?: ReactNode;
+  /** {@link Breadcrumbs} of a page below a section. */
+  breadcrumbs?: ReactNode;
+  /** A status chip beside the title (active, archived). */
+  status?: ReactNode;
+  /** `translate="no"` for a title that is company data (a site's name). */
+  titleTranslate?: HTMLAttributes<HTMLHeadingElement>["translate"];
+  children?: ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-3">
-      {props.back && <div className="text-sm">{props.back}</div>}
+    <div className="flex flex-col gap-2">
+      {props.breadcrumbs}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h1 className="text-xl font-semibold tracking-tight text-text sm:text-2xl">{props.title}</h1>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-xl font-semibold tracking-tight text-text sm:text-2xl" translate={props.titleTranslate}>{props.title}</h1>
+            {props.status}
+          </div>
           {props.description && <p className="text-sm text-text-muted">{props.description}</p>}
+          {props.children}
         </div>
         {props.actions && <div className="flex flex-wrap gap-2">{props.actions}</div>}
       </div>
@@ -47,7 +66,7 @@ export function Card(props: {
   );
 }
 
-/** One figure on a dashboard: an icon, what it counts and the number (shown as "…" until known). */
+/** One figure on a dashboard: an icon, what it counts and the number (a skeleton until it is known, UX-14). */
 export function StatCard(props: { icon: LucideIcon; label: ReactNode; value: ReactNode; hint?: ReactNode; children?: ReactNode }) {
   const Icon = props.icon;
   return (
@@ -57,7 +76,9 @@ export function StatCard(props: { icon: LucideIcon; label: ReactNode; value: Rea
       </span>
       <div className="flex min-w-0 flex-col">
         <span className="text-sm text-text-muted">{props.label}</span>
-        <span className="text-2xl font-semibold tabular-nums text-text">{props.value}</span>
+        {props.value === undefined
+          ? <span aria-busy="true" className="flex h-8 items-center"><Skeleton className="h-6 w-12" /></span>
+          : <span className="text-2xl font-semibold tabular-nums text-text">{props.value}</span>}
         {props.hint && <span className="text-xs text-text-muted">{props.hint}</span>}
         {props.children}
       </div>

@@ -1,4 +1,5 @@
 import { createContext, use, useEffect, useMemo, useState, type ReactNode } from "react";
+import { rememberChoice, rememberedChoice } from "../remembered";
 import { cssVariables, themeNames, type ThemeName } from "./tokens";
 
 export type Density = "office" | "field";
@@ -12,15 +13,7 @@ interface ThemeState {
 const ThemeContext = createContext<ThemeState | null>(null);
 const storageKey = "karry.theme";
 
-/** The saved choice of this browser (a per-device convenience; storage may be unavailable: then the default). */
-function savedTheme(fallback: ThemeName): ThemeName {
-  try {
-    const value = globalThis.localStorage.getItem(storageKey);
-    return themeNames.includes(value as ThemeName) ? (value as ThemeName) : fallback;
-  } catch {
-    return fallback;
-  }
-}
+const isTheme = (value: string | null): value is ThemeName => themeNames.includes(value as ThemeName);
 
 /**
  * Applies a theme (CSS variables from tokens.ts and data-theme) and a density (data-density) to an element, the
@@ -34,12 +27,12 @@ export function ThemeProvider(props: {
   target?: HTMLElement;
 }) {
   const { children, defaultTheme = "light", density = "office", remember = true, target } = props;
-  const [theme, setThemeState] = useState<ThemeName>(() => (remember ? savedTheme(defaultTheme) : defaultTheme));
+  const [theme, setThemeState] = useState<ThemeName>(() => (remember ? (rememberedChoice(storageKey, isTheme) ?? defaultTheme) : defaultTheme));
 
   useEffect(() => {
     const element = target ?? document.documentElement;
-    element.dataset.theme = theme;
-    element.dataset.density = density;
+    element.setAttribute("data-theme", theme);
+    element.setAttribute("data-density", density);
     for (const [name, value] of Object.entries(cssVariables(theme))) {
       element.style.setProperty(name, value);
     }
@@ -52,11 +45,7 @@ export function ThemeProvider(props: {
       setTheme: (next) => {
         setThemeState(next);
         if (remember) {
-          try {
-            globalThis.localStorage.setItem(storageKey, next);
-          } catch {
-            // storage blocked (private mode): the choice lasts for this session only
-          }
+          rememberChoice(storageKey, next);
         }
       },
     }),

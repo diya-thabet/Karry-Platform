@@ -5,6 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, user } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 const importer = ["imports.files.manage", "organization.sites.manage", "identity.users.manage", "identity.users.read"];
 
@@ -63,7 +64,7 @@ describe("Excel import wizard (US-P1-ORG-03)", () => {
     await upload();
 
     expect(await screen.findByText(/4 rows read, 4 errors: nothing can be saved/, undefined, { timeout: 4000 })).toBeInTheDocument();
-    const table = await screen.findByRole("table", { name: "Problems found" });
+    const table = await findTable("Problems found");
     expect(within(table).getByText("CAR-NORD is on several rows of the file (2, 3): keep one.")).toBeInTheDocument();
     expect(within(table).getByText("A3")).toBeInTheDocument();
     expect(within(table).getByText("This cell needs a number.")).toBeInTheDocument();
@@ -86,7 +87,7 @@ describe("Excel import wizard (US-P1-ORG-03)", () => {
     await renderAt("/settings/imports", api, { language: "en" });
     await upload();
 
-    const preview = await screen.findByRole("table", { name: "Preview" }, { timeout: 4000 });
+    const preview = await findTable("Preview", { timeout: 4000 });
     expect(within(preview).getByText("CAR-SUD")).toBeInTheDocument();
     expect(within(preview).getByText("Updated")).toBeInTheDocument();
     expect(screen.getByText("1 created, 1 updated, 1 unchanged.")).toBeInTheDocument();
@@ -124,7 +125,7 @@ describe("Excel import wizard (US-P1-ORG-03)", () => {
   it("has no serious accessibility violation on the report", async () => {
     await renderAt("/settings/imports", fakeApi({ permissions: importer, importReport: brokenReport }), { language: "en" });
     await upload();
-    await screen.findByRole("table", { name: "Problems found" }, { timeout: 4000 });
+    await findTable("Problems found", { timeout: 4000 });
 
     const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);

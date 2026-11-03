@@ -21,3 +21,4 @@ How we prove the software works. The binding testing rules for agents are in [ll
 | [defect-severity-and-triage.md](defect-severity-and-triage.md) | Sev-1…Sev-4 definitions, response and fix targets |
 | [test-environments-and-devices.md](test-environments-and-devices.md) | Environments, test data & anonymisation, field device matrix |
 | [translation-review.md](translation-review.md) | Status of each language (fr, en, ar, emk, nqo), native-speaker review steps, glossary, keys waiting for review |
+| [ui-ux-review.md](ui-ux-review.md) | HCI review of the portal and field app (Hick, Fitts, Gestalt, Nielsen, WCAG): findings UX-01…UX-27 with status, **binding design rules for every new screen**, results |

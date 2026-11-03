@@ -1,4 +1,5 @@
 import { isLanguage, supportedLanguages, useTranslation, type I18n, type Language } from "@karry/i18n";
+import { rememberChoice, rememberedChoice } from "../remembered";
 import { useTheme } from "../theme/ThemeProvider";
 import { themeNames, type ThemeName } from "../theme/tokens";
 import { SelectField } from "./SelectField";
@@ -7,28 +8,19 @@ const languageKey = "karry.language";
 
 /** The user's own language choice on this device (null when they never chose). */
 export function savedLanguage(): Language | null {
-  try {
-    const value = globalThis.localStorage.getItem(languageKey);
-    return isLanguage(value) ? value : null;
-  } catch {
-    return null;
-  }
+  return rememberedChoice(languageKey, isLanguage);
 }
 
 /**
- * The person's language choice: applied at once (every catalog is bundled; the page's `lang` and `dir` follow) and
- * remembered on this device.
+ * The person's language choice: applied at once (its catalog loads on first use; the page's `lang` and `dir` follow)
+ * and remembered on this device.
  */
 export function chooseLanguage(i18n: I18n, language: string): void {
   void i18n.changeLanguage(language);
-  try {
-    globalThis.localStorage.setItem(languageKey, language);
-  } catch {
-    // storage blocked: the choice lasts for this session
-  }
+  rememberChoice(languageKey, language);
 }
 
-/** Switches the language instantly (no reload: every catalog is bundled) and remembers it (US-P1-OFF-06 AC1). */
+/** Switches the language without a reload and remembers it (US-P1-OFF-06 AC1). */
 export function LanguageSwitcher() {
   const { t, i18n } = useTranslation();
   return (

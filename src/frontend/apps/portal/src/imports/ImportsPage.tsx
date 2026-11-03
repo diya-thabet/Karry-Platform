@@ -1,9 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
-import { Button, buttonVariants, DataTable, EmptyState, SelectField, StatusChip, useToast } from "@karry/ui";
-import { useAccess, useApi } from "../api";
+import { Button, buttonVariants, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, useToast } from "@karry/ui";
+import { useAccess, useApi } from "../app/api";
+import { Trail } from "../shell/Trail";
 import {
   importKey, importKinds, importsKey, isRunning, saveFile, shownLimit, workbookType,
   type ImportIssue, type ImportJob, type ImportPlannedRow,
@@ -65,8 +65,7 @@ export function ImportsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link to="/settings" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.imports.back")}</Link>
-      <h1 className="text-2xl font-semibold tracking-tight">{t("portal.imports.title")}</h1>
+      <PageHeader breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />} title={t("portal.imports.title")} />
 
       {jobId
         ? <ImportJobView key={jobId} jobId={jobId} onDone={() => { setJobId(undefined); }} />
@@ -110,7 +109,8 @@ export function ImportsPage() {
           rowKey={(job) => job.id}
           selectedKey={jobId}
           onSelect={(job) => { setJobId(job.id); }}
-          empty={<EmptyState title={recent.isPending ? t("common.loading") : t("portal.imports.none")} />}
+          loading={recent.isPending}
+          empty={<EmptyState title={t("portal.imports.none")} />}
           columns={[
             { key: "file", header: t("portal.imports.file"), cell: (job) => job.fileName },
             { key: "kind", header: t("portal.imports.kind"), cell: (job) => t(`portal.imports.kind.${job.kind}`, { defaultValue: job.kind }) },
@@ -182,7 +182,7 @@ function ImportJobView({ jobId, onDone }: { jobId: string; onDone: () => void })
   });
 
   if (!current) {
-    return <EmptyState title={t("common.loading")} />;
+    return <PageSkeleton />;
   }
 
   const kind = t(`portal.imports.kind.${current.kind}`, { defaultValue: current.kind });
@@ -243,7 +243,8 @@ function IssueList({ issues, more, loading }: { issues: ImportIssue[]; more: boo
         caption={t("portal.imports.issues")}
         rows={issues}
         rowKey={(issue) => `${String(issue.row)}-${issue.cell ?? issue.column ?? ""}-${issue.code}`}
-        empty={<EmptyState title={loading ? t("common.loading") : t("common.empty.title")} />}
+        loading={loading}
+        empty={<EmptyState title={t("common.empty.title")} />}
         columns={[
           { key: "row", header: t("portal.imports.row"), cell: (issue) => (Number(issue.row) === 0 ? t("portal.imports.wholeFile") : String(issue.row)) },
           { key: "cell", header: t("portal.imports.cell"), cell: (issue) => issue.cell ?? "—" },
@@ -279,7 +280,8 @@ function PreviewList({ rows, more, loading }: { rows: ImportPlannedRow[]; more: 
         caption={t("portal.imports.preview")}
         rows={rows}
         rowKey={(row) => String(row.row)}
-        empty={<EmptyState title={loading ? t("common.loading") : t("common.empty.title")} />}
+        loading={loading}
+        empty={<EmptyState title={t("common.empty.title")} />}
         columns={[
           { key: "row", header: t("portal.imports.row"), cell: (row) => String(row.row) },
           { key: "key", header: t("portal.imports.key"), cell: (row) => row.key },

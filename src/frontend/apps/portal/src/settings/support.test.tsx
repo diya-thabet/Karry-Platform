@@ -5,6 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, supportSession } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 const admin = ["identity.support.manage"];
 const running = supportSession();
@@ -27,7 +28,7 @@ describe("support access (US-P1-OPS-03 AC3)", () => {
 
     fireEvent.click(await screen.findByRole("link", { name: "Support access" }));
 
-    const table = await screen.findByRole("table", { name: "Support sessions" });
+    const table = await findTable("Support sessions");
     const now = (await within(table).findByText("Anna Support")).closest("tr") as HTMLElement;
     expect(within(now).getByText("With your code")).toBeInTheDocument();
     expect(within(now).getByText("Looking now")).toBeInTheDocument();
@@ -107,12 +108,13 @@ describe("support access (US-P1-OPS-03 AC3)", () => {
 
   it("is in French", async () => {
     await renderAt("/settings/support", fakeApi({ permissions: admin, supportSessions: [emergency] }), { language: "fr" });
-    expect(await screen.findByRole("table", { name: "Sessions de support" })).toBeInTheDocument();
+    expect(await findTable("Sessions de support")).toBeInTheDocument();
     expect(await screen.findByText("Accès d'urgence")).toBeInTheDocument();
   });
 
   it("has no hard-coded text and no serious accessibility violation", async () => {
     await renderAt("/settings/support", fakeApi({ permissions: admin, supportSessions: [running, emergency] }), { pseudo: true });
+    await vi.waitFor(() => { expect(document.querySelector("table[aria-busy]")).toBeNull(); }); // skeleton rows first
     await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr")).toHaveLength(2); });
 
     const walker = document.createTreeWalker(document.querySelector("main") ?? document.body, NodeFilter.SHOW_TEXT);

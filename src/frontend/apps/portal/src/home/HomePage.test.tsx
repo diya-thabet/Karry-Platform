@@ -3,8 +3,8 @@ import { render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
-import { App } from "./App";
-import { fakeApi, site } from "./testing/fakeApi";
+import { App } from "../App";
+import { fakeApi, site } from "../testing/fakeApi";
 
 async function renderHome(api: ReturnType<typeof fakeApi>, options: { pseudo?: boolean } = {}) {
   const i18n = await createI18n({ language: "fr", pseudo: options.pseudo ?? false });

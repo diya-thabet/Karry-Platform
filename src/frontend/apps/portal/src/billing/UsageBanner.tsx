@@ -1,7 +1,7 @@
 import { useBooleanFlagValue } from "@openfeature/react-sdk";
 import { Link } from "@tanstack/react-router";
 import { useTranslation } from "@karry/i18n";
-import { useUsage } from "../api";
+import { useUsage } from "../app/api";
 
 /**
  * Shown to billing readers while the company is above a plan limit (US-P1-BIL-04 AC2). Above the limit nothing is

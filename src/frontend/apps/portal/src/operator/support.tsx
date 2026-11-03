@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react
 import { LifeBuoy } from "lucide-react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, useToast } from "@karry/ui";
-import { useApi } from "../api";
+import { useApi } from "../app/api";
 import { savedVisit, saveVisit, SupportVisitContext, useSupportVisit, type LeaveReason, type SupportVisit } from "./supportVisit";
 
 export function SupportVisitProvider({ children }: { children: ReactNode }) {

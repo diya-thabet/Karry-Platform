@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { isLanguage, useTranslation } from "@karry/i18n";
 import { savedLanguage } from "@karry/ui";
-import { useCurrentTenant } from "./api";
+import { useCurrentTenant } from "../app/api";
 
 /**
  * The app's title with the company's logo and name (US-P1-TEN-04); Karry's subtitle until the company is known. The

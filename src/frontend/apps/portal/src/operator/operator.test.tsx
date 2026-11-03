@@ -6,6 +6,7 @@ import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, operatorTenant, subscriptionOf } from "../testing/fakeApi";
 import { actionsFor, isOperator, slugFrom, slugValid } from "./api";
+import { findTable } from "../testing/tables";
 
 const nord = operatorTenant();
 const sud = operatorTenant({
@@ -29,7 +30,7 @@ describe("operator console (US-P1-OPS-03 AC1)", () => {
     const api = fakeApi({ permissions: [], operatorTenants: [nord, sud, atlas] });
     await renderAs("/operator", api);
 
-    const table = await screen.findByRole("table", { name: "Companies" });
+    const table = await findTable("Companies");
     const rows = await within(table).findAllByRole("row");
     expect(rows.slice(1).map((row) => within(row).getAllByRole("cell")[0]?.textContent)).toEqual(["Atlas Minesatlas-mines", "Carrière Nordcarriere-nord", "Carrière Sudcarriere-sud"]);
     const south = within(table).getByRole("row", { name: /Carrière Sud/ });
@@ -48,7 +49,7 @@ describe("operator console (US-P1-OPS-03 AC1)", () => {
     const api = fakeApi({ permissions: [], operatorTenants: [nord] });
     await renderAs("/", api);
 
-    expect(await screen.findByRole("table", { name: "Companies" })).toBeInTheDocument();
+    expect(await findTable("Companies")).toBeInTheDocument();
     expect(screen.getByText("Operator console")).toBeInTheDocument();
     expect(api.requested.filter((path) => tenantPaths.includes(path))).toEqual([]);
   });
@@ -161,13 +162,14 @@ describe("operator console (US-P1-OPS-03 AC1)", () => {
 
   it("is in French", async () => {
     await renderAs("/operator", fakeApi({ permissions: [], operatorTenants: [nord, atlas] }), { language: "fr" });
-    expect(await screen.findByRole("table", { name: "Entreprises" })).toBeInTheDocument();
+    expect(await findTable("Entreprises")).toBeInTheDocument();
     expect(screen.getByText("Sur devis")).toBeInTheDocument();
   });
 
   it("has no hard-coded text (TC-P1-OFF-007)", async () => {
     await renderAs("/operator", fakeApi({ permissions: [], operatorTenants: [nord, sud, atlas] }), { pseudo: true });
-    await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr")).toHaveLength(3); });
+    await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr:not([aria-hidden])")).toHaveLength(3); });
+    await vi.waitFor(() => { expect(document.querySelector("table[aria-busy]")).toBeNull(); }); // three skeleton rows come first
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const untranslated: string[] = [];
@@ -214,12 +216,12 @@ describe("operator console: one company (US-P1-OPS-03 AC1, US-P1-BIL-02)", () =>
     expect(await screen.findByText("Trial ends")).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Plan" })).toHaveTextContent("professional v1");
     expect(screen.getByLabelText("Sites")).toHaveValue("1");
-    const invoices = await screen.findByRole("table", { name: "Invoices" });
+    const invoices = await findTable("Invoices");
     expect(within(invoices).getByText("K-2026-001")).toBeInTheDocument();
     expect(within(invoices).getByText("€590.00")).toBeInTheDocument();
     expect(api.requested).toContain(`/api/v1/billing/tenants/${nord.id}/subscription`);
-    fireEvent.click(screen.getByRole("link", { name: "Back to the companies" }));
-    expect(await screen.findByRole("table", { name: "Companies" })).toBeInTheDocument();
+    fireEvent.click(within(screen.getByRole("navigation", { name: "Breadcrumb" })).getByRole("link", { name: "Companies" }));
+    expect(await findTable("Companies")).toBeInTheDocument();
   });
 
   it("offers only the moves the subscription can make, and activates a trial", async () => {
@@ -357,6 +359,7 @@ describe("operator console: one company (US-P1-OPS-03 AC1, US-P1-BIL-02)", () =>
 
   it("has no hard-coded text and no serious accessibility violation", async () => {
     await renderAs(nordPage, fakeApi({ permissions: [], operatorTenants: [nord], tenantInvoices: { [nord.id]: [invoice] } }), { pseudo: true });
+    await vi.waitFor(() => { expect(document.querySelector("table[aria-busy]")).toBeNull(); }); // skeleton rows first
     await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr")).toHaveLength(1); });
     await vi.waitFor(() => { expect(document.querySelectorAll("dl div").length).toBeGreaterThan(2); });
 

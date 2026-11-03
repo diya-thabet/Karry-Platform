@@ -2,8 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
+import { MousePointerClick } from "lucide-react";
 import { Button, DataTable, Dialog, EmptyState, ListDetailPage, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
-import { useAccess, useApi, useWithStepUp } from "../api";
+import { useAccess, useApi, useWithStepUp } from "../app/api";
+import { Trail } from "../shell/Trail";
 import { useSites } from "../sites/api";
 import { roleName } from "./labels";
 
@@ -27,6 +29,7 @@ export function UsersPage() {
   return (
     <ListDetailPage
       title={t("portal.users.title")}
+      breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />}
       detailLabel={t("portal.users.detail")}
       list={
         <DataTable<User>
@@ -35,7 +38,8 @@ export function UsersPage() {
           rowKey={(u) => u.id}
           selectedKey={selected}
           onSelect={(u) => { setSelected(u.id); }}
-          empty={<EmptyState title={users.isPending ? t("common.loading") : t("common.empty.title")} />}
+          loading={users.isPending}
+          empty={<EmptyState title={t("common.empty.title")} />}
           columns={[
             { key: "name", header: t("portal.users.name"), cell: (u) => `${u.firstName} ${u.lastName}` },
             { key: "status", header: t("portal.users.status"), cell: (u) => <UserStatus status={u.status} /> },
@@ -43,7 +47,7 @@ export function UsersPage() {
           ]}
         />
       }
-      detail={user ? <UserRoles key={user.id} user={user} /> : <EmptyState title={t("portal.users.pick")} />}
+      detail={user ? <UserRoles key={user.id} user={user} /> : <EmptyState icon={MousePointerClick} title={t("portal.users.pick")} />}
     />
   );
 }

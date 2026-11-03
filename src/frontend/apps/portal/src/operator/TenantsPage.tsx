@@ -4,7 +4,7 @@ import { useState, type SyntheticEvent } from "react";
 import { Building2, Coins } from "lucide-react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, Dialog, EmptyState, PageHeader, StatCard, StatusChip, TextField, useToast } from "@karry/ui";
-import { useApi } from "../api";
+import { useApi } from "../app/api";
 import { operatorTenantsKey, slugFrom, slugValid, statusLook, useOperatorTenants, type OperatorTenant } from "./api";
 
 /**
@@ -29,7 +29,7 @@ export function TenantsPage() {
         actions={<Button onClick={() => { setCreating(true); }}>{t("portal.operator.newCompany")}</Button>}
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard icon={Building2} label={t("portal.operator.companyCount")} value={tenants.isPending ? "…" : count(rows.length)} />
+        <StatCard icon={Building2} label={t("portal.operator.companyCount")} value={tenants.isPending ? undefined : count(rows.length)} />
         {(tenants.data?.mrr ?? []).map((total) => (
           <StatCard key={total.currency} icon={Coins} label={t("portal.operator.mrrTotal")} value={money(total.amount, total.currency)} hint={t("portal.operator.mrrHint")} />
         ))}
@@ -38,7 +38,8 @@ export function TenantsPage() {
         caption={t("portal.operator.companies")}
         rows={rows}
         rowKey={(tenant) => tenant.id}
-        empty={<EmptyState title={tenants.isPending ? t("common.loading") : t("portal.operator.none")} />}
+        loading={tenants.isPending}
+        empty={<EmptyState title={t("portal.operator.none")} />}
         columns={[
           {
             key: "name",

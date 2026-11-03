@@ -118,9 +118,11 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {actions.map(({ key, icon: Icon }) => (
               <li key={key}>
-                <Button block variant="secondary" className="min-h-28 flex-col text-xl">
+                {/* Recorded from Phase 2: shown so people know what is coming, never a button that does nothing (UX-16). */}
+                <Button block variant="secondary" disabled className="min-h-28 flex-col text-xl">
                   <Icon aria-hidden className="size-10" />
                   {t(key)}
+                  <span className="text-sm font-medium text-text-muted">{t("field.action.soon")}</span>
                 </Button>
               </li>
             ))}

@@ -269,11 +269,15 @@ describe("finding a machine (P1.15, ADR-0028 §5)", () => {
 });
 
 describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
-  it("shows the four field actions as large buttons, in the outdoor theme and field density", async () => {
+  it("shows the four field actions as large buttons, not usable before their phase (UX-16), in the outdoor theme and field density", async () => {
     await renderHome(await enrolled());
 
     const nav = await screen.findByRole("navigation", { name: "Actions terrain" });
-    expect(within(nav).getAllByRole("button").map((b) => b.textContent)).toEqual(["Carburant", "Compteur horaire", "Production", "Signaler un problème"]);
+    const actions = within(nav).getAllByRole("button");
+    expect(actions.map((b) => b.textContent)).toEqual(["CarburantBientôt disponible", "Compteur horaireBientôt disponible", "ProductionBientôt disponible", "Signaler un problèmeBientôt disponible"]);
+    for (const action of actions) {
+      expect(action).toBeDisabled();
+    }
     expect(document.documentElement.dataset.theme).toBe("outdoor");
     expect(document.documentElement.dataset.density).toBe("field");
   });

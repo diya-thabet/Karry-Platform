@@ -7,9 +7,9 @@ import { AuthProvider } from "@karry/auth";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, I18nProvider, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "./App";
-import { ErrorDialogProvider } from "./ErrorDialog";
-import { createQueryClient } from "./queryClient";
-import { useReportError } from "./reportError";
+import { ErrorDialogProvider } from "./app/ErrorDialog";
+import { createQueryClient } from "./app/queryClient";
+import { useReportError } from "./app/reportError";
 import { fakeApi } from "./testing/fakeApi";
 
 async function renderPortal(options: { path?: string; pseudo?: boolean; language?: "fr" | "en" } = {}) {
@@ -48,7 +48,8 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     localStorage.removeItem("karry.language");
     const i18n = await renderPortal();
     fireEvent.keyDown(screen.getByRole("button", { name: /^Connecté/ }), { key: "Enter" });
-    fireEvent.click(within(await screen.findByRole("menu")).getByRole("menuitem", { name: "العربية" }));
+    fireEvent.keyDown(within(await screen.findByRole("menu")).getByRole("menuitem", { name: /^Langue/ }), { key: "ArrowRight" });
+    fireEvent.click(await screen.findByRole("menuitemradio", { name: "العربية" }));
 
     await vi.waitFor(() => { expect([document.documentElement.lang, document.documentElement.dir]).toEqual(["ar", "rtl"]); }); // the catalog loads first
     expect(within(screen.getByRole("navigation", { name: "التنقل الرئيسي" })).getAllByRole("link").map((link) => link.textContent))
@@ -68,6 +69,39 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
     const languages = await axe.run(document, { runOnly: ["html-has-lang", "html-lang-valid", "valid-lang"] });
     expect(languages.violations.map((v) => v.id)).toEqual([]);
     localStorage.removeItem("karry.language");
+  });
+
+  it("keeps the account menu short: language and theme show their value and open their choices (UX-01, UX-02)", async () => {
+    localStorage.removeItem("karry.theme");
+    await renderPortal();
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Connecté/ }), { key: "Enter" });
+    const menu = await screen.findByRole("menu");
+
+    // Three rows, not thirteen: each setting shows its current value; sign-out is last.
+    expect(within(menu).getAllByRole("menuitem").map((item) => item.textContent)).toEqual(["LangueFrançais", "ThèmeClair", "Se déconnecter"]);
+    expect(within(menu).queryByRole("menuitemradio")).not.toBeInTheDocument();
+
+    fireEvent.keyDown(within(menu).getByRole("menuitem", { name: /^Thème/ }), { key: "ArrowRight" });
+    const themes = await screen.findAllByRole("menuitemradio");
+    expect(themes.map((item) => [item.textContent, item.getAttribute("aria-checked")])).toEqual([
+      ["Clair", "true"], ["Sombre", "false"], ["Extérieur (contraste élevé)", "false"],
+    ]); // screen readers hear which one is chosen
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Sombre" }));
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("karry.theme")).toBe("dark");
+    localStorage.removeItem("karry.theme");
+  });
+
+  it("names each language in its own language, so a screen reader reads it with the right voice", async () => {
+    await renderPortal();
+    fireEvent.keyDown(screen.getByRole("button", { name: /^Connecté/ }), { key: "Enter" });
+    fireEvent.keyDown(within(await screen.findByRole("menu")).getByRole("menuitem", { name: /^Langue/ }), { key: "ArrowRight" });
+
+    const languages = await screen.findAllByRole("menuitemradio");
+    expect(languages.map((item) => [item.textContent, item.getAttribute("lang")])).toEqual([
+      ["Français", "fr"], ["English", "en"], ["العربية", "ar"], ["Maninkakan", "emk"], ["ߒߞߏ", "nqo"],
+    ]);
   });
 
   it("shows who is signed in and signs out through Keycloak (US-P1-IAM-01)", async () => {

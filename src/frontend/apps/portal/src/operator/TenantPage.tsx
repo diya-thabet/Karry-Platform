@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
 import { useState, type SyntheticEvent } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
-import { useApi } from "../api";
-import { currencies } from "../currencies";
+import { useApi } from "../app/api";
+import { currencies } from "../app/currencies";
+import { Trail } from "../shell/Trail";
 import {
   actionsFor, invoicesKey, operatorTenantsKey, statusLook, usePlans, useOperatorTenants, useTenantInvoices, useTenantSubscription,
   type Invoice, type Subscription,
@@ -30,8 +30,9 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        back={<Link to="/operator" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.operator.backToCompanies")}</Link>}
-        title={<span translate="no">{tenant?.name ?? "…"}</span>}
+        breadcrumbs={<Trail steps={[{ to: "/operator", label: t("portal.operator.companies") }]} />}
+        title={tenant?.name ?? "…"}
+        titleTranslate="no"
         description={tenant ? <span translate="no">{tenant.slug}</span> : undefined}
       />
       {subscription.data
@@ -217,7 +218,8 @@ function InvoicesCard({ tenantId }: { tenantId: string }) {
         caption={t("portal.operator.invoices")}
         rows={invoices.data ?? []}
         rowKey={(invoice) => invoice.id}
-        empty={<EmptyState title={invoices.isPending ? t("common.loading") : t("portal.operator.noInvoices")} />}
+        loading={invoices.isPending}
+        empty={<EmptyState title={t("portal.operator.noInvoices")} />}
         columns={[
           { key: "number", header: t("portal.operator.invoiceNumber"), cell: (invoice) => <span translate="no">{invoice.number}</span> },
           { key: "amount", header: t("portal.operator.amount"), cell: (invoice) => <span translate="no">{money(invoice)}</span> },

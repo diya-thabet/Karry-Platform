@@ -3,7 +3,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import type { components } from "@karry/api-client";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, buttonVariants, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 import {
   assetKey, assetsKey, AssetsManagePermission, assetStatuses, blobUrl, labelsPerSheet, meterKinds, metersKey, readingsKey, readingText,
   useSiteNames, type Asset, type Meter, type Reading,
@@ -303,7 +303,8 @@ export function MetersPanel({ asset }: { asset: Asset }) {
         rowKey={(m) => m.id}
         selectedKey={meter?.id}
         onSelect={(m) => { setSelected(m.id); }}
-        empty={<EmptyState title={meters.isPending ? t("common.loading") : t("portal.assets.noMeters")} />}
+        loading={meters.isPending}
+        empty={<EmptyState title={t("portal.assets.noMeters")} />}
         columns={[
           { key: "kind", header: t("portal.assets.meterKind"), cell: (m) => t(`portal.assets.meterKind.${m.kind}`) },
           { key: "last", header: t("portal.assets.lastReading"), cell: (m) => `${format.number(m.lastValue)} ${t(`portal.assets.unit.${m.kind}`)}` },
@@ -431,7 +432,8 @@ function MeterDetail({ asset, meter, editable }: { asset: Asset; meter: Meter; e
         caption={t("portal.assets.meterHistory", { meter: t(`portal.assets.meterKind.${meter.kind}`) })}
         rows={rows}
         rowKey={(reading) => reading.id}
-        empty={<EmptyState title={readings.isPending ? t("common.loading") : t("portal.assets.noReadings")} />}
+        loading={readings.isPending}
+        empty={<EmptyState title={t("portal.assets.noReadings")} />}
         columns={[
           { key: "value", header: t("portal.assets.reading"), cell: (reading) => `${format.number(reading.value)} ${unit}` },
           { key: "readAt", header: t("portal.assets.readAt"), cell: (reading) => format.dateTime(reading.readAt) },

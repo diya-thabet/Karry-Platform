@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
 import type { MaterialState, QuantityStateOption, QuantityUnit } from "@karry/ui";
-import { useAccess, useApi } from "../api";
+import { useAccess, useApi } from "../app/api";
 
 export type Material = components["schemas"]["MaterialResponse"];
 export type MaterialInput = components["schemas"]["MaterialInput"];

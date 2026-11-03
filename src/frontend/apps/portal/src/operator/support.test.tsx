@@ -5,6 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, operatorTenant, supportSession } from "../testing/fakeApi";
+import { findTable } from "../testing/tables";
 
 const nord = operatorTenant();
 const nordPage = `/operator/companies/${nord.id}`;
@@ -155,7 +156,7 @@ describe("support access from the operator console (US-P1-OPS-03 AC3)", () => {
     sessionStorage.setItem("karry.support-visit", JSON.stringify({ tenantId: nord.id, tenantName: nord.name, sessionId: "x", endsAt: new Date(Date.now() - 1000).toISOString() }));
     await renderAs("/", api);
 
-    expect(await screen.findByRole("table", { name: "Companies" })).toBeInTheDocument();
+    expect(await findTable("Companies")).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Karry support session" })).not.toBeInTheDocument();
   });
 
@@ -165,7 +166,7 @@ describe("support access from the operator console (US-P1-OPS-03 AC3)", () => {
     const api = fakeApi({ permissions: [], operatorTenants: [nord], supportSessions: [mine, theirs] });
     await renderAs(nordPage, api);
 
-    const table = await screen.findByRole("table", { name: "Support sessions" });
+    const table = await findTable("Support sessions");
     const other = (await within(table).findByText("Anna Support")).closest("tr") as HTMLElement;
     expect(within(other).getByText(reason)).toBeInTheDocument();
     expect(within(other).queryByRole("button")).not.toBeInTheDocument();

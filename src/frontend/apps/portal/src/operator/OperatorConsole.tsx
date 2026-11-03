@@ -1,7 +1,7 @@
 import { Link, Outlet } from "@tanstack/react-router";
 import { useTranslation } from "@karry/i18n";
 import { EmptyState } from "@karry/ui";
-import { AccountMenu } from "../Layout";
+import { AccountMenu } from "../shell/AccountMenu";
 
 /**
  * The operator console's shell (ADR-0029 §5): Karry staff on the platform address, with no company. No company

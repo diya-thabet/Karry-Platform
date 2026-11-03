@@ -6,6 +6,7 @@ import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { auditEntry, fakeApi, recordedEvent, site } from "../testing/fakeApi";
 import { dayEnd, dayStart } from "./api";
+import { findTable } from "../testing/tables";
 
 const auditor = ["audit.ledger.read", "audit.ledger.verify", "organization.sites.read"];
 const nord = site();
@@ -41,12 +42,16 @@ describe("audit viewer (US-P1-AUD-04)", () => {
   it("lists the trail newest first with people's names, records and sites", async () => {
     await renderAt("/audit", fakeApi({ permissions: auditor, sites: [nord], auditEntries: entries }));
 
-    const table = await screen.findByRole("table", { name: "Audit log" });
+    const table = await findTable("Audit log");
     const rows = await within(table).findAllByRole("row");
     expect(rows.slice(1).map((row) => within(row).getAllByRole("cell")[1]?.textContent)).toEqual(["seed-demo", "Sana Trabelsi", "Ali Ben Salah"]);
     const ali = within(table).getByRole("row", { name: /Ali Ben Salah/ });
     expect(within(ali).getByText("assets.asset_changed.v1")).toBeInTheDocument();
-    expect(within(ali).getByText(`asset · ${changed.entityId ?? ""}`)).toBeInTheDocument();
+    // UX-10: a UUID is shortened for the eye, whole in the tooltip and for screen readers
+    const record = within(ali).getAllByRole("cell")[3];
+    const id = changed.entityId ?? "";
+    expect(record?.textContent).toBe(`asset · ${id.slice(0, 8)}…${id}`);
+    expect(within(ali).getByTitle(id)).toBeInTheDocument();
     expect(await within(ali).findByText("Carrière Nord")).toBeInTheDocument();
     expect(within(within(table).getByRole("row", { name: /seed-demo/ })).getByText("Whole company")).toBeInTheDocument();
   });
@@ -86,7 +91,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
   it("filters by person, site, record, event and period, and clears them", async () => {
     const api = fakeApi({ permissions: auditor, sites: [nord], auditEntries: entries });
     await renderAt("/audit", api);
-    await screen.findByRole("table", { name: "Audit log" });
+    await findTable("Audit log");
 
     await choose("Person", "Sana Trabelsi");
     await choose("Site", "Carrière Nord");
@@ -116,7 +121,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
   it("refuses a period that ends before it starts without asking the API", async () => {
     const api = fakeApi({ permissions: auditor, auditEntries: entries });
     await renderAt("/audit", api);
-    await screen.findByRole("table", { name: "Audit log" });
+    await findTable("Audit log");
     const calls = entryCalls(api).length;
 
     fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-10-28" } });
@@ -136,7 +141,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
     const many = Array.from({ length: 51 }, (_, i) => auditEntry({ sequence: 51 - i, eventId: `0192f0c1-0000-7000-8000-${String(51 - i).padStart(12, "0")}` }));
     const api = fakeApi({ permissions: auditor, auditEntries: many });
     await renderAt("/audit", api);
-    const table = await screen.findByRole("table", { name: "Audit log" });
+    const table = await findTable("Audit log");
     expect(await within(table).findAllByRole("button", { name: /Details of entry/ })).toHaveLength(50);
 
     fireEvent.click(screen.getByRole("button", { name: "Show more" }));
@@ -149,7 +154,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
   it("exports the filtered entries to CSV and says the export is recorded (AC2)", async () => {
     const api = fakeApi({ permissions: auditor, auditEntries: entries });
     await renderAt("/audit", api);
-    await screen.findByRole("table", { name: "Audit log" });
+    await findTable("Audit log");
     await choose("Person", "Ali Ben Salah");
     fireEvent.click(screen.getByRole("button", { name: "Apply filters" }));
     await vi.waitFor(() => { expect(entryCalls(api).at(-1)?.query.actor).toBe("user-ali"); });
@@ -162,7 +167,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
 
   it("explains an export over the limit", async () => {
     await renderAt("/audit", fakeApi({ permissions: auditor, auditEntries: entries, exportTooLarge: true }));
-    await screen.findByRole("table", { name: "Audit log" });
+    await findTable("Audit log");
 
     fireEvent.click(screen.getByRole("button", { name: "Export to Excel (CSV)" }));
 
@@ -206,7 +211,7 @@ describe("audit access", () => {
 
   it("shows only the log to a reader who may not run the check", async () => {
     await renderAt("/audit", fakeApi({ permissions: ["audit.ledger.read"], auditEntries: entries }));
-    expect(await screen.findByRole("table", { name: "Audit log" })).toBeInTheDocument();
+    expect(await findTable("Audit log")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Check now" })).not.toBeInTheDocument();
   });
 
@@ -220,13 +225,14 @@ describe("audit access", () => {
 
   it("is in French", async () => {
     await renderAt("/audit", fakeApi({ permissions: auditor, auditEntries: entries }), { language: "fr" });
-    expect(await screen.findByRole("table", { name: "Journal d’audit" })).toBeInTheDocument();
+    expect(await findTable("Journal d’audit")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Vérifier maintenant" })).toBeInTheDocument();
   });
 
   it("has no hard-coded text (TC-P1-OFF-007)", async () => {
     await renderAt("/audit", fakeApi({ permissions: auditor, sites: [nord], auditEntries: entries }), { pseudo: true });
     await screen.findAllByRole("button", { name: new RegExp(pseudoOpen.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) });
+    await vi.waitFor(() => { expect(document.querySelector("table[aria-busy]")).toBeNull(); }); // skeleton rows first
     await vi.waitFor(() => { expect(document.querySelectorAll("tbody tr")).toHaveLength(3); });
 
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);

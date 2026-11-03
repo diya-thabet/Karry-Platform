@@ -6,6 +6,7 @@ import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, site, user } from "../testing/fakeApi";
 import { addDays, todayIn } from "./api";
+import { findTable } from "../testing/tables";
 
 const manager = ["organization.sites.read", "organization.sites.manage", "organization.shifts.manage"];
 const reader = ["organization.sites.read"];
@@ -191,7 +192,7 @@ describe("shifts (US-P1-ORG-02)", () => {
       }],
     }));
 
-    const table = await screen.findByRole("table", { name: "Coming shifts" });
+    const table = await findTable("Coming shifts");
     expect(await within(table).findByText("Night")).toBeInTheDocument();
     expect(within(table).getByText("18:00–07:00")).toBeInTheDocument();
     expect(within(table).getByText("13 h")).toBeInTheDocument();

@@ -25,21 +25,24 @@ type Story = StoryObj<typeof meta>;
 export const Table: Story = {
   render: () => <DataTable caption="Engins" columns={columns} rows={machines} rowKey={(m) => m.id} empty={<EmptyState title="Aucun engin" />} />,
 };
+export const TableLoading: Story = {
+  render: () => <DataTable caption="Engins" columns={columns} rows={[]} loading rowKey={(m) => m.id} empty={<EmptyState title="Aucun engin" />} />,
+};
 export const TableEmpty: Story = {
   render: () => <DataTable caption="Engins" columns={columns} rows={[]} rowKey={(m) => m.id} empty={<EmptyState title="Aucun engin" />} />,
 };
-export const ListDetail: Story = {
-  render: () => {
-    const [selected, setSelected] = useState<Machine | undefined>(machines[0]);
-    return (
-      <ListDetailPage
-        title="Engins"
-        actions={<Button>Ajouter</Button>}
-        search={<TextField label="Rechercher" type="search" />}
-        detailLabel="Détail de l’engin"
-        list={<DataTable caption="Engins" columns={columns} rows={machines} rowKey={(m) => m.id} selectedKey={selected?.id} onSelect={setSelected} empty={<EmptyState title="Aucun engin" />} />}
-        detail={selected && <div className="flex flex-col gap-2"><h2 className="text-xl font-bold">{selected.code}</h2><p>{selected.name}</p><StatusChip status="ok">En service</StatusChip></div>}
-      />
-    );
-  },
-};
+function MachinesListDetail() {
+  const [selected, setSelected] = useState<Machine | undefined>(machines[0]);
+  return (
+    <ListDetailPage
+      title="Engins"
+      actions={<Button>Ajouter</Button>}
+      search={<TextField label="Rechercher" type="search" />}
+      detailLabel="Détail de l’engin"
+      list={<DataTable caption="Engins" columns={columns} rows={machines} rowKey={(m) => m.id} selectedKey={selected?.id} onSelect={setSelected} empty={<EmptyState title="Aucun engin" />} />}
+      detail={selected && <div className="flex flex-col gap-2"><h2 className="text-xl font-bold">{selected.code}</h2><p>{selected.name}</p><StatusChip status="ok">En service</StatusChip></div>}
+    />
+  );
+}
+
+export const ListDetail: Story = { render: () => <MachinesListDetail /> };

@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import type { components } from "@karry/api-client";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, StatusChip, useToast } from "@karry/ui";
-import { SupportManagePermission, useAccess, useApi } from "../api";
+import { SupportManagePermission, useAccess, useApi } from "../app/api";
+import { Trail } from "../shell/Trail";
 
 type Session = components["schemas"]["SupportSessionResponse"];
 type Consent = components["schemas"]["SupportConsentResponse"];
@@ -32,6 +33,7 @@ export function SupportPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />}
         title={t("portal.support.title")}
         description={t("portal.support.description")}
         actions={manage && <Button onClick={() => { setCreating(true); }}>{t("portal.support.createCode")}</Button>}
@@ -50,7 +52,8 @@ export function SupportPage() {
           caption={t("portal.support.sessions")}
           rows={sessions.data ?? []}
           rowKey={(s) => s.id}
-          empty={<EmptyState title={sessions.isPending && manage ? t("common.loading") : t("portal.support.none")} />}
+          loading={sessions.isPending && manage}
+          empty={<EmptyState title={t("portal.support.none")} />}
           columns={[
             { key: "started", header: t("portal.support.started"), cell: (s) => <time dateTime={s.startedAt}>{dateTime(s.startedAt)}</time> },
             { key: "who", header: t("portal.support.who"), cell: (s) => (s.operatorName ? <span translate="no">{s.operatorName}</span> : t("portal.support.karry")) },

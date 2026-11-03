@@ -5,15 +5,15 @@ import type { ApiClient } from "@karry/api-client";
 import { AuthProvider, useAuth, type Auth } from "@karry/auth";
 import { I18nProvider, type I18n } from "@karry/i18n";
 import { LanguageDirection, ThemeProvider, ToastProvider } from "@karry/ui";
-import { useApi } from "./api";
-import { ApiProvider } from "./ApiProvider";
-import { ErrorDialogProvider } from "./ErrorDialog";
-import { FlagsProvider } from "./FlagsProvider";
+import { useApi } from "./app/api";
+import { ApiProvider } from "./app/ApiProvider";
+import { ErrorDialogProvider } from "./app/ErrorDialog";
+import { FlagsProvider } from "./app/FlagsProvider";
 import { isOperator } from "./operator/api";
 import { SupportBanner, SupportVisitProvider } from "./operator/support";
 import { supportClient, useSupportVisit, type SupportVisit } from "./operator/supportVisit";
-import { createQueryClient } from "./queryClient";
-import { useReportError } from "./reportError";
+import { createQueryClient } from "./app/queryClient";
+import { useReportError } from "./app/reportError";
 import { createPortalRouter } from "./router";
 
 function DataLayer({ history, operator, lastCompany }: { history?: RouterHistory | undefined; operator: boolean; lastCompany?: string | undefined }) {

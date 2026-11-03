@@ -567,10 +567,12 @@ Stop feature work on that area, describe the class of issue to the owner (no pub
 ## 13. Frontend, UX, Accessibility & i18n Policy
 
 - **Field app ergonomics**: touch targets ≥ 48 px, body text ≥ 16 px, outdoor high-contrast theme, minimal typing (scan QR, pick lists, steppers), clear sync status, works with gloves, readable in sunlight.
-- **Performance budgets on the reference low-end device**: initial JS ≤ 250 KB gzipped for the field app shell; interaction ≤ 100 ms; cached cold start ≤ 3 s. Bundle size is checked in CI.
+- **Performance budgets on the reference low-end device**: initial JS ≤ 250 KB gzipped for the field app shell; interaction ≤ 100 ms; cached cold start ≤ 3 s. Bundle size is checked in CI (`tools/ci/bundle_budget.py`, `frontend` job).
 - **Accessibility**: WCAG 2.2 AA for portal; semantic HTML; labels; focus management; keyboard paths; axe checks in component tests.
 - **i18n**: no hardcoded strings; keys added to all five catalogs together; ICU plurals (Arabic has six forms); locale-aware numbers/dates/units through `intlLocale(i18n.language)`, never `i18n.language` directly; pseudo-localization check for truncation; **logical CSS only** (`ms-`/`me-`, `ps-`/`pe-`, `start-`/`end-`, `text-start`/`text-end`; no `ml-`, `left-`, `text-right`) because Arabic and N'Ko are right to left ([ADR-0030](../adr/0030-arabic-and-malinke-languages.md)).
-- **States**: every screen designs loading, empty, error, offline, permission-denied and plan-locked (upgrade) states.
+- **States**: every screen designs loading, empty, error, offline, permission-denied and plan-locked (upgrade) states. Loading is a skeleton (`DataTable loading`, `PageSkeleton`), never an empty state and never a blank page.
+- **Design rules** ([UI/UX review §6](../05-quality/ui-ux-review.md#6-design-rules-for-every-new-screen-binding)): `PageHeader` on every page with breadcrumbs below a section, one primary action per view, ≤ 7 visible choices (more go one level down, current value visible), state announced by role (radio, checkbox), never colour alone. A breach is a review finding.
+- **Portal code layout**: `src/app/` (providers, API hooks, flags, errors), `src/shell/` (layout, navigation, account menu, breadcrumbs), `src/home/`, then one folder per feature (`sites/`, `assets/`, …) holding its pages, `api.ts` and tests.
 - **Charts**: use `packages/charts` wrappers (ECharts); units in axes and tooltips; data-table fallback; server-side downsampling for long ranges.
 - **Destructive or signing actions** require explicit confirmation showing exactly what is being signed.
 

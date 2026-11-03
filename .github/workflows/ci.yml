@@ -206,6 +206,8 @@ jobs:
           name: storybook
           path: src/frontend/packages/ui/storybook-static/
       - run: pnpm build
+      - name: Field app bundle budget (initial JS <= 250 KB gzipped, llm_guidelines.md §13)
+        run: python3 ../../tools/ci/bundle_budget.py apps/field/dist --max-kb 250 --summary "$GITHUB_STEP_SUMMARY"
 
   local-stack:
     name: local-stack

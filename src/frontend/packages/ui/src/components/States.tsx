@@ -1,13 +1,17 @@
-import { AlertOctagon, Copy, Inbox, Lock } from "lucide-react";
+import { AlertOctagon, Copy, Inbox, Lock, type LucideIcon } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import { useTranslation } from "@karry/i18n";
 import { Button } from "./Button";
 
-export function EmptyState({ title, children, action }: { title: ReactNode; children?: ReactNode; action?: ReactNode }) {
+/**
+ * Nothing to show, and what to do next. The icon says which kind of nothing (UX-21): the inbox for an empty list, a
+ * pointer for "choose an item", a magnifier for "not found". Never for loading: that is a skeleton.
+ */
+export function EmptyState({ title, children, action, icon: Icon = Inbox }: { title: ReactNode; children?: ReactNode; action?: ReactNode; icon?: LucideIcon }) {
   return (
     <section className="flex flex-col items-center gap-3 rounded-xl border-[length:var(--karry-border-width)] border-dashed border-divider bg-surface px-6 py-10 text-center">
       <span className="flex size-12 items-center justify-center rounded-full bg-surface-muted">
-        <Inbox aria-hidden className="size-6 text-text-muted" />
+        <Icon aria-hidden className="size-6 text-text-muted" />
       </span>
       <h2 className="text-base font-semibold text-text">{title}</h2>
       {children && <div className="text-text-muted">{children}</div>}

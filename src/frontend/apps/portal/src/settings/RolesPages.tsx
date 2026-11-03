@@ -3,8 +3,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, SelectField, StatusChip, TextField } from "@karry/ui";
-import { useAccess, useApi, useWithStepUp } from "../api";
+import { Button, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField } from "@karry/ui";
+import { useAccess, useApi, useWithStepUp } from "../app/api";
+import { Trail } from "../shell/Trail";
 import { byModule, fieldLabel, fieldLevels, moduleLabel, permissionLabel, roleName, type FieldLevel } from "./labels";
 
 type Role = components["schemas"]["RoleResponse"];
@@ -32,19 +33,21 @@ export function RolesPage() {
   const { can } = useAccess();
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">{t("portal.roles.title")}</h1>
-        {can("identity.roles.manage") && (
+      <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }]} />}
+        title={t("portal.roles.title")}
+        actions={can("identity.roles.manage") && (
           <Button asChild>
             <Link to="/settings/roles/new">{t("portal.roles.new")}</Link>
           </Button>
         )}
-      </div>
+      />
       <DataTable<Role>
         caption={t("portal.roles.title")}
         rows={roles.data ?? []}
         rowKey={(role) => role.code}
-        empty={<EmptyState title={roles.isPending ? t("common.loading") : t("common.empty.title")} />}
+        loading={roles.isPending}
+        empty={<EmptyState title={t("common.empty.title")} />}
         columns={[
           {
             key: "name",
@@ -100,7 +103,7 @@ export function RoleEditorPage({ code }: { code?: string }) {
   const catalog = useCatalog();
   const role = code === undefined ? undefined : roles.data?.find((r) => r.code === code);
   if (roles.isPending || catalog.isPending) {
-    return <EmptyState title={t("common.loading")} />;
+    return <PageSkeleton />;
   }
 
   if (code !== undefined && !role) {
@@ -165,11 +168,12 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
   const title = creating ? t("portal.roles.new") : roleName(t, role);
   return (
     <form className="flex max-w-4xl flex-col gap-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
-      <div className="flex flex-col gap-1">
-        <Link to="/settings/roles" className="text-sm font-medium text-text-muted hover:text-primary">{t("portal.roles.back")}</Link>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <PageHeader
+        breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }, { to: "/settings/roles", label: t("portal.roles.title") }]} />}
+        title={title}
+      >
         {role?.isDefault && <p className="text-text-muted">{t("portal.roles.defaultHint")}</p>}
-      </div>
+      </PageHeader>
 
       {creating && (
         <SelectField

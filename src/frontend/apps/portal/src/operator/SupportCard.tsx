@@ -3,7 +3,7 @@ import { useState, type SyntheticEvent } from "react";
 import { useAuth } from "@karry/auth";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, SelectField, StatusChip, TextAreaField, TextField } from "@karry/ui";
-import { useApi } from "../api";
+import { useApi } from "../app/api";
 import { tenantSupportKey, useSupportVisit, type SupportSession } from "./supportVisit";
 
 /** The break-glass reason the API accepts (ADR-0029 §4): written, 30 to 500 characters. */
@@ -38,7 +38,8 @@ export function SupportCard({ tenantId, tenantName }: { tenantId: string; tenant
         caption={t("portal.support.sessions")}
         rows={sessions.data ?? []}
         rowKey={(s) => s.id}
-        empty={<EmptyState title={sessions.isPending ? t("common.loading") : t("portal.support.none")} />}
+        loading={sessions.isPending}
+        empty={<EmptyState title={t("portal.support.none")} />}
         columns={[
           { key: "started", header: t("portal.support.started"), cell: (s) => <time dateTime={s.startedAt}>{dateTime(s.startedAt)}</time> },
           { key: "who", header: t("portal.support.who"), cell: (s) => <span translate="no">{s.operatorName ?? "—"}</span> },

@@ -23,12 +23,16 @@ export default tseslint.config(
     },
   },
   {
+    // Every package with React code, not only the apps: the design system's components use hooks too (UX-22).
+    files: ["apps/**/*.{ts,tsx}", "packages/*/src/**/*.{ts,tsx}"],
+    plugins: { "react-hooks": reactHooks },
+    rules: reactHooks.configs.recommended.rules,
+  },
+  {
+    // Fast refresh needs files that export components only; the packages export helpers beside them on purpose.
     files: ["apps/**/*.{ts,tsx}"],
-    plugins: { "react-hooks": reactHooks, "react-refresh": reactRefresh },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": ["error", { allowConstantExport: true }],
-    },
+    plugins: { "react-refresh": reactRefresh },
+    rules: { "react-refresh/only-export-components": ["error", { allowConstantExport: true }] },
   },
   {
     files: ["*.js", "**/*.config.{js,ts}"],
