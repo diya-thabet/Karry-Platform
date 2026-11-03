@@ -1,4 +1,5 @@
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
@@ -218,6 +219,34 @@ describe("error dialog (US-P1-OPS-01 AC3)", () => {
 
     const dialog = await screen.findByRole("dialog", { name: "Something went wrong" });
     expect(within(dialog).getByTestId("correlation-id")).toHaveTextContent("4bf92f3577b34da6a3ce929d0e0e4736");
+  });
+
+  it("explains a rate-limited request in the person's words and does not try it again at once (T-12)", async () => {
+    const i18n = await createI18n({ language: "en" });
+    const auth = await signedInAuth();
+    const queryFn = vi.fn(() => Promise.reject(new ApiError(429, "request.rate_limited", "7a1c")));
+    function Limited() {
+      useQuery({ queryKey: ["limited"], queryFn, retryDelay: 0 });
+      return null;
+    }
+    function LimitedHarness() {
+      const report = useReportError();
+      const [client] = useState(() => createQueryClient(report, 3));
+      return <QueryClientProvider client={client}><Limited /></QueryClientProvider>;
+    }
+    render(<AuthProvider auth={auth}><I18nProvider i18n={i18n}><ErrorDialogProvider><LimitedHarness /></ErrorDialogProvider></I18nProvider></AuthProvider>);
+
+    const dialog = await screen.findByRole("dialog");
+    expect(dialog).toHaveTextContent("Too many requests in a short time. Wait a minute, then try again.");
+    expect(queryFn).toHaveBeenCalledOnce();
+  });
+
+  it("still tries a query again after a server error", async () => {
+    const client = createQueryClient(vi.fn(), 1);
+    const queryFn = vi.fn(() => Promise.reject(new ApiError(503, "server.unavailable", undefined)));
+
+    await expect(client.query({ queryKey: ["flaky"], queryFn, retryDelay: 0 })).rejects.toBeInstanceOf(ApiError);
+    expect(queryFn).toHaveBeenCalledTimes(2);
   });
 
   it("reads the correlation ID from the response header, or from problem details", async () => {

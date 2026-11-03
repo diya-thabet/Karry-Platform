@@ -5,6 +5,7 @@ import { generateDeviceKey, importPinKey, publicJwk } from "@karry/crypto";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { applyChanges, openOfflineDb, type DeviceRecord } from "@karry/offline";
 import { App, type FieldEnvironment } from "./App";
+import { nextRefreshMs, refreshEveryMs } from "./sync";
 import type { Session } from "./unlock";
 import { createUpdates } from "./updates";
 
@@ -355,6 +356,35 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
     act(() => { window.dispatchEvent(new Event("online")); });
 
     await vi.waitFor(() => { expect(env.pull).toHaveBeenCalledTimes(2); });
+  });
+
+  it("waits when the server is busy and tries again on its own, later than the server asked (T-12)", async () => {
+    const pull = vi.fn<FieldEnvironment["pull"]>().mockResolvedValueOnce("busy").mockResolvedValue("ok");
+    const env = await enrolled({ pull });
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      await renderHome(env);
+      const region = await screen.findByRole("region", { name: "Synchronisation" });
+      expect(await within(region).findByText("Serveur occupé, nouvel essai bientôt")).toBeInTheDocument();
+
+      act(() => { vi.advanceTimersByTime(59_000); });
+      expect(pull).toHaveBeenCalledOnce();
+      act(() => { vi.advanceTimersByTime(32_000); });
+      await vi.waitFor(() => { expect(pull).toHaveBeenCalledTimes(2); });
+      expect(await within(region).findByText("À jour")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("spreads the tablets' refreshes around five minutes, and waits 60 to 90 seconds after a 429", () => {
+    expect(nextRefreshMs("ok", () => 0)).toBe(refreshEveryMs - 30_000);
+    expect(nextRefreshMs("ok", () => 1)).toBe(refreshEveryMs + 30_000);
+    expect(nextRefreshMs("failed", () => 0.5)).toBe(refreshEveryMs);
+    expect(nextRefreshMs("busy", () => 0)).toBe(60_000);
+    expect(nextRefreshMs("busy", () => 1)).toBe(90_000);
+    const moments = new Set(Array.from({ length: 50 }, () => nextRefreshMs("ok")));
+    expect(moments.size).toBeGreaterThan(40);
   });
 
   it("tells a revoked tablet that it no longer receives data (TC-P1-OFF-005)", async () => {

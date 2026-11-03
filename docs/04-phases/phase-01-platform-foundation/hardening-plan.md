@@ -59,6 +59,9 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | H-A5 | A page size far above the maximum (`limit=1000000`, -1, 0, 2^31, `ten`) | Capped at 200 or 400, never a 500 | `ContractAbuseTests` (every list) | ✅ |
 | H-A6 | Deeply nested, cut short, wrongly typed or invalid UTF-8 JSON; junk query values (SQL, 10 000 digits, control characters) | 400 problem details, no 500, no row changed | `RequestLimitTests`, `ContractAbuseTests` (every operation and query parameter) | ✅ |
 
+| H-A7 | 500 tablets of a site refresh in step every five minutes after opening together at shift start | Each tablet draws its own moment within ±30 s; after a 429 it waits 60–90 s, never retries at once | field `App.test.tsx` (`nextRefreshMs`, busy server) | ✅ |
+| H-A8 | The portal gets a 429 | The person reads "too many requests, wait a minute"; the query is not sent again at once | portal `App.test.tsx` | ✅ |
+
 ### 2.3 Authentication and identity
 
 | ID | Scenario | Expected | Test | Status |
@@ -102,8 +105,8 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 |---|---|---|
 | 0 | This plan, the P1.18a/P1.18b split | ✅ #123 |
 | 1a | Rate limiting and the load balancer's address (H-A1–A3) | ✅ #124 |
-| 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | 🟡 |
-| 1c | Clients: portal messages for 429 and 413, tablets wait for `Retry-After` with jitter | ⬜ |
+| 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | ✅ #125 |
+| 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | 🟡 |
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1–L4), nightly job | ⬜ |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5), authentication audit (H-I1, H-I3) | ⬜ |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |

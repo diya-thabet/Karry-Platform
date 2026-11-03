@@ -3,10 +3,8 @@ import { RefreshCw } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { lastRefresh, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
 import { Button, StatusChip, type Status } from "@karry/ui";
-import type { PullOutcome } from "./sync";
+import { nextRefreshMs, type PullOutcome } from "./sync";
 
-/** How often the home screen refreshes the reference data while it is open (and at once when the network returns). */
-export const refreshEveryMs = 5 * 60 * 1000;
 
 interface Snapshot {
   site: string | null;
@@ -30,12 +28,14 @@ const chips: Record<PullOutcome | "syncing", { status: Status; key: string }> = 
   ok: { status: "ok", key: "field.sync.state.ok" },
   offline: { status: "warning", key: "field.sync.state.offline" },
   failed: { status: "warning", key: "field.sync.state.failed" },
+  busy: { status: "warning", key: "field.sync.state.busy" },
   revoked: { status: "error", key: "field.sync.state.revoked" },
 };
 
 /**
  * The tablet's reference data on the home screen (US-P1-OFF-03 AC1/AC2): its site, when the data was last refreshed
- * and how much is kept offline. It refreshes on opening, every 5 minutes, when the network returns and on request.
+ * and how much is kept offline. It refreshes on opening, about every 5 minutes (see {@link nextRefreshMs}), when the
+ * network returns and on request.
  */
 export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; device: DeviceRecord; pull: () => Promise<PullOutcome> }) {
   const { t } = useTranslation();
@@ -51,6 +51,7 @@ export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; devi
 
   useEffect(() => {
     let active = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const download = async () => {
       const outcome = await pull();
       const snapshot = await read(db, device);
@@ -58,6 +59,8 @@ export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; devi
       if (active) {
         setData(snapshot);
         setState(outcome);
+        clearTimeout(timer);
+        timer = setTimeout(again, nextRefreshMs(outcome));
       }
     };
     const again = () => {
@@ -66,11 +69,10 @@ export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; devi
     };
     void read(db, device).then((snapshot) => { if (active) { setData(snapshot); } });
     void download();
-    const timer = setInterval(again, refreshEveryMs);
     window.addEventListener("online", again);
     return () => {
       active = false;
-      clearInterval(timer);
+      clearTimeout(timer);
       window.removeEventListener("online", again);
     };
   }, [db, device, pull, requested]);

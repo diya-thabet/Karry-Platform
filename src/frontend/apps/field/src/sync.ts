@@ -3,11 +3,23 @@ import { applyChanges, collections, type ChangeSet, type DeviceRecord, type Karr
 
 export const changesPath = "/api/v1/sync/changes";
 
+/** How often the home screen refreshes the reference data while it is open (and at once when the network returns). */
+export const refreshEveryMs = 5 * 60 * 1000;
+
+/**
+ * When to refresh next. Each tablet draws its own moment within 30 seconds either side of the five minutes, so the
+ * tablets of a site that all opened at the start of the shift do not ask at the same second ever after. After a 429
+ * the tablet waits longer than any `Retry-After` the API sends (60 s at most), plus up to 30 s of its own.
+ */
+export function nextRefreshMs(outcome: PullOutcome, random: () => number = Math.random): number {
+  return outcome === "busy" ? 60_000 + random() * 30_000 : refreshEveryMs - 30_000 + random() * 60_000;
+}
+
 /** A full snapshot at least this often, even when deltas succeed (ADR-0028 §5). */
 export const snapshotEveryMs = 24 * 60 * 60 * 1000;
 
-/** How a refresh of the reference data ended. */
-export type PullOutcome = "ok" | "offline" | "revoked" | "failed";
+/** How a refresh of the reference data ended. `busy`: the server asked the tablet to wait (429, threat T-12). */
+export type PullOutcome = "ok" | "offline" | "revoked" | "failed" | "busy";
 
 /**
  * A request signed by the tablet (ADR-0028 §3), dated by the server's clock as far as the tablet knows it. When the
@@ -56,6 +68,10 @@ export async function pullChanges(db: KarryOfflineDb, send: typeof fetch = fetch
 
     if (response.status === 401 && (await problemCode(response.clone())) === "devices.revoked") {
       return "revoked";
+    }
+
+    if (response.status === 429) {
+      return "busy";
     }
 
     if (!response.ok) {

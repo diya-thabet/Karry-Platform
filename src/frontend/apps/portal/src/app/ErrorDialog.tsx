@@ -27,6 +27,8 @@ const explained = new Set([
   "billing.quantity_invalid",
   "billing.plan_unknown",
   "billing.period_invalid",
+  "request.rate_limited",
+  "request.too_large",
   "tenant.host_mismatch",
   "tenant.legal_name_invalid",
   "tenant.colour_invalid",
