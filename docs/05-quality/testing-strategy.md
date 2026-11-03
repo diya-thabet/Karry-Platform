@@ -22,7 +22,7 @@ last_updated: 2026-10-21
 | Contract | OpenAPI diff in CI | Breaking change detection |
 | E2E | Playwright | Critical journeys incl. **offline mode** (network emulation), multi-device sync, signature flow |
 | Device lab | Real low-end Android tablets | Performance budgets, outdoor readability, battery |
-| Load | k6 | Sync bursts (shift change at 06:00 / 18:00 across all sites), dashboards |
+| Load | k6 ([load testing](load-testing.md), `tests/load/`, nightly) | Sync bursts (shift change at 06:00 / 18:00 across all sites), mixed-tenant reads with a leak search (TC-P1-TEN-005), spikes; dashboards later |
 | Security | ZAP (DAST), pen test before GA, ledger tamper red-team exercise | — |
 | AI evals | Golden Q&A sets | Correct tool selection, numeric fidelity, citation presence, FR/EN parity |
 | UAT | Pilot site with real crews | Signed off by domain lead before each phase exit |

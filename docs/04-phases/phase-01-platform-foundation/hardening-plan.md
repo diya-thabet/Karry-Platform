@@ -43,10 +43,10 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-L1 | 500 tablets pull their reference data at once (shift start) | 0 errors; p95 < 800 ms; every tablet gets its own site's data | k6 `tests/load/devices.js` | ⬜ |
-| H-L2 | **TC-P1-TEN-005:** 10,000 mixed requests from people of two companies | **0 rows of the other company**; p95 < 300 ms; < 0.1 % errors | k6 `tests/load/tenants.js` | ⬜ |
-| H-L3 | After the load, the audit ledger still verifies | Integrity check green | `tests/load/run.sh` (verify at the end) | ⬜ |
-| H-L4 | A spike: 0 → 300 users in 10 s | No 5xx; latency back to normal within 30 s | k6 scenario `spike` | ⬜ |
+| H-L1 | 500 tablets pull their reference data at shift start: all in one second (burst) and over a minute (shift) | 0 errors; every tablet gets only its own site; shift p95 < 800 ms; burst p95 recorded (alarm 3 s) | k6 `tests/load/devices.js`, nightly: burst 751 ms, shift 27 ms, 0 errors ([results](../../05-quality/load-testing.md#3-results)) | ✅ |
+| H-L2 | **TC-P1-TEN-005:** 10,000 mixed requests from people of two companies | **0 rows of the other company**; p95 < 300 ms; < 0.1 % errors | k6 `tests/load/tenants.js`, nightly: 0 leaks, p95 33 ms | ✅ |
+| H-L3 | After the load, the audit ledger still verifies | Integrity check green | With the resilience slice (the check needs a Tenant Admin with MFA, or the Workers' scheduled check) | ⬜ |
+| H-L4 | A spike: 0 → 300 users in 10 s | No 5xx; no leak | k6 `tenants.js` `spike`, nightly: 0 server errors, p95 6 ms | ✅ |
 
 ### 2.2 Abuse and denial of service (threat T-12)
 
@@ -106,8 +106,8 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 0 | This plan, the P1.18a/P1.18b split | ✅ #123 |
 | 1a | Rate limiting and the load balancer's address (H-A1–A3) | ✅ #124 |
 | 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | ✅ #125 |
-| 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | 🟡 |
-| 2 | k6 load suite with signed tablets and real sign-in (H-L1–L4), nightly job | ⬜ |
+| 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | ✅ #126 |
+| 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | 🟡 |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5), authentication audit (H-I1, H-I3) | ⬜ |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |
 | 5 | Resilience scenarios (H-R1–R5) | ⬜ |
