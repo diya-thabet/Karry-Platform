@@ -121,7 +121,7 @@ jobs:
           DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
             RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 \
             nohup dotnet Karry.Host.dll --urls http://127.0.0.1:5000 > /tmp/karry-load-host.log 2>&1 &
-          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:5000/health/ready && exit 0; sleep 2; done
+          for _ in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:5000/health/ready && exit 0; sleep 2; done
           cat /tmp/karry-load-host.log; exit 1
       - run: tools/ci/install-tool.sh k6
       - name: Load suite
