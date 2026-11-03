@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Devices;
 using Microsoft.AspNetCore.Authentication;
@@ -40,11 +41,13 @@ public static class TenancyExtensions
     }
 
     /// <summary>
-    /// Authentication, authorization, tenant resolution, then the permission check of tenant endpoints (ADR-0022);
-    /// before idempotency and the endpoints.
+    /// The address rate limit, authentication, authorization (a tablet is proven here), the caller and company rate
+    /// limits, tenant resolution, then the permission check of tenant endpoints (ADR-0022); before idempotency and the
+    /// endpoints. The rate limits apply only when the host called <c>AddKarryRateLimits</c>.
     /// </summary>
     public static IApplicationBuilder UseKarryTenancy(this IApplicationBuilder app) =>
-        app.UseAuthentication().UseAuthorization().UseMiddleware<TenantResolutionMiddleware>().UseKarryAuthorization();
+        app.UseAddressRateLimit().UseAuthentication().UseAuthorization().UseCallerRateLimit()
+            .UseMiddleware<TenantResolutionMiddleware>().UseKarryAuthorization();
 
     /// <summary>
     /// The endpoint is for enrolled field tablets only (ADR-0028 §3): authenticated by the <c>Device</c> scheme alone, so

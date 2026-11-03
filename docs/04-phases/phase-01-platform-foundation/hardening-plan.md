@@ -52,9 +52,9 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-A1 | One tablet floods the sync API | 429 with `Retry-After` past its limit; other tablets unaffected | rate-limit integration tests | ⬜ |
-| H-A2 | One person floods the API | 429 per person; colleagues unaffected | rate-limit integration tests | ⬜ |
-| H-A3 | Anonymous flood of enrolment and public branding | 429 per IP address | rate-limit integration tests | ⬜ |
+| H-A1 | One tablet floods the sync API | 429 with `Retry-After` past its limit; other tablets unaffected; forged assertions naming it do not use up its limit | `RateLimitTests` | ✅ |
+| H-A2 | One person floods the API; one company floods the API | 429 per person and per company; colleagues and other companies unaffected | `RateLimitTests` | ✅ |
+| H-A3 | Anonymous flood of enrolment and public branding; flood of bad tokens; spoofed `X-Forwarded-For` | 429 per IP address, before authentication for bad tokens; only a known load balancer names the address | `RateLimitTests`, `RateLimitWiringTests` (real host) | ✅ |
 | H-A4 | Oversized body (sync batch > 8 MB, JSON > 1 MB elsewhere) | 413, nothing stored | integration tests | 🟡 (batch limit exists) |
 | H-A5 | A page size far above the maximum (`limit=1000000`) | Capped or 400, never a full table scan | integration tests | ⬜ |
 | H-A6 | Deeply nested or malformed JSON | 400 problem details, no 500 | integration tests | ⬜ |
@@ -100,8 +100,9 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | Slice | Content | Status |
 |---|---|---|
-| 0 | This plan, the P1.18a/P1.18b split | 🟡 |
-| 1 | Rate limiting (H-A1–A3) and request limits (H-A4–A6) | ⬜ |
+| 0 | This plan, the P1.18a/P1.18b split | ✅ #123 |
+| 1a | Rate limiting and the load balancer's address (H-A1–A3) | 🟡 |
+| 1b | Request limits (H-A4–A6) | ⬜ |
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1–L4), nightly job | ⬜ |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5), authentication audit (H-I1, H-I3) | ⬜ |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |

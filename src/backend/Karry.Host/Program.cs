@@ -25,6 +25,8 @@ builder.Services.AddHealthChecks()
 
 builder.Services.AddKarryApiConventions();
 builder.Services.AddKarryTenancy(builder.Configuration);
+builder.Services.AddKarryRateLimits(builder.Configuration, builder.Environment);
+builder.Services.AddKarryReverseProxy(builder.Configuration);
 builder.Services.AddOpenApi("v1", options => options.AddSensitiveFieldMarks());
 builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
@@ -78,6 +80,7 @@ if (args is ["demo-import-files", .. var rest])
     return 0;
 }
 
+app.UseKarryReverseProxy();
 app.UseKarryObservability();
 app.UseKarryApiConventions();
 app.UseKarryTenancy();
