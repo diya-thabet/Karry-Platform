@@ -29,6 +29,7 @@
 | **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) (Phase 0), [04-phases/phase-01-platform-foundation/tracker.md](04-phases/phase-01-platform-foundation/tracker.md) (Phase 1) |
 | **Phase 1 step-by-step execution plan** (sub-phases P1.0 – P1.18: order, inputs, tests, done criteria) | [04-phases/phase-01-platform-foundation/sub-phases.md](04-phases/phase-01-platform-foundation/sub-phases.md) |
 | **Hardening and scenario tests** (P1.18a: load, abuse, identity, resilience, concurrency, web security) | [04-phases/phase-01-platform-foundation/hardening-plan.md](04-phases/phase-01-platform-foundation/hardening-plan.md) |
+| **Security headers, page policy (CSP), ZAP scan** | [05-quality/security-testing.md](05-quality/security-testing.md) |
 | **Load tests** (k6: how to run, thresholds, results, findings) | [05-quality/load-testing.md](05-quality/load-testing.md) |
 | Technical spike results (RLS, offline, device keys, extensions) | [../spikes/README.md](../spikes/README.md) |
 | **What is a technical spike?** Phase 0 spikes explained in simple English | [04-phases/phase-00-discovery/spikes-explained.md](04-phases/phase-00-discovery/spikes-explained.md) |

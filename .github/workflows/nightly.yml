@@ -135,3 +135,47 @@ jobs:
             tests/load/results
             /tmp/karry-load-host.log
           retention-days: 14
+
+  # P1.18a OWASP ZAP baseline (hardening plan H-W1, tests/security/zap.sh): passive scan of the portal and field app
+  # (production builds under their page policy) and of the API from its OpenAPI description. Fails on a high finding
+  # or a medium one not accepted in tests/security/zap-accepted.tsv.
+  zap:
+    name: zap
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - run: dotnet restore src/backend/Karry.Host --locked-mode
+      - name: Free disk space for the local stack
+        run: sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+      - name: Local stack, migrated and seeded
+        env:
+          KEEP_STACK: "1"
+        run: deploy/docker/smoke-test.sh
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: src/frontend
+      - name: ZAP baseline (apps and API started by tools/e2e/run.sh)
+        run: tools/e2e/run.sh tests/security/zap.sh tests/security/results
+      - name: Findings on the run page
+        if: always()
+        run: cat tests/security/results/summary.md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+      - name: ZAP reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: zap-reports
+          path: tests/security/results
+          retention-days: 14

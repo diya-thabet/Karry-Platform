@@ -5,6 +5,8 @@
 # (deploy/docker/smoke-test.sh with KEEP_STACK=1 does all three). Starts Karry.Workers, Karry.Host (:5000) and both apps
 # (vite preview :5173 portal, :5174 field), runs Playwright, stops what it started.
 #   E2E_INSTALL_DEPS=1  also install Chromium's system libraries (CI runners)
+# With arguments, runs that command (from the repository root) against the started apps instead of Playwright, e.g.
+#   tools/e2e/run.sh tests/security/zap.sh      the nightly ZAP baseline (hardening plan H-W1)
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -41,6 +43,12 @@ wait_for http://localhost:5173/ "portal (vite preview)"
 wait_for http://localhost:5174/ "field (vite preview)"
 # Branding through the app origin, as the login page reads it.
 wait_for http://localhost:5173/api/v1/tenancy/public/demo-carriere-a "API through the portal origin"
+
+if [[ $# -gt 0 ]]; then
+  cd "$root"
+  "$@"
+  exit
+fi
 
 if [[ "${E2E_INSTALL_DEPS:-0}" == "1" ]]; then
   pnpm --filter @karry/e2e exec playwright install --with-deps chromium

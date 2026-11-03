@@ -18,6 +18,7 @@ public static partial class ApiConventions
 
     public static IServiceCollection AddKarryApiConventions(this IServiceCollection services)
     {
+        services.AddKarrySecurityHeaders();
         services.AddCors(options => options.AddPolicy(PublicCorsPolicy, policy => policy.AllowAnyOrigin().WithMethods("GET").WithHeaders("Accept")));
         services.AddProblemDetails(options => options.CustomizeProblemDetails = context =>
         {
@@ -44,6 +45,8 @@ public static partial class ApiConventions
     /// </summary>
     public static IApplicationBuilder UseKarryApiConventions(this IApplicationBuilder app)
     {
+        // First, so every answer carries them: errors, 404s, 413s and rate-limit refusals included.
+        app.UseKarrySecurityHeaders();
         app.UseExceptionHandler(handler => handler.Run(async context =>
         {
             var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;

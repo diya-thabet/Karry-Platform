@@ -1,7 +1,9 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+import { loadEnv } from "vite";
 import { defineConfig } from "vitest/config";
+import { securityHeaders } from "../../security-headers";
 
 // Local addresses: http://localhost:5174 and the demo tenants' http://<slug>.localhost:5174 (browsers resolve
 // *.localhost to this machine; the first label names the company at enrollment). /api goes to Karry.Host, so the app
@@ -13,7 +15,7 @@ const server = {
   proxy: { "/api": { target: process.env.KARRY_API_URL ?? "http://localhost:5000", changeOrigin: false } },
 };
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     tailwindcss(),
@@ -48,10 +50,11 @@ export default defineConfig({
     }),
   ],
   server,
-  preview: server,
+  // The production page policy (H-W2) on the production build: the browser E2E tests run against it.
+  preview: { ...server, headers: securityHeaders("field", loadEnv(mode, process.cwd(), "VITE_")) },
   test: {
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
   },
-});
+}));

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./guard";
 
 // Demo users from `Karry.Host seed-demo` (local stack only): <role>@<slug>.karry.test.
 const password = process.env.KARRY_DEMO_PASSWORD ?? "karry-demo-local-only";

@@ -100,6 +100,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
+| 2026-11-03 | P1.18a | Web security (slice 4): security headers on every API answer and a page policy for both apps (E2E guard fails on any violation), nightly ZAP baseline; `style-src 'unsafe-inline'` accepted after measuring ([security testing](../05-quality/security-testing.md)) | Software architect |
 | 2026-11-03 | P1.18a | Authentication audit (hardening plan slice 3): the forgotten-password flow now asks privileged users for their second factor and never removes it (R-11, H-I6); the API accepts a person's token at most 30 s past expiry and only RS256 (was 5 minutes, any algorithm the key allowed) | Software architect |
 | 2026-10-29 | P1.16 | T-14 verified: support access by consent code or alerted break-glass, read-only and masked, one hour, ledgered; operator MFA enforced by Keycloak and the API; refused codes logged (security review in ADR-0029) | Software architect |
 | 2026-10-23 | P1.6 | T-06: append-only ledger enforced by triggers and privileges, written in the business transaction, tampering detected at the exact sequence | Software architect |

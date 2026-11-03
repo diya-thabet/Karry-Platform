@@ -91,13 +91,15 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | H-C2 | The same enrolment code used by two tablets at once | Exactly one enrols | integration test | ⬜ |
 | H-C3 | The same sync batch sent twice at once | Each command stored once | Existing: sync tests | 🟡 (audit) |
 | H-C4 | Ledger rows touched in the database by an insider | Verifier reports the break | Existing: Trust tests | ✅ |
+| H-C5 | **Two Workers processes anchor the same ledger at once** (a rolling deploy starts the new one, whose start-up run anchors, while the old one runs) | One anchor per sequence; never a false "tampering detected" | Found 2026-11-03 on the local stack (two versions of anchor 125, the verifier rightly alarmed); fix: a lock across processes, next PR | ⬜ |
 
 ### 2.6 Web security
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-W1 | OWASP ZAP baseline scan of the portal and API | No high finding; medium findings fixed or accepted with a reason | `tests/security/zap.sh`, nightly | ⬜ |
-| H-W2 | Security headers on every answer (CSP, `X-Content-Type-Options`, `Referrer-Policy`, frame-ancestors) | Present | integration test | ⬜ |
+| H-W1 | OWASP ZAP baseline scan of the portal, field app and API | No high finding; medium findings fixed or accepted with a reason | `tests/security/zap.sh` + `zap_summary.py`, nightly `zap` job; first run: no high, one medium accepted after measuring (W-2) | ✅ |
+| H-W2 | Security headers on every answer (CSP, `X-Content-Type-Options`, `Referrer-Policy`, frame-ancestors, HSTS, no `Server`) and a page policy for both apps | Present; no page breaks under the policy | `SecurityHeadersTests`, `securityHeaders.test.ts`, E2E guard on every browser test, `security-headers.spec.ts` | ✅ |
+| H-W3 | The site map in the production build | Draws under the page policy | `map.spec.ts`. **Found broken** (MapLibre's worker file was never shipped, [W-3](../../05-quality/security-testing.md#3-findings)), fixed | ✅ |
 | H-W3 | Every threat of the [threat model](../../02-architecture/threat-model.md) that Phase 1 claims is linked to a passing test | Traceability check | `tools/ci` check | ⬜ |
 
 ## 3. Slices (one PR each)
@@ -110,7 +112,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | ✅ #126 |
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | ✅ #127 |
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
-| 4 | Security headers and ZAP baseline (H-W1, H-W2) | ⬜ |
+| 4 | Security headers and ZAP baseline (H-W1, H-W2, H-W3); findings: no headers (W-1), the production map's missing worker (W-3), the anchoring race (H-C5, next PR) | 🟡 |
 | 5 | Resilience scenarios (H-R1–R5) | ⬜ |
 | 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3) | ⬜ |
 | 7 | Demo rehearsal, exit review draft | ⬜ |

@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { type Page } from "@playwright/test";
+import { expect, test } from "./guard";
 import { secondFactor } from "./totp";
 
 // Demo accounts from `Karry.Host seed-demo` (local stack only). The browser tests have their own operator, so a person

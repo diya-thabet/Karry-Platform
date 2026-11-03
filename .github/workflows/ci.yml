@@ -36,6 +36,8 @@ jobs:
         run: python3 -m unittest discover -s tools/ci -p 'test_*.py' -v
       - name: N'Ko catalog draft generator tests
         run: python3 -m unittest discover -s tools/i18n -p 'test_*.py' -v
+      - name: ZAP findings judge tests (hardening plan H-W1)
+        run: python3 -m unittest discover -s tests/security -p 'test_*.py' -v
       - name: Dashboards as code are up to date
         run: python3 deploy/observability/dashboards/generate.py --check
       - name: Keycloak realm as code is up to date
