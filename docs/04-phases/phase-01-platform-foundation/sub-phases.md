@@ -672,6 +672,7 @@ A sub-phase is ✅ only when **all** of these are true:
     - `deploy.yml`: merge to `main` deploys to dev; a release-candidate tag deploys to staging.
     - **Migrations run as a separate job before rollout**, and a failed migration aborts the deploy.
     - Smoke tests after deploy, then the ledger verifier.
+    - **`ReverseProxy:KnownNetworks`** set to the load balancer's networks (P1.18a rate limits count per caller address; without it every caller shares the load balancer's address, [API standards](../../02-architecture/api-standards.md#implemented-conventions-p13-karrybuildingblocksapi-idempotency)).
   - **Supply chain:** images built once, **signed with cosign**, with an SBOM attached; Trivy image scan.
   - **Credentials:** GitHub → cloud via **OIDC federation** (no long-lived secrets), and GitHub Environments with reviewers for staging.
   - **Observability in the environments** (rules, dashboards and runbooks exist since P1.4): OTLP endpoint of the hosted backend for `karry-api`/`karry-workers`; alert notification routing (Alertmanager or Grafana contact points → e-mail/chat/on-call); node_exporter or the provider's exporter on the database host (`node_cpu_seconds_total{karry_role="database"}`, alert `KarryDatabaseCpuHigh`); blackbox_exporter HTTPS probes of public endpoints (`probe_ssl_earliest_cert_expiry`, alert `KarryCertificateExpiringSoon`).

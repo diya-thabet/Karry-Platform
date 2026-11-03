@@ -340,8 +340,9 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ### 2026-11-03 — P1.18 split, hardening plan (agent)
 - **Goal:** owner: "start it without cloud provider … add more tests and make it hardened and battle tested system for many scenarios, act as top tier senior QA".
 - **Done:** P1.18 split into P1.18a (now) and P1.18b (after P1.17) in sub-phases and tracker (D49); [hardening plan](../04-phases/phase-01-platform-foundation/hardening-plan.md) with the scenario matrix and eight slices.
-- **Gaps found:** no API rate limiting (T-12 promised it); no load suite; no realm policy test; no ZAP scan; no security-header test.
-- **Next:** slice 1 rate limiting, slice 2 k6 load suite.
+- **Gaps found:** no API rate limiting (T-12 promised it; closed by slice 1a); no load suite; no realm policy test; no ZAP scan; no security-header test.
+- **Slice 1a (rate limits, T-12):** `RateLimits.cs` (address check before authentication; tablet, person, anonymous address and company after authorization; 429 `request.rate_limited` + `Retry-After`; health never limited; production refuses `Enabled=false`) and `ReverseProxy.cs` (`X-Forwarded-For` believed only from `ReverseProxy:KnownNetworks`). Tests: `RateLimitTests` 11 (mutation: dropping the caller check fails 4), `RateLimitWiringTests`; authorization 6, isolation 116, architecture 32, building blocks 216, host 22 green locally. **P1.17 must set `ReverseProxy:KnownNetworks`** (else everyone shares the load balancer's address).
+- **Next:** slice 1b request limits, slice 2 k6 load suite.
 
 ### 2026-10-29 — UI/UX review and frontend clean-up (agent)
 - **Goal:** owner: "focus on front end … from design perspective (language should be a submenu, same for theme), HCI laws … put the analysis in docs … clean structure, more tests, more pro".

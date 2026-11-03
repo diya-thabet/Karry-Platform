@@ -35,7 +35,27 @@ last_updated: 2026-10-29
 | BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
 | (framework refusal: no or bad token, failed policy such as `platform-operator`) | 401 / 403 | `auth.unauthenticated` / `auth.forbidden` (same codes as the tenant and permission checks) |
 | A platform operator signed in without a second factor (`amr` has neither `otp` nor `hwk`, ADR-0029 §5) | 401 | `auth.mfa_required` (sign in again with the factor) |
+| Too many requests (rate limits below) | 429 | `request.rate_limited`, with the `Retry-After` header and `retryAfterSeconds` |
 | (unhandled exception) | 500 | `server.unexpected_error`: generic title, **no exception type, message or stack trace**; details only in logs with the trace ID (TC-P1-PLT-021) |
+
+**Rate limits (P1.18a, threat T-12, `Karry.BuildingBlocks/Api/RateLimits.cs`).** Sliding one-minute windows (six
+ten-second segments), counted in memory per API instance (with *n* instances a caller gets up to *n* times the limit;
+accepted for M1, a shared store in Valkey when needed). Two checks, both skipped for `/health/*`:
+
+| Check | Where in the pipeline | Key | Default per minute (`RateLimits:…`) |
+|---|---|---|---|
+| Address | Before authentication: bounds floods of bad tokens and forged tablet assertions | IP address | `PerAddressPerMinute` 6 000 |
+| Caller | After authorization, when the caller is **proven** (a tablet's signature checked) | Tablet | `PerDevicePerMinute` 120 |
+| | | Person (`sub`) | `PerPersonPerMinute` 600 |
+| | | No signed-in caller (enrolment, public branding): IP address | `AnonymousPerAddressPerMinute` 60 |
+| Company | Same place | `tenant_id` | `PerTenantPerMinute` 12 000 |
+
+Counting a tablet only after its signature is checked means a stranger who knows its ID cannot use up its limit. The
+address is the caller's real one behind the load balancer only when `ReverseProxy:KnownNetworks` (CIDR list) names the
+load balancer's networks (`X-Forwarded-For` from anyone else is ignored); **P1.17 must set it**, or every caller
+shares the load balancer's address. `RateLimits:Enabled` is false only in test hosts, and production refuses to start
+with it false. The local stack (`appsettings.Development.json`) raises the two address limits, since every browser
+there is 127.0.0.1. Metric `karry.rate_limit.rejected` (tag `limit`: address, device, person, anonymous, tenant).
 
 **Authentication and tenant (P1.5).** Module endpoints (`/api/v1/{module}/…`) require a bearer token and a tenant **by default**. The tenant comes only from the validated token's `tenant_id` claim (exactly one UUID), never from a header, path or body. No or invalid token → **401**; a valid token without exactly one tenant → **403 `tenant.missing`**. Both are answered before the endpoint runs. **One exception, for Karry staff only:** a platform operator's token (no `tenant_id`) with the header `Karry-Support-Session: <tenantId>.<sessionId>` reads that tenant's data if the session is the operator's own, running and within its hour (support access, [ADR-0029 §4](../adr/0029-operator-console-support-access-audit-viewer.md#4-support-access-a-ledgered-read-only-one-hour-support-session)): reads only (`403 support.read_only` otherwise), every sensitive field masked, every request ledgered; otherwise `403 support.session_invalid`. A company's own token ignores the header. An endpoint opts out explicitly with `.AllowAnonymous()` (public) and/or `.AllowWithoutTenant()` (platform operator, branding lookup), and the opt-out is reviewed.
 
