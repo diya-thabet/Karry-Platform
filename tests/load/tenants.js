@@ -6,7 +6,7 @@ import http from "k6/http";
 import encoding from "k6/encoding";
 import { check, fail, sleep } from "k6";
 import { Counter } from "k6/metrics";
-import { api, bearer, signIn } from "./lib/karry.js";
+import { api, bearer, latencyGate, signIn } from "./lib/karry.js";
 
 const companies = ["demo-carriere-a", "demo-carriere-b"];
 // Office roles without a second factor: the only demo accounts a script can sign in.
@@ -35,7 +35,7 @@ const thresholds = {
   mixed: {
     cross_tenant_leaks: ["count==0"],
     answers_checked: [`count>=${requests}`],
-    "http_req_duration{scenario:mixed}": ["p(95)<300"],
+    "http_req_duration{scenario:mixed}": latencyGate("p(95)<300"),
     "http_req_failed{scenario:mixed}": ["rate<0.001"],
     server_errors: ["count==0"],
   },

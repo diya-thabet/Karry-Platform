@@ -125,6 +125,9 @@ jobs:
           cat /tmp/karry-load-host.log; exit 1
       - run: tools/ci/install-tool.sh k6
       - name: Load suite
+        # Correctness gates only: a shared runner's response times are noise (tests/load/lib/karry.js latencyGate).
+        env:
+          LATENCY_GATES: report
         run: tests/load/run.sh
       # Hardening plan H-L3: every company's audit ledger still verifies after the load (even when a threshold failed).
       - name: Ledgers intact after the load

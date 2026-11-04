@@ -127,8 +127,11 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
             MaxErrorRetry = 1,
         });
 
-    /// <summary>The longest one storage call may take before it counts as unavailable.</summary>
+    /// <summary>The longest one attempt may take (the SDK's timeout).</summary>
     public static readonly TimeSpan AttemptTimeout = TimeSpan.FromSeconds(10);
+
+    /// <summary>The longest one call may take, retries included, before the storage counts as unavailable.</summary>
+    public static readonly TimeSpan CallBudget = TimeSpan.FromSeconds(20);
 
     private readonly SemaphoreSlim bucketCheck = new(1, 1);
     private bool bucketReady = !options.CreateBucketIfMissing;
@@ -136,24 +139,24 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
     public bool Available => true;
 
     public Task PutAsync(string key, byte[] content, string contentType, CancellationToken cancellationToken) =>
-        CallAsync(async () =>
+        CallAsync(async token =>
         {
-            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureBucketAsync(token).ConfigureAwait(false);
             using var body = new MemoryStream(content);
-            await client.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = key, InputStream = body, ContentType = contentType }, cancellationToken)
+            await client.PutObjectAsync(new PutObjectRequest { BucketName = options.Bucket, Key = key, InputStream = body, ContentType = contentType }, token)
                 .ConfigureAwait(false);
             return true;
         }, cancellationToken);
 
     public Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken) =>
-        CallAsync(async () =>
+        CallAsync(async token =>
         {
-            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
+            await EnsureBucketAsync(token).ConfigureAwait(false);
             try
             {
-                using var response = await client.GetObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
+                using var response = await client.GetObjectAsync(options.Bucket, key, token).ConfigureAwait(false);
                 using var content = new MemoryStream();
-                await response.ResponseStream.CopyToAsync(content, cancellationToken).ConfigureAwait(false);
+                await response.ResponseStream.CopyToAsync(content, token).ConfigureAwait(false);
                 return new StoredObject(content.ToArray(), response.Headers.ContentType);
             }
             catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
@@ -163,10 +166,10 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
         }, cancellationToken);
 
     public Task DeleteAsync(string key, CancellationToken cancellationToken) =>
-        CallAsync(async () =>
+        CallAsync(async token =>
         {
-            await EnsureBucketAsync(cancellationToken).ConfigureAwait(false);
-            await client.DeleteObjectAsync(options.Bucket, key, cancellationToken).ConfigureAwait(false);
+            await EnsureBucketAsync(token).ConfigureAwait(false);
+            await client.DeleteObjectAsync(options.Bucket, key, token).ConfigureAwait(false);
             return true;
         }, cancellationToken);
 
@@ -180,13 +183,17 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
     /// A storage that cannot be reached, times out or answers 5xx is unavailable; anything else (a refused request, a
     /// missing bucket) stays a fault of ours. The caller's own cancellation stays a cancellation.
     /// </summary>
-    private static async Task<T> CallAsync<T>(Func<Task<T>> call, CancellationToken cancellationToken)
+    private static async Task<T> CallAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
     {
+        // One deadline for the whole call, retries included: the SDK's own timeouts bound each attempt, not the sum
+        // (on a slow CI runner a frozen storage took 31 s). WaitAsync holds it even if the SDK ignores the cancellation.
+        using var budget = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        budget.CancelAfter(CallBudget);
         try
         {
-            return await call().ConfigureAwait(false);
+            return await call(budget.Token).WaitAsync(budget.Token).ConfigureAwait(false);
         }
-        catch (Exception ex) when (!cancellationToken.IsCancellationRequested && IsOutage(ex))
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested && (budget.IsCancellationRequested || IsOutage(ex)))
         {
             throw new ObjectStoreUnavailableException("Object storage is not answering.", ex);
         }
