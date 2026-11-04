@@ -105,6 +105,87 @@ describe("materials (US-P1-AST-04)", () => {
     expect(api.writes().at(-1)).toEqual({ method: "DELETE", path: `/api/v1/materials/${materialId}/densities/${tomorrow}`, body: null });
   });
 
+  it("never saves over a change made by someone else meanwhile, and keeps the person's entries (H-C1)", async () => {
+    const api = fakeApi({ permissions: manager, materials: [material()] });
+    await renderAt(`/settings/materials/${materialId}`, api);
+    const name = await screen.findByDisplayValue("Grave 0/31.5");
+    api.changeMaterialElsewhere(materialId, { name: "Grave lavée" });
+
+    fireEvent.change(name, { target: { value: "Grave concassée" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the material" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(name).toHaveValue("Grave concassée");
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Show their version instead" }));
+    expect(await screen.findByDisplayValue("Grave lavée")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("saves the person's entries over the other change only when they choose to", async () => {
+    const api = fakeApi({ permissions: manager, materials: [material()] });
+    await renderAt(`/settings/materials/${materialId}`, api);
+    const name = await screen.findByDisplayValue("Grave 0/31.5");
+    api.changeMaterialElsewhere(materialId, { name: "Grave lavée" });
+    fireEvent.change(name, { target: { value: "Grave concassée" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the material" }));
+
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Save my changes over theirs" }));
+
+    expect(await screen.findByText("Material saved.")).toBeInTheDocument();
+    expect(api.writes().filter((w) => w.method === "PUT").at(-1)).toMatchObject({ body: { name: "Grave concassée" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("never mistakes the person's own density version for someone else's change", async () => {
+    // A density version is saved in the material's row and gives it a new version; the name form must follow it.
+    const api = fakeApi({ permissions: manager, materials: [material()] });
+    await renderAt(`/settings/materials/${materialId}`, api);
+    const name = await screen.findByDisplayValue("Grave 0/31.5");
+    fireEvent.click(screen.getByRole("button", { name: "New density version" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /^Loose density/ }), { target: { value: "1.65" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the version" }));
+    expect(await screen.findByText("Density version saved.")).toBeInTheDocument();
+
+    fireEvent.change(name, { target: { value: "Grave concassée" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the material" }));
+
+    expect(await screen.findByText("Material saved.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps what the person typed when a refresh brings someone else's change, and refuses to save over it (finding C-2)", async () => {
+    // Saving a density version refreshes the material; before, the form was remounted and the typing silently lost.
+    const api = fakeApi({ permissions: manager, materials: [material()] });
+    await renderAt(`/settings/materials/${materialId}`, api);
+    const name = await screen.findByDisplayValue("Grave 0/31.5");
+    fireEvent.change(name, { target: { value: "Grave concassée" } });
+    api.changeMaterialElsewhere(materialId, { name: "Grave lavée" });
+    fireEvent.click(screen.getByRole("button", { name: "New density version" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /^Loose density/ }), { target: { value: "1.65" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the version" }));
+    expect(await screen.findByText("Density version saved.")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Grave lavée" })).toBeInTheDocument();
+
+    expect(screen.getByDisplayValue("Grave concassée")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save the material" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Someone else saved a change here while you were editing.");
+  });
+
+  it("shows someone else's change when the person had not typed anything", async () => {
+    const api = fakeApi({ permissions: manager, materials: [material()] });
+    await renderAt(`/settings/materials/${materialId}`, api);
+    await screen.findByDisplayValue("Grave 0/31.5");
+    api.changeMaterialElsewhere(materialId, { name: "Grave lavée" });
+    fireEvent.click(screen.getByRole("button", { name: "New density version" }));
+    fireEvent.change(screen.getByRole("textbox", { name: /^Loose density/ }), { target: { value: "1.65" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the version" }));
+
+    expect(await screen.findByDisplayValue("Grave lavée")).toBeInTheDocument();
+  });
+
   it("refuses a version starting today", async () => {
     const api = fakeApi({ permissions: manager, materials: [material()] });
     await renderAt(`/settings/materials/${materialId}`, api);

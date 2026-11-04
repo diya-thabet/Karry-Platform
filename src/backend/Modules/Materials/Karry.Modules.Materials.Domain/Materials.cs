@@ -120,6 +120,9 @@ public sealed class Material : AggregateRoot<MaterialId>, ITenantOwned
 
     public DateTimeOffset? ArchivedAt { get; private set; }
 
+    /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; a form sends it back as <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public static Material Create(TimeProvider clock, TenantId tenant, string code, string name, MaterialKind kind, DensityVersion first, string? actor)
     {
         ArgumentNullException.ThrowIfNull(clock);

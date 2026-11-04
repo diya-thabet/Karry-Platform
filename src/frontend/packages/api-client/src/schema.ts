@@ -2025,6 +2025,7 @@ export interface components {
             changedAt: string;
             /** Format: date-time */
             archivedAt: null | string;
+            version: string;
         };
         /** @description A new meter: `Kind` hours or km, the value shown when installed (default 0) and the date (default the company's today). */
         MeterInput: {
@@ -6391,7 +6392,9 @@ export interface operations {
     ChangeMaterial: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 materialId: string;
             };
@@ -6430,6 +6433,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ArchiveMaterial: {
@@ -6461,6 +6473,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     RestoreMaterial: {
@@ -6485,6 +6506,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

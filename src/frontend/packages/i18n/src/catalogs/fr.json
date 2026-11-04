@@ -411,6 +411,7 @@
   "errors.billing.limit_reached": "Votre entreprise a atteint la limite de son abonnement pour cela. Supprimez-en ou demandez à Karry de changer l’abonnement.",
   "errors.request.rate_limited": "Trop de demandes en peu de temps. Attendez une minute, puis réessayez.",
   "errors.request.too_large": "Ce que vous avez envoyé est trop volumineux.",
+  "errors.request.version_conflict": "Quelqu’un d’autre a enregistré une modification ici au même moment. Rien n’a été enregistré pour vous : actualisez la page, puis réessayez.",
   "errors.server.unavailable": "Une partie de Karry est momentanément indisponible. Attendez une minute, puis réessayez.",
   "portal.subscription.pastDue": "Le paiement de votre entreprise est en retard. Rien n’est encore bloqué ; les modifications au bureau sont suspendues après 14 jours sans paiement.",
   "portal.subscription.restricted": "Les modifications au bureau sont suspendues jusqu’au paiement de l’abonnement. Vous pouvez toujours tout consulter, et la saisie terrain continue.",

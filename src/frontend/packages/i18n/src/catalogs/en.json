@@ -411,6 +411,7 @@
   "errors.billing.limit_reached": "Your company has reached its plan limit for this. Remove some or ask Karry to change the plan.",
   "errors.request.rate_limited": "Too many requests in a short time. Wait a minute, then try again.",
   "errors.request.too_large": "What you sent is too large.",
+  "errors.request.version_conflict": "Someone else saved a change here at the same moment. Nothing of yours was saved: refresh the page, then try again.",
   "errors.server.unavailable": "Part of Karry is briefly unavailable. Wait a minute, then try again.",
   "portal.subscription.pastDue": "Your company's payment is overdue. Nothing is blocked yet; office changes pause after 14 days without payment.",
   "portal.subscription.restricted": "Office changes are paused until the subscription is paid. You can still read everything, and field capture continues.",

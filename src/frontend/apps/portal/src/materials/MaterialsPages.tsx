@@ -5,6 +5,9 @@ import { useState } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Checkbox, DataTable, EmptyState, PageHeader, PageSkeleton, QuantityInput, SelectField, StatusChip, TextField, useToast, type MaterialState } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant, useWithStepUp } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { addDays, todayIn } from "../sites/api";
 import {
@@ -103,9 +106,9 @@ export function MaterialPage({ materialId }: { materialId?: string }) {
 
   return (
     <div className="flex max-w-4xl flex-col gap-8">
-      <MaterialForm key={material.data.changedAt} material={material.data} today={today} />
+      <MaterialForm key={material.data.id} material={material.data} today={today} />
       <ConversionPanel material={material.data} today={today} />
-      <Densities key={`${material.data.changedAt}-densities`} material={material.data} today={today} />
+      <Densities key={material.data.id} material={material.data} today={today} />
     </div>
   );
 }
@@ -212,11 +215,15 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
   const { can } = useAccess();
   const editable = can(MaterialsManagePermission) && material?.status !== "archived";
   const [code, setCode] = useState(material?.code ?? "");
-  const [name, setName] = useState(material?.name ?? "");
-  const [kind, setKind] = useState<string>(material?.kind ?? "raw-rock");
+  // The name and kind, and the version they were filled from: a save is applied to it only (If-Match, H-C1).
+  const { draft, setDraft, version, accept } = useRecordDraft(material, (record) => ({ name: record?.name ?? "", kind: record?.kind ?? "raw-rock" }));
+  const { name, kind } = draft;
+  const setName = (value: string) => { setDraft((current) => ({ ...current, name: value })); };
+  const setKind = (value: string) => { setDraft((current) => ({ ...current, kind: value })); };
   const [effectiveFrom, setEffectiveFrom] = useState(today);
   const [densities, setDensities] = useState<DensityDraft>(() => draftOf(undefined));
   const [checked, setChecked] = useState(false);
+  const [conflict, setConflict] = useState(false);
 
   const refresh = async (saved: Material) => {
     await queryClient.invalidateQueries({ queryKey: materialsKey });
@@ -224,14 +231,26 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
   };
 
   const save = useMutation({
-    mutationFn: async (body: DensityInput | null) => withStepUp(async () => material
-      ? (await api.PUT("/api/v1/materials/{materialId}", { params: { path: { materialId: material.id } }, body: { name, kind } })).data
-      : (await api.POST("/api/v1/materials", { body: { code, name, kind, densities: body, effectiveFrom: effectiveFrom || null } satisfies MaterialInput })).data),
+    meta: handlesVersionConflict,
+    mutationFn: async ({ body, expected }: { body: DensityInput | null; expected?: string }) => withStepUp(async () => {
+      if (!material) {
+        return (await api.POST("/api/v1/materials", { body: { code, name, kind, densities: body, effectiveFrom: effectiveFrom || null } satisfies MaterialInput })).data;
+      }
+
+      const tag = expected ?? version;
+      return (await api.PUT("/api/v1/materials/{materialId}", {
+        params: { path: { materialId: material.id }, header: tag ? { "If-Match": tag } : {} },
+        body: { name, kind },
+      })).data;
+    }),
+    onError: (error) => { setConflict(isVersionConflict(error)); },
     onSuccess: async (saved) => {
       if (!saved) {
         return;
       }
 
+      accept(saved);
+      setConflict(false);
       await refresh(saved);
       toast({ status: "ok", title: t("portal.materials.saved") });
       if (!material) {
@@ -256,7 +275,25 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
     setChecked(true);
     const body = material ? null : densityBody(densities);
     if (material || body) {
-      save.mutate(body);
+      save.mutate({ body });
+    }
+  };
+
+  const latest = async () => material ? (await api.GET("/api/v1/materials/{materialId}", { params: { path: { materialId: material.id } } })).data : undefined;
+  // The person chose to save their entries over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate({ body: null, expected: current.version });
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      await refresh(current);
     }
   };
 
@@ -305,6 +342,8 @@ function MaterialForm({ material, today }: { material: Material | null; today: s
             <DensityFields draft={densities} onChange={setDensities} checked={checked} />
           </fieldset>
         )}
+
+        {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
 
         {editable && (
           <div>

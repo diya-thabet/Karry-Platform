@@ -34,6 +34,7 @@ public sealed class MaterialsDbContext(DbContextOptions<MaterialsDbContext> opti
             material.Property(m => m.Name).HasMaxLength(MaterialRules.NameMaxLength);
             material.Property(m => m.Kind).HasConversion<string>().HasMaxLength(20);
             material.Property(m => m.Status).HasConversion<string>().HasMaxLength(20);
+            material.Property(m => m.Version).IsRecordVersion();
             material.Property(m => m.Versions).HasColumnName("density_versions").HasColumnType("jsonb")
                 .HasConversion(VersionsJson.Converter, VersionsJson.Comparer);
             material.Ignore(m => m.DomainEvents);

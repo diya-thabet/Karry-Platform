@@ -173,6 +173,88 @@ public sealed class MaterialsApiTests(MaterialsHost host) : IClassFixture<Materi
         (await Json(response)).GetProperty("code").GetString().Should().Be(code);
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_change_made_from_an_old_version_is_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two people opened the same material; the second to save must not overwrite the first.
+        var (tenant, token) = await TenantAsync();
+        var id = await CreateAsync(token);
+        var opened = await SendAsync(HttpMethod.Get, $"/api/v1/materials/{id}", token);
+        var version = opened.Headers.ETag!.Tag;
+        (await Json(opened)).GetProperty("version").GetString().Should().Be(version, "body and header carry the same version");
+
+        var first = await SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}", token, new { name = "Gravier lavé", kind = "product" }, ifMatch: version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version, "every saved change makes a new version");
+
+        var second = await SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}", token, new { name = "Gravier concassé", kind = "product" }, ifMatch: version);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Json(second)).GetProperty("code").GetString().Should().Be("request.version_conflict");
+
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/materials/{id}", token))).GetProperty("name").GetString().Should().Be("Gravier lavé");
+        (await LedgerAsync(tenant)).Should().Be("materials.material_created.v1,materials.material_changed.v1", "the refused change left no trace");
+
+        var retried = await SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}", token, new { name = "Gravier concassé", kind = "product" }, ifMatch: first.Headers.ETag.Tag);
+        retried.StatusCode.Should().Be(HttpStatusCode.OK, "from the current version, the same change goes through");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Of_many_saves_from_one_version_at_the_same_moment_exactly_one_is_applied()
+    {
+        // The race between loading and saving: the check in the UPDATE (xmin), not only the comparison in the service.
+        var (tenant, token) = await TenantAsync();
+        var id = await CreateAsync(token);
+        var version = (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/materials/{id}", token))).GetProperty("version").GetString()!;
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 8).Select(n =>
+            SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}", token, new { name = $"Nom {n}", kind = "product" }, ifMatch: version)));
+
+        saves.Count(s => s.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        saves.Count(s => s.StatusCode == HttpStatusCode.Conflict).Should().Be(7, "every other save is a version conflict, never a 500");
+        (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'materials.material_changed.v1'"))
+            .Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Densities_set_for_different_dates_at_the_same_moment_are_never_lost()
+    {
+        // The densities live in the material's row: without the record version, each save rewrote the list it had
+        // loaded and silently dropped the others' dates, while every caller was told 200.
+        var (tenant, token) = await TenantAsync();
+        var id = await CreateAsync(token);
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 6).Select(days =>
+            SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}/densities/{Iso(Today.AddDays(days))}", token, new { loose = 1.5m + (days / 100m), moisture = 0.02m })));
+
+        saves.Should().OnlyContain(s => s.StatusCode == HttpStatusCode.OK || s.StatusCode == HttpStatusCode.Conflict);
+        var accepted = saves.Count(s => s.StatusCode == HttpStatusCode.OK);
+        accepted.Should().BeGreaterThan(0);
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/materials/{id}", token))).GetProperty("densities").GetArrayLength()
+            .Should().Be(1 + accepted, "every date answered 200 is kept, next to the first version");
+        (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'materials.density_version_set.v1'"))
+            .Should().Be(accepted);
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("4711")]
+    [InlineData("\"abc\"")]
+    [InlineData("\"1\", \"2\"")]
+    public async Task A_malformed_if_match_is_refused_and_nothing_changes(string ifMatch)
+    {
+        var (_, token) = await TenantAsync();
+        var id = await CreateAsync(token);
+
+        var response = await SendAsync(HttpMethod.Put, $"/api/v1/materials/{id}", token, new { name = "Autre", kind = "product" }, ifMatch: ifMatch);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(response)).GetProperty("code").GetString().Should().Be("request.if_match_invalid");
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/materials/{id}", token))).GetProperty("name").GetString().Should().Be("Gravier 8/16");
+    }
+
     private static object Conversion(string? on) => new { quantity = new { value = 28.40m, unit = "t", state = (string?)null }, unit = "m3", state = "loose", on };
 
     private async Task<JsonElement> ConvertAsync(Guid id, string token, string on)
@@ -201,9 +283,14 @@ public sealed class MaterialsApiTests(MaterialsHost host) : IClassFixture<Materi
     private Task<string> LedgerAsync(Guid tenant) =>
         ScalarAsync<string>($"SELECT string_agg(event_type, ',' ORDER BY seq) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type LIKE 'materials.%'");
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null, string? ifMatch = null)
     {
         using var request = new HttpRequestMessage(method, path);
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);
