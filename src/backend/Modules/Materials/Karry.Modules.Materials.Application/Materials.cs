@@ -1,5 +1,5 @@
-using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Materials.Domain;
 using Karry.Modules.Tenancy.Contracts;
