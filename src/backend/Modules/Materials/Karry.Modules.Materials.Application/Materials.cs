@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Materials.Domain;
@@ -59,7 +60,10 @@ public interface IMaterialStore
 
     Task<IReadOnlyList<Material>> ListAsync(bool includeArchived, CancellationToken cancellationToken);
 
-    /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
+    /// <summary>
+    /// Saves with its events; false, with nothing saved, when the code is already used in the company (unique index) or
+    /// the material changed since it was loaded (its <see cref="Material.Version"/>).
+    /// </summary>
     Task<bool> TrySaveAsync(Material material, CancellationToken cancellationToken);
 
     /// <summary>The materials with these codes (tracked, for an import), archived ones included.</summary>
@@ -127,13 +131,22 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
         return await store.TrySaveAsync(material, cancellationToken).ConfigureAwait(false) ? material : CodeTaken;
     }
 
-    public async Task<Result<Material>> ChangeAsync(MaterialId id, MaterialChangeInput input, CancellationToken cancellationToken)
+    /// <summary>
+    /// New name or kind. With <paramref name="expectedVersion"/> (the form's <c>If-Match</c>), only the version the
+    /// person edited is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<Material>> ChangeAsync(MaterialId id, MaterialChangeInput input, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         var material = await GetAsync(id, cancellationToken).ConfigureAwait(false);
         if (!material.IsSuccess)
         {
             return material;
+        }
+
+        if (!RecordVersions.Matches(material.Value.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var name = MaterialRules.Name(input.Name);
@@ -148,9 +161,10 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
             return kind.Error;
         }
 
-        if (material.Value.Change(clock, name.Value, kind.Value, caller.Subject))
+        if (material.Value.Change(clock, name.Value, kind.Value, caller.Subject) &&
+            !await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false))
         {
-            await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict; // the code never changes: only a concurrent change refuses this save
         }
 
         return material;
@@ -159,9 +173,10 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
     public async Task<Result<Material>> ArchiveAsync(MaterialId id, CancellationToken cancellationToken)
     {
         var material = await GetAsync(id, cancellationToken).ConfigureAwait(false);
-        if (material.IsSuccess && material.Value.Archive(clock, caller.Subject))
+        if (material.IsSuccess && material.Value.Archive(clock, caller.Subject) &&
+            !await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false))
         {
-            await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict;
         }
 
         return material;
@@ -170,9 +185,10 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
     public async Task<Result<Material>> RestoreAsync(MaterialId id, CancellationToken cancellationToken)
     {
         var material = await GetAsync(id, cancellationToken).ConfigureAwait(false);
-        if (material.IsSuccess && material.Value.Restore(clock, caller.Subject))
+        if (material.IsSuccess && material.Value.Restore(clock, caller.Subject) &&
+            !await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false))
         {
-            await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict;
         }
 
         return material;
@@ -200,9 +216,10 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
             return set.Error;
         }
 
-        if (set.Value)
+        // The densities live in the material's row: two dates set at once would each rewrite the list (H-C1).
+        if (set.Value && !await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false))
         {
-            await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict;
         }
 
         return version.Value;
@@ -217,9 +234,9 @@ public sealed class MaterialOperations(IMaterialStore store, ITenantDirectory te
         }
 
         var removed = material.Value.RemoveVersion(clock, effectiveFrom, await TodayAsync(cancellationToken).ConfigureAwait(false), caller.Subject);
-        if (removed.IsSuccess)
+        if (removed.IsSuccess && !await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false))
         {
-            await store.TrySaveAsync(material.Value, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict;
         }
 
         return removed;

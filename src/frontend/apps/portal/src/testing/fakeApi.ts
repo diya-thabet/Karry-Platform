@@ -291,7 +291,7 @@ export function fakeApi(options: {
       return organization;
     }
 
-    const material = materialsRoute(request.method, url, body);
+    const material = materialsRoute(request.method, url, body, request.headers.get("If-Match"));
     if (material) {
       return material;
     }
@@ -618,7 +618,7 @@ export function fakeApi(options: {
     }
   }
 
-  function materialsRoute(method: string, url: URL, body: unknown): Response | null {
+  function materialsRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
     const match = /^\/api\/v1\/materials(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
     if (!match) {
       return null;
@@ -646,10 +646,15 @@ export function fakeApi(options: {
       return problem(404, "materials.material_not_found");
     }
 
+    // As the API: every saved change is a new version (densities included), and a save for an older one is refused (H-C1).
     const save = (next: Material) => {
-      materials[index] = { ...next, changedAt: `2026-10-26T09:00:${String(index).padStart(2, "0")}Z` };
+      materials[index] = { ...next, version: nextVersion(found.version), changedAt: `2026-10-26T09:00:${String(index).padStart(2, "0")}Z` };
       return json(200, materials[index]);
     };
+    if (method === "PUT" && part === undefined && ifMatch !== null && ifMatch !== found.version) {
+      return problem(409, "request.version_conflict");
+    }
+
     switch (true) {
       case part === undefined && method === "GET":
         return json(200, found);
@@ -800,6 +805,14 @@ export function fakeApi(options: {
         sites[index] = { ...found, ...change, version: `"${String(Number(found.version.replaceAll('"', "")) + 1)}"` };
       }
     },
+    /** Another person saves the material meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeMaterialElsewhere: (id: string, change: Partial<Material>) => {
+      const index = materials.findIndex((m) => m.id === id);
+      const found = materials[index];
+      if (found) {
+        materials[index] = { ...found, ...change, version: nextVersion(found.version) };
+      }
+    },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };
@@ -862,8 +875,13 @@ export function material(overrides: Partial<Material> = {}): Material {
   return {
     id: "0192f0c1-0000-7000-8000-000000006001", code: "0/31.5", name: "Grave 0/31.5", kind: "product",
     densities: [versionFrom("2026-01-01", { bank: 2.2, loose: 1.6, compacted: null, moisture: 0.03 })],
-    status: "active", createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null, ...overrides,
+    status: "active", createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null, version: '"1"', ...overrides,
   };
+}
+
+/** The next record version, as PostgreSQL's xmin moves on with every save. */
+function nextVersion(version: string): string {
+  return `"${String(Number(version.replaceAll('"', "")) + 1)}"`;
 }
 
 /** The engine's formula (M = V × ρ_state × (1 + w)) in floating point: enough for screens, not for golden values. */

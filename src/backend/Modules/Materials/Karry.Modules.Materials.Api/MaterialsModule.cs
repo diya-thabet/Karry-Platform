@@ -62,16 +62,19 @@ public sealed class MaterialsModule : IModule
             .RequirePermission(MaterialsPermissions.CatalogManage)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("ChangeMaterial");
 
         endpoints.MapPost("/{materialId:guid}/archive", ArchiveMaterialAsync)
             .RequirePermission(MaterialsPermissions.CatalogManage)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("ArchiveMaterial");
 
         endpoints.MapPost("/{materialId:guid}/restore", RestoreMaterialAsync)
             .RequirePermission(MaterialsPermissions.CatalogManage)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("RestoreMaterial");
 
         // Density versions (US-P1-AST-04 AC2): by the date they start on; only dates after the company's today change.
@@ -105,8 +108,8 @@ public sealed class MaterialsModule : IModule
     }
 
     private static async Task<Results<Ok<MaterialResponse>, ProblemHttpResult>> GetMaterialAsync(
-        Guid materialId, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
-        Respond(await materials.GetAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false));
+        Guid materialId, HttpResponse response, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
+        Respond(await materials.GetAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Created<MaterialResponse>, ProblemHttpResult>> CreateMaterialAsync(
         MaterialInput request, [FromServices] MaterialOperations materials, CancellationToken cancellationToken)
@@ -117,17 +120,24 @@ public sealed class MaterialsModule : IModule
             : result.Error.ToProblem();
     }
 
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) the form was filled from; a newer material is a 409 (H-C1).</summary>
     private static async Task<Results<Ok<MaterialResponse>, ProblemHttpResult>> ChangeMaterialAsync(
-        Guid materialId, MaterialChangeInput request, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
-        Respond(await materials.ChangeAsync(new MaterialId(materialId), request, cancellationToken).ConfigureAwait(false));
+        Guid materialId, MaterialChangeInput request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] MaterialOperations materials, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        return expected.IsSuccess
+            ? Respond(await materials.ChangeAsync(new MaterialId(materialId), request, cancellationToken, expected.Value).ConfigureAwait(false), response)
+            : expected.Error.ToProblem();
+    }
 
     private static async Task<Results<Ok<MaterialResponse>, ProblemHttpResult>> ArchiveMaterialAsync(
-        Guid materialId, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
-        Respond(await materials.ArchiveAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false));
+        Guid materialId, HttpResponse response, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
+        Respond(await materials.ArchiveAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<MaterialResponse>, ProblemHttpResult>> RestoreMaterialAsync(
-        Guid materialId, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
-        Respond(await materials.RestoreAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false));
+        Guid materialId, HttpResponse response, [FromServices] MaterialOperations materials, CancellationToken cancellationToken) =>
+        Respond(await materials.RestoreAsync(new MaterialId(materialId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<DensityVersionResponse>, ProblemHttpResult>> SetDensityVersionAsync(
         Guid materialId, DateOnly effectiveFrom, DensityInput request, [FromServices] MaterialOperations materials, CancellationToken cancellationToken)
@@ -150,8 +160,16 @@ public sealed class MaterialsModule : IModule
         return result.IsSuccess ? TypedResults.Ok(ConversionResponse.From(result.Value)) : result.Error.ToProblem();
     }
 
-    private static Results<Ok<MaterialResponse>, ProblemHttpResult> Respond(Karry.SharedKernel.Results.Result<Material> result) =>
-        result.IsSuccess ? TypedResults.Ok(MaterialResponse.From(result.Value)) : result.Error.ToProblem();
+    private static Results<Ok<MaterialResponse>, ProblemHttpResult> Respond(Karry.SharedKernel.Results.Result<Material> result, HttpResponse response)
+    {
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        response.SetETag(result.Value.Version);
+        return TypedResults.Ok(MaterialResponse.From(result.Value));
+    }
 }
 
 public sealed record MaterialListResponse(IReadOnlyList<MaterialResponse> Items);
@@ -159,14 +177,14 @@ public sealed record MaterialListResponse(IReadOnlyList<MaterialResponse> Items)
 /// <summary>A material; <c>Densities</c> lists its versions, oldest first (each valid until the next one).</summary>
 public sealed record MaterialResponse(
     Guid Id, string Code, string Name, string Kind, IReadOnlyList<DensityVersionResponse> Densities, string Status,
-    DateTimeOffset CreatedAt, DateTimeOffset ChangedAt, DateTimeOffset? ArchivedAt)
+    DateTimeOffset CreatedAt, DateTimeOffset ChangedAt, DateTimeOffset? ArchivedAt, string Version)
 {
     public static MaterialResponse From(Material material)
     {
         ArgumentNullException.ThrowIfNull(material);
         return new(material.Id.Value, material.Code, material.Name, MaterialRules.KindCode(material.Kind),
             [.. material.Versions.Select(DensityVersionResponse.From)], material.Status.ToString().ToLowerInvariant(),
-            material.CreatedAt, material.ChangedAt, material.ArchivedAt);
+            material.CreatedAt, material.ChangedAt, material.ArchivedAt, RecordVersionHttp.ETag(material.Version));
     }
 }
 

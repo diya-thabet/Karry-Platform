@@ -8,6 +8,7 @@ import { useAccess, useApi, useCurrentTenant } from "../app/api";
 import { currencies } from "../app/currencies";
 import { VersionConflict } from "../app/VersionConflict";
 import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { countries, siteKey, sitesKey, SitesManagePermission, siteTypes, timeZones, useSites, type Site, type SiteInput } from "./api";
 import { MapPicker, type Ring } from "./MapPicker";
@@ -92,7 +93,7 @@ export function SitePage({ siteId }: { siteId?: string }) {
 
   return (
     <div className="flex flex-col gap-8">
-      <SiteForm key={site.data.changedAt} site={site.data} defaultTimeZone={site.data.timeZone} />
+      <SiteForm key={site.data.id} site={site.data} defaultTimeZone={site.data.timeZone} />
       <ShiftsSection site={site.data} />
     </div>
   );
@@ -144,10 +145,9 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
   const toast = useToast();
   const { can } = useAccess();
   const editable = can(SitesManagePermission) && site?.status !== "archived";
-  const [draft, setDraft] = useState<Draft>(() => draftOf(site, defaultTimeZone));
+  // The draft and the version it was filled from: a save is applied to it only (If-Match), never over a newer change (H-C1).
+  const { draft, setDraft, version, accept } = useRecordDraft<Site, Draft>(site, (record) => draftOf(record, defaultTimeZone));
   const [checked, setChecked] = useState(false);
-  // The version the draft was filled from: a save is applied to it only (If-Match), never over a newer change (H-C1).
-  const [version, setVersion] = useState(site?.version);
   const [conflict, setConflict] = useState(false);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => { setDraft((current) => ({ ...current, [key]: value })); };
 
@@ -188,7 +188,7 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
         return;
       }
 
-      setVersion(saved.version);
+      accept(saved);
       setConflict(false);
       await refresh(saved);
       toast({ status: "ok", title: t("portal.sites.saved") });
@@ -204,7 +204,6 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
       : (await api.POST("/api/v1/organization/sites/{siteId}/restore", { params: { path: { siteId: site?.id ?? "" } } })).data,
     onSuccess: async (saved, action) => {
       if (saved) {
-        setVersion(saved.version);
         await refresh(saved);
         toast({ status: "ok", title: t(action === "archive" ? "portal.sites.archived" : "portal.sites.restored") });
       }
@@ -223,8 +222,7 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
   const showTheirs = async () => {
     const current = await latest();
     if (current) {
-      setDraft(draftOf(current, defaultTimeZone));
-      setVersion(current.version);
+      accept(current);
       setConflict(false);
       await refresh(current);
     }
