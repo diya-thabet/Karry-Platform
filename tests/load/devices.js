@@ -8,7 +8,7 @@
 import http from "k6/http";
 import { check, fail, sleep } from "k6";
 import { Counter } from "k6/metrics";
-import { api, bearer, deviceAuthorization, enrolTablet, newTabletKey, signIn, tabletKey } from "./lib/karry.js";
+import { api, bearer, deviceAuthorization, enrolTablet, latencyGate, newTabletKey, signIn, tabletKey } from "./lib/karry.js";
 
 const tablets = Number(__ENV.TABLETS ?? 500);
 const company = __ENV.KARRY_COMPANY ?? "demo-carriere-a";
@@ -31,10 +31,10 @@ export const options = {
   },
   thresholds: {
     "http_req_failed{scenario:burst}": ["rate==0"],
-    "http_req_duration{scenario:burst}": ["p(95)<3000"],
+    "http_req_duration{scenario:burst}": latencyGate("p(95)<3000"),
     burst_pulls_ok: [`count==${tablets}`],
     "http_req_failed{scenario:shift}": ["rate==0"],
-    "http_req_duration{scenario:shift}": ["p(95)<800"],
+    "http_req_duration{scenario:shift}": latencyGate("p(95)<800"),
     shift_pulls_ok: [`count>=${tablets}`],
     wrong_site: ["count==0"],
     checks: ["rate==1"],

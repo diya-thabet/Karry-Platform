@@ -12,6 +12,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 out="${1:-$here/results/$(date -u +%Y%m%dT%H%M%SZ)}"
 api="${KARRY_API_URL:-http://localhost:5000}"
 mkdir -p "$out"
+out="$(cd "$out" && pwd)" # docker -v takes a relative path for a named volume, not a folder
 chmod 777 "$out" # ZAP runs as its own user inside the container
 
 for url in "$api/health/ready" http://localhost:5173/ http://localhost:5174/; do

@@ -53,7 +53,11 @@ tests/load/verify-ledgers.sh                   # H-L3: every company's audit led
 - **Clean-up.** The tablets are revoked in teardown. Revoked rows stay in the local database.
 - **Nightly.** The `load` job of `.github/workflows/nightly.yml` brings the stack up as the `local-stack` job does,
   runs `tests/load/run.sh`, then `tests/load/verify-ledgers.sh` (even when a threshold failed), writes the table
-  to the job summary and keeps the results for 14 days.
+  to the job summary and keeps the results for 14 days. It runs with `LATENCY_GATES=report`: it **fails on
+  correctness** (failed requests, server errors, a leak or a wrong site, a broken ledger) and only **reports**
+  response times. A shared GitHub runner (2 vCPU, k6 and the whole stack on it) is 7× slower than the owner's
+  laptop, and its times vary with its neighbours, so they say nothing about Karry. The latency targets gate on known
+  hardware: the owner's machine (`tests/load/run.sh` without the variable), then staging in P1.18b.
 - **The owner's machine (14 GB).** k6 needs about 1.4 GB for 500 tablets. Run one script at a time, with nothing
   else heavy open.
 
@@ -70,6 +74,21 @@ tests/load/verify-ledgers.sh                   # H-L3: every company's audit led
 
 A single warm snapshot takes about 17 ms (5 KB). In the burst, the time goes to queueing: 500 requests at once
 wait for one of the 50 database connections.
+
+**2026-11-04, nightly on a GitHub runner** (2 vCPU, 7 GB, everything on one machine; the first nightly run):
+
+| Run | Requests | p95 | Failed | Leaks / wrong site |
+|---|---|---|---|---|
+| Burst: 500 snapshots in one second | 500 | 5.4 s | 0 | 0 |
+| Shift: tablets, deltas every 2–4 s | 14,026 | 1.09 s | 0 | 0 |
+| TC-P1-TEN-005: two companies, mixed reads | 10,000 | 109 ms | 0 | **0** |
+| Spike: 0 → 300 users in 10 s | 12,894 | 6 ms | 751 refused with 429, 0 server errors | 0 |
+
+Every request was answered correctly and both ledgers verified afterwards; only the latency targets set on the
+laptop were crossed, which is why the nightly now reports times instead of gating on them. The spike's 429s are
+the company limit doing its job: about 12,800 requests in 35 seconds from one company is over its 12,000 a
+minute (on the laptop the run fell across two one-minute windows, so none showed). A 429 is a correct answer in the
+spike; only a 5xx fails it.
 
 P1.18b repeats the suite against staging on the chosen provider. Those numbers will be the reference for
 production sizing; laptop numbers are a baseline.

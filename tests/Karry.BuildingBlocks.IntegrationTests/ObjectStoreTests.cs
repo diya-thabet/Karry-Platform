@@ -71,9 +71,9 @@ public sealed class ObjectStoreTests(SeaweedFs seaweed) : IClassFixture<SeaweedF
 
     [Fact]
     [Trait("Story", "P1.18a")]
-    public async Task A_storage_that_accepts_connections_but_never_answers_is_given_up_within_the_attempt_budget()
+    public async Task A_storage_that_accepts_connections_but_never_answers_is_given_up_at_the_call_deadline()
     {
-        // A frozen server: the connection opens, no answer ever comes. One retry, each attempt bounded.
+        // A frozen server: the connection opens, no answer ever comes. The whole call ends at its deadline.
         using var frozen = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
         frozen.Start();
         var port = ((System.Net.IPEndPoint)frozen.LocalEndpoint).Port;
@@ -88,7 +88,8 @@ public sealed class ObjectStoreTests(SeaweedFs seaweed) : IClassFixture<SeaweedF
 
         await FluentActions.Awaiting(() => store.GetAsync(ObjectKeys.ForTenant(Guid.NewGuid(), "assets", "a/photo-1"), Ct))
             .Should().ThrowAsync<ObjectStoreUnavailableException>();
-        watch.Elapsed.Should().BeLessThan((S3ObjectStore.AttemptTimeout * 2) + TimeSpan.FromSeconds(5), "the SDK default would wait 100 s, four retries");
+        // The deadline is ours, not the SDK's: on a slow CI runner the SDK's own retries took 31 s.
+        watch.Elapsed.Should().BeLessThan(S3ObjectStore.CallBudget + TimeSpan.FromSeconds(3), "the SDK default would wait 100 s, four retries");
     }
 
     [Fact]

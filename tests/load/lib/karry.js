@@ -8,6 +8,13 @@ import { check, fail } from "k6";
 
 export const api = __ENV.KARRY_API ?? "http://127.0.0.1:5000";
 export const keycloak = __ENV.KARRY_KEYCLOAK ?? "http://localhost:8080";
+
+/**
+ * A latency target as a k6 threshold, or none with LATENCY_GATES=report: on a shared CI runner (2 vCPU, noisy neighbours)
+ * response times say nothing about Karry, so the nightly gates on correctness (errors, leaks, wrong site, the ledgers)
+ * and only reports the times. The targets gate on known hardware: the owner's machine now, staging in P1.18b.
+ */
+export const latencyGate = (rule) => (__ENV.LATENCY_GATES === "report" ? [] : [rule]);
 const password = __ENV.KARRY_DEMO_PASSWORD ?? "karry-demo-local-only"; // the local stack's demo password (DemoSeed)
 
 function ascii(text) {

@@ -43,10 +43,10 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-L1 | 500 tablets pull their reference data at shift start: all in one second (burst) and over a minute (shift) | 0 errors; every tablet gets only its own site; shift p95 < 800 ms; burst p95 recorded (alarm 3 s) | k6 `tests/load/devices.js`, nightly: burst 751 ms, shift 27 ms, 0 errors ([results](../../05-quality/load-testing.md#3-results)) | ✅ |
-| H-L2 | **TC-P1-TEN-005:** 10,000 mixed requests from people of two companies | **0 rows of the other company**; p95 < 300 ms; < 0.1 % errors | k6 `tests/load/tenants.js`, nightly: 0 leaks, p95 33 ms | ✅ |
+| H-L1 | 500 tablets pull their reference data at shift start: all in one second (burst) and over a minute (shift) | 0 errors; every tablet gets only its own site; shift p95 < 800 ms; burst p95 recorded (alarm 3 s) | k6 `tests/load/devices.js`; owner's laptop: burst 751 ms, shift 27 ms, 0 errors; nightly gates on correctness only (runner: burst 5.4 s, shift 1.09 s, 0 errors) ([results](../../05-quality/load-testing.md#3-results)) | ✅ |
+| H-L2 | **TC-P1-TEN-005:** 10,000 mixed requests from people of two companies | **0 rows of the other company**; p95 < 300 ms; < 0.1 % errors | k6 `tests/load/tenants.js`; laptop: 0 leaks, p95 33 ms; nightly: 0 leaks, p95 109 ms | ✅ |
 | H-L3 | After the load, the audit ledger still verifies | Integrity check green | `tests/load/verify-ledgers.sh` (`karry-ledger verify` for every tenant with a ledger), nightly after the load suite; locally after the slice 2 runs: 10 ledgers intact, 4,834 entries for demo company A | ✅ |
-| H-L4 | A spike: 0 → 300 users in 10 s | No 5xx; no leak | k6 `tenants.js` `spike`, nightly: 0 server errors, p95 6 ms | ✅ |
+| H-L4 | A spike: 0 → 300 users in 10 s | No 5xx; no leak | k6 `tenants.js` `spike`; laptop and nightly: 0 server errors, p95 6 ms (nightly: 751 answers were 429 from the company limit, as intended) | ✅ |
 
 ### 2.2 Abuse and denial of service (threat T-12)
 
