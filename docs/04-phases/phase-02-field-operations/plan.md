@@ -9,7 +9,10 @@ last_updated: 2026-10-21
 
 # Phase 2 — Field Operations, Verification & Signatures
 
-> [Docs index](../../README.md) › [04-phases](../README.md)
+> [Docs index](../../README.md) › [04-phases](../README.md) · [Sub-phases](sub-phases.md) · [Tracker](tracker.md)
+
+**Execution:** the build order, per-role checks, ADRs and amendments to this plan are in the
+[sub-phase plan](sub-phases.md) (P2.0–P2.12); live status in the [tracker](tracker.md).
 
 **Duration:** 6 weeks (W9–W14), 3 sprints · **Team:** full core team
 
