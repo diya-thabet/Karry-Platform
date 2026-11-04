@@ -27,7 +27,7 @@ last_updated: 2026-10-21
 |---|---|---|
 | P0 Discovery & architecture baseline | [phase-00-discovery](phase-00-discovery/plan.md) | Validated pricing, pilot LOI |
 | P1 Platform foundation & SaaS core | [phase-01-platform-foundation](phase-01-platform-foundation/plan.md) | Plans & entitlements live |
-| P2 Field ops, verification & signatures | [phase-02-field-operations](phase-02-field-operations/plan.md) | Core differentiator demoable |
+| P2 Field ops, verification & signatures | [phase-02-field-operations](phase-02-field-operations/plan.md) ([sub-phases](phase-02-field-operations/sub-phases.md), [tracker](phase-02-field-operations/tracker.md)) | Core differentiator demoable |
 | P3 Weighbridge, fuel, integrity & pilot | [phase-03-weighbridge-fuel-pilot](phase-03-weighbridge-fuel-pilot/plan.md) | **Starter sellable** |
 | P4 Maintenance & reliability | [phase-04-maintenance](phase-04-maintenance/plan.md) | Upsell to Professional |
 | P5 Inventory & warehouses | [phase-05-inventory-warehouses](phase-05-inventory-warehouses/plan.md) | **Professional sellable** |
