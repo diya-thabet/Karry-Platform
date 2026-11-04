@@ -227,7 +227,7 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 - Server state via TanStack Query; local UI state via React state; offline state via `packages/offline` (Dexie). No ad-hoc `fetch`: use the generated API client.
 - Forms: React Hook Form + Zod schemas shared/generated from OpenAPI.
 - Components: small, accessible, from `packages/ui`; no inline styles except dynamic values; Tailwind tokens only.
-- All user-visible strings via i18next keys, added in all five catalogs together (fr, en, ar, emk, nqo; drafts listed in [translation review §5](../05-quality/translation-review.md#5-waiting-for-review-keys-added-or-changed-after-the-drafts); N'Ko with `python3 tools/i18n/nko_from_latin.py --missing`).
+- All user-visible strings via i18next keys, added in all five catalogs together (fr, en, ar, emk, nqo; drafts listed in [translation review §5](../05-quality/translation-review.md#5-waiting-for-review-keys-added-or-changed-after-the-drafts); N'Ko only with `python3 tools/i18n/nko_from_latin.py --missing`, never by hand: CI's `--check` fails otherwise).
 - Money/quantities: dedicated types and formatting helpers, never raw `number` math for money.
 
 ### 6.4 Python (analytics sidecar)
@@ -317,7 +317,7 @@ pnpm --filter @karry/ui storybook                                               
 pnpm --filter @karry/api-client generate          # after the API contract changed (dotnet build regenerates openapi/v1.json); CI: check:generated
 pnpm --filter @karry/crypto test && pnpm --filter @karry/offline test   # RFC 8785 + PIN verifier vectors (tests/vectors), device keys, Dexie schema v1 (ADR-0028)
 python3 tests/vectors/generate-pin-verifier-vectors.py > tests/vectors/pin-verifier.json   # regenerate the PIN verifier vectors (independent Python implementation)
-tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) against the running, seeded local stack (CI: local-stack job)
+tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) against the running, seeded local stack (CI: local-stack job); refuses to start while 5000, 5173 or 5174 is taken
 # Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
 dotnet tool restore
 dotnet ef migrations add <Name> --project <module Infrastructure project> --context <Module>DbContext --output-dir Migrations
