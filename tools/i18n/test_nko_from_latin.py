@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 import unittest
 
-from nko_from_latin import merge, transliterate
+from nko_from_latin import drift, merge, reviewed_keys, transliterate
 
 
 def arguments(message: str) -> list[str]:
@@ -58,6 +58,16 @@ class AddingMessages(unittest.TestCase):
         existing = {"a": "ߞߊ߲߬ (corrected)", "gone": "ߝߍ߲"}
 
         self.assertEqual(merge(latin, existing), {"a": "ߞߊ߲߬ (corrected)", "b": "ߝߍ߲ ߞߎߙߊ", "common.language.nqo": "ߒߞߏ"})
+
+
+class Checking(unittest.TestCase):
+    def test_a_message_written_by_hand_differs_from_the_latin_text_unless_a_reader_reviewed_it(self) -> None:
+        latin = {"a": "Kan", "b": "Fɛn kura", "c": "Mara"}
+        nko = {"a": "ߞߊ߲", "b": "ߝߍ߲ ߞߎߙߊ", "c": "ߟߊߞߎ߲߬ߘߎ߬", "gone": "ߝߍ߲"}
+
+        self.assertEqual(drift(latin, nko, reviewed=set()), ["c", "gone"])
+        self.assertEqual(drift(latin, nko, reviewed=reviewed_keys("# corrected by a reader\nc\n\n")), ["gone"])
+        self.assertEqual(drift({"a": "Kan"}, {}, reviewed=set()), ["a"])
 
 
 if __name__ == "__main__":

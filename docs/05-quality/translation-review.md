@@ -51,7 +51,11 @@ Files: `src/frontend/packages/i18n/src/catalogs/`. Every catalog holds the same 
 5. N'Ko: once `emk.json` is corrected, regenerate the N'Ko draft once with
    `python3 tools/i18n/nko_from_latin.py --force`, then add the tones and fix the spelling by hand in `nqo.json`.
    From then on **never use `--force` again**: new messages are added with `--missing`, which keeps every corrected
-   message.
+   message. CI runs `python3 tools/i18n/nko_from_latin.py --check`: every N'Ko message must be the spelling of its
+   `emk.json` message, so the two scripts never say different things. A message the N'Ko reader corrected is listed
+   in `tools/i18n/nko-reviewed.txt` (one key per line; `--check` prints the keys to add) and is left alone from then
+   on. A Malinké message changed later makes its N'Ko message fail the check again: remove it from `nqo.json`, run
+   `--missing`, and have the reader look at it.
 6. Mark the language ✅ in §1 with the reviewer's name and the date, and remove its keys from §5.
 
 ## 4. Glossary (keep these consistent)

@@ -12,6 +12,8 @@ tone mark (U+07EF) only to keep them long. The output is therefore a DRAFT for a
 directly. Once someone has edited nqo.json, regenerating would lose their work: the script refuses to overwrite an
 existing file unless --force (use it only while nqo.json is still the untouched draft). New messages are added with
 --missing: only keys of emk.json that nqo.json lacks are spelled; keys gone from emk.json are dropped; the rest is kept.
+--check (CI) fails when a message of nqo.json is not the spelling of its emk.json message, so the two scripts never say
+different things; a message a native reader has corrected is listed in nko-reviewed.txt and left alone.
 
 Usage: python3 tools/i18n/nko_from_latin.py [--missing | --force]
 """
@@ -178,6 +180,16 @@ def merge(latin: dict[str, str], existing: dict[str, str]) -> dict[str, str]:
     return {key: existing[key] if key in existing else spell_message(key, value) for key, value in latin.items()}
 
 
+def drift(latin: dict[str, str], nko: dict[str, str], reviewed: set[str]) -> list[str]:
+    """Keys whose N'Ko message is missing, extra, or not the spelling of the Latin one (reviewed keys excepted)."""
+    keys = [key for key in latin if key not in reviewed and nko.get(key) != spell_message(key, latin[key])]
+    return keys + [key for key in nko if key not in latin]
+
+
+def reviewed_keys(text: str) -> set[str]:
+    return {line.strip() for line in text.splitlines() if line.strip() and not line.lstrip().startswith("#")}
+
+
 def spell_message(key: str, value: str) -> str:
     return value if key.startswith("common.language.") else transliterate(value)
 
@@ -187,9 +199,18 @@ def main(argv: list[str]) -> int:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--missing", action="store_true", help="spell only the keys nqo.json lacks; keep every other message")
     mode.add_argument("--force", action="store_true", help="overwrite an existing nqo.json (loses any hand corrections)")
+    mode.add_argument("--check", action="store_true", help="fail if nqo.json is not the spelling of emk.json (keys in nko-reviewed.txt excepted)")
     args = parser.parse_args(argv)
     target = CATALOGS / "nqo.json"
     latin = json.loads((CATALOGS / "emk.json").read_text(encoding="utf-8"))
+    if args.check:
+        reviewed = reviewed_keys((pathlib.Path(__file__).parent / "nko-reviewed.txt").read_text(encoding="utf-8"))
+        stale = drift(latin, json.loads(target.read_text(encoding="utf-8")), reviewed)
+        for key in stale:
+            print(f"  {key}")
+        print(f"nqo.json: {len(stale)} message(s) differ from emk.json spelled in N'Ko" + (
+            " (remove them from nqo.json and run --missing; a native reader's correction goes in tools/i18n/nko-reviewed.txt)" if stale else ""))
+        return 1 if stale else 0
     if target.exists() and not (args.force or args.missing):
         print("nqo.json exists and may hold a reader's corrections: not overwritten (--missing to add new keys, --force to replace it)")
         return 1

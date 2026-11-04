@@ -20,6 +20,14 @@ wait_for() { # url, name
   echo "FAIL  $2 did not answer at $1" >&2; return 1
 }
 
+# A server already on one of the ports (a demo left running, an older build) would answer the readiness waits below in
+# place of the ones started here, and the tests would run against it: refuse to start instead.
+for port in 5000 5173 5174; do
+  if curl -s -o /dev/null --max-time 2 "http://localhost:$port/"; [[ $? -ne 7 ]]; then
+    echo "FAIL  port $port is already in use: stop that server first (ss -ltnp 'sport = :$port' shows it)" >&2; exit 1
+  fi
+done
+
 dotnet build "$root/src/backend/Karry.Host" -c Release >/dev/null
 dotnet build "$root/src/backend/Karry.Workers" -c Release >/dev/null
 # The outbox's subscribers run in Karry.Workers: a company created in the console gets its trial and its sign-in setup there.

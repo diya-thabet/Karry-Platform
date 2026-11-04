@@ -1,0 +1,3 @@
+# Keys of nqo.json a native N'Ko reader has corrected by hand (tones, word choice), one per line.
+# `nko_from_latin.py --check` leaves these alone; every other N'Ko message must be the spelling of its emk.json message.
+# Add a key here only together with the reader's correction, and record the review in docs/05-quality/translation-review.md.

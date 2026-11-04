@@ -78,7 +78,10 @@ them (about 270 KB, measured on the field build of 2026-10-29) so a tablet can s
   examples and acronyms are kept; words are spelled letter by letter in N'Ko; digits become N'Ko digits. Latin
   Malinké spelling does not mark tones and N'Ko does, so the generated file is a starting draft that a native reader
   corrects directly. The script refuses to overwrite an existing `nqo.json`: `--missing` adds new keys and keeps the
-  rest, `--force` replaces everything (only while it is still the untouched draft).
+  rest, `--force` replaces everything (only while it is still the untouched draft). `--check` (CI, tooling job)
+  fails on a N'Ko message that is not the spelling of its Malinké message, except the keys a native reader corrected
+  (`tools/i18n/nko-reviewed.txt`): N'Ko messages written by hand had started to say something else than the Latin
+  ones (five keys, found and respelled on 2026-11-04).
 
 ### 5. Scope of this change
 
