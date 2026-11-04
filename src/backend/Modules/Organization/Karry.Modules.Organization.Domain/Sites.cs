@@ -123,6 +123,9 @@ public sealed class Site : AggregateRoot<SiteId>, ITenantOwned, ISiteScoped
 
     public DateTimeOffset ChangedAt { get; private set; }
 
+    /// <summary>Changes with every saved change (the row's <c>xmin</c>): sent as <c>ETag</c>, expected back in <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public DateTimeOffset? ArchivedAt { get; private set; }
 
     public SiteAddress Address => new(AddressLine, City, Region, PostalCode, Country);

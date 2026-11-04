@@ -2378,6 +2378,7 @@ export interface components {
             changedAt: string;
             /** Format: date-time */
             archivedAt: null | string;
+            version: string;
         };
         /** @description Opens a support session: the company's code, or (break-glass) a written reason. */
         StartSupportSession: {
@@ -5830,7 +5831,9 @@ export interface operations {
     ChangeSite: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 siteId: string;
             };
@@ -5862,6 +5865,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

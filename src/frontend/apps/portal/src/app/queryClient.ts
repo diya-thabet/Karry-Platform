@@ -1,6 +1,13 @@
 import { MutationCache, QueryCache, QueryClient } from "@tanstack/react-query";
 import { ApiError } from "@karry/api-client";
 
+declare module "@tanstack/react-query" {
+  interface Register {
+    /** `handledCodes`: problem codes the mutation's own screen explains, so the error dialog stays closed for them. */
+    mutationMeta: { handledCodes?: readonly string[] };
+  }
+}
+
 /**
  * Every failed query or mutation reaches the error dialog (with its support reference), with a way to load the
  * screen's data again once the person fixed the cause (signing in again with a second factor). A failed query is tried
@@ -10,7 +17,16 @@ export function createQueryClient(report: (error: unknown, reload?: () => void) 
   const reload = () => { void client.invalidateQueries(); };
   const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({ onError: (error) => { report(error, reload); } }),
-    mutationCache: new MutationCache({ onError: (error) => { report(error, reload); } }),
+    mutationCache: new MutationCache({
+      onError: (error, _variables, _context, mutation) => {
+        // A form that explains this problem itself (a version conflict keeps the draft on screen) gets no dialog.
+        if (error instanceof ApiError && mutation.meta?.handledCodes?.includes(error.code)) {
+          return;
+        }
+
+        report(error, reload);
+      },
+    }),
     defaultOptions: { queries: { retry: (failures, error) => retry !== false && failures < retry && !isRateLimited(error), staleTime: 30_000 } },
   });
   return client;

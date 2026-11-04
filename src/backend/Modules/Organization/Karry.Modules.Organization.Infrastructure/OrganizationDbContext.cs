@@ -42,6 +42,7 @@ public sealed class OrganizationDbContext(DbContextOptions<OrganizationDbContext
                 t.HasCheckConstraint("ck_sites_boundary_valid", "boundary IS NULL OR ST_IsValid(boundary)");
                 t.HasCheckConstraint("ck_sites_archived", "(status = 'Archived') = (archived_at IS NOT NULL)");
             });
+            site.Property(s => s.Version).IsRecordVersion();
             site.HasKey(s => s.Id);
             site.Property(s => s.Id).HasConversion(id => id.Value, value => new SiteId(value)).ValueGeneratedNever();
             site.Property(s => s.Code).HasMaxLength(SiteRules.CodeMaxLength);
