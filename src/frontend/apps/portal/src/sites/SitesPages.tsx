@@ -6,6 +6,8 @@ import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Checkbox, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant } from "../app/api";
 import { currencies } from "../app/currencies";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { Trail } from "../shell/Trail";
 import { countries, siteKey, sitesKey, SitesManagePermission, siteTypes, timeZones, useSites, type Site, type SiteInput } from "./api";
 import { MapPicker, type Ring } from "./MapPicker";
@@ -144,6 +146,9 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
   const editable = can(SitesManagePermission) && site?.status !== "archived";
   const [draft, setDraft] = useState<Draft>(() => draftOf(site, defaultTimeZone));
   const [checked, setChecked] = useState(false);
+  // The version the draft was filled from: a save is applied to it only (If-Match), never over a newer change (H-C1).
+  const [version, setVersion] = useState(site?.version);
+  const [conflict, setConflict] = useState(false);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => { setDraft((current) => ({ ...current, [key]: value })); };
 
   const latitude = coordinate(draft.latitude, 90);
@@ -165,14 +170,26 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
   };
 
   const save = useMutation({
-    mutationFn: async () => site
-      ? (await api.PUT("/api/v1/organization/sites/{siteId}", { params: { path: { siteId: site.id } }, body: body() })).data
-      : (await api.POST("/api/v1/organization/sites", { body: body() })).data,
+    meta: handlesVersionConflict,
+    mutationFn: async (expected?: string) => {
+      if (!site) {
+        return (await api.POST("/api/v1/organization/sites", { body: body() })).data;
+      }
+
+      const tag = expected ?? version;
+      return (await api.PUT("/api/v1/organization/sites/{siteId}", {
+        params: { path: { siteId: site.id }, header: tag ? { "If-Match": tag } : {} },
+        body: body(),
+      })).data;
+    },
+    onError: (error) => { setConflict(isVersionConflict(error)); },
     onSuccess: async (saved) => {
       if (!saved) {
         return;
       }
 
+      setVersion(saved.version);
+      setConflict(false);
       await refresh(saved);
       toast({ status: "ok", title: t("portal.sites.saved") });
       if (!site) {
@@ -187,11 +204,31 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
       : (await api.POST("/api/v1/organization/sites/{siteId}/restore", { params: { path: { siteId: site?.id ?? "" } } })).data,
     onSuccess: async (saved, action) => {
       if (saved) {
+        setVersion(saved.version);
         await refresh(saved);
         toast({ status: "ok", title: t(action === "archive" ? "portal.sites.archived" : "portal.sites.restored") });
       }
     },
   });
+
+  const latest = async () => site ? (await api.GET("/api/v1/organization/sites/{siteId}", { params: { path: { siteId: site.id } } })).data : undefined;
+  // The person chose to save their entries over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      setDraft(draftOf(current, defaultTimeZone));
+      setVersion(current.version);
+      setConflict(false);
+      await refresh(current);
+    }
+  };
 
   const submit = () => {
     setChecked(true);
@@ -296,6 +333,7 @@ function SiteForm({ site, defaultTimeZone }: { site: Site | null; defaultTimeZon
           {checked && boundaryIncomplete && <p role="alert" className="font-semibold text-danger">{t("portal.sites.boundaryIncomplete")}</p>}
         </fieldset>
 
+        {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
         {editable && (
           <div>
             <Button type="submit" loading={save.isPending}>{site ? t("portal.sites.save") : t("portal.sites.create")}</Button>

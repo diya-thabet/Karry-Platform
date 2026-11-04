@@ -88,6 +88,40 @@ describe("sites (US-P1-ORG-01)", () => {
     expect(api.writes()).toHaveLength(1);
   });
 
+  it("never saves over a change made by someone else meanwhile, and keeps the person's entries (H-C1)", async () => {
+    const api = fakeApi({ permissions: manager, sites: [site()] });
+    await renderAt(`/sites/${siteId}`, api);
+    const name = await screen.findByDisplayValue("Carrière Nord");
+    api.changeSiteElsewhere(siteId, { name: "Carrière de Amina" });
+
+    fireEvent.change(name, { target: { value: "Carrière de Karim" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the site" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(name).toHaveValue("Carrière de Karim");
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Show their version instead" }));
+    expect(await screen.findByDisplayValue("Carrière de Amina")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("saves the person's entries over the other change only when they choose to", async () => {
+    const api = fakeApi({ permissions: manager, sites: [site()] });
+    await renderAt(`/sites/${siteId}`, api);
+    const name = await screen.findByDisplayValue("Carrière Nord");
+    api.changeSiteElsewhere(siteId, { name: "Carrière de Amina" });
+    fireEvent.change(name, { target: { value: "Carrière de Karim" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the site" }));
+
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Save my changes over theirs" }));
+
+    expect(await screen.findByText("Site saved.")).toBeInTheDocument();
+    expect(api.writes().filter((w) => w.method === "PUT").at(-1)).toMatchObject({ body: { name: "Carrière de Karim" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("archives a site and shows it read-only until restored", async () => {
     const api = fakeApi({ permissions: manager, sites: [site()] });
     await renderAt(`/sites/${siteId}`, api);

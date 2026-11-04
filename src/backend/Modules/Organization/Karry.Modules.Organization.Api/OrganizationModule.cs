@@ -65,6 +65,7 @@ public sealed class OrganizationModule : IModule
             .RequirePermission(OrganizationPermissions.SitesManage)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("ChangeSite");
 
         endpoints.MapPost("/sites/{siteId:guid}/archive", ArchiveSiteAsync)
@@ -188,8 +189,8 @@ public sealed class OrganizationModule : IModule
     }
 
     private static async Task<Results<Ok<SiteResponse>, ProblemHttpResult>> GetSiteAsync(
-        Guid siteId, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
-        Respond(await sites.GetAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false));
+        Guid siteId, HttpResponse response, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
+        Respond(await sites.GetAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Created<SiteResponse>, ProblemHttpResult>> CreateSiteAsync(
         SiteInput request, [FromServices] SiteOperations sites, CancellationToken cancellationToken)
@@ -200,20 +201,35 @@ public sealed class OrganizationModule : IModule
             : result.Error.ToProblem();
     }
 
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) the form was filled from; a newer site is a 409 (H-C1).</summary>
     private static async Task<Results<Ok<SiteResponse>, ProblemHttpResult>> ChangeSiteAsync(
-        Guid siteId, SiteInput request, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
-        Respond(await sites.ChangeAsync(new SiteId(siteId), request, cancellationToken).ConfigureAwait(false));
+        Guid siteId, SiteInput request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response, [FromServices] SiteOperations sites,
+        CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        return expected.IsSuccess
+            ? Respond(await sites.ChangeAsync(new SiteId(siteId), request, cancellationToken, expected.Value).ConfigureAwait(false), response)
+            : expected.Error.ToProblem();
+    }
 
     private static async Task<Results<Ok<SiteResponse>, ProblemHttpResult>> ArchiveSiteAsync(
-        Guid siteId, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
-        Respond(await sites.ArchiveAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false));
+        Guid siteId, HttpResponse response, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
+        Respond(await sites.ArchiveAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<SiteResponse>, ProblemHttpResult>> RestoreSiteAsync(
-        Guid siteId, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
-        Respond(await sites.RestoreAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false));
+        Guid siteId, HttpResponse response, [FromServices] SiteOperations sites, CancellationToken cancellationToken) =>
+        Respond(await sites.RestoreAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false), response);
 
-    private static Results<Ok<SiteResponse>, ProblemHttpResult> Respond(Result<Site> result) =>
-        result.IsSuccess ? TypedResults.Ok(SiteResponse.From(result.Value)) : result.Error.ToProblem();
+    private static Results<Ok<SiteResponse>, ProblemHttpResult> Respond(Result<Site> result, HttpResponse response)
+    {
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        response.SetETag(result.Value.Version);
+        return TypedResults.Ok(SiteResponse.From(result.Value));
+    }
 }
 
 public sealed record SiteListResponse(IReadOnlyList<SiteResponse> Items);
@@ -221,7 +237,7 @@ public sealed record SiteListResponse(IReadOnlyList<SiteResponse> Items);
 /// <summary>A site; <c>Boundary</c> is a GeoJSON polygon ([longitude, latitude]) or null.</summary>
 public sealed record SiteResponse(
     Guid Id, string Code, string Name, string Type, AddressResponse Address, LocationResponse Location, PolygonResponse? Boundary,
-    string TimeZone, string? Currency, string Status, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt, DateTimeOffset? ArchivedAt)
+    string TimeZone, string? Currency, string Status, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt, DateTimeOffset? ArchivedAt, string Version)
 {
     public static SiteResponse From(Site site)
     {
@@ -230,7 +246,7 @@ public sealed record SiteResponse(
             new AddressResponse(site.AddressLine, site.City, site.Region, site.PostalCode, site.Country),
             new LocationResponse(site.Location.Y, site.Location.X),
             site.Boundary is { } boundary ? new PolygonResponse("Polygon", [[.. boundary.Shell.Coordinates.Select(c => (IReadOnlyList<double>)[c.X, c.Y])]]) : null,
-            site.TimeZone, site.Currency, site.Status.ToString().ToLowerInvariant(), site.CreatedAt, site.ChangedAt, site.ArchivedAt);
+            site.TimeZone, site.Currency, site.Status.ToString().ToLowerInvariant(), site.CreatedAt, site.ChangedAt, site.ArchivedAt, RecordVersionHttp.ETag(site.Version));
     }
 }
 

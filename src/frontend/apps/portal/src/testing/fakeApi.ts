@@ -286,7 +286,7 @@ export function fakeApi(options: {
       return json(200, changed({ logoUrl: request.method === "PUT" ? `/api/v1/tenancy/public/${tenant.slug}/logo?v=${String(changes)}` : null }));
     }
 
-    const organization = organizationRoute(request.method, url, body);
+    const organization = organizationRoute(request.method, url, body, request.headers.get("If-Match"));
     if (organization) {
       return organization;
     }
@@ -546,7 +546,7 @@ export function fakeApi(options: {
     }
   }
 
-  function organizationRoute(method: string, url: URL, body: unknown): Response | null {
+  function organizationRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
     const match = /^\/api\/v1\/organization\/sites(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
     if (!match) {
       return null;
@@ -570,10 +570,15 @@ export function fakeApi(options: {
       return problem(404, "organization.site_not_found");
     }
 
+    // As the API: every saved change is a new version, and a save for an older one is refused (H-C1).
     const save = (next: Site) => {
-      sites[index] = { ...next, changedAt: `2026-10-26T09:00:${String(index).padStart(2, "0")}Z` };
+      const version = `"${String(Number(site.version.replaceAll('"', "")) + 1)}"`;
+      sites[index] = { ...next, version, changedAt: `2026-10-26T09:00:${String(index).padStart(2, "0")}Z` };
       return json(200, sites[index]);
     };
+    if (method === "PUT" && part === undefined && ifMatch !== null && ifMatch !== site.version) {
+      return problem(409, "request.version_conflict");
+    }
     switch (true) {
       case part === undefined && method === "GET":
         return json(200, site);
@@ -787,6 +792,14 @@ export function fakeApi(options: {
         supportSessions[index] = { ...found, active: false, endedAt: new Date().toISOString() };
       }
     },
+    /** Another person saves the site meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeSiteElsewhere: (id: string, change: Partial<Site>) => {
+      const index = sites.findIndex((s) => s.id === id);
+      const found = sites[index];
+      if (found) {
+        sites[index] = { ...found, ...change, version: `"${String(Number(found.version.replaceAll('"', "")) + 1)}"` };
+      }
+    },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
   };
@@ -818,7 +831,7 @@ function siteFrom(id: string, input: SiteInput): Site {
     location: { latitude: Number(input.location?.latitude ?? 0), longitude: Number(input.location?.longitude ?? 0) },
     boundary: input.boundary ? { type: "Polygon", coordinates: input.boundary } : null,
     timeZone: input.timeZone ?? "UTC", currency: input.currency ?? null, status: "active",
-    createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null,
+    createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null, version: '"1"',
   };
 }
 

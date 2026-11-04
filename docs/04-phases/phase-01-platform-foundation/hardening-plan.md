@@ -87,7 +87,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 
 | ID | Scenario | Expected | Test | Status |
 |---|---|---|---|---|
-| H-C1 | Two people save the same site at once | One wins, the other gets 409 and keeps their draft | integration tests | 🟡 (audit) |
+| H-C1 | Two people save the same site at once | One wins, the other gets 409 and keeps their draft | **Finding C-1:** api-standards promised `ETag`/`If-Match` but no update had it: a later save silently overwrote an earlier one. Sites done: `SitesApiTests` (an old version refused and the newer change kept; 8 saves from one version at once, exactly 1 applied, mutation-checked: without the `xmin` check 7 "succeeded"; malformed `If-Match`), `RecordVersionHttpTests`, portal `sites.test.tsx` (the notice keeps the draft; "save mine" or "show theirs"). Next: assets, materials, company settings, roles | 🟡 |
 | H-C2 | The same enrolment code used by two tablets at once | Exactly one enrols | integration test | ⬜ |
 | H-C3 | The same sync batch sent twice at once | Each command stored once | Existing: sync tests | 🟡 (audit) |
 | H-C4 | Ledger rows touched in the database by an insider | Verifier reports the break | Existing: Trust tests | ✅ |
@@ -114,7 +114,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2, H-W3); findings: no headers (W-1), the production map's missing worker (W-3), the anchoring race (H-C5, fixed in its own PR) | ✅ #129 |
 | 5 | Resilience scenarios (H-R1–R5), ledger after load (H-L3); findings R-1 (readiness hung 60 s), R-2 (storage outage was a slow 500), R-3 (saved photo change reported as failed), all fixed; outages answer 503 `server.unavailable` (D54) | 🟡 |
-| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3) | ⬜ |
+| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3); 6a: record versions (`ETag`/`If-Match`) on sites, finding C-1 | 🟡 |
 | 7 | Demo rehearsal, exit review draft | ⬜ |
 
 ## 4. Evidence

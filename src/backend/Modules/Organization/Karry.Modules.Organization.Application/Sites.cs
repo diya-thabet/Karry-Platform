@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Entitlements;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Organization.Domain;
 using Karry.SharedKernel.Authorization;
@@ -53,7 +54,10 @@ public interface ISiteStore
 
     Task<IReadOnlyList<Site>> ListAsync(bool includeArchived, CancellationToken cancellationToken);
 
-    /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
+    /// <summary>
+    /// Saves with its events; false, with nothing saved, when the code is already used in the company (unique index) or
+    /// the site changed since it was loaded (its <see cref="Site.Version"/>).
+    /// </summary>
     Task<bool> TrySaveAsync(Site site, CancellationToken cancellationToken);
 
     /// <summary>The sites with these codes (tracked, for an import), archived ones included.</summary>
@@ -109,13 +113,22 @@ public sealed class SiteOperations(ISiteStore store, ShiftInstances shifts, ILim
         return await store.TrySaveAsync(site, cancellationToken).ConfigureAwait(false) ? site : CodeTaken;
     }
 
-    public async Task<Result<Site>> ChangeAsync(SiteId id, SiteInput input, CancellationToken cancellationToken)
+    /// <summary>
+    /// New details for a site. With <paramref name="expectedVersion"/> (the form's <c>If-Match</c>), only the version
+    /// the person edited is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<Site>> ChangeAsync(SiteId id, SiteInput input, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         var site = await GetAsync(id, cancellationToken).ConfigureAwait(false);
         if (!site.IsSuccess)
         {
             return site;
+        }
+
+        if (!RecordVersions.Matches(site.Value.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var details = input.Validate();
@@ -133,7 +146,10 @@ public sealed class SiteOperations(ISiteStore store, ShiftInstances shifts, ILim
         if (changed.Value)
         {
             await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
-            await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
+            if (!await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false))
+            {
+                return RecordVersions.Conflict; // the code never changes: only a concurrent change refuses this save
+            }
         }
 
         return site;
@@ -145,7 +161,10 @@ public sealed class SiteOperations(ISiteStore store, ShiftInstances shifts, ILim
         if (site.IsSuccess && site.Value.Archive(clock, caller.Subject))
         {
             await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
-            await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
+            if (!await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false))
+            {
+                return RecordVersions.Conflict;
+            }
         }
 
         return site;
@@ -166,8 +185,7 @@ public sealed class SiteOperations(ISiteStore store, ShiftInstances shifts, ILim
 
         site.Value.Restore(clock, caller.Subject);
         await shifts.ReconcileAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        return site;
+        return await store.TrySaveAsync(site.Value, cancellationToken).ConfigureAwait(false) ? site : RecordVersions.Conflict;
     }
 
     private TenantId Tenant => tenant.Current ?? throw new InvalidOperationException("Sites need a tenant.");

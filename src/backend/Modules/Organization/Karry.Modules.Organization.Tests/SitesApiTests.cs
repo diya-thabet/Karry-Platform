@@ -149,6 +149,74 @@ public sealed class SitesApiTests(OrganizationHost host) : IClassFixture<Organiz
         (await write.Should().ThrowAsync<PostgresException>()).Which.ConstraintName.Should().Be("ck_sites_boundary_valid");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_change_made_from_an_old_version_is_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two people opened the same site; the second to save must not overwrite the first.
+        var tenant = await ProvisionAsync();
+        var token = TestTokens.ForTenant(tenant);
+        var created = await SendAsync(HttpMethod.Post, "/api/v1/organization/sites", token, Input("CAR-SUD"));
+        var id = (await Json(created)).GetProperty("id").GetGuid();
+        var opened = await SendAsync(HttpMethod.Get, $"/api/v1/organization/sites/{id}", token);
+        var version = opened.Headers.ETag!.Tag;
+        (await Json(opened)).GetProperty("version").GetString().Should().Be(version, "body and header carry the same version");
+
+        var first = await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{id}", token, Input("CAR-SUD", "Carrière de Amina"), ifMatch: version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version, "every saved change makes a new version");
+
+        var second = await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{id}", token, Input("CAR-SUD", "Carrière de Karim"), ifMatch: version);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Json(second)).GetProperty("code").GetString().Should().Be("request.version_conflict");
+
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/organization/sites/{id}", token))).GetProperty("name").GetString().Should().Be("Carrière de Amina");
+        (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'organization.site_changed.v1'"))
+            .Should().Be(1, "the refused change left no trace");
+
+        var retried = await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{id}", token, Input("CAR-SUD", "Carrière de Karim"), ifMatch: first.Headers.ETag.Tag);
+        retried.StatusCode.Should().Be(HttpStatusCode.OK, "from the current version, the same change goes through");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Of_many_saves_from_one_version_at_the_same_moment_exactly_one_is_applied()
+    {
+        // The race between loading and saving: the check in the UPDATE (xmin), not only the comparison in the service.
+        var tenant = await ProvisionAsync();
+        var token = TestTokens.ForTenant(tenant);
+        var created = await Json(await SendAsync(HttpMethod.Post, "/api/v1/organization/sites", token, Input("CAR-SUD")));
+        var id = created.GetProperty("id").GetGuid();
+        var version = created.GetProperty("version").GetString()!;
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 8).Select(n =>
+            SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{id}", token, Input("CAR-SUD", $"Nom {n}"), ifMatch: version)));
+
+        saves.Count(s => s.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        saves.Count(s => s.StatusCode == HttpStatusCode.Conflict).Should().Be(7, "every other save is a version conflict, never a 500");
+        (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'organization.site_changed.v1'"))
+            .Should().Be(1);
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("4711")]
+    [InlineData("\"abc\"")]
+    [InlineData("\"1\", \"2\"")]
+    [InlineData("\"-1\"")]
+    public async Task A_malformed_if_match_is_refused_and_nothing_changes(string ifMatch)
+    {
+        var tenant = await ProvisionAsync();
+        var token = TestTokens.ForTenant(tenant);
+        var id = (await Json(await SendAsync(HttpMethod.Post, "/api/v1/organization/sites", token, Input("CAR-SUD")))).GetProperty("id").GetGuid();
+
+        var response = await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{id}", token, Input("CAR-SUD", "Autre"), ifMatch: ifMatch);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(response)).GetProperty("code").GetString().Should().Be("request.if_match_invalid");
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/organization/sites/{id}", token))).GetProperty("name").GetString().Should().Be("Carrière Nord");
+    }
+
     private async Task<Guid> ProvisionAsync()
     {
         var slug = $"o-{Guid.NewGuid():N}"[..20];
@@ -157,9 +225,14 @@ public sealed class SitesApiTests(OrganizationHost host) : IClassFixture<Organiz
         return (await Json(response)).GetProperty("id").GetGuid();
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null, string? ifMatch = null)
     {
         using var request = new HttpRequestMessage(method, path);
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);

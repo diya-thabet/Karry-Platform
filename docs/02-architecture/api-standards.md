@@ -16,7 +16,7 @@ last_updated: 2026-11-03
 - **Idempotency:** `Idempotency-Key` header required on all POSTs that create facts.
 - **Pagination:** cursor-based (`?cursor=&limit=`), max 200.
 - **Filtering/sorting:** whitelisted fields only.
-- **Concurrency:** `ETag` / `If-Match` on mutable master data.
+- **Concurrency:** `ETag` / `If-Match` on mutable master data (hardening plan H-C1, D55). A record people edit answers with `ETag: "<version>"` and the same value as `version` in the body (list items included); an update sent with `If-Match: <that value>` is applied to that version only, otherwise **409 `request.version_conflict`** and nothing is saved (the service compares the versions, and the `UPDATE … WHERE xmin = …` catches a race between load and save). `*` or no `If-Match` applies to the current version: allowed while clients move over, to become **428** once every portal form sends it. A malformed `If-Match` is **400 `request.if_match_invalid`**. Done: sites (`PUT /organization/sites/{id}`); assets, materials, company settings and roles follow in P1.18a slice 6.
 - **Versioning:** URL major version; additive changes only within a version; deprecation headers + 6-month sunset.
 - **Units in API:** quantities always as `{ "value": 18.562, "unit": "m3", "state": "loose" }`, never as bare numbers. Units are `m3` (`state` `bank` / `loose` / `compacted`, required), `t`, `kg`, `st`, `l`, `km`, `h`, `day` and `pcs` (`state` null). The value is a decimal JSON number at full precision; round only for display ([ADR-0025](../adr/0025-units-engine-and-materials.md)).
 - **Time:** ISO 8601 with offset; server stores UTC.
@@ -31,7 +31,7 @@ last_updated: 2026-11-03
 | Validation | 400 | `request.invalid` (with `errors`) |
 | Forbidden | 403 | `asset.forbidden` |
 | NotFound | 404 | `asset.not_found` |
-| Conflict | 409 | `asset.duplicate_code`, `idempotency.request_in_progress` |
+| Conflict | 409 | `asset.duplicate_code`, `idempotency.request_in_progress`, `request.version_conflict` (the record changed since the client read it) |
 | BusinessRule | 422 | `meter.backwards`, `idempotency.key_reused` |
 | (framework refusal: no or bad token, failed policy such as `platform-operator`) | 401 / 403 | `auth.unauthenticated` / `auth.forbidden` (same codes as the tenant and permission checks) |
 | A platform operator signed in without a second factor (`amr` has neither `otp` nor `hwk`, ADR-0029 §5) | 401 | `auth.mfa_required` (sign in again with the factor) |
