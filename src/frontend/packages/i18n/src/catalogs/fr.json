@@ -1005,6 +1005,7 @@
   "permissions.materials.catalog.manage": "Créer et modifier les matériaux et les densités",
   "permissions.assets.registry.read": "Voir les engins et leurs compteurs",
   "permissions.assets.registry.manage": "Enregistrer, déplacer et modifier les engins, saisir les relevés",
+  "permissions.fieldops.entries.read": "Voir les saisies de poste et leurs versions",
   "permissions.imports.files.manage": "Importer des données depuis Excel",
   "permissions.tenancy.settings.manage": "Modifier les paramètres de l’entreprise",
   "modules.organization": "Sites et postes",

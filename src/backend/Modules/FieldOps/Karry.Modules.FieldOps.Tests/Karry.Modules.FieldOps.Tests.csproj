@@ -5,6 +5,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CsCheck" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.FieldOps.Api/Karry.Modules.FieldOps.Api.csproj" />
@@ -14,6 +15,9 @@
     <ProjectReference Include="../Karry.Modules.FieldOps.Infrastructure/Karry.Modules.FieldOps.Infrastructure.csproj" />
     <!-- The real envelope recorder: entries and envelopes are written in one transaction (ADR-0034 §5). -->
     <ProjectReference Include="../../Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
+    <!-- The read API's host: tenants and the ledger as in production. -->
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

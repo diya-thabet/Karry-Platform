@@ -1005,6 +1005,7 @@
   "permissions.materials.catalog.manage": "Fɛnlu ani girinyalu dabɔ ani ka u yɛlɛma",
   "permissions.assets.registry.read": "Masinlu ani u ka jatebagalu ye",
   "permissions.assets.registry.manage": "Masinlu sɛbɛn, ka u taa ani ka u yɛlɛma, jatebaga kalannilu sɛbɛn",
+  "permissions.fieldops.entries.read": "Baara waati sɛbɛnlu ani u yɛlɛmalu lajɛ",
   "permissions.imports.files.manage": "Kunnafonilu don ka bɔ Excel la",
   "permissions.tenancy.settings.manage": "Sosiyete labɛnlu yɛlɛma",
   "modules.organization": "Baarayɔrɔlu ani kartlu",

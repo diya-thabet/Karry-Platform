@@ -14,6 +14,8 @@ public static class FieldOpsInfrastructure
         services.TryAddSingleton(TimeProvider.System);
         services.AddModuleDbContext<FieldOpsDbContext>(connectionString);
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
+        services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
+        services.AddScoped<EntryReading>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);
         services.AddSyncCommandHandler<EndShiftEntry>(EndShiftEntry.Name);
         return services;

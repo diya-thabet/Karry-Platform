@@ -64,7 +64,12 @@ public sealed class IsolationHost : IAsyncLifetime
         ASupportSession = await SeedSupportSessionAsync(A.Id);
         // Signatures (P2.3): a stored signature envelope of A, whose verification B must not read.
         AEnvelope = await SeedEnvelopeAsync(A.Id, ADevice);
+        // Shift entries (P2.4): a closed entry of A on its machine, whose list and versions B must not read.
+        AEntry = await SeedShiftEntryAsync(A.Id, ASite, AAsset, AMeter, AEnvelope, ADevice);
     }
+
+    /// <summary>ID of a shift entry of tenant A (its remarks, <c>Alphaentry</c>, and end value, 4250.5, are markers too).</summary>
+    public Guid AEntry { get; private set; }
 
     /// <summary>ID of a signature envelope of tenant A (its record type, <c>alpha.envelope</c>, is a marker too).</summary>
     public Guid AEnvelope { get; private set; }
@@ -233,6 +238,37 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(device);
         await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedShiftEntryAsync(Guid tenant, Guid site, Guid asset, Guid meter, Guid envelope, Guid device)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        foreach (var version in new[] { 1, 2 })
+        {
+            await using var insert = new NpgsqlCommand(
+                """
+                INSERT INTO fieldops.shift_entries (tenant_id, root_id, version, status, site_id, asset_id, meter_id, meter_kind, operator_id, segment_no,
+                    started_at, start_value, fuel_start_percent, start_photo, ended_at, end_value, fuel_end_percent, end_photo, stoppages, remarks, estimated, flags,
+                    envelope_id, command_id, device_id, received_at)
+                VALUES ($1, $2, $3, CASE WHEN $3 = 1 THEN 'Open' ELSE 'Closed' END, $4, $5, $6, 'hours', gen_random_uuid(), 1,
+                    now() - interval '8 hours', 4242.5, 80, 'sha256:' || repeat('a', 64),
+                    CASE WHEN $3 = 2 THEN now() END, CASE WHEN $3 = 2 THEN 4250.5 END, CASE WHEN $3 = 2 THEN 40 END, CASE WHEN $3 = 2 THEN 'sha256:' || repeat('b', 64) END,
+                    '[]', 'Alphaentry', false, '{}', $7, gen_random_uuid(), $8, now())
+                """, connection);
+            insert.Parameters.AddWithValue(tenant);
+            insert.Parameters.AddWithValue(id);
+            insert.Parameters.AddWithValue(version);
+            insert.Parameters.AddWithValue(site);
+            insert.Parameters.AddWithValue(asset);
+            insert.Parameters.AddWithValue(meter);
+            insert.Parameters.AddWithValue(envelope);
+            insert.Parameters.AddWithValue(device);
+            await insert.ExecuteNonQueryAsync();
+        }
+
         return id;
     }
 
@@ -436,7 +472,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport"],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -545,6 +581,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "meterId" => host.AMeter.ToString(),
         "importId" => host.AImport.ToString(),
         "envelopeId" => host.AEnvelope.ToString(),
+        "entryId" => host.AEntry.ToString(),
         "label" => "KRY1:" + IsolationHost.ALabelToken,
         // A template lists the caller's own values (e.g. site codes): B gets its own, never A's (see CatalogueParameters).
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
