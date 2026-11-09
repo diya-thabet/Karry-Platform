@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Domain;
 using Karry.Modules.Tenancy.Contracts;
@@ -46,7 +47,11 @@ public sealed class ChangeUserRolesHandler(
     IIdentityStore store, RoleDirectory directory, UserAdministration administration, ICallerAccess caller, IAccessCache cache,
     MfaSync mfa, ITenantContext tenant, TimeProvider clock)
 {
-    public async Task<Result<UserAccount>> HandleAsync(Guid userId, ChangeUserRoles command, CancellationToken cancellationToken)
+    /// <summary>
+    /// With <paramref name="expectedVersion"/> (the form's <c>If-Match</c>), only the version of the user the
+    /// administrator looked at is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<UserAccount>> HandleAsync(Guid userId, ChangeUserRoles command, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(command);
         var user = userId == Guid.Empty ? null : await store.FindUserAsync(new UserId(userId), cancellationToken).ConfigureAwait(false);
@@ -63,6 +68,11 @@ public sealed class ChangeUserRolesHandler(
         if (user.Subject is not null && user.Subject == administration.Subject)
         {
             return Error.BusinessRule("identity.cannot_change_own_roles", "You cannot change your own roles; ask another administrator.");
+        }
+
+        if (!RecordVersions.Matches(user.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);

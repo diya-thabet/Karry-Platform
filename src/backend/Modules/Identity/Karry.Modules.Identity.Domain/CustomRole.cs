@@ -88,6 +88,9 @@ public sealed class CustomRole : AggregateRoot<RoleId>, ITenantOwned
 
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; the role form sends it back as <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public RoleContent Content => RoleContent.Of(Permissions, FieldLevels);
 
     public static bool IsCustomCode(string? code) => code is not null && code.StartsWith(CodePrefix, StringComparison.Ordinal);
@@ -202,6 +205,9 @@ public sealed class DefaultRoleSettings : AggregateRoot<DefaultRoleSettingsId>, 
     public string Role { get; private set; }
 
     public IReadOnlyDictionary<string, FieldAccess> FieldLevels { get; private set; }
+
+    /// <summary>The record version (PostgreSQL <c>xmin</c>); a default role the company never changed has none (version 0).</summary>
+    public uint Version { get; private set; }
 
     public static DefaultRoleSettings For(TimeProvider clock, TenantId tenant, string role)
     {

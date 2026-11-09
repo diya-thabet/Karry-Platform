@@ -5,6 +5,9 @@ import { useTranslation } from "@karry/i18n";
 import { MousePointerClick } from "lucide-react";
 import { Button, DataTable, Dialog, EmptyState, ListDetailPage, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi, useWithStepUp } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { useSites } from "../sites/api";
 import { roleName } from "./labels";
@@ -65,6 +68,8 @@ function RoleNames({ roles }: { roles: Assignment[] }) {
   return <>{roles.map((r) => name(r.role)).join(", ")}</>;
 }
 
+const rolesOf = (user: User | null): Assignment[] => user?.roles ?? [];
+
 function UserRoles({ user }: { user: User }) {
   const { t } = useTranslation();
   const api = useApi();
@@ -73,7 +78,9 @@ function UserRoles({ user }: { user: User }) {
   const toast = useToast();
   const { can } = useAccess();
   const roles = useQuery({ queryKey: ["identity", "roles"], queryFn: async () => (await api.GET("/api/v1/identity/roles")).data?.items ?? [], enabled: can("identity.roles.read") });
-  const [assignments, setAssignments] = useState<Assignment[]>(user.roles);
+  // The roles and the version they were filled from: a save applies to it only (If-Match, H-C1).
+  const { draft: assignments, setDraft: setAssignments, version, accept } = useRecordDraft(user, rolesOf);
+  const [conflict, setConflict] = useState(false);
   const manage = can("identity.users.manage");
   const sites = useSites(true);
   const companyWide = "company";
@@ -91,13 +98,41 @@ function UserRoles({ user }: { user: User }) {
   const choices = (roles.data ?? []).filter((r) => r.office || user.kind === "field");
 
   const save = useMutation({
-    mutationFn: () =>
-      withStepUp(async () => (await api.PUT("/api/v1/identity/users/{id}/roles", { params: { path: { id: user.id } }, body: { roles: assignments } })).data),
-    onSuccess: async () => {
+    meta: handlesVersionConflict,
+    mutationFn: (expected?: string) =>
+      withStepUp(async () => (await api.PUT("/api/v1/identity/users/{id}/roles", {
+        params: { path: { id: user.id }, header: (expected ?? version) ? { "If-Match": expected ?? version ?? "" } : {} },
+        body: { roles: assignments },
+      })).data),
+    onError: (error) => { setConflict(isVersionConflict(error)); },
+    onSuccess: async (saved) => {
+      if (saved) {
+        accept(saved);
+      }
+
+      setConflict(false);
       await queryClient.invalidateQueries({ queryKey: usersKey });
       toast({ status: "ok", title: t("portal.users.saved") });
     },
   });
+
+  const latest = async () => (await api.GET("/api/v1/identity/users/{id}", { params: { path: { id: user.id } } })).data;
+  // The person chose to save their roles over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      await queryClient.invalidateQueries({ queryKey: usersKey });
+    }
+  };
 
   const resend = useMutation({
     mutationFn: async () => (await api.POST("/api/v1/identity/users/{id}/invitation", { params: { path: { id: user.id } } })).data,
@@ -139,13 +174,14 @@ function UserRoles({ user }: { user: User }) {
         ))}
       </ul>
 
+      {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
       {manage && (
         <div className="flex flex-wrap gap-3">
           <Button type="button" variant="secondary" disabled={choices.length === 0}
             onClick={() => { setAssignments([...assignments, { role: choices[0]?.code ?? "", siteId: null }]); }}>
             {t("portal.users.addRole")}
           </Button>
-          <Button type="button" loading={save.isPending} onClick={() => { save.mutate(); }}>{t("portal.users.save")}</Button>
+          <Button type="button" loading={save.isPending} onClick={() => { save.mutate(undefined); }}>{t("portal.users.save")}</Button>
           {user.kind === "field" && user.status === "active" && <SetPinButton user={user} />}
           {user.status === "invited" && (
             <Button type="button" variant="ghost" loading={resend.isPending} onClick={() => { resend.mutate(); }}>{t("portal.users.resend")}</Button>

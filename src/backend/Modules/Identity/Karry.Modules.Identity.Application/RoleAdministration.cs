@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Domain;
 using Karry.SharedKernel.Authorization;
@@ -72,13 +73,19 @@ public sealed class RoleAdministration(
         return await SavedAsync(created.Value.Code, roles, cancellationToken).ConfigureAwait(false);
     }
 
-    public async Task<Result<RoleView>> ChangeAsync(string code, ChangeRole command, CancellationToken cancellationToken)
+    public async Task<Result<RoleView>> ChangeAsync(string code, ChangeRole command, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(command);
         var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (roles.Find(code) is not { } current)
         {
             return NotFound;
+        }
+
+        // The version the administrator looked at (If-Match, H-C1); the save checks it again against a race.
+        if (!RecordVersions.Matches(current.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         if (current.IsDefault)
@@ -115,13 +122,19 @@ public sealed class RoleAdministration(
         return changed.Value ? await SavedAsync(code, roles, cancellationToken).ConfigureAwait(false) : current;
     }
 
-    public async Task<Result<RoleView>> ChangeFieldLevelsAsync(string code, ChangeFieldLevels command, CancellationToken cancellationToken)
+    public async Task<Result<RoleView>> ChangeFieldLevelsAsync(string code, ChangeFieldLevels command, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(command);
         var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (roles.Find(code) is not { } current)
         {
             return NotFound;
+        }
+
+        // The version the administrator looked at (If-Match, H-C1); the save checks it again against a race.
+        if (!RecordVersions.Matches(current.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var catalog = directory.Catalog;
@@ -174,12 +187,18 @@ public sealed class RoleAdministration(
         return changed ? await SavedAsync(code, roles, cancellationToken).ConfigureAwait(false) : current;
     }
 
-    public async Task<Result<bool>> DeleteAsync(string code, CancellationToken cancellationToken)
+    public async Task<Result<bool>> DeleteAsync(string code, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         var roles = await directory.LoadAsync(cancellationToken).ConfigureAwait(false);
         if (roles.Find(code) is not { } current)
         {
             return NotFound;
+        }
+
+        // The version the administrator looked at (If-Match, H-C1); the save checks it again against a race.
+        if (!RecordVersions.Matches(current.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         if (current.IsDefault)

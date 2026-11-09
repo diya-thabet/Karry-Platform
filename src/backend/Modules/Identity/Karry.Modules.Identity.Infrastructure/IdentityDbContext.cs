@@ -84,7 +84,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
                 json => JsonSerializer.Deserialize<List<RoleAssignment>>(json, RolesJson)!,
                 new ValueComparer<IReadOnlyList<RoleAssignment>>(
                     (a, b) => a!.SequenceEqual(b!), roles => roles.Aggregate(0, (hash, r) => HashCode.Combine(hash, r)), roles => roles.ToList()));
-            user.Property<uint>("xmin").IsRowVersion();
+            user.Property(u => u.Version).IsRecordVersion(); // the same xmin as the shadow row version before it (no migration)
 
             // One account per e-mail, phone, employee ID and Keycloak subject within a tenant.
             user.HasIndex(u => new { u.TenantId, u.Email }).IsUnique().HasFilter("email IS NOT NULL");
@@ -142,7 +142,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
                 new ValueComparer<IReadOnlyList<string>>(
                     (a, b) => a!.SequenceEqual(b!), list => list.Aggregate(0, (hash, p) => HashCode.Combine(hash, p)), list => list.ToList()));
             role.Property(r => r.FieldLevels).HasColumnType("jsonb").HasConversion(FieldLevelsConverter, FieldLevelsComparer);
-            role.Property<uint>("xmin").IsRowVersion();
+            role.Property(r => r.Version).IsRecordVersion();
             role.HasIndex(r => new { r.TenantId, r.Code }).IsUnique();
             role.HasIndex(r => new { r.TenantId, r.Name }).IsUnique();
             role.Ignore(r => r.Content);
@@ -157,7 +157,7 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             settings.Property(s => s.Id).HasConversion(id => id.Value, value => new DefaultRoleSettingsId(value)).ValueGeneratedNever();
             settings.Property(s => s.Role).HasMaxLength(60);
             settings.Property(s => s.FieldLevels).HasColumnType("jsonb").HasConversion(FieldLevelsConverter, FieldLevelsComparer);
-            settings.Property<uint>("xmin").IsRowVersion();
+            settings.Property(s => s.Version).IsRecordVersion();
             settings.HasIndex(s => new { s.TenantId, s.Role }).IsUnique();
             settings.Ignore(s => s.DomainEvents);
             settings.Ignore(s => s.AggregateKey);

@@ -39,7 +39,7 @@ const fields = { "probe.quote.unit-price": "masked" };
 /** The 12 default roles as the API lists them (only the permissions the tests look at). */
 export function defaultRoles(): Role[] {
   const role = (code: string, office: boolean, privileged: boolean, permissions: string[]): Role => ({
-    code, isDefault: true, name: null, description: null, basedOn: null, office, privileged, permissions, fieldLevels: { ...fields },
+    code, isDefault: true, name: null, description: null, basedOn: null, office, privileged, permissions, fieldLevels: { ...fields }, version: '"0"',
   });
   return [
     role("tenant-admin", true, true, ["identity.roles.manage", "identity.roles.read", "identity.users.manage", "identity.users.read"]),
@@ -348,22 +348,53 @@ export function fakeApi(options: {
         const draft = body as components["schemas"]["CreateRole"];
         const created: Role = {
           code: "custom-0001", isDefault: false, name: draft.name, description: draft.description, basedOn: draft.basedOn, office: draft.office ?? true,
-          privileged: false, permissions: draft.permissions ?? [], fieldLevels: draft.fieldLevels ?? {},
+          privileged: false, permissions: draft.permissions ?? [], fieldLevels: draft.fieldLevels ?? {}, version: '"1"',
         };
         roles.push(created);
         return json(201, created);
       }
-      case roleMatch !== null && request.method === "PUT": {
+      case roleMatch !== null && request.method === "GET": {
         const role = roles.find((r) => r.code === roleMatch[1]);
-        return role ? json(200, { ...role, ...(body as object) }) : problem(404, "identity.role_not_found");
+        return role ? json(200, role) : problem(404, "identity.role_not_found");
       }
-      case roleMatch !== null && request.method === "DELETE":
-        return new Response(null, { status: 204 });
+      case roleMatch !== null && (request.method === "PUT" || request.method === "DELETE"): {
+        const index = roles.findIndex((r) => r.code === roleMatch[1]);
+        const role = roles[index];
+        if (!role) {
+          return problem(404, "identity.role_not_found");
+        }
+
+        const ifMatch = request.headers.get("If-Match");
+        if (ifMatch !== null && ifMatch !== role.version) {
+          return problem(409, "request.version_conflict");
+        }
+
+        if (request.method === "DELETE") {
+          roles.splice(index, 1);
+          return new Response(null, { status: 204 });
+        }
+
+        return json(200, (roles[index] = { ...role, ...(body as object), version: nextVersion(role.version) }));
+      }
       case request.method === "GET" && path === "/users":
         return json(200, { items: users, nextCursor: null });
+      case request.method === "GET" && /^\/users\/[^/]+$/.test(path): {
+        const user = users.find((u) => path.endsWith(u.id));
+        return user ? json(200, user) : problem(404, "identity.user_not_found");
+      }
       case request.method === "PUT" && /^\/users\/[^/]+\/roles$/.test(path): {
-        const user = users.find((u) => path.includes(u.id));
-        return user ? json(200, { ...user, roles: (body as { roles: User["roles"] }).roles }) : problem(404, "identity.user_not_found");
+        const index = users.findIndex((u) => path.includes(u.id));
+        const user = users[index];
+        if (!user) {
+          return problem(404, "identity.user_not_found");
+        }
+
+        const ifMatch = request.headers.get("If-Match");
+        if (ifMatch !== null && ifMatch !== user.version) {
+          return problem(409, "request.version_conflict");
+        }
+
+        return json(200, (users[index] = { ...user, roles: (body as { roles: User["roles"] }).roles, version: nextVersion(user.version) }));
       }
       case request.method === "PUT" && /^\/users\/[^/]+\/pin$/.test(path): {
         const index = users.findIndex((u) => path.includes(u.id));
@@ -843,6 +874,22 @@ export function fakeApi(options: {
     changeTenantElsewhere: (change: Partial<Tenant>) => {
       tenant = { ...tenant, ...change, version: nextVersion(tenant.version) };
     },
+    /** Another administrator changes the person's roles meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeUserElsewhere: (id: string, change: Partial<User>) => {
+      const index = users.findIndex((u) => u.id === id);
+      const found = users[index];
+      if (found) {
+        users[index] = { ...found, ...change, version: nextVersion(found.version) };
+      }
+    },
+    /** Another administrator saves the role meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeRoleElsewhere: (code: string, change: Partial<Role>) => {
+      const index = roles.findIndex((r) => r.code === code);
+      const found = roles[index];
+      if (found) {
+        roles[index] = { ...found, ...change, version: nextVersion(found.version) };
+      }
+    },
     /** Another person saves the machine meanwhile (a new version): the open form is now out of date (H-C1). */
     changeAssetElsewhere: (id: string, change: Partial<Asset>) => {
       const index = assets.findIndex((a) => a.id === id);
@@ -868,7 +915,7 @@ export function user(overrides: Partial<User> = {}): User {
   return {
     id: "0192f0c1-0000-7000-8000-000000000001", kind: "office", status: "active", firstName: "Sami", lastName: "Gharbi",
     email: "sami@example.test", phone: null, employeeId: null, roles: [{ role: "commercial", siteId: null }], requiresMfa: false,
-    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, pinSet: false, ...overrides,
+    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, pinSet: false, version: '"1"', ...overrides,
   };
 }
 

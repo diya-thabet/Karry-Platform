@@ -83,7 +83,7 @@ public interface IIdentityStore
     /// <summary>Records an imported sign-in failure with its ledger event; false when it was imported before.</summary>
     Task<bool> AddSignInFailureAsync(SignInFailure failure, CancellationToken cancellationToken);
 
-    /// <summary>Saves changes to loaded aggregates; Conflict <c>identity.concurrent_change</c> when another request changed them first.</summary>
+    /// <summary>Saves changes to loaded aggregates; Conflict <c>request.version_conflict</c> when another request changed them first.</summary>
     Task<Result<bool>> SaveAsync(CancellationToken cancellationToken);
 
     /// <summary>The users with any of these e-mails (lower-case), phones or employee IDs (tracked, for an import), whatever their status.</summary>
@@ -125,7 +125,7 @@ public interface IRoleStore
 
     void Remove(CustomRole role);
 
-    /// <summary>Saves with the ledger events; Conflict <c>identity.role_exists</c> on a duplicate name, <c>identity.concurrent_change</c> on a race.</summary>
+    /// <summary>Saves with the ledger events; Conflict <c>identity.role_exists</c> on a duplicate name, <c>request.version_conflict</c> on a race.</summary>
     Task<Result<bool>> SaveAsync(CancellationToken cancellationToken);
 }
 

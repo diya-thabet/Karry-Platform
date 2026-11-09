@@ -231,6 +231,55 @@ public sealed class RoleTests(IdentityHost host) : IClassFixture<IdentityHost>
         roles.GetProperty("items").EnumerateArray().Count(r => r.GetProperty("isDefault").GetBoolean()).Should().Be(Roles.Defaults.Count);
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_custom_role_changed_from_an_old_version_is_refused_and_not_deleted()
+    {
+        var (_, admin) = await AdminAsync();
+        var code = await CreateAsync(admin, new { name = "Night commercial", basedOn = Roles.Commercial });
+        var opened = await api.SendAsync(HttpMethod.Get, $"{Roles_}/{code}", admin);
+        var version = opened.Headers.ETag!.Tag;
+        var role = await TenantMembers.JsonAsync(opened, HttpStatusCode.OK);
+        role.GetProperty("version").GetString().Should().Be(version);
+        var permissions = Strings(role, "permissions");
+
+        var first = await Change(admin, code, new { name = "Night sales", permissions }, version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        await TenantMembers.ExpectProblemAsync(await Change(admin, code, new { name = "Late sales", permissions }, version), HttpStatusCode.Conflict, "request.version_conflict");
+        await TenantMembers.ExpectProblemAsync(
+            await api.SendAsync(HttpMethod.Delete, $"{Roles_}/{code}", admin, headers: new Dictionary<string, string> { ["If-Match"] = version }),
+            HttpStatusCode.Conflict, "request.version_conflict");
+
+        (await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, $"{Roles_}/{code}", admin), HttpStatusCode.OK))
+            .GetProperty("name").GetString().Should().Be("Night sales", "the newer change is kept and the role still exists");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_default_role_s_field_levels_have_a_version_from_their_first_change()
+    {
+        // A default role the company never changed has version 0; its first change creates the settings, which then carry
+        // the version. Many first changes at once: exactly one applies (the others meet its row), never a 500.
+        var (_, admin) = await AdminAsync();
+        var opened = await api.SendAsync(HttpMethod.Get, $"{Roles_}/{Roles.Commercial}", admin);
+        opened.Headers.ETag!.Tag.Should().Be("\"0\"");
+        var masked = new { fieldLevels = new Dictionary<string, string> { [ProbeModule.UnitPrice] = "masked" } };
+
+        var changes = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => FieldLevels(admin, Roles.Commercial, masked, "\"0\"")));
+
+        changes.Count(c => c.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        changes.Count(c => c.StatusCode == HttpStatusCode.Conflict).Should().Be(5);
+        var current = (await api.SendAsync(HttpMethod.Get, $"{Roles_}/{Roles.Commercial}", admin)).Headers.ETag!.Tag;
+        current.Should().NotBe("\"0\"");
+        (await FieldLevels(admin, Roles.Commercial, masked, current)).StatusCode.Should().Be(HttpStatusCode.OK, "from the current version");
+    }
+
+    private Task<HttpResponseMessage> Change(string token, string code, object body, string ifMatch) =>
+        api.SendAsync(HttpMethod.Put, $"{Roles_}/{code}", token, body, new Dictionary<string, string> { ["If-Match"] = ifMatch });
+
+    private Task<HttpResponseMessage> FieldLevels(string token, string code, object body, string ifMatch) =>
+        api.SendAsync(HttpMethod.Put, $"{Roles_}/{code}/field-levels", token, body, new Dictionary<string, string> { ["If-Match"] = ifMatch });
+
     private async Task<(Guid Tenant, string Token)> AdminAsync()
     {
         var tenant = await api.TenantAsync();

@@ -16,6 +16,11 @@ async function renderAt(path: string, api: ReturnType<typeof fakeApi>, options: 
   return auth;
 }
 
+async function choose(label: string | RegExp, option: string) {
+  fireEvent.click(await screen.findByRole("combobox", { name: label }));
+  fireEvent.click(await screen.findByRole("option", { name: option }));
+}
+
 describe("settings (US-P1-IAM-04/05/06/07)", () => {
   it("shows only the settings the person may use", async () => {
     await renderAt("/settings", fakeApi({ permissions: ["identity.users.read"] }), { language: "en" });
@@ -110,6 +115,46 @@ describe("settings (US-P1-IAM-04/05/06/07)", () => {
       expect(api.writes()[0]).toMatchObject({ method: "PUT", path: `/users/${user().id}/roles` });
     });
     expect((api.writes()[0]?.body as { roles: unknown[] }).roles).toHaveLength(2);
+  });
+
+  it("refuses to overwrite roles another administrator changed meanwhile, and saves over them only when asked (H-C1)", async () => {
+    const api = fakeApi({ permissions: admin, users: [user()] });
+    await renderAt("/settings/users", api, { language: "en" });
+    fireEvent.click(await screen.findByText("Sami Gharbi"));
+    const add = await screen.findByRole("button", { name: "Add a role" });
+    await vi.waitFor(() => {
+      expect(add).toBeEnabled();
+    });
+    api.changeUserElsewhere(user().id, { roles: [{ role: "executive", siteId: null }] });
+
+    fireEvent.click(add);
+    fireEvent.click(screen.getByRole("button", { name: "Save roles" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(screen.getAllByRole("combobox", { name: "Role" })).toHaveLength(2);
+    fireEvent.click(within(notice).getByRole("button", { name: "Save my changes over theirs" }));
+    expect(await screen.findByText("Roles saved")).toBeInTheDocument();
+    expect(api.writes().filter((w) => w.method === "PUT").at(-1)?.body).toMatchObject({ roles: [{ role: "commercial" }, { role: "tenant-admin" }] });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows the role's other version when the person chooses it over their own field levels (H-C1)", async () => {
+    const api = fakeApi({ permissions: admin });
+    await renderAt("/settings/roles/site-manager", api, { language: "en" });
+    await vi.waitFor(() => {
+      expect(screen.getByRole("combobox", { name: "probe.quote.unit-price" })).toBeEnabled();
+    });
+    api.changeRoleElsewhere("site-manager", { fieldLevels: { "probe.quote.unit-price": "hidden" } });
+
+    await choose("probe.quote.unit-price", "Read");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Show their version instead" }));
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("combobox", { name: "probe.quote.unit-price" })).toHaveTextContent("Hidden");
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
   it("tells an account of another company that this is not its address and offers to sign out", async () => {

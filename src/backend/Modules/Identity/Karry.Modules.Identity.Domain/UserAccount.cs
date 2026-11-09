@@ -142,6 +142,9 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
 
     public DateTimeOffset? DeactivatedAt { get; private set; }
 
+    /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; the roles form sends it back as <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public bool HasRole(string role) => Roles.Any(r => r.Role == role);
 
     /// <summary>An office user invited by e-mail or phone; becomes active when the invitation is accepted.</summary>

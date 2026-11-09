@@ -5,6 +5,9 @@ import type { components } from "@karry/api-client";
 import { useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField } from "@karry/ui";
 import { useAccess, useApi, useWithStepUp } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { byModule, fieldLabel, fieldLevels, moduleLabel, permissionLabel, roleName, type FieldLevel } from "./labels";
 
@@ -77,7 +80,7 @@ interface Draft {
   description: string;
   office: boolean;
   basedOn: string | null;
-  permissions: Set<string>;
+  permissions: string[]; // sorted: compared as JSON when someone else changes the role (a Set would always look equal)
   fieldLevels: Record<string, string>;
 }
 
@@ -87,7 +90,7 @@ function draftOf(role: Role | undefined, basedOn: string | null): Draft {
     description: role && basedOn === null ? (role.description ?? "") : "",
     office: role?.office ?? true,
     basedOn,
-    permissions: new Set(role?.permissions ?? []),
+    permissions: [...(role?.permissions ?? [])].sort(),
     fieldLevels: { ...(role?.fieldLevels ?? {}) },
   };
 }
@@ -120,31 +123,43 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { can } = useAccess();
-  const [draft, setDraft] = useState<Draft>(() => draftOf(role, null));
+  // The draft and the version it was filled from: a save or delete applies to it only (If-Match, H-C1).
+  const { draft, setDraft, version, accept } = useRecordDraft<Role, Draft>(role ?? null, (record) => draftOf(record ?? undefined, null));
+  const [conflict, setConflict] = useState(false);
   const creating = role === undefined;
   const manage = can("identity.roles.manage");
   const permissionsEditable = manage && (creating || !role.isDefault);
 
+  const ifMatch = (expected?: string) => ((expected ?? version) ? { "If-Match": expected ?? version ?? "" } : {});
   const save = useMutation({
-    mutationFn: () =>
+    meta: handlesVersionConflict,
+    mutationFn: (expected?: string) =>
       withStepUp(async () => {
         const fieldLevels = draft.fieldLevels;
         if (creating) {
           return (await api.POST("/api/v1/identity/roles", {
-            body: { name: draft.name, description: draft.description || null, basedOn: draft.basedOn, office: draft.office, permissions: [...draft.permissions], fieldLevels },
+            body: { name: draft.name, description: draft.description || null, basedOn: draft.basedOn, office: draft.office, permissions: draft.permissions, fieldLevels },
           })).data;
         }
 
         if (role.isDefault) {
-          return (await api.PUT("/api/v1/identity/roles/{code}/field-levels", { params: { path: { code: role.code } }, body: { fieldLevels } })).data;
+          return (await api.PUT("/api/v1/identity/roles/{code}/field-levels", {
+            params: { path: { code: role.code }, header: ifMatch(expected) }, body: { fieldLevels },
+          })).data;
         }
 
         return (await api.PUT("/api/v1/identity/roles/{code}", {
-          params: { path: { code: role.code } },
-          body: { name: draft.name, description: draft.description || null, permissions: [...draft.permissions], fieldLevels },
+          params: { path: { code: role.code }, header: ifMatch(expected) },
+          body: { name: draft.name, description: draft.description || null, permissions: draft.permissions, fieldLevels },
         })).data;
       }),
+    onError: (error) => { setConflict(isVersionConflict(error)); },
     onSuccess: async (saved) => {
+      if (saved && !creating) {
+        accept(saved);
+      }
+
+      setConflict(false);
       await queryClient.invalidateQueries({ queryKey: rolesKey });
       if (creating && saved) {
         await navigate({ to: "/settings/roles/$code", params: { code: saved.code } });
@@ -153,12 +168,32 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
   });
 
   const remove = useMutation({
-    mutationFn: () => withStepUp(async () => api.DELETE("/api/v1/identity/roles/{code}", { params: { path: { code: role?.code ?? "" } } })),
+    meta: handlesVersionConflict,
+    mutationFn: () => withStepUp(async () => api.DELETE("/api/v1/identity/roles/{code}", { params: { path: { code: role?.code ?? "" }, header: ifMatch() } })),
+    onError: (error) => { setConflict(isVersionConflict(error)); },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: rolesKey });
       await navigate({ to: "/settings/roles" });
     },
   });
+
+  const latest = async () => (await api.GET("/api/v1/identity/roles/{code}", { params: { path: { code: role?.code ?? "" } } })).data;
+  // The person chose to save their role over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      await queryClient.invalidateQueries({ queryKey: rolesKey });
+    }
+  };
 
   const copyFrom = (basedOn: string) => {
     const basis = roles.find((r) => r.code === basedOn);
@@ -167,7 +202,7 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
 
   const title = creating ? t("portal.roles.new") : roleName(t, role);
   return (
-    <form className="flex max-w-4xl flex-col gap-6" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
+    <form className="flex max-w-4xl flex-col gap-6" onSubmit={(event) => { event.preventDefault(); save.mutate(undefined); }}>
       <PageHeader
         breadcrumbs={<Trail steps={[{ to: "/settings", label: t("portal.nav.settings") }, { to: "/settings/roles", label: t("portal.roles.title") }]} />}
         title={title}
@@ -216,13 +251,11 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
                     <input
                       type="checkbox"
                       className="size-5"
-                      checked={draft.permissions.has(permission.code)}
+                      checked={draft.permissions.includes(permission.code)}
                       disabled={!permissionsEditable}
                       onChange={(e) => {
-                        const next = new Set(draft.permissions);
-                        if (e.target.checked) next.add(permission.code);
-                        else next.delete(permission.code);
-                        setDraft({ ...draft, permissions: next });
+                        const others = draft.permissions.filter((code) => code !== permission.code);
+                        setDraft({ ...draft, permissions: e.target.checked ? [...others, permission.code].sort() : others });
                       }}
                     />
                     <span>{permissionLabel(t, permission.code)}</span>
@@ -255,6 +288,7 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
         )}
       </section>
 
+      {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
       {manage && (
         <div className="flex flex-wrap gap-3">
           <Button type="submit" loading={save.isPending}>{t("portal.roles.save")}</Button>

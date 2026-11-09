@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Domain;
 using Karry.SharedKernel.Results;
@@ -80,7 +81,7 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
         catch (DbUpdateConcurrencyException)
         {
             db.ChangeTracker.Clear();
-            return Error.Conflict("identity.concurrent_change", "Someone else changed this at the same time. Try again.");
+            return RecordVersions.Conflict;
         }
     }
 

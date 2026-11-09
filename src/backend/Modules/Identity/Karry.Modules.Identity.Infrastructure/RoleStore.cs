@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Domain;
 using Karry.SharedKernel.Results;
@@ -42,12 +43,12 @@ internal sealed class RoleStore(IdentityDbContext db) : IRoleStore
             db.ChangeTracker.Clear();
             return unique.ConstraintName?.Contains("name", StringComparison.Ordinal) == true
                 ? Error.Conflict("identity.role_exists", "Another role already has this name.")
-                : Error.Conflict("identity.concurrent_change", "Someone else changed this at the same time. Try again.");
+                : RecordVersions.Conflict;
         }
         catch (DbUpdateConcurrencyException)
         {
             db.ChangeTracker.Clear();
-            return Error.Conflict("identity.concurrent_change", "Someone else changed this at the same time. Try again.");
+            return RecordVersions.Conflict;
         }
     }
 }

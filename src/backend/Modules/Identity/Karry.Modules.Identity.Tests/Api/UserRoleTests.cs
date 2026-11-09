@@ -146,6 +146,46 @@ public sealed class UserRoleTests(IdentityHost host) : IClassFixture<IdentityHos
         (await api.LedgerAsync(tenant)).Should().Contain(e => e.Type == "identity.invitation_reissued.v1");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Roles_changed_from_an_old_version_of_the_user_are_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two administrators opened the same person; the second to save must not overwrite the first.
+        var (tenant, admin, _) = await AdminAsync(recent: true);
+        var id = await api.FieldUserAsync(tenant, (Roles.Operator, null));
+        var opened = await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/users/{id}", admin);
+        var version = opened.Headers.ETag!.Tag;
+        (await TenantMembers.JsonAsync(opened, HttpStatusCode.OK)).GetProperty("version").GetString().Should().Be(version);
+
+        var first = await ChangeAsync(admin, id, version, (Roles.Mechanic, null));
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version);
+
+        await TenantMembers.ExpectProblemAsync(await ChangeAsync(admin, id, version, (Roles.Storekeeper, null)), HttpStatusCode.Conflict, "request.version_conflict");
+        var kept = await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/users/{id}", admin), HttpStatusCode.OK);
+        kept.GetProperty("roles")[0].GetProperty("role").GetString().Should().Be(Roles.Mechanic);
+        (await api.LedgerAsync(tenant)).Count(e => e.Type == "identity.user_roles_changed.v1").Should().Be(1, "the refused change left no trace");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Of_many_role_changes_from_one_version_at_the_same_moment_exactly_one_is_applied()
+    {
+        var (tenant, admin, _) = await AdminAsync(recent: true);
+        var id = await api.FieldUserAsync(tenant, (Roles.Operator, null));
+        var version = (await api.SendAsync(HttpMethod.Get, $"/api/v1/identity/users/{id}", admin)).Headers.ETag!.Tag;
+        string[] roles = [Roles.Mechanic, Roles.Storekeeper, Roles.Weighmaster, Roles.FuelAttendant];
+
+        var changes = await Task.WhenAll(roles.Select(role => ChangeAsync(admin, id, version, (role, null))));
+
+        changes.Count(c => c.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        changes.Count(c => c.StatusCode == HttpStatusCode.Conflict).Should().Be(roles.Length - 1, "never a 500");
+    }
+
+    private Task<HttpResponseMessage> ChangeAsync(string token, Guid user, string ifMatch, params (string Role, Guid? Site)[] roles) =>
+        api.SendAsync(HttpMethod.Put, $"/api/v1/identity/users/{user}/roles", token, new { roles = roles.Select(r => new { role = r.Role, siteId = r.Site }) },
+            new Dictionary<string, string> { ["If-Match"] = ifMatch });
+
     private Task<HttpResponseMessage> AcceptAsync(string token) =>
         api.SendAsync(HttpMethod.Post, "/api/v1/identity/invitations/accept", null, new { token, password = "Correct-Horse-Battery-9" });
 
