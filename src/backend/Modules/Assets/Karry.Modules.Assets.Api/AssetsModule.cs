@@ -85,6 +85,7 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("SetAssetStatus");
 
         // Photo (US-P1-AST-02 AC1): in object storage, streamed after the same checks as the asset.
@@ -109,6 +110,7 @@ public sealed class AssetsModule : IModule
             .RequirePermission(AssetsPermissions.RegistryManage)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("RemoveAssetPhoto");
 
@@ -187,8 +189,8 @@ public sealed class AssetsModule : IModule
     }
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> GetAssetAsync(
-        Guid assetId, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.GetAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false));
+        Guid assetId, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.GetAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Created<AssetResponse>, ProblemHttpResult>> RegisterAssetAsync(
         AssetInput request, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
@@ -199,20 +201,27 @@ public sealed class AssetsModule : IModule
             : result.Error.ToProblem();
     }
 
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) the form was filled from; a newer asset is a 409 (H-C1).</summary>
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ChangeAssetAsync(
-        Guid assetId, AssetChangeInput request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.ChangeAsync(new AssetId(assetId), request, cancellationToken).ConfigureAwait(false));
+        Guid assetId, AssetChangeInput request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] AssetOperations assets, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        return expected.IsSuccess
+            ? Respond(await assets.ChangeAsync(new AssetId(assetId), request, cancellationToken, expected.Value).ConfigureAwait(false), response)
+            : expected.Error.ToProblem();
+    }
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> MoveAssetAsync(
-        Guid assetId, AssetMoveRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.MoveAsync(new AssetId(assetId), request.SiteId, cancellationToken).ConfigureAwait(false));
+        Guid assetId, AssetMoveRequest request, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.MoveAsync(new AssetId(assetId), request.SiteId, cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> SetAssetStatusAsync(
-        Guid assetId, AssetStatusRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.SetStatusAsync(new AssetId(assetId), request.Status, cancellationToken).ConfigureAwait(false));
+        Guid assetId, AssetStatusRequest request, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.SetStatusAsync(new AssetId(assetId), request.Status, cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> SetPhotoAsync(
-        Guid assetId, HttpRequest request, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
+        Guid assetId, HttpRequest request, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
     {
         // One byte more than allowed is enough to refuse; a larger body is never read into memory.
         var buffer = new byte[AssetPhotos.MaxBytes + 1];
@@ -223,7 +232,7 @@ public sealed class AssetsModule : IModule
             length += read;
         }
 
-        return Respond(await assets.SetPhotoAsync(new AssetId(assetId), buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false));
+        return Respond(await assets.SetPhotoAsync(new AssetId(assetId), buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false), response);
     }
 
     private static async Task<IResult> PhotoAsync(Guid assetId, HttpContext context, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
@@ -243,12 +252,12 @@ public sealed class AssetsModule : IModule
     }
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> RemovePhotoAsync(
-        Guid assetId, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.RemovePhotoAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false));
+        Guid assetId, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.RemovePhotoAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ResolveLabelAsync(
-        string label, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.ResolveLabelAsync(label, cancellationToken).ConfigureAwait(false));
+        string label, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.ResolveLabelAsync(label, cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<FileContentHttpResult, ProblemHttpResult>> LabelSheetAsync(
         LabelSheetInput request, [FromServices] AssetOperations assets, CancellationToken cancellationToken)
@@ -258,8 +267,8 @@ public sealed class AssetsModule : IModule
     }
 
     private static async Task<Results<Ok<AssetResponse>, ProblemHttpResult>> ReissueLabelAsync(
-        Guid assetId, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
-        Respond(await assets.ReissueLabelAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false));
+        Guid assetId, HttpResponse response, [FromServices] AssetOperations assets, CancellationToken cancellationToken) =>
+        Respond(await assets.ReissueLabelAsync(new AssetId(assetId), cancellationToken).ConfigureAwait(false), response);
 
     private static async Task<Results<Ok<MeterListResponse>, ProblemHttpResult>> ListMetersAsync(
         Guid assetId, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
@@ -302,8 +311,16 @@ public sealed class AssetsModule : IModule
             : result.Error.ToProblem();
     }
 
-    private static Results<Ok<AssetResponse>, ProblemHttpResult> Respond(Karry.SharedKernel.Results.Result<Asset> result) =>
-        result.IsSuccess ? TypedResults.Ok(AssetResponse.From(result.Value)) : result.Error.ToProblem();
+    private static Results<Ok<AssetResponse>, ProblemHttpResult> Respond(Karry.SharedKernel.Results.Result<Asset> result, HttpResponse response)
+    {
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        response.SetETag(result.Value.Version);
+        return TypedResults.Ok(AssetResponse.From(result.Value));
+    }
 }
 
 public sealed record AssetMoveRequest(Guid? SiteId);
@@ -333,7 +350,7 @@ public sealed record AssetListResponse(IReadOnlyList<AssetResponse> Items, strin
 public sealed record AssetResponse(
     Guid Id, string Code, string Name, string Type, string? Make, string? Model, string? SerialNumber, string? Plate, int? Year, DateOnly? AcquiredOn,
     Guid SiteId, string Status, string Label, AssetPhotoResponse? Photo, IReadOnlyList<SiteAssignmentResponse> Sites, DateTimeOffset CreatedAt, DateTimeOffset ChangedAt,
-    DateTimeOffset? DisposedAt)
+    DateTimeOffset? DisposedAt, string Version)
 {
     public static AssetResponse From(Asset asset)
     {
@@ -341,7 +358,7 @@ public sealed record AssetResponse(
         return new(asset.Id.Value, asset.Code, asset.Name, asset.Type, asset.Make, asset.Model, asset.SerialNumber, asset.Plate, asset.Year, asset.AcquiredOn,
             asset.SiteId, AssetRules.StatusCode(asset.Status), AssetLabels.Text(asset.LabelToken),
             asset.Photo is { } photo ? new AssetPhotoResponse(photo.Sha256, photo.ContentType, photo.Bytes) : null, [.. asset.Sites.OrderBy(s => s.From).Select(s => new SiteAssignmentResponse(s.SiteId, s.From))],
-            asset.CreatedAt, asset.ChangedAt, asset.DisposedAt);
+            asset.CreatedAt, asset.ChangedAt, asset.DisposedAt, RecordVersionHttp.ETag(asset.Version));
     }
 }
 

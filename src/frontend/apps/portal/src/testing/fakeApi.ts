@@ -306,7 +306,7 @@ export function fakeApi(options: {
       return audited;
     }
 
-    const machine = assetsRoute(request.method, url, body);
+    const machine = assetsRoute(request.method, url, body, request.headers.get("If-Match"));
     if (machine) {
       return machine;
     }
@@ -679,7 +679,7 @@ export function fakeApi(options: {
     }
   }
 
-  function assetsRoute(method: string, url: URL, body: unknown): Response | null {
+  function assetsRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
     const match = /^\/api\/v1\/assets(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
     if (!match) {
       return null;
@@ -723,10 +723,16 @@ export function fakeApi(options: {
       return problem(404, "assets.asset_not_found");
     }
 
+    // As the API: every saved change is a new version (moves, status, photo, label included), and a save of the
+    // details for an older one is refused (H-C1).
     const save = (next: Asset) => {
-      assets[index] = { ...next, changedAt: `2026-10-27T09:00:${String(index).padStart(2, "0")}Z` };
+      assets[index] = { ...next, version: nextVersion(found.version), changedAt: `2026-10-27T09:00:${String(index).padStart(2, "0")}Z` };
       return json(200, assets[index]);
     };
+    if (method === "PUT" && part === undefined && ifMatch !== null && ifMatch !== found.version) {
+      return problem(409, "request.version_conflict");
+    }
+
     const list = meters[id] ?? [];
     const meter = list.find((m) => m.id === meterId);
     switch (true) {
@@ -811,6 +817,14 @@ export function fakeApi(options: {
       const found = materials[index];
       if (found) {
         materials[index] = { ...found, ...change, version: nextVersion(found.version) };
+      }
+    },
+    /** Another person saves the machine meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeAssetElsewhere: (id: string, change: Partial<Asset>) => {
+      const index = assets.findIndex((a) => a.id === id);
+      const found = assets[index];
+      if (found) {
+        assets[index] = { ...found, ...change, version: nextVersion(found.version) };
       }
     },
     /** Changes sent (a conversion is a POST but stores nothing). */
@@ -920,7 +934,7 @@ export function asset(overrides: Partial<Asset> = {}): Asset {
     id: "0192f0c1-0000-7000-8000-000000007001", code: "PEL-01", name: "Pelle Cat 336", type: "excavator", make: "Caterpillar", model: "336",
     serialNumber: "CAT0336X1234", plate: null, year: 2021, acquiredOn: "2021-03-15", siteId, status: "active",
     label: "KRY1:ABCDEFGHIJKLMNOPQRSTUVWXYZ", photo: null, sites: [{ siteId, from: "2026-01-05T08:00:00Z" }],
-    createdAt: "2026-10-27T08:00:00Z", changedAt: "2026-10-27T08:00:00Z", disposedAt: null, ...overrides,
+    createdAt: "2026-10-27T08:00:00Z", changedAt: "2026-10-27T08:00:00Z", disposedAt: null, version: '"1"', ...overrides,
   };
 }
 

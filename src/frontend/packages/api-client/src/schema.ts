@@ -1523,6 +1523,7 @@ export interface components {
             changedAt: string;
             /** Format: date-time */
             disposedAt: null | string;
+            version: string;
         };
         /** @description `Status`: active, in-repair, idle or disposed. */
         AssetStatusRequest: {
@@ -6811,7 +6812,9 @@ export interface operations {
     ChangeAsset: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 assetId: string;
             };
@@ -6983,6 +6986,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetAssetPhoto: {
@@ -7118,6 +7130,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
