@@ -87,6 +87,38 @@ public sealed class VerificationRow : ITenantOwned
     public int? AnchorsChecked { get; init; }
 }
 
+/// <summary>
+/// A record's signature envelope as received (ADR-0033 §4), append-only: <see cref="Canonical"/> is the exact text the
+/// device signed, so it can be verified again at any time. Written by <see cref="PostgresEnvelopeRecorder"/> with SQL;
+/// mapped here for the migration and for reads.
+/// </summary>
+public sealed class SignatureEnvelopeRow : ITenantOwned
+{
+    public required Guid EnvelopeId { get; init; }
+
+    public required TenantId TenantId { get; init; }
+
+    public required string RecordType { get; init; }
+
+    public required Guid RecordId { get; init; }
+
+    public required int RecordVersion { get; init; }
+
+    public required string EnvelopeHash { get; init; }
+
+    public required string Canonical { get; init; }
+
+    public required Guid DeviceId { get; init; }
+
+    public required string DeviceSignature { get; init; }
+
+    public required Guid CommandId { get; init; }
+
+    public required DateTimeOffset ReceivedAt { get; init; }
+
+    public DateTimeOffset RecordedAt { get; init; }
+}
+
 /// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
 public sealed class AnchorRow : ITenantOwned
 {
@@ -121,6 +153,8 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
     public DbSet<VerificationRow> Verifications => Set<VerificationRow>();
 
     public DbSet<AuditExport> Exports => Set<AuditExport>();
+
+    public DbSet<SignatureEnvelopeRow> SignatureEnvelopes => Set<SignatureEnvelopeRow>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -173,6 +207,18 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             export.HasIndex(e => new { e.TenantId, e.ExportedAt });
             export.Ignore(e => e.DomainEvents);
             export.Ignore(e => e.AggregateKey);
+        });
+        modelBuilder.Entity<SignatureEnvelopeRow>(envelope =>
+        {
+            envelope.ToTable("signature_envelopes");
+            envelope.HasKey(e => e.EnvelopeId);
+            envelope.Property(e => e.RecordType).HasMaxLength(100);
+            envelope.Property(e => e.EnvelopeHash).HasMaxLength(71);
+            envelope.Property(e => e.Canonical).HasMaxLength(8000);
+            envelope.Property(e => e.DeviceSignature).HasMaxLength(86);
+            envelope.Property(e => e.RecordedAt).HasDefaultValueSql("now()");
+            envelope.HasIndex(e => new { e.TenantId, e.RecordType, e.RecordId });
+            envelope.HasIndex(e => new { e.TenantId, e.ReceivedAt });
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

@@ -154,7 +154,18 @@ signed part, as in ADR-0007.
   (`generate-signature-envelope-vectors.py`): 2 valid envelopes (text, hash, a device signature both sides verify,
   and a one-character change that must not) and 22 malformed ones both sides refuse. The .NET patterns use `\z` and
   `[0-9]` (not `$` and `\d`) to match JavaScript; a mutation back to `$` is caught by the vectors.
-- **Still to build in P2.3:** `trust.server_keys`, storing envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
+- **Slice 3b, storing envelopes:** `IEnvelopeRecorder` (Trust.Contracts, so a module's command handler can call
+  it) with `PostgresEnvelopeRecorder`, in the command's transaction: checks the v1 rules, that `signer.deviceId` is
+  the device that sent the command, and the device signature against that device's key (`IDeviceDirectory`); then
+  writes `audit.signature_envelopes` (the canonical text exactly as signed, its hash, record, device, command,
+  `receivedAt`; append-only by trigger and grants, RLS) and the ledger entry `trust.envelope_received.v1`
+  (`{envelopeId, envelopeHash, recordType, recordId, recordVersion, deviceId, commandId, receivedAt}`), which binds
+  the receipt time at once (§4). The same envelope again is `AlreadyRecorded` (nothing written); refusals, final for
+  the command: `trust.envelope_invalid`, `trust.envelope_device_mismatch`, `trust.envelope_signature_invalid` (event
+  4010, security) and `trust.envelope_conflict` (the same ID with other content, event 4011, security).
+  Tests: `EnvelopeRecorderTests` (TC-P2-SIG-002 and TC-P2-SIG-007 on real PostgreSQL). Table named
+  `audit.signature_envelopes` (the Trust module's schema is `audit`), not `trust.signature_envelope` as in the card.
+- **Still to build in P2.3:** `audit.server_keys` and the countersignature row (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
   the countersign job with its metrics and alerts, the SignaturePad, and the portal's "Verified" badge.
 
 ## Options considered
