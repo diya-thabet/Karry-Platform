@@ -9,7 +9,7 @@
 | Project | Karry Platform: Enterprise Quarry & Mining Management SaaS |
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
-| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 planned** (D56): P2.0 may start, P2.1 after P1.18a ([sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
+| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0 and P2.1 ✅, P2.2 (evidence blobs, field outbox) started ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
 | Last updated | 2026-10-29 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
@@ -272,7 +272,8 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2–P11 | Not started |
+| P2 Field operations | **P2.0, P2.1 ✅** (#147–#151), P2.2 in progress: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P3–P11 | Not started |
 
 ---
 
@@ -368,7 +369,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
   - `waiting_commands.clock_offset_ms`: a waiting command is handled with its arrival time and offset.
   - ADR-0031 is **accepted**.
 - **Decision:** the clock offset is measured by the server from the signed request time, not reported by the tablet (a reported value would be unsigned and unverifiable). It lives in a Sync-owned table, not on Identity's device row.
-- **Next:** P2.2, the field outbox, upload and evidence blobs ([ADR-0032](../adr/0032-evidence-blobs.md)): the tablet side of uploads (the outbox uploader, `missingSequences`, `submissions` storage), then the presign endpoint and the evidence bucket. First check whether SeaweedFS honours `x-amz-checksum-sha256`.
+- **Merged:** #151 (slice 3). **P2.1 ✅.**
+- **P2.2 spike (PR from `feat/p2.2-checksum-spike`):** SeaweedFS 4.48 honours `x-amz-checksum-sha256` on a pre-signed `PUT`. Other bytes get `400 BadDigest`, a changed header gets `403 SignatureDoesNotMatch` (the header is signed), an expired URL gets `403`, and `HEAD` in checksum mode returns the size and `ChecksumSHA256`. So the store-side check is used and the server-side fallback is not built ([ADR-0032 §2](../adr/0032-evidence-blobs.md#2-upload-by-pre-signed-put-with-the-checksum-the-store-verifies)). Tests: `PresignedChecksumTests` (5).
+- **Trap:** a presign `Expires` in the past makes the SDK write a negative `X-Amz-Expires`, and SeaweedFS answers `400`, not `403`. To test expiry, sign for 1 s and wait.
+- **Next:** P2.2 slices: the presign endpoint `POST /sync/blobs/presign` and the evidence bucket (Object Lock), the `HEAD` check when a command using a blob is handled (`sync.blob_missing`), then the tablet blob store and uploader (`missingSequences`, `submissions` storage). Tests TC-P2-SYNC-005/011/012/014.
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.
