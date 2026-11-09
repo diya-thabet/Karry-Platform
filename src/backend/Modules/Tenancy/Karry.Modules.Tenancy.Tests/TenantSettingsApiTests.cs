@@ -3,7 +3,12 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.BuildingBlocks.Idempotency;
+using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Tenancy.Application;
+using Karry.Modules.Tenancy.Domain;
+using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Karry.Modules.Tenancy.Tests;
@@ -134,6 +139,107 @@ public sealed class TenantSettingsApiTests(TenancyHost host) : IClassFixture<Ten
         (await LedgerAsync(tenant, "tenancy.tenant_logo_changed.v1")).Should().Be(0);
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_change_made_from_old_settings_is_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two administrators opened the settings; the second to save must not overwrite the first.
+        var (tenant, _) = await ProvisionAsync();
+        var admin = TestTokens.ForTenant(tenant, "admin-1");
+        var opened = await SendAsync(HttpMethod.Get, "/api/v1/tenancy/current", admin);
+        var version = opened.Headers.ETag!.Tag;
+        (await Json(opened)).GetProperty("version").GetString().Should().Be(version, "body and header carry the same version");
+
+        var first = await SendAsync(HttpMethod.Put, "/api/v1/tenancy/settings", admin, Settings(currency: "TND"), ifMatch: version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version, "every saved change makes a new version");
+
+        var second = await SendAsync(HttpMethod.Put, "/api/v1/tenancy/settings", admin, Settings(currency: "MAD"), ifMatch: version);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Json(second)).GetProperty("code").GetString().Should().Be("request.version_conflict");
+
+        (await Json(await SendAsync(HttpMethod.Get, "/api/v1/tenancy/current", admin))).GetProperty("currency").GetString().Should().Be("TND");
+        (await LedgerAsync(tenant, "tenancy.tenant_settings_changed.v1")).Should().Be(1, "the refused change left no trace");
+        (await SendAsync(HttpMethod.Put, "/api/v1/tenancy/settings", admin, Settings(currency: "MAD"), ifMatch: first.Headers.ETag.Tag))
+            .StatusCode.Should().Be(HttpStatusCode.OK, "from the current version, the same change goes through");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Of_many_saves_from_one_version_at_the_same_moment_exactly_one_is_applied()
+    {
+        var (tenant, _) = await ProvisionAsync();
+        var admin = TestTokens.ForTenant(tenant, "admin-1");
+        var version = (await SendAsync(HttpMethod.Get, "/api/v1/tenancy/current", admin)).Headers.ETag!.Tag;
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 8).Select(n =>
+            SendAsync(HttpMethod.Put, "/api/v1/tenancy/settings", admin, Settings(colour: $"#1F4E{n:D2}"), ifMatch: version)));
+
+        saves.Count(s => s.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        saves.Count(s => s.StatusCode == HttpStatusCode.Conflict).Should().Be(7, "every other save is a version conflict, never a 500");
+        (await LedgerAsync(tenant, "tenancy.tenant_settings_changed.v1")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Logos_sent_at_the_same_moment_never_leave_the_company_without_the_logo_it_shows()
+    {
+        // The old logo is deleted by a command of its own. Before, it ran outside the save's transaction: a save refused
+        // by the version check had already deleted the logo the winner stored, and the company pointed at nothing.
+        var (tenant, slug) = await ProvisionAsync();
+        var logos = Enumerable.Range(0, 6).Select(n => (byte[])[.. Png, (byte)n]).ToArray();
+
+        var sets = await Task.WhenAll(logos.Select(logo => SendLogoAsync(TestTokens.ForTenant(tenant), logo)));
+
+        sets.Should().OnlyContain(s => s.StatusCode == HttpStatusCode.OK || s.StatusCode == HttpStatusCode.Conflict);
+        var address = (await Json(await host.Client.GetAsync(new Uri($"/api/v1/tenancy/public/{slug}", UriKind.Relative), Ct))).GetProperty("logoUrl").GetString()!;
+        var served = await host.Client.GetAsync(new Uri(address, UriKind.Relative), Ct);
+        served.StatusCode.Should().Be(HttpStatusCode.OK, "the logo the company shows is stored");
+        logos.Should().ContainEquivalentOf(await served.Content.ReadAsByteArrayAsync(Ct));
+        (await ScalarAsync<long>($"SELECT count(*) FROM tenancy.tenant_logos WHERE tenant_id = '{tenant}'")).Should().Be(1);
+        (await LedgerAsync(tenant, "tenancy.tenant_logo_changed.v1")).Should().Be(sets.Count(s => s.StatusCode == HttpStatusCode.OK));
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_logo_save_refused_after_someone_else_changed_the_logo_leaves_their_logo_stored()
+    {
+        // The interleaving the race above only sometimes produces, made certain: this save loaded the company before the
+        // other logo was saved. Its delete of the old logo must roll back with the refused save, or the company shows
+        // a logo that no longer exists.
+        var (tenant, slug) = await ProvisionAsync();
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var store = scope.ServiceProvider.GetRequiredService<ITenantSettingsStore>();
+        var stale = (await store.FindAsync(new TenantId(tenant), Ct))!;
+
+        (await SendLogoAsync(TestTokens.ForTenant(tenant), Png)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var mine = TenantLogo.Create(tenant, [.. Png, 1], DateTimeOffset.UtcNow).Value;
+        stale.ChangeLogo(mine, "admin-2", DateTimeOffset.UtcNow).Should().BeTrue();
+        (await store.TrySaveAsync(stale, mine, removeLogo: false, Ct)).Should().BeFalse("the company changed since this save loaded it");
+
+        var address = (await Json(await host.Client.GetAsync(new Uri($"/api/v1/tenancy/public/{slug}", UriKind.Relative), Ct))).GetProperty("logoUrl").GetString()!;
+        var served = await host.Client.GetAsync(new Uri(address, UriKind.Relative), Ct);
+        served.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await served.Content.ReadAsByteArrayAsync(Ct)).Should().Equal(Png);
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("4711")]
+    [InlineData("\"abc\"")]
+    public async Task A_malformed_if_match_is_refused_and_nothing_changes(string ifMatch)
+    {
+        var (tenant, _) = await ProvisionAsync();
+
+        var response = await SendAsync(HttpMethod.Put, "/api/v1/tenancy/settings", TestTokens.ForTenant(tenant, "admin-1"), Settings(), ifMatch: ifMatch);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(response)).GetProperty("code").GetString().Should().Be("request.if_match_invalid");
+        (await LedgerAsync(tenant, "tenancy.tenant_settings_changed.v1")).Should().Be(0);
+    }
+
     private async Task<(Guid Id, string Slug)> ProvisionAsync()
     {
         var slug = $"s-{Guid.NewGuid():N}"[..20];
@@ -142,9 +248,14 @@ public sealed class TenantSettingsApiTests(TenancyHost host) : IClassFixture<Ten
         return ((await Json(response)).GetProperty("id").GetGuid(), slug);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null, string? ifMatch = null)
     {
         using var request = new HttpRequestMessage(method, path);
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);

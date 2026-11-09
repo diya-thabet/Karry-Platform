@@ -36,6 +36,8 @@ public sealed class TenancyHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    public IServiceProvider Services => app!.Services;
+
     public async ValueTask InitializeAsync()
     {
         server = await PostgresServer.StartAsync();

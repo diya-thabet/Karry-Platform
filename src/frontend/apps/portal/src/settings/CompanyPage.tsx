@@ -4,7 +4,10 @@ import type { components } from "@karry/api-client";
 import { intlLocale, supportedLanguages, useTranslation } from "@karry/i18n";
 import { Button, buttonVariants, EmptyState, PageHeader, PageSkeleton, SelectField, TextField, useToast } from "@karry/ui";
 import { currentTenantKey, SettingsManagePermission, useAccess, useApi, useCurrentTenant } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { currencies } from "../app/currencies";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 
 type Tenant = components["schemas"]["TenantResponse"];
@@ -21,10 +24,10 @@ function zones(): string[] {
   }
 }
 
-function draftOf(tenant: Tenant): Settings {
+function draftOf(tenant: Tenant | null): Settings {
   return {
-    legalName: tenant.legalName, primaryColour: tenant.primaryColour ?? null, language: tenant.language, currency: tenant.currency,
-    unitSystem: tenant.unitSystem, timeZone: tenant.timeZone, fiscalYearStartMonth: Number(tenant.fiscalYearStartMonth),
+    legalName: tenant?.legalName ?? "", primaryColour: tenant?.primaryColour ?? null, language: tenant?.language ?? "fr", currency: tenant?.currency ?? "EUR",
+    unitSystem: tenant?.unitSystem ?? "metric", timeZone: tenant?.timeZone ?? "UTC", fiscalYearStartMonth: Number(tenant?.fiscalYearStartMonth ?? 1),
   };
 }
 
@@ -36,7 +39,7 @@ export function CompanyPage() {
     return <PageSkeleton />;
   }
 
-  return tenant ? <CompanyForm key={tenant.settingsChangedAt ?? "new"} tenant={tenant} /> : <EmptyState title={t("portal.notFound")} />;
+  return tenant ? <CompanyForm key={tenant.id} tenant={tenant} /> : <EmptyState title={t("portal.notFound")} />;
 }
 
 function CompanyForm({ tenant }: { tenant: Tenant }) {
@@ -46,7 +49,10 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
   const toast = useToast();
   const { can } = useAccess();
   const editable = can(SettingsManagePermission);
-  const [draft, setDraft] = useState<Settings>(() => draftOf(tenant));
+  // The settings and the version they were filled from: a save is applied to it only (If-Match, H-C1). A logo saved
+  // on the same page makes a new version without touching what the person typed (finding C-2).
+  const { draft, setDraft, version, accept } = useRecordDraft(tenant, draftOf);
+  const [conflict, setConflict] = useState(false);
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => { setDraft((current) => ({ ...current, [key]: value })); };
 
   const saved = async (title: string) => {
@@ -55,9 +61,42 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
   };
 
   const save = useMutation({
-    mutationFn: async () => (await api.PUT("/api/v1/tenancy/settings", { body: { ...draft, primaryColour: draft.primaryColour?.trim() ? draft.primaryColour : null } })).data,
-    onSuccess: () => saved(t("portal.company.saved")),
+    meta: handlesVersionConflict,
+    mutationFn: async (expected?: string) => {
+      const tag = expected ?? version;
+      return (await api.PUT("/api/v1/tenancy/settings", {
+        params: { header: tag ? { "If-Match": tag } : {} },
+        body: { ...draft, primaryColour: draft.primaryColour?.trim() ? draft.primaryColour : null },
+      })).data;
+    },
+    onError: (error) => { setConflict(isVersionConflict(error)); },
+    onSuccess: async (result) => {
+      if (result) {
+        accept(result);
+      }
+
+      setConflict(false);
+      await saved(t("portal.company.saved"));
+    },
   });
+
+  const latest = async () => (await api.GET("/api/v1/tenancy/current")).data;
+  // The person chose to save their entries over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      await queryClient.invalidateQueries({ queryKey: currentTenantKey });
+    }
+  };
 
   const upload = useMutation({
     mutationFn: async (file: File) =>
@@ -110,7 +149,7 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
         <p className="text-sm text-text-muted">{t("portal.company.logoHint")}</p>
       </section>
 
-      <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); save.mutate(); }}>
+      <form className="flex flex-col gap-4" onSubmit={(event) => { event.preventDefault(); save.mutate(undefined); }}>
         <fieldset disabled={!editable} className="grid gap-4 md:grid-cols-2">
           <TextField label={t("portal.company.legalName")} value={draft.legalName ?? ""} required onChange={(e) => { set("legalName", e.target.value); }} />
           <TextField
@@ -160,6 +199,7 @@ function CompanyForm({ tenant }: { tenant: Tenant }) {
             disabled={!editable}
           />
         </fieldset>
+        {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
         {editable && (
           <div>
             <Button type="submit" loading={save.isPending}>{t("portal.company.save")}</Button>

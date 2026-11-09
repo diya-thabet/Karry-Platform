@@ -120,7 +120,7 @@ export function fakeApi(options: {
   let tenant: Tenant = {
     id: "0192f0c1-0000-7000-8000-0000000000a1", slug: "carriere-a", name: "Carrière A", createdAt: "2026-10-01T08:00:00Z",
     legalName: "Carrière A", primaryColour: null, language: "none", currency: "EUR", unitSystem: "metric", timeZone: "UTC",
-    fiscalYearStartMonth: 1, logoUrl: null, settingsChangedAt: null, ...options.tenant,
+    fiscalYearStartMonth: 1, logoUrl: null, settingsChangedAt: null, version: '"1"', ...options.tenant,
   };
   let changes = 0;
   const sites: Site[] = [...(options.sites ?? [])];
@@ -143,7 +143,8 @@ export function fakeApi(options: {
   let verification: Verification = { verification: null, verifiedBy: null, verifiedByName: null };
   const changed = (next: Partial<Tenant>) => {
     changes += 1;
-    tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z` };
+    // As the API: every saved change (the logo included) is a new version (H-C1).
+    tenant = { ...tenant, ...next, settingsChangedAt: `2026-10-26T08:00:${String(changes).padStart(2, "0")}Z`, version: nextVersion(tenant.version) };
     return tenant;
   };
 
@@ -279,6 +280,11 @@ export function fakeApi(options: {
     }
 
     if (url.pathname === "/api/v1/tenancy/settings" && request.method === "PUT") {
+      const ifMatch = request.headers.get("If-Match");
+      if (ifMatch !== null && ifMatch !== tenant.version) {
+        return problem(409, "request.version_conflict");
+      }
+
       return json(200, changed(body as Partial<Tenant>));
     }
 
@@ -818,6 +824,10 @@ export function fakeApi(options: {
       if (found) {
         materials[index] = { ...found, ...change, version: nextVersion(found.version) };
       }
+    },
+    /** Another administrator saves the company settings meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeTenantElsewhere: (change: Partial<Tenant>) => {
+      tenant = { ...tenant, ...change, version: nextVersion(tenant.version) };
     },
     /** Another person saves the machine meanwhile (a new version): the open form is now out of date (H-C1). */
     changeAssetElsewhere: (id: string, change: Partial<Asset>) => {

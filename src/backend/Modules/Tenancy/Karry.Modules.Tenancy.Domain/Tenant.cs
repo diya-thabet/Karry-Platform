@@ -73,6 +73,9 @@ public sealed class Tenant : AggregateRoot<TenantId>, ITenantAudited
 
     public DateTimeOffset? SettingsChangedAt { get; private set; }
 
+    /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; the settings form sends it back as <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public TenantSettings Settings => new(LegalName, PrimaryColour, Language, Currency, UnitSystem, TimeZone, FiscalYearStartMonth);
 
     /// <summary>The tenant's own ledger starts with its provisioning.</summary>

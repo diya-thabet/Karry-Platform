@@ -104,6 +104,7 @@ public sealed class TenancyModule : IModule
             .RequirePermission(TenancyPermissions.SettingsManage)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("UpdateTenantSettings");
 
         // The logo as the request body (PNG, JPEG or WebP, at most 256 KB); its type is read from the content.
@@ -113,11 +114,13 @@ public sealed class TenancyModule : IModule
             .WithMaxBody(2L * TenantLogo.MaxBytes)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("SetTenantLogo");
 
         endpoints.MapDelete("/settings/logo", RemoveLogoAsync)
             .RequirePermission(TenancyPermissions.SettingsManage)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("RemoveTenantLogo");
     }
 
@@ -171,25 +174,32 @@ public sealed class TenancyModule : IModule
     }
 
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> CurrentAsync(
-        [FromServices] ITenantContext tenant, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
+        HttpResponse response, [FromServices] ITenantContext tenant, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
     {
         var id = tenant.Current ?? throw new InvalidOperationException("Tenant-scoped endpoint reached without a tenant.");
         var current = await db.Tenants.AsNoTracking().SingleOrDefaultAsync(t => t.Id == id, cancellationToken).ConfigureAwait(false);
         return current is null
             ? SharedKernel.Results.Error.NotFound("tenant.not_found", "The company of this account does not exist.").ToProblem()
-            : TypedResults.Ok(TenantResponse.From(current));
+            : Respond(current, response);
     }
 
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) the form was filled from; newer settings are a 409 (H-C1).</summary>
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> UpdateSettingsAsync(
-        UpdateTenantSettings request, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings,
-        CancellationToken cancellationToken)
+        UpdateTenantSettings request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response, ClaimsPrincipal caller,
+        [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings, CancellationToken cancellationToken)
     {
-        var result = await settings.UpdateAsync(Own(tenant), request, caller.FindFirst("sub")?.Value, cancellationToken).ConfigureAwait(false);
-        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await settings.UpdateAsync(Own(tenant), request, caller.FindFirst("sub")?.Value, cancellationToken, expected.Value).ConfigureAwait(false);
+        return result.IsSuccess ? Respond(result.Value, response) : result.Error.ToProblem();
     }
 
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> SetLogoAsync(
-        HttpRequest request, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings,
+        HttpRequest request, HttpResponse response, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings,
         CancellationToken cancellationToken)
     {
         // One byte more than allowed is enough to refuse; a larger body is never read into memory.
@@ -203,14 +213,20 @@ public sealed class TenancyModule : IModule
 
         var result = await settings.SetLogoAsync(Own(tenant), buffer.AsMemory(0, length), caller.FindFirst("sub")?.Value, cancellationToken)
             .ConfigureAwait(false);
-        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+        return result.IsSuccess ? Respond(result.Value, response) : result.Error.ToProblem();
     }
 
     private static async Task<Results<Ok<TenantResponse>, ProblemHttpResult>> RemoveLogoAsync(
-        ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings, CancellationToken cancellationToken)
+        HttpResponse response, ClaimsPrincipal caller, [FromServices] ITenantContext tenant, [FromServices] TenantSettingsOperations settings, CancellationToken cancellationToken)
     {
         var result = await settings.RemoveLogoAsync(Own(tenant), caller.FindFirst("sub")?.Value, cancellationToken).ConfigureAwait(false);
-        return result.IsSuccess ? TypedResults.Ok(TenantResponse.From(result.Value)) : result.Error.ToProblem();
+        return result.IsSuccess ? Respond(result.Value, response) : result.Error.ToProblem();
+    }
+
+    private static Ok<TenantResponse> Respond(Tenant tenant, HttpResponse response)
+    {
+        response.SetETag(tenant.Version);
+        return TypedResults.Ok(TenantResponse.From(tenant));
     }
 
     private static async Task<IResult> LogoAsync(string slug, HttpContext context, [FromServices] TenancyDbContext db, CancellationToken cancellationToken)
@@ -254,14 +270,14 @@ public sealed class TenancyModule : IModule
 /// <summary>The caller's company with its settings (US-P1-TEN-04); <c>LogoUrl</c> is null without a logo.</summary>
 public sealed record TenantResponse(
     Guid Id, string Slug, string Name, DateTimeOffset CreatedAt, string LegalName, string? PrimaryColour, string Language, string Currency,
-    string UnitSystem, string TimeZone, int FiscalYearStartMonth, string? LogoUrl, DateTimeOffset? SettingsChangedAt)
+    string UnitSystem, string TimeZone, int FiscalYearStartMonth, string? LogoUrl, DateTimeOffset? SettingsChangedAt, string Version)
 {
     public static TenantResponse From(Tenant tenant)
     {
         ArgumentNullException.ThrowIfNull(tenant);
         return new(tenant.Id.Value, tenant.Slug.Value, tenant.Name, tenant.CreatedAt, tenant.LegalName, tenant.PrimaryColour, tenant.Language,
             tenant.Currency, tenant.UnitSystem.ToString().ToLowerInvariant(), tenant.TimeZone, tenant.FiscalYearStartMonth, LogoAddress(tenant),
-            tenant.SettingsChangedAt);
+            tenant.SettingsChangedAt, RecordVersionHttp.ETag(tenant.Version));
     }
 
     /// <summary>Public address of the logo; the fingerprint in it changes with the image, so caches never show an old one.</summary>
