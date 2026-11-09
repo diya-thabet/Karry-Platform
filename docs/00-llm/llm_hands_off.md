@@ -383,9 +383,12 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Decision (ADR-0031 §3 amendment, slice 3b, PR from `feat/p2.2-final-rejections`):** a final (non-retryable) rejection from a handler or the evidence check is **kept in its place in the sequence** (inbox row + `processed_commands` outcome `Rejected` with `code`, migration `FinalRejections`, event 7209), so one bad command never blocks every later command of a tablet. Retryable rejections, bad signatures and reused numbers are not kept.
 - **Merged:** #156 (slice 3b). The server side of P2.2 is done.
 - **P2.2 slice 4 (PR from `feat/p2.2-tablet-outbox`):** `@karry/offline` schema v2 (`blobs` table; `OutboxRecord` gains `status` pending/waiting/confirmed/rejected, `attempts`, `code`, `flags`, `answeredAt`, `blobs`; `DeviceRecord.lastSequence`). `outbox.ts`: `enqueue`, `nextBatch`, `markUploaded`, `applyReceipts`, `applySubmissions`, `purgeBlobs`, `outboxSummary`, `uuidv7`, `sha256Hex`, `commandBody`. 10 tests; a mutation (no re-check of the number inside the transaction) is caught by the TC-P2-SYNC-014 test.
+- **Merged:** #157 (slice 4).
+- **P2.2 slice 5a (PR from `feat/p2.2-field-upload`):** `apps/field/src/uploads.ts`: `pushOutbox` (Web Lock `karry-outbox`, presign + `PUT` per blob, then the batch, `missingSequences`, ≤ 20 batches per run; `revoked`/`busy`/`offline`/`failed`), `syncTablet` (upload, pull, purge) replaces `pullChanges` in `main.tsx`; `pullChanges` applies `submissions`. 8 new field tests (91).
+- **Trap:** a `Uint8Array` read back from fake-indexeddb is from another realm, so `toEqual` against a fresh one fails; compare `Array.from(...)`.
 - **Trap:** WebCrypto signing cannot run inside a Dexie/IndexedDB transaction (the transaction commits at the first non-IndexedDB await). Sign first, then re-check inside the transaction and retry.
 - **Trap:** `JsonElement.TryGetInt64` on a string value throws instead of returning false: check `ValueKind == Number` first.
-- **Next:** the field app side of P2.2: the sync engine (triggers, backoff with jitter, Web Locks, `missingSequences`, `submissions` stored), the sync centre screen, and the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the bucket's CORS rule).
+- **Next:** the rest of the field app side of P2.2: the sync centre screen (in the five languages), the 2-minute upload trigger and backoff with jitter, and the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the bucket's CORS rule).
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

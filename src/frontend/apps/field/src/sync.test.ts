@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { fromBase64Url, generateDeviceKey, importPinKey, publicJwk, utf8 } from "@karry/crypto";
-import { lastRefresh, openOfflineDb, type ChangeSet, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
+import { enqueue, lastRefresh, openOfflineDb, type ChangeSet, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
 import { changesPath, pullChanges, snapshotEveryMs } from "./sync";
 
 const site = "0192f0a1-0000-7000-8000-000000000051";
@@ -144,5 +144,21 @@ describe("refreshing the reference data (US-P1-OFF-03, ADR-0028 §5)", () => {
     expect(await pullChanges(db, send)).toBe("failed");
     expect(await pullChanges(db, vi.fn(() => Promise.reject(new TypeError("Failed to fetch"))))).toBe("offline");
     expect(await lastRefresh(db)).toBeNull();
+  });
+});
+
+describe("statuses of the commands sent (ADR-0031 §8)", () => {
+  it("takes the final status of a command answered waiting from the pull's submissions", async () => {
+    const { db, send, reply } = await setup();
+    const command = await enqueue(db, { type: "t.v1", payload: {} });
+    await db.outbox.update(command.commandId, { status: "waiting" });
+    const set = changeSet(true, "c1", new Date().toISOString());
+    reply(200, { ...set, changes: { ...set.changes, submissions: { upserts: [
+      { id: command.commandId, sequence: 1, status: "conflict", code: null, flags: ["x.flag"], recordId: null, at: set.serverTime },
+    ], removes: [] } } });
+
+    expect(await pullChanges(db, send)).toBe("ok");
+
+    expect(await db.outbox.get(command.commandId)).toMatchObject({ status: "confirmed", flags: ["x.flag"] });
   });
 });

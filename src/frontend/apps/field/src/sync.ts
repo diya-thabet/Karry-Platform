@@ -1,5 +1,5 @@
 import { deviceAssertion } from "@karry/crypto";
-import { applyChanges, collections, type ChangeSet, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
+import { applyChanges, applySubmissions, collections, type ChangeSet, type DeviceRecord, type KarryOfflineDb, type SubmissionRow } from "@karry/offline";
 
 export const changesPath = "/api/v1/sync/changes";
 
@@ -79,7 +79,14 @@ export async function pullChanges(db: KarryOfflineDb, send: typeof fetch = fetch
       return "failed";
     }
 
-    await applyChanges(db, (await response.json()) as ChangeSet);
+    const set = (await response.json()) as ChangeSet & { changes: { submissions?: { upserts: SubmissionRow[] } } };
+    await applyChanges(db, set);
+    // What became of the commands this tablet sent (ADR-0031 §8): final statuses of those answered "waiting".
+    const submissions = set.changes.submissions?.upserts ?? [];
+    if (submissions.length > 0) {
+      await applySubmissions(db, submissions, new Date(set.serverTime));
+    }
+
     return "ok";
   } catch (error) {
     return error instanceof TypeError ? "offline" : "failed";
