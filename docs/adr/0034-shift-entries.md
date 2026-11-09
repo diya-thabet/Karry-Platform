@@ -65,8 +65,9 @@ Shift entries, and later checklists and stoppage reason codes, live in a new mod
   command, the envelope and the device that produced it.
 - An entry is one operator on one machine for one stretch of time: a **segment**. `segment_no` counts the segments of
   a machine in a shift (1, 2, …).
-- **Meter values are explicit and exact:** decimal strings on the wire (`"12482.5"`, at most 2 decimals, never a float),
-  `numeric(12,2)` in the table, always next to the meter's kind (`hours` or `km`) and the meter's ID (ADR-0025: no bare
+- **Meter values are explicit and exact:** decimal strings on the wire (`"12482.5"`, at most 1 decimal as meters are
+  kept in Assets, no sign, no leading zero, never a JSON number), `numeric(9,1)` in the table (largest value
+  9 999 999.9), always next to the meter's kind (`hours` or `km`) and the meter's ID (ADR-0025: no bare
   number). Fuel level is a whole percentage 0–100.
 - `estimated` marks an entry made while the meter is known to be failed (P2.7 adds failed-meter mode); the field is
   there from the first version so the shape does not change.
@@ -126,6 +127,23 @@ The portal reads entries by site, shift, machine and operator, and an entry with
   shift, early start, gap, holiday, an early start before a midnight shift) and a property over random zones and
   patterns (every instant inside a computed shift resolves to it) in `ShiftCalendarTests`; an entry 45 days old,
   outside the stored window, resolved through the real store in `ShiftsApiTests` (TC-P2-FO-001 server part).
+- **Slice 2, entries and their handlers:** module `FieldOps` (schema `fieldops`, created with `tools/new-module.sh`).
+  `fieldops.shift_entries`: key `(tenant_id, root_id, version)`, RLS, append-only (trigger `fieldops.reject_change()`
+  and `UPDATE`/`DELETE`/`TRUNCATE` revoked from `karry_app`), unique `command_id`, `numeric(9,1)` meter values,
+  `meter_kind` checked to `hours`/`km`, stoppages as `jsonb`, flags as `text[]`. `Assets.Contracts` gained
+  `IMeterDirectory` (meter, machine, kind, status and the machine's site assignments; `MeterDirectory` in
+  Assets.Infrastructure). Handlers `fieldops.shift_entry.start.v1` and `.end.v1` (`StartShiftEntry`,
+  `EndShiftEntry`): strict record reading (exact members, no nulls, UUID/instant/meter-value/hash formats),
+  `SignedRecord.Read` binds the envelope to the record (type, ID, version, `payloadHash`), the envelope is stored
+  through `IEnvelopeRecorder` in the same transaction. Rejections: `fieldops.entry_invalid`,
+  `fieldops.envelope_mismatch`, `fieldops.meter_unknown`, `fieldops.entry_exists`, `fieldops.version_conflict`
+  (final); `fieldops.entry_unknown` (an end before its start) and `fieldops.previous_unknown` (a handover before
+  the previous segment) are retryable; the envelope recorder's codes pass through (final). Flags built:
+  `RULE-FO-02`, `END_BEFORE_START`, `SHIFT_OUTSIDE_PATTERN`, `ASSET_NOT_ON_SITE`; `estimated` when the meter is
+  `failed`; a handover start takes `segment_no = previous + 1`. Stoppage reasons are a fixed list for now
+  (`breakdown`, `weather`, `no_material`, `no_operator`, `other`). Tests: `ShiftEntryHandlersTests` (PostgreSQL, real
+  envelope recorder; TC-P2-FO-005, TC-P2-FO-010, TC-P2-SIG-002 binding, append-only and RLS) and the directory in
+  `MetersApiTests`. Continuity `RULE-FO-01` and `OVERLAP` come in slice 3.
 
 ## Options considered
 

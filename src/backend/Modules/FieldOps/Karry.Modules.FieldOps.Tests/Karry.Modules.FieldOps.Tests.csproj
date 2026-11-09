@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unit and integration tests of the FieldOps module (test settings come from Directory.Build.props). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.FieldOps.Api/Karry.Modules.FieldOps.Api.csproj" />
+    <!-- Direct references so Stryker (nightly mutation testing) can find the projects it mutates. -->
+    <ProjectReference Include="../Karry.Modules.FieldOps.Domain/Karry.Modules.FieldOps.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.FieldOps.Application/Karry.Modules.FieldOps.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.FieldOps.Infrastructure/Karry.Modules.FieldOps.Infrastructure.csproj" />
+    <!-- The real envelope recorder: entries and envelopes are written in one transaction (ADR-0034 §5). -->
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Infrastructure/Karry.Modules.Trust.Infrastructure.csproj" />
+    <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+</Project>

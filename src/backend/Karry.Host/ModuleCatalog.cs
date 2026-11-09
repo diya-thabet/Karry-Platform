@@ -1,6 +1,7 @@
 using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Assets.Api;
 using Karry.Modules.Billing.Api;
+using Karry.Modules.FieldOps.Api;
 using Karry.Modules.Flags.Api;
 using Karry.Modules.Identity.Api;
 using Karry.Modules.Imports.Api;
@@ -29,5 +30,6 @@ internal static class ModuleCatalog
         new AssetsModule(),
         new ImportsModule(),
         new SyncModule(),
+        new FieldOpsModule(),
     ];
 }
