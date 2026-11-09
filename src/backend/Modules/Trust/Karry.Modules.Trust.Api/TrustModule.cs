@@ -51,6 +51,7 @@ public sealed class TrustModule : IModule
 
         services.AddTrustInfrastructure(connectionString);
         services.AddTrustAnchoring(configuration); // the verify endpoint also compares the chain with its WORM anchors
+        services.AddTrustServerSigning(configuration); // verification reads the server keys (ADR-0033 §3)
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
