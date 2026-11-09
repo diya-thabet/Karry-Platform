@@ -11,6 +11,8 @@ using Karry.Modules.Imports.Infrastructure;
 using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
+using Karry.Modules.Sync.Application;
+using Karry.Modules.Sync.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
@@ -41,6 +43,9 @@ builder.Services.AddMaterialsInfrastructure(connectionString);
 
 // Assets: delivers its events (asset registrations, changes, moves).
 builder.Services.AddAssetsInfrastructure(connectionString, builder.Configuration);
+
+// Sync: measures the sequence gaps of tablets (5-minute job, alert KarrySyncGapOpen).
+builder.Services.AddSyncInfrastructure(connectionString);
 
 // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
 // The runner rebuilds the requester's access, so this host knows every module's permissions.
@@ -100,6 +105,16 @@ if (args is ["snapshot-usage", ..])
     return run.Failed == 0 ? 0 : 1;
 }
 
+// `Karry.Workers measure-sync-gaps`: one measurement of the tablets' sequence gaps, then exit. Exit 1 if a tenant
+// failed or a tablet's gap is open for over 24 hours.
+if (args is ["measure-sync-gaps", ..])
+{
+    using var once = builder.Build();
+    var run = await once.Services.GetRequiredService<MeasureSyncGaps>().RunAsync(CancellationToken.None).ConfigureAwait(false);
+    Console.WriteLine($"sync gaps: {run.Tenants} tenants, {run.Waiting} waiting command(s), {run.Overdue.Count} tablet(s) over 24 h, {run.Failed} failed");
+    return run.Failed == 0 && run.Overdue.Count == 0 ? 0 : 1;
+}
+
 // `Karry.Workers generate-shifts`: one run of the shift generator, then exit. Exit 1 if a tenant failed.
 if (args is ["generate-shifts", ..])
 {
@@ -152,6 +167,7 @@ builder.Services.AddQuartz(quartz =>
     Schedule<UsageSnapshotJob>(quartz, "usage-snapshot", UsageSnapshotJob.Schedule);
     Schedule<ShiftInstanceJob>(quartz, "shift-instances", ShiftInstanceJob.Schedule);
     Schedule<ImportRetentionJob>(quartz, "import-retention", ImportRetentionJob.Schedule);
+    Schedule<SyncGapJob>(quartz, "sync-gaps", SyncGapJob.Schedule);
     if (anchoring)
     {
         Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);

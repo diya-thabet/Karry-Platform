@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Sync.Domain/Karry.Modules.Sync.Domain.csproj" />
     <ProjectReference Include="../Karry.Modules.Sync.Contracts/Karry.Modules.Sync.Contracts.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
   </ItemGroup>
 </Project>

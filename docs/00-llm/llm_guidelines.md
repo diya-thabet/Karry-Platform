@@ -329,6 +329,8 @@ dotnet run --project src/backend/Karry.Workers -- import-sign-ins # Keycloak fai
 dotnet run --project src/backend/Karry.Workers -- advance-subscriptions # subscription time rules (trial end, unpaid days), once
 dotnet run --project src/backend/Karry.Workers -- snapshot-usage        # daily usage snapshot of every tenant, once (same day: replaced)
 dotnet run --project src/backend/Karry.Workers -- generate-shifts       # stored shift instances of the next 30 days of every site, once (idempotent)
+dotnet run --project src/backend/Karry.Workers -- measure-sync-gaps     # tablets' commands waiting for an earlier number, once (exit 1 if a tablet's gap is over 24 h; runbook karry-sync-gap)
+python3 tools/demo/generate_shifts.py --seed 1 --days 7 --out shifts.json   # deterministic shift data with labelled anomalies (P2.0)
 python3 deploy/keycloak/generate_realm.py            # after editing the realm generator (CI: --check)
 # Keycloak realm (deploy/keycloak): static rules + live sign-in on a Keycloak container (or KARRY_TEST_KEYCLOAK=http://127.0.0.1:8080)
 dotnet test --project src/backend/Modules/Identity/Karry.Modules.Identity.Tests

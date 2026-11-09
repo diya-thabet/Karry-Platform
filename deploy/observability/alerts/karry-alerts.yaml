@@ -12,6 +12,8 @@
 #                                            shift generation
 #   node_cpu_seconds_total{karry_role="database"}  node_exporter on the database host, or the managed-database
 #                                            exporter relabelled to it (wired with hosting in P1.17)
+#   karry_sync_oldest_waiting_age_seconds    Sync SyncGapMetrics (karry-workers, every 5 min): how long the oldest command
+#                                            waiting for an earlier number has waited
 #   karry_support_break_glass_sessions_total  Identity SupportMetrics (karry-api): break-glass support sessions opened
 #   probe_ssl_earliest_cert_expiry           blackbox_exporter HTTPS probes of public endpoints (P1.17)
 groups:
@@ -150,6 +152,20 @@ groups:
           summary: "No complete shift generation for over 26 hours"
           description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"
+
+  - name: karry-sync
+    rules:
+      - alert: KarrySyncGapOpen
+        # A tablet's commands have waited for an earlier number for over 24 hours (ADR-0031 §4): the missing commands
+        # may be lost on that tablet (wiped, broken, a restored backup). The worker names the tablet (event 7206).
+        expr: max by (job) (karry_sync_oldest_waiting_age_seconds) > 86400
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "A tablet has had a sequence gap for over 24 hours"
+          description: "Commands of a tablet wait for an earlier number that has not come: data may be lost on that tablet. The worker logs name it (event 7206)."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-sync-gap.md"
 
   - name: karry-security
     rules:

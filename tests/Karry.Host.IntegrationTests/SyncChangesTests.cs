@@ -36,6 +36,8 @@ public sealed class SyncHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    public IServiceProvider Services => factory!.Services;
+
     public Company A { get; private set; } = null!;
 
     public Company B { get; private set; } = null!;

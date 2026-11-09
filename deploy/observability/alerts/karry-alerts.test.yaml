@@ -286,6 +286,29 @@ tests:
               description: "The daily shift generator failed for a tenant or did not run. Check the worker logs (event 7001)."
               runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-shift-instances-stale.md"
 
+  # --- Sync gap open > 24 h (ADR-0031 §4) ---------------------------------------------------------------------
+  - name: a sequence gap over 24 h opens a ticket after 15 minutes; a closed gap clears it
+    interval: 1m
+    input_series:
+      # The oldest waiting command passes 24 h at about 7 minutes; the gap is closed at 40 minutes.
+      - series: 'karry_sync_oldest_waiting_age_seconds{job="karry-workers"}'
+        values: '86000+60x40 0x20'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: KarrySyncGapOpen
+        exp_alerts: []
+      - eval_time: 30m
+        alertname: KarrySyncGapOpen
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "A tablet has had a sequence gap for over 24 hours"
+              description: "Commands of a tablet wait for an earlier number that has not come: data may be lost on that tablet. The worker logs name it (event 7206)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-sync-gap.md"
+      - eval_time: 50m
+        alertname: KarrySyncGapOpen
+        exp_alerts: []
+
   # --- Break-glass support session (ADR-0029 §4) -------------------------------------------------------------
   - name: the first break-glass session after a start (new series at 1) fires at once
     interval: 1m
