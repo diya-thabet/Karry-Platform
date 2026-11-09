@@ -1,6 +1,7 @@
 using Karry.Modules.Flags.Application;
 using Karry.Modules.Flags.Domain;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Karry.Modules.Flags.Infrastructure;
 
@@ -24,5 +25,17 @@ internal sealed class FlagStore(FlagsDbContext db) : IFlagStore
 
     public void Add(TenantFlag flag) => db.TenantFlags.Add(flag);
 
-    public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
+    public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }

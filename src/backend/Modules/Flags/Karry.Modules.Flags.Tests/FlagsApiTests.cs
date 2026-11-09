@@ -44,6 +44,26 @@ public sealed class FlagsApiTests(FlagsHost host) : IClassFixture<FlagsHost>
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Many_operators_setting_a_company_s_flag_at_once_never_get_a_server_error()
+    {
+        // Hardening plan H-C1: the first override of a flag is a new row; set at the same moment by several operators,
+        // each answer is the saved flag or a 409 (try again), never a 500, and the company has one override.
+        var tenant = await ProvisionAsync();
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 6).Select(i => SetAsync($"/api/v1/flags/tenants/{tenant}/{Banner}", new { enabled = i % 2 == 0 })));
+
+        foreach (var answer in answers)
+        {
+            answer.StatusCode.Should().BeOneOf([HttpStatusCode.OK, HttpStatusCode.Conflict], await answer.Content.ReadAsStringAsync(Ct));
+        }
+
+        answers.Should().Contain(a => a.StatusCode == HttpStatusCode.OK);
+        var overrides = await Json(await SendAsync(HttpMethod.Get, $"/api/v1/flags/tenants/{tenant}", null));
+        overrides.GetProperty("items").GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
     public async Task A_user_override_beats_the_company_s()
     {
         var tenant = await ProvisionAsync();

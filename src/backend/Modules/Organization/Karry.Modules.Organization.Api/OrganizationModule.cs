@@ -98,6 +98,7 @@ public sealed class OrganizationModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("RemoveShiftPattern");
 
         // Non-working days (US-P1-ORG-02 AC2): public holidays, closures; no shift starts on them. Listed by range
@@ -121,6 +122,7 @@ public sealed class OrganizationModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("RemoveNonWorkingDay");
 
         // Shift instances of any range up to a year, computed from the rules (US-P1-ORG-02 AC3); by default the next

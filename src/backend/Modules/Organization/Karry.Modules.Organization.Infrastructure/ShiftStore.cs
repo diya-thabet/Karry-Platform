@@ -1,6 +1,7 @@
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Domain;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Karry.Modules.Organization.Infrastructure;
 
@@ -35,7 +36,19 @@ internal sealed class ShiftStore(OrganizationDbContext db) : IShiftStore
 
     public void Remove(ShiftInstance instance) => db.ShiftInstances.Remove(instance);
 
-    public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
+    public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesSerializedAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 
     private List<T> WithPending<T>(List<T> stored, Func<T, bool> matches)
         where T : class
