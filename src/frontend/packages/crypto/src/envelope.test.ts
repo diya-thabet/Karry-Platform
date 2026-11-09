@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { canonicalize, envelopeProblem, generateDeviceKey, payloadHash, sha256Text, signEnvelope, verifyEnvelope, type SignatureEnvelopeV1 } from "./index";
+import { canonicalize, envelopeProblem, generateDeviceKey, handwrittenHashes, payloadHash, sha256Text, signEnvelope, verifyEnvelope, type SignatureEnvelopeV1 } from "./index";
 
 interface Vectors {
   devicePublicKey: JsonWebKey;
@@ -54,5 +54,25 @@ describe("signature envelope v1 (ADR-0033 §1, shared vectors)", () => {
 
     expect([signed.canonical, signed.envelopeHash]).toEqual([full.canonical, full.envelopeHash]);
     expect(await verifyEnvelope(keys.publicKey, full.envelope, signed.deviceSignature)).toBe(true);
+  });
+
+  it("binds the signature pad's strokes text and PNG bytes into the signed envelope (TC-P2-SIG-008)", async () => {
+    const [minimal] = vectors.valid;
+    if (!minimal) {
+      throw new Error("the vectors have a minimal envelope");
+    }
+
+    // Reference hashes from Python's hashlib: the text as uploaded, and the PNG signature bytes.
+    const handwritten = await handwrittenHashes('{"v":1,"w":600,"h":200,"strokes":[]}', new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    const envelope = { ...minimal.envelope, handwritten };
+    const keys = await generateDeviceKey();
+    const signed = await signEnvelope(keys.privateKey, envelope);
+
+    expect(handwritten).toEqual({
+      strokesHash: "sha256:a0b5ff0ce1fdcead124e6d1fbdf835f700a19361a45e21f4d8ece7f1e34bc3db",
+      imageHash: "sha256:4c4b6a3be1314ab86138bef4314dde022e600960d8689a2c8f8631802d20dab6",
+    });
+    expect(signed.canonical).toContain(`"handwritten":{"imageHash":"${handwritten.imageHash}","strokesHash":"${handwritten.strokesHash}"}`);
+    expect(await verifyEnvelope(keys.publicKey, { ...envelope, handwritten: { ...handwritten, imageHash: handwritten.strokesHash } }, signed.deviceSignature)).toBe(false);
   });
 });

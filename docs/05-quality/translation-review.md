@@ -78,6 +78,7 @@ Files: `src/frontend/packages/i18n/src/catalogs/`. Every catalog holds the same 
 | Invoice | Facture | الفاتورة | faktiri | loanword |
 | Density (bank / loose / compacted) | Densité (en place / foisonnée / compactée) | الكثافة (في الموضع / مفككة / مدموكة) | girinya (a yɔrɔ la / a sɔlɔlen / a digilen) | to confirm with a quarry engineer |
 | Quarry | Carrière | مقلع | kabakurun bɔyɔrɔ | |
+| Signature (handwritten) | Signature | التوقيع | bolonɔ | "hand mark"; also used for the tablet's signature |
 
 ## 5. Waiting for review (keys added or changed after the drafts)
 
@@ -92,6 +93,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-03 | `errors.server.unavailable` | ar, emk, nqo | P1.18a resilience (503: a service of the API briefly down) |
 | 2026-11-04 | `portal.conflict.title`, `portal.conflict.body`, `portal.conflict.keepMine`, `portal.conflict.showTheirs` | ar, emk, nqo | P1.18a record versions (someone else saved while you edited) |
 | 2026-11-04 | `errors.request.version_conflict` | ar, emk, nqo | P1.18a record versions (two saves at the same moment, e.g. density versions of one material) |
+| 2026-11-09 | `common.signature.*` (9 keys: title, statement, instructions, area, clear, confirm, `problem.tooFewStrokes`, `problem.tooFewPoints`, `problem.tooSmall`) | ar, emk, nqo | P2.3 signature pad: "I confirm the values above" is a legal statement, check it first |
 
 ## 6. Not translated yet
 

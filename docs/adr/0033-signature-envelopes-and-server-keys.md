@@ -192,8 +192,20 @@ signed part, as in ADR-0007.
   the recorder sets it in the same transaction). Tests: `EnvelopeVerificationTests` (TC-P2-SIG-001 pending then
   verified, another company gets 404; TC-P2-SIG-002 five changes made in the database behind the application's back,
   each named by the check it breaks).
-- **Still to build in P2.3:** the SignaturePad (TC-P2-SIG-008), the portal "Verified" badge, and the close-out
-  (security review, ADR accepted).
+- **Slice 5, the signature pad:** `SignaturePad` in `@karry/ui` (no dependency): pointer events, one pointer at a
+  time (a palm or a second finger does not draw), pressure kept when the device reports it (`0.5` otherwise), Clear
+  and Confirm, the signer and the summary above the pad with "I confirm the values above", nine `common.signature.*`
+  messages in the five languages; the drawing is never mirrored in right-to-left languages. **Minimums, as built:**
+  at least 2 strokes with points, 40 points in all, and a bounding box spanning at least 20 % of the pad's **width or
+  height** (the larger side: a signature is wide and low, so 20 % of the area would refuse real signatures); a
+  refusal names the reason. Strokes text `{"v":1,"w","h","strokes":[[{"t","x","y","p"}]]}` (members in this order,
+  x/y to 4 decimals, p to 2, t whole milliseconds since the first point); PNG at twice the pad's size, black on
+  transparent. `handwrittenHashes(strokesJson, png)` in `@karry/crypto` gives the envelope's `handwritten` member
+  from the exact bytes uploaded. Tests: minimums and stored text (unit), the pad in jsdom, the pad in a real Chromium
+  in Arabic (not mirrored, the PNG has ink only where it was drawn), the hash binding against `hashlib` values
+  (TC-P2-SIG-008); every story in every theme through axe.
+- **Still to build in P2.3:** the portal "Verified" badge, and the close-out (security review, ADR accepted). Wiring
+  the pad into a signed record waits for the records themselves (P2.4 server, P2.5 tablet).
 
 ## Options considered
 
