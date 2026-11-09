@@ -309,6 +309,51 @@ tests:
         alertname: KarrySyncGapOpen
         exp_alerts: []
 
+  # --- Evidence store (ADR-0032) --------------------------------------------------------------------------------
+  - name: evidence checks failing for 15 minutes open a ticket, a short outage does not
+    interval: 1m
+    input_series:
+      - series: 'karry_sync_blobs_total{job="karry-api",result="unavailable"}'
+        values: '0+1x10 10x20 10+1x40 50x20'
+    alert_rule_test:
+      - eval_time: 25m
+        alertname: KarryEvidenceStoreUnavailable
+        exp_alerts: []
+      - eval_time: 55m
+        alertname: KarryEvidenceStoreUnavailable
+        exp_alerts:
+          - exp_labels: {job: karry-api, severity: ticket}
+            exp_annotations:
+              summary: "The evidence store has not answered for 15 minutes"
+              description: "Commands with photos are refused for now (sync.blobs_unavailable) and wait on the tablets. Check the object store and the API's Storage:Evidence settings."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-evidence-upload.md"
+      - eval_time: 85m
+        alertname: KarryEvidenceStoreUnavailable
+        exp_alerts: []
+
+  - name: the first evidence mismatch after a start pages at once, verified blobs do not
+    interval: 1m
+    input_series:
+      - series: 'karry_sync_blobs_total{job="karry-api",result="verified"}'
+        values: '0+5x60'
+      - series: 'karry_sync_blobs_total{job="karry-api",result="mismatch"}'
+        values: '_x10 1x50'
+    alert_rule_test:
+      - eval_time: 9m
+        alertname: KarrySyncBlobMismatch
+        exp_alerts: []
+      - eval_time: 11m
+        alertname: KarrySyncBlobMismatch
+        exp_alerts:
+          - exp_labels: {severity: page}
+            exp_annotations:
+              summary: "A tablet's evidence does not match its signed entry"
+              description: "The photo in the store is not the one the tablet signed; the entry was refused (sync.blob_mismatch). The API logs name the tablet and the command (event 7208)."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-evidence-upload.md"
+      - eval_time: 35m
+        alertname: KarrySyncBlobMismatch
+        exp_alerts: []
+
   # --- Break-glass support session (ADR-0029 §4) -------------------------------------------------------------
   - name: the first break-glass session after a start (new series at 1) fires at once
     interval: 1m

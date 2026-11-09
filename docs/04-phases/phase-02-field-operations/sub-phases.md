@@ -370,7 +370,11 @@ everything, photos go up first and are checked byte for byte, and the operator a
 - **DevOps:** bucket and retention as code; metrics `karry_sync_blobs_total{result}`, bucket size per tenant (usage
   for plan limits later); runbook "evidence upload failing".
 - **Done when:** a tablet in the E2E suite goes offline, queues 20 commands with photos, comes back and everything
-  arrives once, verified.
+  arrives once, verified. **As built (2026-11-09):** done at unit and host level (`uploads.test.ts`, `outbox.test.ts`,
+  `SyncBlobsTests`, `SyncBatchesTests`). The browser E2E tests (TC-P2-SYNC-002, 007, 011, 014 and this "done when")
+  **moved to P2.5**: no entry screen exists before P2.5 and no real command type before P2.4, and an E2E test that
+  drives a fake command type through the real UI would test scaffolding. Bucket size per tenant waits for the usage
+  module's next snapshot change (plan limits, Phase 3). See [ADR-0032 §7–§8](../../adr/0032-evidence-blobs.md#7-as-built-p22-2026-11-09).
 
 ---
 
@@ -474,8 +478,13 @@ a signature, and no network.
   | TC-P2-FO-012 *(new)* | Client and server validation agree on the shared vector file (both test suites read it) |
   | E2E | Airplane mode → start, end, sign → back online → server has one signed entry with two photos |
   | Budget | Initial field bundle ≤ 250 KB gzip; camera and signature pad in lazy chunks |
+  | TC-P2-SYNC-002 *(from P2.2)* | App killed mid-upload (browser context closed in Playwright) → resumes, no duplicate |
+  | TC-P2-SYNC-007 *(from P2.2)* | Service worker update while the outbox is not empty → outbox intact, upload continues |
+  | TC-P2-SYNC-011 *(from P2.2)* | In the browser: a photo is never purged while its entry is not confirmed |
+  | TC-P2-SYNC-014 *(from P2.2)* | Two tabs of the field app → one upload at a time, no sequence reuse; the `PUT` passes the bucket's CORS rule |
 - **Security review:** T-01 (who is unlocked is shown on every screen; auto-lock applies inside the flow), T-17.
-- **Done when:** demo steps 1–2 of the [demo script](plan.md#98-demo-script) run on the local stack.
+- **Done when:** demo steps 1–2 of the [demo script](plan.md#98-demo-script) run on the local stack, and a tablet in
+  the E2E suite goes offline, queues 20 entries with photos, comes back and everything arrives once, verified (from P2.2).
 
 ---
 

@@ -3,7 +3,7 @@ title: "ADR-0032: Evidence blobs: content-addressed, uploaded by pre-signed PUT 
 area: adr
 tags: [sync, evidence, photos, blobs, s3, presigned-url, checksum, object-lock, exif, privacy, phase-2]
 source: "Phase 2 sub-phase P2.0 (decision for P2.2)"
-status: proposed
+status: accepted
 last_updated: 2026-11-09
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-09
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (2026-11-09, P2.0)
+- **Status:** Accepted (2026-11-09, P2.2; proposed in P2.0)
 - **Date:** 2026-11-09
 - **Deciders:** Product owner, software architect
 - **Related:** US-P2-OFF-01, US-P2-OFF-02 (AC1–AC3), RULE-FO-05; TC-P2-SYNC-011, 012, 014; threats T-03, T-09, T-17,
@@ -173,8 +173,27 @@ A blob stays in the tablet's store until **the command that references it** is a
   (`watchOutbox`, also across tabs); "Refresh" is the "sync now". `nextSyncMs`: every 2 minutes (± 15 s) while entries
   wait to be sent, otherwise about every 5; after failures in a row the interval doubles up to 30 minutes, ± 10 %.
   Strings in fr, en, ar, emk, nqo (the Malinké and N'Ko ones are drafts for native review, D-09).
-- **Still to build in P2.2:** the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the CORS rule from a
-  real browser).
+- **Telemetry (close-out):** counter `karry.sync.blobs` (Prometheus `karry_sync_blobs_total{result}`): `presigned`
+  and `exists` on presign, `verified`, `missing`, `mismatch` or `unavailable` on the check (`SyncBlobMetricsTests`).
+  Alerts `KarryEvidenceStoreUnavailable` (ticket, 15 minutes of failed checks) and `KarrySyncBlobMismatch` (page, any
+  mismatch), with promtool tests; runbook
+  [karry-evidence-upload](../06-operations/runbooks/karry-evidence-upload.md).
+- **Moved to P2.5:** the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the CORS rule from a real
+  browser). They need an entry screen and a real command type, which come with P2.4–P2.5; the behaviour is covered
+  now at unit and host level.
+
+### 8. Security review (P2.2 close-out, 2026-11-09)
+
+| Threat | Question | Answer, and the test that proves it |
+|---|---|---|
+| T-03 tampering | Can a photo be changed between the tablet and the record? | No undetected change: the SHA-256 is in the signed payload; the store refuses bytes or a checksum header other than the signed ones (`PresignedChecksumTests`); the server checks size and checksum by `HEAD` before handling and rejects a mismatch for good, with event 7208 and alert `KarrySyncBlobMismatch` (TC-P2-SYNC-005, `SyncBlobsTests`); Object Lock keeps every version, so a later overwrite cannot erase the original (`EvidenceStoreTests`). |
+| T-05 replay | Does sending an upload again duplicate anything? | No: keys are content-addressed (`exists` on retry), and commands stay idempotent by ID; a final rejection keeps its sequence place (ADR-0031 §3 amendment, `SyncBatchesTests`). |
+| T-09 cross-tenant | Can a tablet read or write another company's or tablet's evidence? | No: the key is built from the signed tablet's tenant and device, the URL is signed for that key only, and a revoked tablet gets `401` (TC-P2-SYNC-012, `SyncBlobsTests`). There is no read URL yet; evidence reads come with the review screens and go through the API. |
+| T-17 lost tablet | What does a stolen tablet still hold? | Photos of unconfirmed commands, and of confirmed ones for 7 days (thumbnails longer): bounded by `purgeBlobs` (TC-P2-SYNC-011 unit level), and by revocation and the PIN lock (P1.15). |
+| T-18 telemetry | Do the new metrics or logs leak personal data? | No: the counter has only `result`; event 7208 names the tablet, the command and the hash, no person and no image. |
+
+Residual risks: an upload URL is a bearer credential for 15 minutes, but only for the exact bytes already hashed and
+signed; evidence never used cannot be deleted before its retention ends (accepted, §Consequences).
 
 ## Options considered
 
