@@ -83,6 +83,28 @@ services:
       timeout: 3s
       retries: 60
 
+  openbao:
+    # The server's signing key (ADR-0033 §3): OpenBao transit, raft storage on a volume so keys survive restarts.
+    # start.sh initialises it once, unseals it on every start and gives the API a token that can only sign with
+    # "karry-server" and read its public keys. The unseal key and root token stay in the openbao-keys volume.
+    image: openbao/openbao:2.7.2@sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f
+    user: root # start.sh runs the server as the image's openbao user (su-exec) after preparing the volumes
+    entrypoint: ["/bin/sh", "/etc/openbao/start.sh"]
+    environment:
+      KARRY_OPENBAO_SIGNER_TOKEN: ${KARRY_OPENBAO_SIGNER_TOKEN:-karry-local-signer-only-for-dev}
+    ports: ["127.0.0.1:8200:8200"]
+    volumes:
+      - baodata:/openbao/file
+      - baokeys:/openbao/keys
+      - ./openbao/openbao.hcl:/etc/openbao/openbao.hcl:ro
+      - ./openbao/start.sh:/etc/openbao/start.sh:ro
+    healthcheck:
+      # 200 only once unsealed and active; /tmp/ready once the key, policy and token exist.
+      test: ["CMD-SHELL", "test -f /tmp/ready && wget -q -O /dev/null http://127.0.0.1:8200/v1/sys/health"]
+      interval: 3s
+      timeout: 3s
+      retries: 40
+
   valkey:
     image: valkey/valkey:9.0.6-alpine
     ports: ["127.0.0.1:6379:6379"]
@@ -133,3 +155,5 @@ services:
 volumes:
   pgdata:
   s3data:
+  baodata:
+  baokeys:
