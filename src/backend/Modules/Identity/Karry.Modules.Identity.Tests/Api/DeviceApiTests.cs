@@ -75,6 +75,32 @@ public sealed class DeviceApiTests(IdentityHost host) : IClassFixture<IdentityHo
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task One_code_used_by_many_tablets_at_the_same_moment_enrols_exactly_one()
+    {
+        // Hardening plan H-C2: the code is single use even under a race; the losers are told it was used, never a 500.
+        var company = await CompanyAsync();
+        var code = await CodeAsync(company);
+        var tablets = Enumerable.Range(0, 8).Select(_ => new TestTablet(host.Client, host.Clock.GetUtcNow)).ToList();
+        try
+        {
+            var answers = await Task.WhenAll(tablets.Select(t => t.EnrollAsync(company.Slug, code)));
+
+            answers.Count(a => a.StatusCode == HttpStatusCode.Created).Should().Be(1);
+            foreach (var refused in answers.Where(a => a.StatusCode != HttpStatusCode.Created))
+            {
+                await TenantMembers.ExpectProblemAsync(refused, HttpStatusCode.UnprocessableEntity, "devices.enrollment_expired");
+            }
+
+            (await TenantMembers.JsonAsync(await api.SendAsync(HttpMethod.Get, Devices, company.Admin), HttpStatusCode.OK)).GetArrayLength().Should().Be(1);
+        }
+        finally
+        {
+            tablets.ForEach(t => t.Dispose());
+        }
+    }
+
+    [Fact]
     public async Task A_proof_by_another_key_is_refused_and_leaves_the_code_usable()
     {
         var company = await CompanyAsync();

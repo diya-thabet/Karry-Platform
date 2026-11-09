@@ -16,14 +16,23 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
 
     public async Task<bool> TryAddAsync(IReadOnlyCollection<InboxCommand> commands, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(commands);
+        // One upload of a tablet stores at a time (hardening plan H-C3): two uploads giving the same sequence numbers to
+        // different commands otherwise deadlocked on the unique index, which surfaced as a 503 instead of the conflict.
+        // The lock is released with the transaction; the later upload then meets the stored rows.
+        var lockKey = $"sync.inbox:{commands.First().DeviceId}";
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        await db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken).ConfigureAwait(false);
         db.Inbox.AddRange(commands);
         try
         {
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
+            await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
             db.ChangeTracker.Clear();
             return false;
         }
