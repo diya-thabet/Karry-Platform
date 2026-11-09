@@ -4,7 +4,7 @@ area: adr
 tags: [offline, pwa, devices, enrollment, ecdsa, webcrypto, dexie, sync, pin, shared-tablet, quarantine]
 source: "Phase 1 sub-phase P1.15"
 status: accepted
-last_updated: 2026-10-28
+last_updated: 2026-11-09
 ---
 
 # ADR-0028 — Field tablets as enrolled devices: device-signed requests, delta reference data, offline PIN unlock
@@ -152,7 +152,9 @@ everything it later sends must be attributable to a trusted device. The question
   `(device, commandId)`. Each command is answered `accepted`, `duplicate` or `rejected` (`sync.signature_invalid`,
   `sync.sequence_gap`, `sync.sequence_reused`); a rejected one does not advance the sequence, and the tablet keeps it.
   The sequence holds only received commands (a partial unique index on `(device, sequence)`); quarantined ones sit
-  outside it. Two crossing uploads of one tablet: 409 `sync.batch_conflict`, send again. No `Idempotency-Key`:
+  outside it. Two crossing uploads of one tablet: 409 `sync.batch_conflict`, send again (from P2.1 the per-tablet
+  lock is taken first, so the later upload answers `duplicate`; [ADR-0031](0031-sync-command-processing.md) also adds
+  handling in the upload, `conflict`, `sync.type_unknown` and `sync.handler_failed`). No `Idempotency-Key`:
   the command IDs already make a batch safe to repeat, and the answer must be current. At most 100 commands of 64 KB.
 
 ### 7. Install, updates and lost data (US-P1-OFF-01, TC-P1-OFF-008)

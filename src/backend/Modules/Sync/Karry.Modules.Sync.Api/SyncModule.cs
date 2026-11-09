@@ -31,6 +31,7 @@ public sealed class SyncModule : IModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<SyncChanges>();
         services.AddScoped<SyncUploads>();
+        services.SyncCommandTypes(); // modules add their handlers with AddSyncCommandHandler (ADR-0031 §5)
         services.AddScoped<IValidator<UploadBatch>, UploadBatchValidator>();
         var connectionString = configuration.GetConnectionString("Karry");
         if (!string.IsNullOrWhiteSpace(connectionString))
