@@ -64,6 +64,59 @@ describe("company settings (US-P1-TEN-04)", () => {
     expect(api.writes()).toEqual([{ method: "PUT", path: "/api/v1/tenancy/settings/logo", body: null }]);
   });
 
+  it("never saves over settings changed by another administrator meanwhile, and keeps the person's entries (H-C1)", async () => {
+    const api = fakeApi({ permissions: manager, tenant: { language: "en" } });
+    await renderAt("/settings/company", api);
+    const legalName = await screen.findByRole("textbox", { name: /Legal name/ });
+    api.changeTenantElsewhere({ legalName: "Carrières Réunies SA" });
+
+    fireEvent.change(legalName, { target: { value: "Carrières du Nord SA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the settings" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(legalName).toHaveValue("Carrières du Nord SA");
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Show their version instead" }));
+    expect(await screen.findByDisplayValue("Carrières Réunies SA")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("saves the person's settings over the other change only when they choose to", async () => {
+    const api = fakeApi({ permissions: manager, tenant: { language: "en" } });
+    await renderAt("/settings/company", api);
+    const legalName = await screen.findByRole("textbox", { name: /Legal name/ });
+    api.changeTenantElsewhere({ legalName: "Carrières Réunies SA" });
+    fireEvent.change(legalName, { target: { value: "Carrières du Nord SA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the settings" }));
+
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Save my changes over theirs" }));
+
+    expect(await screen.findByText("Settings saved. Everyone sees them now.")).toBeInTheDocument();
+    expect(api.writes().filter((w) => w.path === "/api/v1/tenancy/settings").at(-1)).toMatchObject({ body: { legalName: "Carrières du Nord SA" } });
+  });
+
+  it("keeps what the person typed when they upload a logo on the same page (finding C-2)", async () => {
+    // The logo makes a new version of the company; before, the form was remounted and the typing silently lost.
+    const api = fakeApi({ permissions: manager, tenant: { language: "en" } });
+    await renderAt("/settings/company", api);
+    const legalName = await screen.findByRole("textbox", { name: /Legal name/ });
+    fireEvent.change(legalName, { target: { value: "Carrières du Nord SA" } });
+
+    const input = screen.getByText("Choose a logo").querySelector("input");
+    if (!input) {
+      throw new Error("no file input");
+    }
+
+    fireEvent.change(input, { target: { files: [new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "logo.png", { type: "image/png" })] } });
+    expect(await screen.findByRole("img", { name: "Logo of Carrière A" })).toBeInTheDocument();
+
+    expect(screen.getByRole("textbox", { name: /Legal name/ })).toHaveValue("Carrières du Nord SA");
+    fireEvent.click(screen.getByRole("button", { name: "Save the settings" }));
+    expect(await screen.findByText("Settings saved. Everyone sees them now.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("explains a refused colour", async () => {
     await renderAt("/settings/company", fakeApi({ permissions: manager, refuseWrites: { status: 400, code: "tenant.colour_contrast" } }));
 

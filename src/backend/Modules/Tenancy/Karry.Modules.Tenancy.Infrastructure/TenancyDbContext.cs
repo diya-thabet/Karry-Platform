@@ -36,6 +36,7 @@ public sealed class TenancyDbContext(DbContextOptions<TenancyDbContext> options)
             tenant.Property(t => t.UnitSystem).HasConversion<string>().HasMaxLength(20);
             tenant.Property(t => t.TimeZone).HasMaxLength(64);
             tenant.Property(t => t.LogoSha256).HasMaxLength(64);
+            tenant.Property(t => t.Version).IsRecordVersion();
             tenant.ToTable(t => t.HasCheckConstraint("ck_tenants_fiscal_year_start_month", "fiscal_year_start_month BETWEEN 1 AND 12"));
             tenant.Ignore(t => t.Settings);
             tenant.Ignore(t => t.DomainEvents);

@@ -192,6 +192,12 @@ namespace Karry.Modules.Tenancy.Infrastructure.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("unit_system");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_tenants");
 

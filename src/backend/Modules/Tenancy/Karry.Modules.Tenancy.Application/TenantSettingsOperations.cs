@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Tenancy.Domain;
 using Karry.SharedKernel.Authorization;
 using Karry.SharedKernel.Results;
@@ -29,14 +30,23 @@ public interface ITenantSettingsStore
 
     Task<TenantLogo?> LogoAsync(TenantId tenant, CancellationToken cancellationToken);
 
-    /// <summary>Saves the tenant with its events; <paramref name="logo"/> replaces the stored logo, or removes it when <paramref name="removeLogo"/>.</summary>
-    Task SaveAsync(Tenant tenant, TenantLogo? logo, bool removeLogo, CancellationToken cancellationToken);
+    /// <summary>
+    /// Saves the tenant with its events in one transaction; <paramref name="logo"/> replaces the stored logo, or removes
+    /// it when <paramref name="removeLogo"/>. False, with nothing saved, when the tenant changed since it was loaded
+    /// (its <see cref="Tenant.Version"/>).
+    /// </summary>
+    Task<bool> TrySaveAsync(Tenant tenant, TenantLogo? logo, bool removeLogo, CancellationToken cancellationToken);
 }
 
 /// <summary>US-P1-TEN-04: settings and logo changes, each audited in the company's ledger and visible at once.</summary>
 public sealed class TenantSettingsOperations(ITenantSettingsStore store, TimeProvider clock)
 {
-    public async Task<Result<Tenant>> UpdateAsync(TenantId tenant, UpdateTenantSettings request, string? actor, CancellationToken cancellationToken)
+    /// <summary>
+    /// New settings. With <paramref name="expectedVersion"/> (the form's <c>If-Match</c>), only the version the person
+    /// edited is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<Tenant>> UpdateAsync(
+        TenantId tenant, UpdateTenantSettings request, string? actor, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         var settings = TenantSettings.Create(request.LegalName, request.PrimaryColour, request.Language, request.Currency, request.UnitSystem,
@@ -52,12 +62,15 @@ public sealed class TenantSettingsOperations(ITenantSettingsStore store, TimePro
             return NotFound;
         }
 
-        if (current.ChangeSettings(settings.Value, actor, clock.GetUtcNow()))
+        if (!RecordVersions.Matches(current.Version, expectedVersion))
         {
-            await store.SaveAsync(current, logo: null, removeLogo: false, cancellationToken).ConfigureAwait(false);
+            return RecordVersions.Conflict;
         }
 
-        return current;
+        return !current.ChangeSettings(settings.Value, actor, clock.GetUtcNow())
+            || await store.TrySaveAsync(current, logo: null, removeLogo: false, cancellationToken).ConfigureAwait(false)
+            ? current
+            : RecordVersions.Conflict;
     }
 
     public async Task<Result<Tenant>> SetLogoAsync(TenantId tenant, ReadOnlyMemory<byte> content, string? actor, CancellationToken cancellationToken)
@@ -75,12 +88,9 @@ public sealed class TenantSettingsOperations(ITenantSettingsStore store, TimePro
             return NotFound;
         }
 
-        if (current.ChangeLogo(logo.Value, actor, now))
-        {
-            await store.SaveAsync(current, logo.Value, removeLogo: false, cancellationToken).ConfigureAwait(false);
-        }
-
-        return current;
+        return !current.ChangeLogo(logo.Value, actor, now) || await store.TrySaveAsync(current, logo.Value, removeLogo: false, cancellationToken).ConfigureAwait(false)
+            ? current
+            : RecordVersions.Conflict;
     }
 
     public async Task<Result<Tenant>> RemoveLogoAsync(TenantId tenant, string? actor, CancellationToken cancellationToken)
@@ -91,12 +101,9 @@ public sealed class TenantSettingsOperations(ITenantSettingsStore store, TimePro
             return NotFound;
         }
 
-        if (current.ChangeLogo(null, actor, clock.GetUtcNow()))
-        {
-            await store.SaveAsync(current, logo: null, removeLogo: true, cancellationToken).ConfigureAwait(false);
-        }
-
-        return current;
+        return !current.ChangeLogo(null, actor, clock.GetUtcNow()) || await store.TrySaveAsync(current, logo: null, removeLogo: true, cancellationToken).ConfigureAwait(false)
+            ? current
+            : RecordVersions.Conflict;
     }
 
     private static Error NotFound => Error.NotFound("tenant.not_found", "The company of this account does not exist.");
