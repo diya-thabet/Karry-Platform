@@ -119,6 +119,27 @@ A blob stays in the tablet's store until **the command that references it** is a
 `conflict` (TC-P2-SYNC-011). A `rejected` command keeps its blob. One upload runs at a time across the app's tabs
 (Web Locks API, TC-P2-SYNC-014), so two tabs never upload the same outbox.
 
+### 7. As built (P2.2, 2026-11-09)
+
+- **Endpoint:** `POST /api/v1/sync/blobs/presign` (device-signed; a revoked tablet gets `401`), body
+  `{sha256, size, contentType}` with the SHA-256 as 64 lowercase hex characters (the key is built from it, so
+  nothing else can reach a path). Answer `{exists, key, url, headers, expiresAt}`: `exists: true` (and no URL) when
+  the store already holds that content with that size; otherwise the URL and the headers to send exactly as given
+  (`Content-Type` and `x-amz-checksum-sha256`, both signed). A malformed body is `400 request.invalid`; no evidence
+  bucket configured is `422 sync.blobs_unavailable`; a store that does not answer is `503 server.unavailable`.
+- **Code:** `IEvidenceStore` / `S3EvidenceStore` and `EvidenceKeys` in `Karry.BuildingBlocks.Storage`; `SyncBlobs`
+  and `PresignBlobValidator` in Sync.Application. Signing is local (no call to the store); `HEAD` asks for the
+  checksum.
+- **Configuration:** `Storage:Evidence:Bucket` (its own bucket, for Object Lock), `Storage:Evidence:PublicUrl` (the
+  address the tablets reach the store at; the host is signed, so it must be the public one, not the API's internal
+  address), `Storage:Evidence:UploadValidFor` (default 15 minutes). Endpoint and keys are those of `Storage`.
+- **Tests:** `SyncBlobsTests` (host, SeaweedFS: upload with the URL, `exists` on retry, other bytes and another key
+  refused, per-tablet and per-company keys, validation, tablets only) and `SyncBlobRulesTests`.
+- **Still to build in P2.2:** Object Lock on the evidence bucket, the `HEAD` check when a command that uses a blob
+  is handled (`sync.blob_missing`), and the tablet's blob store and uploader. The tablet `PUT`s from the browser to
+  another origin, so the evidence bucket needs a CORS rule for the field app's origin; it is set with the bucket as
+  code and checked in the field app's E2E test.
+
 ## Options considered
 
 1. **Pre-signed `PUT` with a checksum, content-addressed (chosen).** The bytes bypass the API, integrity is checked

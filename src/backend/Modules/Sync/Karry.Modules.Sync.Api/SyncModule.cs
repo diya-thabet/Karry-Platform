@@ -3,6 +3,7 @@ using FluentValidation;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Sync.Application;
@@ -33,6 +34,9 @@ public sealed class SyncModule : IModule
         services.AddScoped<SyncUploads>();
         services.SyncCommandTypes(); // modules add their handlers with AddSyncCommandHandler (ADR-0031 §5)
         services.AddScoped<IValidator<UploadBatch>, UploadBatchValidator>();
+        services.AddScoped<SyncBlobs>();
+        services.AddScoped<IValidator<PresignBlob>, PresignBlobValidator>();
+        services.AddEvidenceStore(configuration);
         var connectionString = configuration.GetConnectionString("Karry");
         if (!string.IsNullOrWhiteSpace(connectionString))
         {
@@ -60,6 +64,16 @@ public sealed class SyncModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("UploadSyncBatch");
+
+        // No Idempotency-Key: asking again for the same content is harmless, and answers "exists" once it is uploaded.
+        endpoints.MapPost("/blobs/presign", PresignBlobAsync)
+            .RequireDevice()
+            .Validate<PresignBlob>()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .ProducesProblem(StatusCodes.Status503ServiceUnavailable)
+            .WithName("PresignSyncBlob");
     }
 
     /// <summary>100 commands of up to 64 KB each, with room for their JSON framing.</summary>
@@ -82,6 +96,17 @@ public sealed class SyncModule : IModule
         ClaimsPrincipal user, [FromServices] SyncUploads uploads, UploadBatch batch, CancellationToken cancellationToken)
     {
         var result = await uploads.UploadAsync(DeviceCaller.From(user)!.Value, batch, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
+    }
+
+    /// <summary>
+    /// A pre-signed <c>PUT</c> for one evidence blob of this tablet (ADR-0032 §2), or <c>exists</c> when the store already
+    /// holds it. The tablet sends the bytes to the store itself, with the headers given.
+    /// </summary>
+    private static async Task<Results<Ok<BlobUpload>, ProblemHttpResult>> PresignBlobAsync(
+        ClaimsPrincipal user, [FromServices] SyncBlobs blobs, PresignBlob blob, CancellationToken cancellationToken)
+    {
+        var result = await blobs.PresignAsync(DeviceCaller.From(user)!.Value, blob, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
     }
 }

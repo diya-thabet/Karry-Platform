@@ -372,7 +372,11 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Merged:** #151 (slice 3). **P2.1 ✅.**
 - **P2.2 spike (PR from `feat/p2.2-checksum-spike`):** SeaweedFS 4.48 honours `x-amz-checksum-sha256` on a pre-signed `PUT`. Other bytes get `400 BadDigest`, a changed header gets `403 SignatureDoesNotMatch` (the header is signed), an expired URL gets `403`, and `HEAD` in checksum mode returns the size and `ChecksumSHA256`. So the store-side check is used and the server-side fallback is not built ([ADR-0032 §2](../adr/0032-evidence-blobs.md#2-upload-by-pre-signed-put-with-the-checksum-the-store-verifies)). Tests: `PresignedChecksumTests` (5).
 - **Trap:** a presign `Expires` in the past makes the SDK write a negative `X-Amz-Expires`, and SeaweedFS answers `400`, not `403`. To test expiry, sign for 1 s and wait.
-- **Next:** P2.2 slices: the presign endpoint `POST /sync/blobs/presign` and the evidence bucket (Object Lock), the `HEAD` check when a command using a blob is handled (`sync.blob_missing`), then the tablet blob store and uploader (`missingSequences`, `submissions` storage). Tests TC-P2-SYNC-005/011/012/014.
+- **Merged:** #152 (spike).
+- **P2.2 slice 1 (PR from `feat/p2.2-blob-presign`):** `POST /api/v1/sync/blobs/presign` ([ADR-0032 §7](../adr/0032-evidence-blobs.md#7-as-built-p22-2026-11-09)). `IEvidenceStore`/`S3EvidenceStore` (separate bucket `Storage:Evidence:Bucket`, `PublicUrl` for the address the tablets reach). Answers `exists` or a URL with the headers to send. `SyncHost` can now take storage settings (`BlobSyncHost` starts SeaweedFS). The card's "5 min" was aligned with the ADR's 15 minutes.
+- **Trap:** the SDK signs `https://` URLs unless `Protocol = HTTP` is set; with an `http://` store the `PUT` fails with an SSL error. The store derives the protocol from the public URL.
+- **Open point:** the tablet `PUT`s from the browser to another origin, so the evidence bucket needs a CORS rule (with Object Lock, next slice), checked in the field app's E2E test.
+- **Next:** P2.2 slices: the evidence bucket (Object Lock, CORS), the `HEAD` check when a command using a blob is handled (`sync.blob_missing`), then the tablet blob store and uploader (`missingSequences`, `submissions` storage). Tests TC-P2-SYNC-005/011/012/014.
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

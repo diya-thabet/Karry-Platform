@@ -345,7 +345,7 @@ everything, photos go up first and are checked byte for byte, and the operator a
   - Sync engine in the field app: triggers (app foreground, `online`, every 2 min while online, "Sync now"),
     exponential backoff with jitter, 429/503 as `busy` (existing), one upload at a time (Web Locks API, so two tabs
     cannot cross; server already answers 409 `sync.batch_conflict`).
-  - **Evidence blobs:** `POST /api/v1/sync/blobs/presign {sha256, size, contentType}` → pre-signed `PUT` (5 min,
+  - **Evidence blobs:** `POST /api/v1/sync/blobs/presign {sha256, size, contentType}` → pre-signed `PUT` (15 min, ADR-0032 §2;
     exact key, exact checksum, size ≤ 1 MB, `image/jpeg|image/webp|image/png|application/json`); `sync.evidence_blob`
     registry (tenant, device, hash, size, uploaded_at, referenced_by). A command referencing a blob that is not there
     or whose stored checksum differs is `rejected(sync.blob_missing, retryable)` / `rejected(sync.blob_mismatch)` +

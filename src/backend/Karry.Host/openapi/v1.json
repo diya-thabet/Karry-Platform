@@ -7052,6 +7052,76 @@
           }
         }
       }
+    },
+    "/api/v1/sync/blobs/presign": {
+      "post": {
+        "tags": [
+          "SyncModule"
+        ],
+        "operationId": "PresignSyncBlob",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PresignBlob"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BlobUpload"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7804,6 +7874,48 @@
           }
         },
         "description": "The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number and\nDateTimeOffset BatchReceipt.ServerTime the server's clock when it answered (the tablet measures its offset from it, ADR-0031 §6)."
+      },
+      "BlobUpload": {
+        "required": [
+          "exists",
+          "key",
+          "url",
+          "headers",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "url": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uri"
+          },
+          "headers": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "The answer: bool BlobUpload.Exists when the store already holds this content (a retry; nothing to upload), else the\nURL to `PUT` the bytes to, the headers to send with them exactly as given, and until when the URL works."
       },
       "ChangeFieldLevels": {
         "required": [
@@ -10103,6 +10215,37 @@
             }
           }
         }
+      },
+      "PresignBlob": {
+        "required": [
+          "sha256",
+          "size",
+          "contentType"
+        ],
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "size": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "contentType": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A blob the tablet wants to upload: its SHA-256 (64 lowercase hex characters), size in bytes and media type."
       },
       "ProblemDetails": {
         "type": "object",

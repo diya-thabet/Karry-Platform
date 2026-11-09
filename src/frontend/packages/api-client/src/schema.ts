@@ -1412,6 +1412,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sync/blobs/presign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["PresignSyncBlob"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1591,6 +1607,21 @@ export interface components {
             missingSequences: (number | string)[];
             /** Format: date-time */
             serverTime: string;
+        };
+        /**
+         * @description The answer: bool BlobUpload.Exists when the store already holds this content (a retry; nothing to upload), else the
+         *     URL to `PUT` the bytes to, the headers to send with them exactly as given, and until when the URL works.
+         */
+        BlobUpload: {
+            exists: boolean;
+            key: string;
+            /** Format: uri */
+            url: null | string;
+            headers: null | {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            expiresAt: null | string;
         };
         /** @description Replaces a role's field levels (a field left out gets the catalogue default of a default role, its fallback otherwise). */
         ChangeFieldLevels: {
@@ -2182,6 +2213,13 @@ export interface components {
         PolygonResponse: {
             type: string;
             coordinates: (number | string)[][][];
+        };
+        /** @description A blob the tablet wants to upload: its SHA-256 (64 lowercase hex characters), size in bytes and media type. */
+        PresignBlob: {
+            sha256: null | string;
+            /** Format: int64 */
+            size: number | string;
+            contentType: null | string;
         };
         ProblemDetails: {
             type?: null | string;
@@ -8128,6 +8166,66 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PresignSyncBlob: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PresignBlob"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BlobUpload"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };
