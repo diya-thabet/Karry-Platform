@@ -147,7 +147,7 @@ server is updated, the tablet's re-send is handled.
   server stores the device's last measured offset (`clock_offset_ms`, `clock_measured_at` on the device). Each
   handler receives `deviceTime`, `receivedAt` and the offset. The `CLOCK_SKEW` flag rule (P2.7) uses them.
 
-### 7. Contracts (in `Sync.Contracts`)
+### 7. Contracts (built in `Karry.BuildingBlocks.Sync`, §8)
 
 ```csharp
 public interface ISyncCommandHandler
@@ -171,6 +171,24 @@ A **contract test kit** in `Karry.Testing` runs the same checks against every ha
 command twice gives one record and the handler is called once), replay, the rejection codes, and the savepoint
 rollback when the handler throws. A handler for tests only (`test.echo.v1`, compiled only into test hosts) proves
 the pipeline before the first real handler exists.
+
+### 8. As built (P2.1 slice 1, 2026-11-09)
+
+- The contracts live in **`Karry.BuildingBlocks.Sync`** (`SyncCommands.cs`), next to `ISyncSource`, rather than in
+  `Sync.Contracts`: modules already reference the building blocks for the pull side, and a handler then needs no
+  reference to the Sync module. A module registers a handler with
+  `services.AddSyncCommandHandler<THandler>("area.thing_done.v1")`; a second handler for a type throws while the host
+  starts. `ModuleDbContext.JoinAsync(ISyncTransaction)` is the join helper of §2.
+- `IInboxStore.OpenAsync` starts the transaction and takes the per-tablet lock **before** reading the stored IDs and
+  the last sequence (§2 step 2; this also closes finding C-7, where the two reads ran apart).
+- Each handler runs in its **own DI scope** with the device's tenant: a failed handler leaves nothing tracked behind
+  for the next command. Savepoints are named `command_<sequence>`.
+- Bookkeeping tables, append-only under RLS like the inbox: `sync.processed_commands` (outcome, record, flags, time,
+  one row per received command) and `sync.unhandled_commands` (§5: the signed command and the reason, outside the
+  sequence; a re-send while the type is still unknown adds nothing).
+- The answer carries `retryable`, `flags` and `serverTime` (§6). The clock offset passed to handlers is 0 until slice 3
+  stores the measured one. Waiting commands (§4) and the status pull (§6) are slices 2 and 3.
+- Log events: 7203 (type unknown, warning), 7204 (handler failed, error, with the exception).
 
 ## Options considered
 

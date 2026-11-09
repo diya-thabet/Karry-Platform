@@ -295,7 +295,7 @@ tablet learns how far its clock is off.
   an unknown type is `rejected(sync.type_unknown)` and kept in the inbox, never dropped, so a newer app talking to an
   older server loses nothing.
 - **What gets built:**
-  - `Sync.Contracts`: `ISyncCommandHandler { string Type; Task<HandlerOutcome> HandleAsync(VerifiedCommand, …) }`,
+  - `Karry.BuildingBlocks.Sync` (as built, ADR-0031 §8): `ISyncCommandHandler { string Type; Task<HandlerOutcome> HandleAsync(VerifiedCommand, …) }`,
     `HandlerOutcome = Accepted | Conflict(flags) | Rejected(code, retryable)`; registration through the module
     contract (as `ITenantProvisionedHandler`, ADR-0018).
   - Processing pipeline in the upload request: signature (exists) → revocation (exists, quarantine) → sequence →

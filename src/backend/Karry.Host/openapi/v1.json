@@ -7767,7 +7767,8 @@
       "BatchReceipt": {
         "required": [
           "results",
-          "lastSequence"
+          "lastSequence",
+          "serverTime"
         ],
         "type": "object",
         "properties": {
@@ -7784,9 +7785,13 @@
               "string"
             ],
             "format": "int64"
+          },
+          "serverTime": {
+            "type": "string",
+            "format": "date-time"
           }
         },
-        "description": "The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number."
+        "description": "The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number and\nDateTimeOffset BatchReceipt.ServerTime the server's clock when it answered (the tablet measures its offset from it, ADR-0031 §6)."
       },
       "ChangeFieldLevels": {
         "required": [
@@ -8005,7 +8010,9 @@
         "required": [
           "commandId",
           "status",
-          "code"
+          "code",
+          "retryable",
+          "flags"
         ],
         "type": "object",
         "properties": {
@@ -8021,9 +8028,18 @@
               "null",
               "string"
             ]
+          },
+          "retryable": {
+            "type": "boolean"
+          },
+          "flags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         },
-        "description": "What happened to one command: `accepted`, `duplicate` or `rejected` (with string? CommandReceipt.Code)."
+        "description": "What happened to one command: `accepted`, `conflict` (stored and flagged, IReadOnlyList&lt;string&gt; CommandReceipt.Flags),\n`duplicate` or `rejected` (with string? CommandReceipt.Code; bool CommandReceipt.Retryable when sending it again later\ncan succeed). Every status but `rejected` is final: the tablet marks the command sent."
       },
       "ConversionFactorResponse": {
         "required": [

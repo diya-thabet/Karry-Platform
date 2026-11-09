@@ -46,6 +46,7 @@ public sealed class SyncHost : IAsyncLifetime
         Database = await server.NewKarryDatabaseAsync();
         factory = new Factory(Database.App, Clock);
         await MigrationRunner.MigrateAsync(factory.Services, Database.Owner, CancellationToken.None);
+        await ExecuteAsync(TestCommandHandler.CreateTable);
         Client = factory.CreateClient();
         A = await CompanyAsync("sync-a");
         B = await CompanyAsync("sync-b");
@@ -211,6 +212,7 @@ public sealed class SyncHost : IAsyncLifetime
                 services.TrustTestIssuer();
                 services.RemoveAll<TimeProvider>();
                 services.AddSingleton(clock);
+                TestCommandHandler.AddTo(services);
             });
         }
     }

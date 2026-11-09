@@ -7,56 +7,75 @@ public sealed class InboxRulesTests
 {
     private static readonly IReadOnlySet<CommandId> NothingStored = new HashSet<CommandId>();
 
+    /// <summary>Every command that reaches its handler is accepted.</summary>
+    private static Task<(IReadOnlyList<UploadDecision> Decisions, long LastSequence)> DecideAsync(long last, IReadOnlySet<CommandId> stored, UploadCandidate[] commands) =>
+        InboxRules.DecideAsync(last, stored, commands, (c, _) => Task.FromResult(UploadDecision.Accepted(c.Id)));
+
     [Fact]
-    public void Commands_in_the_next_sequence_numbers_are_accepted_and_advance_the_sequence()
+    public async Task Only_a_command_its_handler_stored_advances_the_sequence()
+    {
+        var (flagged, refused, after) = (Id(), Id(), Id());
+
+        var (decisions, last) = await InboxRules.DecideAsync(0, NothingStored, [new(flagged, 1, true), new(refused, 2, true), new(after, 3, true)],
+            (c, _) => Task.FromResult(c.Id == flagged
+                ? new UploadDecision(c.Id, UploadOutcome.Conflict, null, Flags: ["test.flag"])
+                : UploadDecision.Rejected(c.Id, InboxRules.HandlerFailed, retryable: true)));
+
+        decisions.Select(d => (d.Outcome, d.Code)).Should().Equal(
+            (UploadOutcome.Conflict, null), (UploadOutcome.Rejected, InboxRules.HandlerFailed), (UploadOutcome.Rejected, InboxRules.SequenceGap));
+        last.Should().Be(1, "the refused command keeps its number free, so the one after it waits");
+    }
+
+    [Fact]
+    public async Task Commands_in_the_next_sequence_numbers_are_accepted_and_advance_the_sequence()
     {
         var (first, second) = (Id(), Id());
 
-        var (decisions, last) = InboxRules.Decide(4, NothingStored, [new(first, 5, true), new(second, 6, true)]);
+        var (decisions, last) = await DecideAsync(4, NothingStored, [new(first, 5, true), new(second, 6, true)]);
 
         decisions.Should().Equal(new UploadDecision(first, UploadOutcome.Accepted, null), new UploadDecision(second, UploadOutcome.Accepted, null));
         last.Should().Be(6);
     }
 
     [Fact]
-    public void A_command_already_stored_or_twice_in_the_batch_is_a_duplicate_and_does_not_move_the_sequence()
+    public async Task A_command_already_stored_or_twice_in_the_batch_is_a_duplicate_and_does_not_move_the_sequence()
     {
         var (stored, fresh) = (Id(), Id());
 
-        var (decisions, last) = InboxRules.Decide(1, new HashSet<CommandId> { stored }, [new(stored, 1, true), new(fresh, 2, true), new(fresh, 2, true)]);
+        var (decisions, last) = await DecideAsync(1, new HashSet<CommandId> { stored }, [new(stored, 1, true), new(fresh, 2, true), new(fresh, 2, true)]);
 
         decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Duplicate, UploadOutcome.Accepted, UploadOutcome.Duplicate);
         last.Should().Be(2);
     }
 
     [Fact]
-    public void A_bad_signature_is_rejected_and_the_commands_after_it_are_gaps()
+    public async Task A_bad_signature_is_rejected_and_the_commands_after_it_are_gaps()
     {
         var (forged, next) = (Id(), Id());
 
-        var (decisions, last) = InboxRules.Decide(0, NothingStored, [new(forged, 1, false), new(next, 2, true)]);
+        var (decisions, last) = await DecideAsync(0, NothingStored, [new(forged, 1, false), new(next, 2, true)]);
 
         decisions.Should().Equal(
-            new UploadDecision(forged, UploadOutcome.Rejected, InboxRules.SignatureInvalid),
-            new UploadDecision(next, UploadOutcome.Rejected, InboxRules.SequenceGap));
+            UploadDecision.Rejected(forged, InboxRules.SignatureInvalid, retryable: false),
+            UploadDecision.Rejected(next, InboxRules.SequenceGap, retryable: true));
         last.Should().Be(0);
     }
 
     [Fact]
-    public void A_new_command_must_take_the_next_number_not_a_used_one_nor_one_further()
+    public async Task A_new_command_must_take_the_next_number_not_a_used_one_nor_one_further()
     {
-        var (decisions, last) = InboxRules.Decide(3, NothingStored, [new(Id(), 3, true), new(Id(), 5, true), new(Id(), 4, true)]);
+        var (decisions, last) = await DecideAsync(3, NothingStored, [new(Id(), 3, true), new(Id(), 5, true), new(Id(), 4, true)]);
 
         decisions.Select(d => d.Code).Should().Equal(InboxRules.SequenceReused, InboxRules.SequenceGap, null);
         last.Should().Be(4);
     }
 
     [Fact]
-    public void A_rejected_command_sent_again_with_a_good_signature_is_accepted()
+    public async Task A_rejected_command_sent_again_with_a_good_signature_is_accepted()
     {
         var id = Id();
 
-        var (decisions, _) = InboxRules.Decide(0, NothingStored, [new(id, 1, false), new(id, 1, true)]);
+        var (decisions, _) = await DecideAsync(0, NothingStored, [new(id, 1, false), new(id, 1, true)]);
 
         decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Rejected, UploadOutcome.Accepted);
     }

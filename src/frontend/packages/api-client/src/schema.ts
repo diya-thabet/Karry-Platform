@@ -1580,11 +1580,16 @@ export interface components {
             event: null | components["schemas"]["JsonObject"];
             changes: components["schemas"]["AuditChange"][];
         };
-        /** @description The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number. */
+        /**
+         * @description The answer to a batch, in its order; long BatchReceipt.LastSequence is the device's last stored sequence number and
+         *     DateTimeOffset BatchReceipt.ServerTime the server's clock when it answered (the tablet measures its offset from it, ADR-0031 §6).
+         */
         BatchReceipt: {
             results: components["schemas"]["CommandReceipt"][];
             /** Format: int64 */
             lastSequence: number | string;
+            /** Format: date-time */
+            serverTime: string;
         };
         /** @description Replaces a role's field levels (a field left out gets the catalogue default of a default role, its fallback otherwise). */
         ChangeFieldLevels: {
@@ -1641,12 +1646,18 @@ export interface components {
             removes: string[];
             replace: boolean;
         };
-        /** @description What happened to one command: `accepted`, `duplicate` or `rejected` (with string? CommandReceipt.Code). */
+        /**
+         * @description What happened to one command: `accepted`, `conflict` (stored and flagged, IReadOnlyList&lt;string&gt; CommandReceipt.Flags),
+         *     `duplicate` or `rejected` (with string? CommandReceipt.Code; bool CommandReceipt.Retryable when sending it again later
+         *     can succeed). Every status but `rejected` is final: the tablet marks the command sent.
+         */
         CommandReceipt: {
             /** Format: uuid */
             commandId: string;
             status: string;
             code: null | string;
+            retryable: boolean;
+            flags: string[];
         };
         ConversionFactorResponse: {
             name: string;

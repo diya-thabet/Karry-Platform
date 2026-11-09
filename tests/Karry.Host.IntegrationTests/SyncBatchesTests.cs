@@ -113,8 +113,9 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
         var receipt = await UploadAsync(tablet, [changed, foreign, next]);
 
-        receipt.Results.Should().Equal(
-            Result(changed, "rejected", "sync.signature_invalid"), Result(foreign, "rejected", "sync.signature_invalid"), Result(next, "rejected", "sync.sequence_gap"));
+        receipt.Results.Should().BeEquivalentTo(
+            [Result(changed, "rejected", "sync.signature_invalid"), Result(foreign, "rejected", "sync.signature_invalid"), Result(next, "rejected", "sync.sequence_gap")],
+            options => options.WithStrictOrdering());
         (await InboxAsync(tablet.Id)).Should().BeEmpty();
     }
 
@@ -194,13 +195,124 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
         (await refused.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
     }
 
-    private sealed record Receipt(IReadOnlyList<CommandResult> Results, long LastSequence);
+    [Fact]
+    [Trait("Story", "US-P2-OFF-03")]
+    public async Task Each_command_is_handled_once_in_the_upload_and_its_outcome_kept()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var recorded = tablet.Command(1, new { n = 1 });
+        var flagged = tablet.Command(2, new { n = 2 }, type: TestCommandHandler.Flagged.Name);
 
-    private sealed record CommandResult(Guid CommandId, string Status, string? Code);
+        var receipt = await UploadAsync(tablet, [recorded, flagged]);
+
+        receipt.Results.Should().BeEquivalentTo(new[]
+        {
+            Result(recorded, "accepted"),
+            Result(flagged, "conflict") with { Flags = [TestCommandHandler.Flagged.Flag] },
+        }, options => options.WithStrictOrdering());
+        receipt.LastSequence.Should().Be(2);
+        receipt.ServerTime.Should().Be(host.Clock.GetUtcNow());
+        (await HandledAsync(tablet.Id)).Should().Equal((Id(recorded), tablet.Site), (Id(flagged), tablet.Site));
+        (await ProcessedAsync(tablet.Id)).Should().Equal((Id(recorded), "Accepted", ""), (Id(flagged), "Conflict", TestCommandHandler.Flagged.Flag));
+
+        (await UploadAsync(tablet, [recorded, flagged])).Results.Should().OnlyContain(r => r.Status == "duplicate");
+        (await HandledAsync(tablet.Id)).Should().HaveCount(2, "a command sent again is not handled again");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-03")]
+    [Trait("TestCase", "TC-P2-SYNC-009")]
+    public async Task A_failing_handler_leaves_nothing_of_its_command_and_the_batch_goes_on()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var first = tablet.Command(1, new { n = 1 });
+        var broken = tablet.Command(2, new { n = 2 }, type: TestCommandHandler.Broken.Name);
+        var after = tablet.Command(3, new { n = 3 });
+
+        var receipt = await UploadAsync(tablet, [first, broken, after]);
+
+        receipt.Results.Should().BeEquivalentTo(new[]
+        {
+            Result(first, "accepted"), Result(broken, "rejected", "sync.handler_failed"), Result(after, "rejected", "sync.sequence_gap"),
+        }, options => options.WithStrictOrdering());
+        receipt.LastSequence.Should().Be(1);
+        (await HandledAsync(tablet.Id)).Select(h => h.Command).Should().Equal(Id(first));
+        (await InboxAsync(tablet.Id)).Select(r => r.Sequence).Should().Equal(1);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-03")]
+    public async Task A_handler_that_refuses_a_command_leaves_nothing_of_it()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var refused = tablet.Command(1, new { n = 1 }, type: TestCommandHandler.Refused.Name);
+
+        var receipt = await UploadAsync(tablet, [refused]);
+
+        receipt.Results.Should().BeEquivalentTo([Result(refused, "rejected", TestCommandHandler.Refused.Code)]);
+        (await HandledAsync(tablet.Id)).Should().BeEmpty();
+        (await InboxAsync(tablet.Id)).Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-03")]
+    [Trait("TestCase", "TC-P2-SYNC-013")]
+    public async Task A_command_of_a_type_no_module_handles_is_kept_and_holds_its_number()
+    {
+        // ADR-0031 §5: a newer app talking to an older server loses nothing; it sends the command again after the update.
+        using var tablet = await host.TabletAsync(host.A);
+        var unknown = tablet.Command(1, new { n = 1 }, type: "test.item_from_the_future.v1");
+        var after = tablet.Command(2, new { n = 2 });
+
+        var receipt = await UploadAsync(tablet, [unknown, after]);
+        var again = await UploadAsync(tablet, [unknown]);
+
+        receipt.Results.Should().BeEquivalentTo(new[]
+        {
+            Result(unknown, "rejected", "sync.type_unknown"), Result(after, "rejected", "sync.sequence_gap"),
+        }, options => options.WithStrictOrdering());
+        again.Results.Should().BeEquivalentTo([Result(unknown, "rejected", "sync.type_unknown")]);
+        (await UnhandledAsync(tablet.Id)).Should().Equal((Id(unknown), Unsigned(unknown), "sync.type_unknown"));
+        (await InboxAsync(tablet.Id)).Should().BeEmpty();
+    }
+
+    private async Task<List<(Guid Command, Guid Site)>> HandledAsync(Guid deviceId) =>
+        await RowsAsync($"SELECT h.command_id, h.site_id FROM {TestCommandHandler.Table} h JOIN sync.inbox i ON i.id = h.command_id AND i.device_id = h.device_id WHERE h.device_id = $1 ORDER BY i.sequence",
+            deviceId, r => (r.GetGuid(0), r.GetGuid(1)));
+
+    private async Task<List<(Guid Command, string Outcome, string Flags)>> ProcessedAsync(Guid deviceId) =>
+        await RowsAsync("SELECT p.command_id, p.outcome, array_to_string(p.flags, ',') FROM sync.processed_commands p JOIN sync.inbox i ON i.id = p.command_id AND i.device_id = p.device_id WHERE p.device_id = $1 ORDER BY i.sequence",
+            deviceId, r => (r.GetGuid(0), r.GetString(1), r.GetString(2)));
+
+    private async Task<List<(Guid Command, string Body, string Reason)>> UnhandledAsync(Guid deviceId) =>
+        await RowsAsync("SELECT id, body, reason FROM sync.unhandled_commands WHERE device_id = $1 ORDER BY sequence",
+            deviceId, r => (r.GetGuid(0), r.GetString(1), r.GetString(2)));
+
+    private async Task<List<T>> RowsAsync<T>(string sql, Guid deviceId, Func<NpgsqlDataReader, T> read)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync();
+        await using var query = new NpgsqlCommand(sql, connection);
+        query.Parameters.AddWithValue(deviceId);
+        await using var reader = await query.ExecuteReaderAsync();
+        var rows = new List<T>();
+        while (await reader.ReadAsync())
+        {
+            rows.Add(read(reader));
+        }
+
+        return rows;
+    }
+
+    private sealed record Receipt(IReadOnlyList<CommandResult> Results, long LastSequence, DateTimeOffset ServerTime);
+
+    private sealed record CommandResult(Guid CommandId, string Status, string? Code, bool Retryable, IReadOnlyList<string> Flags);
 
     private sealed record InboxRow(Guid Id, long Sequence, string Type, string Body, string Signature, string Status);
 
-    private static CommandResult Result(JsonObject command, string status, string? code = null) => new(Id(command), status, code);
+    /// <summary>The receipt of a command; a rejection is retryable when sending it again later can succeed.</summary>
+    private static CommandResult Result(JsonObject command, string status, string? code = null) =>
+        new(Id(command), status, code, code is "sync.sequence_gap" or "sync.type_unknown" or "sync.handler_failed", []);
 
     private static Guid Id(JsonObject command) => Guid.Parse(command["commandId"]!.GetValue<string>());
 
