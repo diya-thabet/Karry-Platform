@@ -27,4 +27,6 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-usage-snapshot-stale](karry-usage-snapshot-stale.md) | No complete daily usage snapshot for 26 h (or worker silent) | ticket |
 | [karry-shift-instances-stale](karry-shift-instances-stale.md) | No complete daily shift generation for 26 h (or worker silent) | ticket |
 | [karry-sync-gap](karry-sync-gap.md) | A tablet's commands have waited for an earlier number for over 24 h: data may be lost on that tablet (P2.1, ADR-0031 §4) | ticket |
+| [karry-evidence-upload](karry-evidence-upload.md) | `KarryEvidenceStoreUnavailable`: the evidence store has not answered for 15 min, photos wait on the tablets (P2.2, ADR-0032) | ticket |
 | [karry-break-glass-support](karry-break-glass-support.md) | A Karry operator opened a support session without the company's code | page |
+| [karry-evidence-upload](karry-evidence-upload.md#karrysyncblobmismatch-page-security) | `KarrySyncBlobMismatch`: a stored photo does not match its signed entry (threat T-03) | page |

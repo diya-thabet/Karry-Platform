@@ -153,7 +153,7 @@ public sealed class UploadBatchValidator : AbstractValidator<UploadBatch>
 /// </summary>
 public sealed partial class SyncUploads(
     IInboxStore store, IDeviceDirectory devices, SyncCommandTypes handlers, IServiceScopeFactory scopes, ITenantContext tenant,
-    IEvidenceStore evidenceStore, TimeProvider clock, ILogger<SyncUploads> logger)
+    IEvidenceStore evidenceStore, SyncBlobMetrics blobMetrics, TimeProvider clock, ILogger<SyncUploads> logger)
 {
     public static readonly Error Revoked = Error.Forbidden(PermissionMiddleware.RevokedDeviceCode, "This tablet has been revoked.");
 
@@ -333,6 +333,7 @@ public sealed partial class SyncUploads(
 
         if (!evidenceStore.Available)
         {
+            blobMetrics.Count(SyncBlobMetrics.Unavailable);
             return (evidence, (SyncBlobRules.UnavailableCode, true));
         }
 
@@ -345,19 +346,24 @@ public sealed partial class SyncUploads(
             }
             catch (ObjectStoreUnavailableException)
             {
+                blobMetrics.Count(SyncBlobMetrics.Unavailable);
                 return (evidence, (SyncBlobRules.UnavailableCode, true));
             }
 
             if (head is null)
             {
+                blobMetrics.Count(SyncBlobMetrics.Missing);
                 return (evidence, (SyncBlobRules.BlobMissing, true));
             }
 
             if (head.Size != blob.Size || head.Sha256 != SyncBlobRules.ToBase64(blob.Sha256) || head.ContentType != blob.ContentType)
             {
+                blobMetrics.Count(SyncBlobMetrics.Mismatch);
                 LogBlobMismatch(logger, deviceId, command.Id.Value, blob.Sha256);
                 return (evidence, (SyncBlobRules.BlobMismatch, false));
             }
+
+            blobMetrics.Count(SyncBlobMetrics.Verified);
         }
 
         return (evidence, null);

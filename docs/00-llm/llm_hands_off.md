@@ -9,7 +9,7 @@
 | Project | Karry Platform: Enterprise Quarry & Mining Management SaaS |
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
-| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0 and P2.1 ✅, P2.2 (evidence blobs, field outbox) started ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
+| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0, P2.1 and P2.2 ✅, next P2.3 (signature envelopes) ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
 | Last updated | 2026-10-29 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
@@ -272,7 +272,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0, P2.1 ✅** (#147–#151), P2.2 in progress: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P2 Field operations | **P2.0, P2.1, P2.2 ✅** (#147–#160), P2.3 next: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
 | P3–P11 | Not started |
 
 ---
@@ -390,7 +390,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Trap:** a `Uint8Array` read back from fake-indexeddb is from another realm, so `toEqual` against a fresh one fails; compare `Array.from(...)`.
 - **Trap:** WebCrypto signing cannot run inside a Dexie/IndexedDB transaction (the transaction commits at the first non-IndexedDB await). Sign first, then re-check inside the transaction and retry.
 - **Trap:** `JsonElement.TryGetInt64` on a string value throws instead of returning false: check `ValueKind == Number` first.
-- **Next:** the browser E2E tests of P2.2 TC-P2-SYNC-002/007/011/014 (they also prove the bucket's CORS rule).
+- **Mistake (fixed in #159):** I wrote an nqo message by hand; CI's `nko_from_latin.py --check` refused it. **Never hand-write nqo:** remove the key from `nqo.json` and run `python3 tools/i18n/nko_from_latin.py --missing` (a native reader's correction goes in `tools/i18n/nko-reviewed.txt`).
+- **Merged:** #159 (slice 5b).
+- **P2.2 close-out (PR from `feat/p2.2-close-out`):** counter `karry.sync.blobs` (`SyncBlobMetrics`, result presigned/exists/verified/missing/mismatch/unavailable; `SyncBlobMetricsTests`); alerts `KarryEvidenceStoreUnavailable` (ticket) and `KarrySyncBlobMismatch` (page) with promtool tests; runbook `karry-evidence-upload`; ADR-0032 **accepted** with its security review (§8); threat model T-03/05/09/17 extended. **Decision:** the browser E2E TC-P2-SYNC-002/007/011/014 and the card's "done when" moved to P2.5 (no entry screen before P2.5, no real command type before P2.4); covered now at unit and host level. Bucket size per tenant deferred to the usage work (Phase 3 plan limits). **P2.2 ✅.**
+- **Next:** P2.3 (signature envelopes, ADR-0033).
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

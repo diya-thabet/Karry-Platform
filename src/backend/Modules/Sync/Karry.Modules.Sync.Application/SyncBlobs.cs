@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Text.Json;
 using FluentValidation;
 using Karry.BuildingBlocks.Devices;
@@ -111,7 +112,7 @@ public sealed class PresignBlobValidator : AbstractValidator<PresignBlob>
 /// signed request, never from the body), so a tablet cannot obtain a URL for another company's or tablet's key; the
 /// URL is valid for that key, that checksum and type, and a short time. The bytes never pass through the API.
 /// </summary>
-public sealed class SyncBlobs(IEvidenceStore store, EvidenceStoreOptions options, ITenantContext tenant, TimeProvider clock)
+public sealed class SyncBlobs(IEvidenceStore store, EvidenceStoreOptions options, ITenantContext tenant, SyncBlobMetrics metrics, TimeProvider clock)
 {
     public async Task<Result<BlobUpload>> PresignAsync(DeviceCaller caller, PresignBlob blob, CancellationToken cancellationToken)
     {
@@ -126,10 +127,44 @@ public sealed class SyncBlobs(IEvidenceStore store, EvidenceStoreOptions options
         var sha256 = SyncBlobRules.ToBase64(blob.Sha256!);
         if (await store.HeadAsync(key, cancellationToken).ConfigureAwait(false) is { } head && head.Sha256 == sha256 && head.Size == blob.Size)
         {
+            metrics.Count(SyncBlobMetrics.Exists);
             return new BlobUpload(true, key, null, null, null);
         }
 
         var put = store.PresignPut(key, sha256, blob.ContentType!, clock.GetUtcNow() + options.UploadValidFor);
+        metrics.Count(SyncBlobMetrics.Presigned);
         return new BlobUpload(false, key, put.Url, put.Headers, put.ExpiresAt);
     }
+}
+
+/**
+ * Evidence telemetry (ADR-0032): <c>karry.sync.blobs</c> (Prometheus <c>karry_sync_blobs_total</c>) counts blobs by
+ * <c>result</c>: <c>presigned</c> and <c>exists</c> when a tablet asks to upload, then, when a command naming the blob
+ * is handled, <c>verified</c>, <c>missing</c>, <c>mismatch</c> (security: alert <c>KarrySyncBlobMismatch</c>) or
+ * <c>unavailable</c>.
+ */
+public sealed class SyncBlobMetrics
+{
+    public const string Presigned = "presigned";
+
+    public const string Exists = "exists";
+
+    public const string Verified = "verified";
+
+    public const string Missing = "missing";
+
+    public const string Mismatch = "mismatch";
+
+    public const string Unavailable = "unavailable";
+
+    private readonly Counter<long> blobs;
+
+    public SyncBlobMetrics(IMeterFactory meterFactory)
+    {
+        ArgumentNullException.ThrowIfNull(meterFactory);
+        blobs = meterFactory.Create(SyncGapMetrics.MeterName)
+            .CreateCounter<long>("karry.sync.blobs", "{blob}", "Evidence blobs by result: presigned, exists, verified, missing, mismatch, unavailable (ADR-0032).");
+    }
+
+    public void Count(string result) => blobs.Add(1, new KeyValuePair<string, object?>("result", result));
 }

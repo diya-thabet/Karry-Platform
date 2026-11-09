@@ -167,6 +167,18 @@ groups:
           description: "Commands of a tablet wait for an earlier number that has not come: data may be lost on that tablet. The worker logs name it (event 7206)."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-sync-gap.md"
 
+      - alert: KarryEvidenceStoreUnavailable
+        # Commands naming evidence cannot be checked because the evidence store does not answer (ADR-0032): tablets
+        # keep them and send them again, so nothing is lost, but no entry with a photo is recorded meanwhile.
+        expr: sum by (job) (rate(karry_sync_blobs_total{result="unavailable"}[5m])) > 0
+        for: 15m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "The evidence store has not answered for 15 minutes"
+          description: "Commands with photos are refused for now (sync.blobs_unavailable) and wait on the tablets. Check the object store and the API's Storage:Evidence settings."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-evidence-upload.md"
+
   - name: karry-security
     rules:
       - alert: KarryBreakGlassSupport
@@ -183,3 +195,18 @@ groups:
           summary: "A break-glass support session was opened"
           description: "A Karry operator is reading a company's data without its code. Check the API logs (event 2200) and the company's audit log."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-break-glass-support.md"
+
+      - alert: KarrySyncBlobMismatch
+        # The store holds other bytes than the photo a signed command names (ADR-0032, threat T-03): the evidence was
+        # swapped or damaged. Each one is investigated: fires at once and stays 15 minutes; the second branch catches
+        # the first one after an API start, as for break-glass sessions.
+        expr: |
+          sum(increase(karry_sync_blobs_total{result="mismatch"}[15m])) > 0
+          or
+          sum(karry_sync_blobs_total{result="mismatch"} unless karry_sync_blobs_total{result="mismatch"} offset 15m) > 0
+        labels:
+          severity: page
+        annotations:
+          summary: "A tablet's evidence does not match its signed entry"
+          description: "The photo in the store is not the one the tablet signed; the entry was refused (sync.blob_mismatch). The API logs name the tablet and the command (event 7208)."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-evidence-upload.md"

@@ -16,6 +16,7 @@ public static class SyncInfrastructure
         services.AddScoped<BuildingBlocks.Sync.ISyncSource, SubmissionsSync>();
         services.AddScoped<MeasureSyncGaps>();
         services.TryAddSingleton<SyncGapMetrics>();
+        services.TryAddSingleton<SyncBlobMetrics>();
         services.TryAddSingleton(TimeProvider.System);
         return services;
     }
