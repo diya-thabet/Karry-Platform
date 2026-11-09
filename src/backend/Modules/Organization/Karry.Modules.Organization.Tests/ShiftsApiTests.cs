@@ -256,6 +256,27 @@ public sealed class ShiftsApiTests(OrganizationHost host) : IClassFixture<Organi
         (await ScalarAsync<long>($"SELECT count(*) FROM organization.non_working_days WHERE site_id = '{site}'")).Should().Be(1);
     }
 
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-001")]
+    public async Task Another_module_resolves_the_shift_of_an_entry_from_the_rules_even_outside_the_stored_days()
+    {
+        var (tenant, token, site) = await SiteAsync();
+        await SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{site}/shift-patterns/{Iso(Today().AddDays(-60))}", token, TwoTwelves);
+        // 23:30 local in Tunis (UTC+1, no DST) 45 days ago: long before the stored window; it arrives late.
+        var date = Today().AddDays(-45);
+        var lateNight = new DateTimeOffset(date.ToDateTime(new TimeOnly(22, 30)), TimeSpan.Zero);
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<BuildingBlocks.Tenancy.ITenantContext>().Set(new SharedKernel.Tenancy.TenantId(tenant));
+        var calendar = scope.ServiceProvider.GetRequiredService<Contracts.IShiftCalendar>();
+        var shift = await calendar.ResolveAsync(site, lateNight, Ct);
+        var unknownSite = await calendar.ResolveAsync(Guid.CreateVersion7(), lateNight, Ct);
+
+        (shift?.Code, shift?.Date, shift?.TimeZone).Should().Be(("NIGHT", date, Zone));
+        shift!.StartsAt.Should().Be(new DateTimeOffset(date.ToDateTime(new TimeOnly(17, 0)), TimeSpan.Zero));
+        unknownSite.Should().BeNull();
+    }
+
     private async Task<(Guid Tenant, string Token, Guid Site)> SiteAsync(string zone = Zone)
     {
         var slug = $"s-{Guid.NewGuid():N}"[..20];

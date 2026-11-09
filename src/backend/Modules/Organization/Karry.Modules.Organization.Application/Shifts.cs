@@ -2,6 +2,7 @@ using System.Diagnostics.Metrics;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Organization.Domain;
 using Karry.Modules.Tenancy.Contracts;
 using Karry.SharedKernel.Results;
@@ -47,6 +48,24 @@ public interface IShiftStore
     /// added twice, or the same instances replaced twice): nothing is saved and the caller answers 409.
     /// </summary>
     Task<bool> TrySaveAsync(CancellationToken cancellationToken);
+}
+
+/// <summary>The shift of a site an instant belongs to, for other modules (ADR-0034 §2).</summary>
+public sealed class ShiftResolution(ISiteStore sites, IShiftStore store) : IShiftCalendar
+{
+    public async Task<ResolvedShift?> ResolveAsync(Guid siteId, DateTimeOffset instant, CancellationToken cancellationToken)
+    {
+        if (await sites.FindAsync(new SiteId(siteId), cancellationToken).ConfigureAwait(false) is not { } site)
+        {
+            return null;
+        }
+
+        var patterns = await store.PatternsAsync(site.Id, cancellationToken).ConfigureAwait(false);
+        var today = ShiftCalendar.Today(site.TimeZone, instant);
+        var days = await store.NonWorkingDaysAsync(site.Id, today.AddDays(-1), today.AddDays(1), cancellationToken).ConfigureAwait(false);
+        var shift = ShiftCalendar.Resolve(site.TimeZone, [.. patterns.Select(p => (p.EffectiveFrom, p.Shifts))], days.Select(d => d.Date).ToHashSet(), instant);
+        return shift is null ? null : new ResolvedShift(shift.Date, shift.Code, shift.Name, shift.StartsAt, shift.EndsAt, shift.TimeZone);
+    }
 }
 
 /// <summary>What one reconciliation of stored instances changed.</summary>

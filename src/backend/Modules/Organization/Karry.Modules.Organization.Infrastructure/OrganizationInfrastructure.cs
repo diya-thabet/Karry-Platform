@@ -29,6 +29,7 @@ public static class OrganizationInfrastructure
         services.TryAddSingleton<ShiftMetrics>();
         services.AddScoped<IUsageSource, ActiveSites>();
         services.AddScoped<ISiteDirectory, SiteDirectory>();
+        services.AddScoped<IShiftCalendar, ShiftResolution>();
         services.AddScoped<IImportTarget, SiteImport>();
         services.AddScoped<BuildingBlocks.Sync.ISyncSource, OrganizationSync>();
         return services;

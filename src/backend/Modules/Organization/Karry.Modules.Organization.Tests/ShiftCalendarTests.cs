@@ -130,6 +130,63 @@ public sealed class ShiftCalendarTests
         ShiftCalendar.Today("America/New_York", instant).Should().Be(new DateOnly(2026, 10, 26));
     }
 
+    // --- Resolution of a field entry's shift (ADR-0034 §2, TC-P2-FO-001 server part) --------------------------
+
+    private static ComputedShift? Resolve(string zone, IReadOnlyList<ShiftDefinition> shifts, DateTimeOffset instant, params DateOnly[] holidays) =>
+        ShiftCalendar.Resolve(zone, [(new DateOnly(2020, 1, 1), shifts)], holidays.ToHashSet(), instant);
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-001")]
+    public void Entries_at_2330_and_0030_local_time_belong_to_the_same_night_shift_of_the_day_it_started()
+    {
+        // Africa/Tunis is UTC+1: 23:30 and 00:30 local are 22:30 and 23:30 UTC.
+        var late = Resolve("Africa/Tunis", DayAndNight, new DateTimeOffset(2026, 12, 31, 22, 30, 0, TimeSpan.Zero));
+        var afterMidnight = Resolve("Africa/Tunis", DayAndNight, new DateTimeOffset(2026, 12, 31, 23, 30, 0, TimeSpan.Zero));
+
+        late.Should().NotBeNull();
+        afterMidnight.Should().Be(late);
+        (late!.Code, late.Date).Should().Be(("NIGHT", new DateOnly(2026, 12, 31)));
+    }
+
+    [Fact]
+    public void An_entry_up_to_an_hour_before_a_shift_belongs_to_it_and_one_in_a_gap_or_on_a_holiday_to_none()
+    {
+        IReadOnlyList<ShiftDefinition> dayOnly = [new("DAY", "Jour", new TimeOnly(7, 0), new TimeOnly(15, 0), EveryDay)];
+        var holiday = new DateOnly(2026, 11, 11);
+
+        // Tunis 06:00 (one hour early), 05:59 (too early), 16:00 (after the shift), and 08:00 on a holiday.
+        Resolve("Africa/Tunis", dayOnly, new DateTimeOffset(2026, 11, 10, 5, 0, 0, TimeSpan.Zero))?.Code.Should().Be("DAY");
+        Resolve("Africa/Tunis", dayOnly, new DateTimeOffset(2026, 11, 10, 4, 59, 0, TimeSpan.Zero)).Should().BeNull();
+        Resolve("Africa/Tunis", dayOnly, new DateTimeOffset(2026, 11, 10, 15, 0, 0, TimeSpan.Zero)).Should().BeNull();
+        Resolve("Africa/Tunis", dayOnly, new DateTimeOffset(2026, 11, 11, 7, 0, 0, TimeSpan.Zero), holiday).Should().BeNull();
+    }
+
+    [Fact]
+    public void An_early_start_before_midnight_belongs_to_the_shift_starting_at_midnight_of_the_next_date()
+    {
+        IReadOnlyList<ShiftDefinition> midnight = [new("NIGHT", "Nuit", new TimeOnly(0, 0), new TimeOnly(8, 0), EveryDay)];
+
+        var shift = Resolve("Africa/Tunis", midnight, new DateTimeOffset(2026, 11, 10, 22, 30, 0, TimeSpan.Zero)); // 23:30 local
+
+        (shift?.Code, shift?.Date).Should().Be(("NIGHT", new DateOnly(2026, 11, 11)));
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-001")]
+    public void Every_instant_inside_a_computed_shift_resolves_to_that_shift_in_any_zone()
+    {
+        Case.Sample(c =>
+        {
+            var shifts = ShiftCalendar.Compute(c.Zone, [(c.From, c.Shifts)], c.Holidays, c.From, c.To);
+            return shifts.All(s =>
+            {
+                var middle = s.StartsAt + ((s.EndsAt - s.StartsAt) / 2);
+                return new[] { s.StartsAt, middle, s.EndsAt.AddTicks(-1) }
+                    .All(instant => ShiftCalendar.Resolve(c.Zone, [(c.From, c.Shifts)], c.Holidays, instant) == s);
+            });
+        });
+    }
+
     // --- TC-P1-ORG-003: properties over random zones, dates, patterns and holidays -------------------------------
 
     private static readonly string[] Zones =

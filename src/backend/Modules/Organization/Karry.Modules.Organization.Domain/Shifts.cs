@@ -336,6 +336,25 @@ public static class ShiftCalendar
         return [.. result.OrderBy(s => s.StartsAt).ThenBy(s => s.Code, StringComparer.Ordinal)];
     }
 
+    /// <summary>How long before a shift's start a field entry still belongs to it (machines are warmed up; ADR-0034 §2).</summary>
+    public static readonly TimeSpan EarlyStart = TimeSpan.FromMinutes(60);
+
+    /// <summary>
+    /// The shift a field entry made at <paramref name="instant"/> belongs to (ADR-0034 §2): the one running at that
+    /// instant, else the one starting within <see cref="EarlyStart"/> after it; null when there is none (a gap between
+    /// shifts, a non-working day). Computed from the rules, so an entry that arrives late resolves like one on time.
+    /// </summary>
+    public static ComputedShift? Resolve(
+        string timeZone, IReadOnlyList<(DateOnly EffectiveFrom, IReadOnlyList<ShiftDefinition> Shifts)> versions,
+        IReadOnlySet<DateOnly> nonWorkingDays, DateTimeOffset instant)
+    {
+        // A night shift that started yesterday may still run; a shift starting just after midnight may be early-started.
+        var today = Today(timeZone, instant);
+        var near = Compute(timeZone, versions, nonWorkingDays, today.AddDays(-1), today.AddDays(1));
+        return near.FirstOrDefault(s => s.StartsAt <= instant && instant < s.EndsAt)
+            ?? near.FirstOrDefault(s => s.StartsAt - EarlyStart <= instant && instant < s.StartsAt);
+    }
+
     private static DateTimeZone Zone(string timeZone) =>
         DateTimeZoneProviders.Tzdb.GetZoneOrNull(timeZone) ?? throw new ArgumentException($"Unknown time zone '{timeZone}'.", nameof(timeZone));
 }

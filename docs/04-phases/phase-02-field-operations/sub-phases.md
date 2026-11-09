@@ -440,6 +440,10 @@ start and end, who drove, and whether the numbers make sense. Nothing is shown o
   `root_id`, `version`, `segment_no`, start/end `MeterValue`, fuel level, stoppages with reason codes, GPS, flags,
   `estimated`); command handlers `fieldops.shift_entry.start.v1`, `.end.v1`, `.handover.v1`; read API for the portal
   (list by site/shift/asset/operator, detail with versions); reason code catalogue (seeded, tenant-editable).
+  **Amended by ADR-0034 (2026-11-09):** no `fieldops.shift_instance` table (the shift is resolved from the site's
+  rules through `IShiftCalendar` in Organization, whose `organization.shift_instances` already stores the next 30 days);
+  no `.handover.v1` command (the outgoing operator ends, the incoming one starts with `previousRootId`, each signing
+  their own fact).
 - **Tests:**
 
   | Test | What it proves |
