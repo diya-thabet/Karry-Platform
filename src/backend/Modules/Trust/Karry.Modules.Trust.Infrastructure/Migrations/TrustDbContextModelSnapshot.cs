@@ -203,6 +203,44 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.ToTable("anchors", "audit");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.EnvelopeCountersignatureRow", b =>
+                {
+                    b.Property<Guid>("EnvelopeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("envelope_id");
+
+                    b.Property<string>("KeyId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key_id");
+
+                    b.Property<string>("Signature")
+                        .IsRequired()
+                        .HasMaxLength(86)
+                        .HasColumnType("character varying(86)")
+                        .HasColumnName("signature");
+
+                    b.Property<DateTimeOffset>("SignedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("signed_at");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("EnvelopeId")
+                        .HasName("pk_envelope_countersignatures");
+
+                    b.HasIndex("KeyId")
+                        .HasDatabaseName("ix_envelope_countersignatures_key_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_envelope_countersignatures_tenant_id");
+
+                    b.ToTable("envelope_countersignatures", "audit");
+                });
+
             modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.LedgerEntryRow", b =>
                 {
                     b.Property<Guid>("TenantId")
@@ -346,6 +384,35 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.ToTable("ledger_subjects", "audit");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.ServerKeyRow", b =>
+                {
+                    b.Property<string>("KeyId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("key_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("public_key");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.HasKey("KeyId")
+                        .HasName("pk_server_keys");
+
+                    b.ToTable("server_keys", "audit");
+                });
+
             modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.SignatureEnvelopeRow", b =>
                 {
                     b.Property<Guid>("EnvelopeId")
@@ -479,6 +546,23 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                         .HasDatabaseName("ix_verifications_tenant_id_verified_at");
 
                     b.ToTable("verifications", "audit");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.EnvelopeCountersignatureRow", b =>
+                {
+                    b.HasOne("Karry.Modules.Trust.Infrastructure.SignatureEnvelopeRow", null)
+                        .WithOne()
+                        .HasForeignKey("Karry.Modules.Trust.Infrastructure.EnvelopeCountersignatureRow", "EnvelopeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_envelope_countersignatures_signature_envelopes_envelope_id");
+
+                    b.HasOne("Karry.Modules.Trust.Infrastructure.ServerKeyRow", null)
+                        .WithMany()
+                        .HasForeignKey("KeyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_envelope_countersignatures_server_keys_key_id");
                 });
 #pragma warning restore 612, 618
         }

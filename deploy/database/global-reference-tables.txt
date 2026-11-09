@@ -17,3 +17,4 @@ identity.import_cursors | global        | Importer positions (e.g. time of the l
 billing.plans          | global        | Plan catalogue (features, limits, price book): Karry's own packaging, the same for every tenant, no tenant data
 flags.platform_flags   | global        | Platform-wide flag values of this environment (kill switches): Karry's own rollout settings, no tenant data
 flags.platform_flag_changes | global   | Append-only history of platform-wide flag changes (who, before, after, when); no tenant data
+audit.server_keys      | global        | Public keys of the server's signing key versions (kid, SPKI PEM): public by design so anyone can verify a countersignature; no tenant data; append-only (ADR-0033 §3)

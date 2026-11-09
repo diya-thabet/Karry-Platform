@@ -119,6 +119,35 @@ public sealed class SignatureEnvelopeRow : ITenantOwned
     public DateTimeOffset RecordedAt { get; init; }
 }
 
+/// <summary>The server's countersignature of an envelope (ADR-0033 §4): written once, never changed (append-only).</summary>
+public sealed class EnvelopeCountersignatureRow : ITenantOwned
+{
+    public required Guid EnvelopeId { get; init; }
+
+    public TenantId TenantId { get; init; }
+
+    /// <summary>The server key version (<c>kid</c>), published in <see cref="ServerKeyRow"/>.</summary>
+    public required string KeyId { get; init; }
+
+    /// <summary>ES256, IEEE P1363, base64url, over SHA-256 of <c>Countersignatures.Text</c>.</summary>
+    public required string Signature { get; init; }
+
+    public required DateTimeOffset SignedAt { get; init; }
+}
+
+/// <summary>A published server key version (ADR-0033 §3): public by design, platform-wide, append-only.</summary>
+public sealed class ServerKeyRow
+{
+    public required string KeyId { get; init; }
+
+    /// <summary>SPKI PEM.</summary>
+    public required string PublicKey { get; init; }
+
+    public required DateTimeOffset CreatedAt { get; init; }
+
+    public DateTimeOffset RecordedAt { get; init; }
+}
+
 /// <summary>An anchor written to WORM storage (bookkeeping; the WORM object is the evidence).</summary>
 public sealed class AnchorRow : ITenantOwned
 {
@@ -155,6 +184,10 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
     public DbSet<AuditExport> Exports => Set<AuditExport>();
 
     public DbSet<SignatureEnvelopeRow> SignatureEnvelopes => Set<SignatureEnvelopeRow>();
+
+    public DbSet<EnvelopeCountersignatureRow> Countersignatures => Set<EnvelopeCountersignatureRow>();
+
+    public DbSet<ServerKeyRow> ServerKeys => Set<ServerKeyRow>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -219,6 +252,23 @@ public sealed class TrustDbContext(DbContextOptions<TrustDbContext> options) : M
             envelope.Property(e => e.RecordedAt).HasDefaultValueSql("now()");
             envelope.HasIndex(e => new { e.TenantId, e.RecordType, e.RecordId });
             envelope.HasIndex(e => new { e.TenantId, e.ReceivedAt });
+        });
+        modelBuilder.Entity<ServerKeyRow>(key =>
+        {
+            key.ToTable("server_keys");
+            key.HasKey(k => k.KeyId);
+            key.Property(k => k.KeyId).HasMaxLength(100);
+            key.Property(k => k.PublicKey).HasMaxLength(1000);
+            key.Property(k => k.RecordedAt).HasDefaultValueSql("now()");
+        });
+        modelBuilder.Entity<EnvelopeCountersignatureRow>(countersignature =>
+        {
+            countersignature.ToTable("envelope_countersignatures");
+            countersignature.HasKey(c => c.EnvelopeId);
+            countersignature.Property(c => c.KeyId).HasMaxLength(100);
+            countersignature.Property(c => c.Signature).HasMaxLength(86);
+            countersignature.HasOne<SignatureEnvelopeRow>().WithOne().HasForeignKey<EnvelopeCountersignatureRow>(c => c.EnvelopeId).OnDelete(DeleteBehavior.Restrict);
+            countersignature.HasOne<ServerKeyRow>().WithMany().HasForeignKey(c => c.KeyId).OnDelete(DeleteBehavior.Restrict);
         });
         modelBuilder.Entity<AnchorRow>(anchor =>
         {

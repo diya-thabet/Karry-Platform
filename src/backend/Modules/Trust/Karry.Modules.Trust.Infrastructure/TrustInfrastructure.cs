@@ -29,6 +29,8 @@ public static class TrustInfrastructure
         services.AddScoped<VerifyLedgerHandler>();
         services.AddScoped<IVerificationRecords, EfVerificationRecords>();
         services.AddScoped<Contracts.IEnvelopeRecorder, PostgresEnvelopeRecorder>();
+        services.AddScoped<ICountersignBook, EfCountersignBook>();
+        services.AddScoped<IServerKeyBook, EfServerKeyBook>();
         services.AddScoped<BuildingBlocks.Tenancy.ITenantSummarySource, LedgerActivity>();
         services.AddScoped<IntegrityChecks>();
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
@@ -71,6 +73,10 @@ public static class TrustInfrastructure
     public static IServiceCollection AddTrustServerSigning(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(configuration);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddMetrics();
+        services.TryAddSingleton<CountersignMetrics>();
+        services.TryAddSingleton<CountersignEnvelopes>();
         var options = new ServerSigningOptions();
         configuration.GetSection(ServerSigningOptions.Section).Bind(options);
         if (string.IsNullOrWhiteSpace(options.Address))
