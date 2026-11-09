@@ -88,7 +88,7 @@ karry-platform/
 │   └── infra/                          OpenTofu
 ├── .github/                            workflows (ci, nightly, docs, spikes), PR/issue templates, CODEOWNERS
 ├── tools/
-│   ├── ci/                             coverage_gate.py, merge_guard.py (only merge path), install-tool.sh (checksummed tools)
+│   ├── ci/                             coverage_gate.py, merge_guard.py (only merge path), threat_traceability.py, install-tool.sh (checksummed tools)
 │   ├── new-module.sh                   create a module from the template and add it to Karry.slnx
 │   ├── templates/karry-module/         dotnet new template (tested by test-template.sh, TC-P1-PLT-003)
 │   ├── docs/check_links.py             docs link checker
