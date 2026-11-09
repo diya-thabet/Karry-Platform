@@ -1210,6 +1210,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1884,6 +1891,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -1982,6 +1996,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -2052,6 +2073,13 @@
             "name": "code",
             "in": "path",
             "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -10405,7 +10433,8 @@
           "office",
           "privileged",
           "permissions",
-          "fieldLevels"
+          "fieldLevels",
+          "version"
         ],
         "type": "object",
         "properties": {
@@ -10450,6 +10479,9 @@
             "additionalProperties": {
               "type": "string"
             }
+          },
+          "version": {
+            "type": "string"
           }
         },
         "description": "A role: default (name translated by the apps from the code) or custom; field levels of every declared field."
@@ -11564,7 +11596,8 @@
           "requiresMfa",
           "createdAt",
           "deactivatedAt",
-          "pinSet"
+          "pinSet",
+          "version"
         ],
         "type": "object",
         "properties": {
@@ -11624,6 +11657,9 @@
           },
           "pinSet": {
             "type": "boolean"
+          },
+          "version": {
+            "type": "string"
           }
         },
         "description": "A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it)."

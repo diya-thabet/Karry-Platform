@@ -2280,6 +2280,7 @@ export interface components {
             fieldLevels: {
                 [key: string]: string;
             };
+            version: string;
         };
         SensitiveFieldResponse: {
             code: string;
@@ -2571,6 +2572,7 @@ export interface components {
             /** Format: date-time */
             deactivatedAt: null | string;
             pinSet: boolean;
+            version: string;
         };
     };
     responses: never;
@@ -3615,7 +3617,9 @@ export interface operations {
     ChangeUserRoles: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 id: string;
             };
@@ -4182,7 +4186,9 @@ export interface operations {
     ChangeRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 code: string;
             };
@@ -4262,7 +4268,9 @@ export interface operations {
     DeleteRole: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 code: string;
             };
@@ -4327,7 +4335,9 @@ export interface operations {
     ChangeRoleFieldLevels: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 code: string;
             };

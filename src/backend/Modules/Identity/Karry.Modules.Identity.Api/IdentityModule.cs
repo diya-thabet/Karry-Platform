@@ -259,14 +259,25 @@ public sealed class IdentityModule : IModule
             : UserAdministration.NotFound.ToProblem();
     }
 
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) of the user the form was filled from; a newer one is a 409 (H-C1).</summary>
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> ChangeRolesAsync(
-        Guid id, ChangeUserRoles request, [FromServices] ChangeUserRolesHandler handler, [FromServices] RoleDirectory roles,
-        CancellationToken cancellationToken)
+        Guid id, ChangeUserRoles request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] ChangeUserRolesHandler handler, [FromServices] RoleDirectory roles, CancellationToken cancellationToken)
     {
-        var result = await handler.HandleAsync(id, request, cancellationToken).ConfigureAwait(false);
-        return result.IsSuccess
-            ? TypedResults.Ok(ToResponse(result.Value, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)))
-            : result.Error.ToProblem();
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await handler.HandleAsync(id, request, cancellationToken, expected.Value).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        response.SetETag(result.Value.Version);
+        return TypedResults.Ok(ToResponse(result.Value, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)));
     }
 
     private static async Task<Results<Ok<InvitedUser>, ProblemHttpResult>> ResendInvitationAsync(
@@ -279,12 +290,13 @@ public sealed class IdentityModule : IModule
     private static UserResponse ToResponse(UserAccount u, TenantRoles roles) =>
         new(u.Id.Value, u.Kind.ToString().ToLowerInvariant(), u.Status.ToString().ToLowerInvariant(), u.FirstName, u.LastName, u.Email, u.Phone, u.EmployeeId,
             [.. u.Roles.Select(r => new RoleAssignmentDto(r.Role, r.SiteId))], u.RequiresMfa(roles.Lookup), u.CreatedAt, u.DeactivatedAt,
-            u.PinHash is not null);
+            u.PinHash is not null, RecordVersionHttp.ETag(u.Version));
 
     private static RoleResponse ToResponse(RoleView role) =>
         new(role.Code, role.IsDefault, role.Name, role.Description, role.BasedOn, role.Office, role.Privileged,
             [.. role.Permissions.Order(StringComparer.Ordinal)],
-            role.FieldLevels.OrderBy(f => f.Key, StringComparer.Ordinal).ToDictionary(f => f.Key, f => f.Value.ToString().ToLowerInvariant(), StringComparer.Ordinal));
+            role.FieldLevels.OrderBy(f => f.Key, StringComparer.Ordinal).ToDictionary(f => f.Key, f => f.Value.ToString().ToLowerInvariant(), StringComparer.Ordinal),
+            RecordVersionHttp.ETag(role.Version));
 
     private static async Task<Results<Created<InvitedUser>, ProblemHttpResult>> InviteAsync(
         InviteUser request, [FromServices] InviteUserHandler handler, CancellationToken cancellationToken)
@@ -350,14 +362,18 @@ public sealed class IdentityModule : IModule
     }
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> GetAsync(
-        Guid id, [FromServices] UserAdministration administration, [FromServices] IIdentityStore store, [FromServices] RoleDirectory roles,
+        Guid id, HttpResponse response, [FromServices] UserAdministration administration, [FromServices] IIdentityStore store, [FromServices] RoleDirectory roles,
         CancellationToken cancellationToken)
     {
         // Out of the caller's scope answers like a missing user (US-P1-IAM-06 AC2).
         var user = id == Guid.Empty ? null : await store.FindUserAsync(new UserId(id), cancellationToken).ConfigureAwait(false);
-        return user is not null && administration.CanSee(user)
-            ? TypedResults.Ok(ToResponse(user, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)))
-            : UserAdministration.NotFound.ToProblem();
+        if (user is null || !administration.CanSee(user))
+        {
+            return UserAdministration.NotFound.ToProblem();
+        }
+
+        response.SetETag(user.Version);
+        return TypedResults.Ok(ToResponse(user, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)));
     }
 
     private static async Task<Results<Ok<UserResponse>, ProblemHttpResult>> MeAsync(
@@ -383,10 +399,16 @@ public sealed class IdentityModule : IModule
         TypedResults.Ok(new RoleList([.. (await roles.LoadAsync(cancellationToken).ConfigureAwait(false)).All.Select(ToResponse)]));
 
     private static async Task<Results<Ok<RoleResponse>, ProblemHttpResult>> GetRoleAsync(
-        string code, [FromServices] RoleDirectory roles, CancellationToken cancellationToken) =>
+        string code, HttpResponse response, [FromServices] RoleDirectory roles, CancellationToken cancellationToken) =>
         (await roles.LoadAsync(cancellationToken).ConfigureAwait(false)).Find(code) is { } role
-            ? TypedResults.Ok(ToResponse(role))
+            ? Tagged(role, response)
             : RoleAdministration.NotFound.ToProblem();
+
+    private static Ok<RoleResponse> Tagged(RoleView role, HttpResponse response)
+    {
+        response.SetETag(role.Version);
+        return TypedResults.Ok(ToResponse(role));
+    }
 
     private static async Task<Results<Created<RoleResponse>, ProblemHttpResult>> CreateRoleAsync(
         CreateRole request, [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
@@ -397,24 +419,45 @@ public sealed class IdentityModule : IModule
             : result.Error.ToProblem();
     }
 
+    /// <summary><c>If-Match</c> on the role changes: the <c>ETag</c> (or <c>version</c>) the form was filled from (H-C1).</summary>
     private static async Task<Results<Ok<RoleResponse>, ProblemHttpResult>> ChangeRoleAsync(
-        string code, ChangeRole request, [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
+        string code, ChangeRole request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
     {
-        var result = await roles.ChangeAsync(code, request, cancellationToken).ConfigureAwait(false);
-        return result.IsSuccess ? TypedResults.Ok(ToResponse(result.Value)) : result.Error.ToProblem();
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await roles.ChangeAsync(code, request, cancellationToken, expected.Value).ConfigureAwait(false);
+        return result.IsSuccess ? Tagged(result.Value, response) : result.Error.ToProblem();
     }
 
     private static async Task<Results<Ok<RoleResponse>, ProblemHttpResult>> ChangeFieldLevelsAsync(
-        string code, ChangeFieldLevels request, [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
+        string code, ChangeFieldLevels request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
     {
-        var result = await roles.ChangeFieldLevelsAsync(code, request, cancellationToken).ConfigureAwait(false);
-        return result.IsSuccess ? TypedResults.Ok(ToResponse(result.Value)) : result.Error.ToProblem();
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await roles.ChangeFieldLevelsAsync(code, request, cancellationToken, expected.Value).ConfigureAwait(false);
+        return result.IsSuccess ? Tagged(result.Value, response) : result.Error.ToProblem();
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> DeleteRoleAsync(
-        string code, [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
+        string code, [FromHeader(Name = "If-Match")] string? ifMatch, [FromServices] RoleAdministration roles, CancellationToken cancellationToken)
     {
-        var result = await roles.DeleteAsync(code, cancellationToken).ConfigureAwait(false);
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await roles.DeleteAsync(code, cancellationToken, expected.Value).ConfigureAwait(false);
         return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
     }
 }
@@ -424,14 +467,14 @@ public sealed record RoleAssignmentDto(string Role, Guid? SiteId);
 /// <summary>A user; <c>pinSet</c> tells whether a field user has a PIN (an imported one has none until an administrator sets it).</summary>
 public sealed record UserResponse(
     Guid Id, string Kind, string Status, string FirstName, string LastName, string? Email, string? Phone, string? EmployeeId,
-    IReadOnlyList<RoleAssignmentDto> Roles, bool RequiresMfa, DateTimeOffset CreatedAt, DateTimeOffset? DeactivatedAt, bool PinSet);
+    IReadOnlyList<RoleAssignmentDto> Roles, bool RequiresMfa, DateTimeOffset CreatedAt, DateTimeOffset? DeactivatedAt, bool PinSet, string Version);
 
 public sealed record UserPage(IReadOnlyList<UserResponse> Items, Guid? NextCursor);
 
 /// <summary>A role: default (name translated by the apps from the code) or custom; field levels of every declared field.</summary>
 public sealed record RoleResponse(
     string Code, bool IsDefault, string? Name, string? Description, string? BasedOn, bool Office, bool Privileged,
-    IReadOnlyList<string> Permissions, IReadOnlyDictionary<string, string> FieldLevels);
+    IReadOnlyList<string> Permissions, IReadOnlyDictionary<string, string> FieldLevels, string Version);
 
 public sealed record RoleList(IReadOnlyList<RoleResponse> Items);
 

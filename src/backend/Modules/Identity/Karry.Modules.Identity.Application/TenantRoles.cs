@@ -6,11 +6,12 @@ namespace Karry.Modules.Identity.Application;
 
 /// <summary>
 /// A role as the tenant sees it (US-P1-IAM-05, US-P1-IAM-07 AC1): its permissions and the effective level of every
-/// sensitive field the modules declare. Default roles have no stored name (the apps translate the code).
+/// sensitive field the modules declare. Default roles have no stored name (the apps translate the code). <c>Version</c>
+/// is the custom role's, or the default role's settings (0 while the company never changed them), for <c>If-Match</c>.
 /// </summary>
 public sealed record RoleView(
     string Code, bool IsDefault, string? Name, string? Description, string? BasedOn, bool Office, bool Privileged,
-    IReadOnlySet<string> Permissions, IReadOnlyDictionary<string, FieldAccess> FieldLevels)
+    IReadOnlySet<string> Permissions, IReadOnlyDictionary<string, FieldAccess> FieldLevels, uint Version = 0)
 {
     public RoleDefinition Definition => new(Code, Privileged, Office);
 }
@@ -33,17 +34,18 @@ public sealed class TenantRoles
         ArgumentNullException.ThrowIfNull(catalog);
         ArgumentNullException.ThrowIfNull(custom);
         ArgumentNullException.ThrowIfNull(settings);
-        var overrides = settings.ToDictionary(s => s.Role, s => s.FieldLevels, StringComparer.Ordinal);
+        var stored = settings.ToDictionary(s => s.Role, StringComparer.Ordinal);
         var defaults = Roles.Defaults.Values.Select(role => new RoleView(
             role.Code, IsDefault: true, Name: null, Description: null, BasedOn: null, role.Office, role.Privileged,
             catalog.DefaultPermissionsOf(role.Code),
-            EffectiveDefaultLevels(catalog, role.Code, overrides.GetValueOrDefault(role.Code))));
+            EffectiveDefaultLevels(catalog, role.Code, stored.GetValueOrDefault(role.Code)?.FieldLevels),
+            stored.GetValueOrDefault(role.Code)?.Version ?? 0));
         var customs = custom.Select(role =>
         {
             var permissions = role.Permissions.Where(code => catalog.Permission(code) is not null).ToHashSet(StringComparer.Ordinal);
             var fields = EffectiveCustomLevels(catalog, role.FieldLevels);
             return new RoleView(role.Code, IsDefault: false, role.Name, role.Description, role.BasedOn, role.Office,
-                IsPrivileged(catalog, permissions, fields), permissions, fields);
+                IsPrivileged(catalog, permissions, fields), permissions, fields, role.Version);
         });
         return new TenantRoles(defaults.Concat(customs));
     }
