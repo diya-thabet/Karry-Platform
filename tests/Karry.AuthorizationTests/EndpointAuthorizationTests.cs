@@ -35,6 +35,7 @@ public sealed class EndpointAuthorizationTests
         ["UnlockTablet"] = "A field user of the tablet's site checks their PIN online (server lockout, ledger event on lock).",
         ["GetSyncChanges"] = "The reference data of the tablet's own site (its machines, the company's materials, its field users with verifiers keyed by this tablet).",
         ["UploadSyncBatch"] = "Commands signed by the tablet's own key, stored in its own sequence; a revoked tablet's are only quarantined.",
+        ["PresignSyncBlob"] = "A pre-signed upload for the tablet's own content-addressed key (its tenant and device from the signed request, never the body), only for that checksum and type, for 15 minutes.",
     };
 
     /// <summary>Endpoints without a tenant: anonymous or for platform operators only.</summary>
