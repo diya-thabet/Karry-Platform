@@ -50,6 +50,9 @@ public sealed class DeviceAuthenticationHandler(
 
     public const string StatusClaim = "device_status";
 
+    /// <summary>When the tablet signed this request, by its clock (unix seconds): the server measures the tablet's clock offset from it.</summary>
+    public const string IssuedAtClaim = "device_iat";
+
     public const string InvalidCode = "devices.assertion_invalid";
 
     public const string ClockSkewCode = "devices.clock_skew";
@@ -155,6 +158,7 @@ public sealed class DeviceAuthenticationHandler(
             new Claim(DeviceIdClaim, deviceId.ToString("D")),
             new Claim(SiteIdClaim, device.SiteId.ToString("D")),
             new Claim(StatusClaim, device.Revoked ? "revoked" : "active"),
+            new Claim(IssuedAtClaim, claims.Iat.ToString(CultureInfo.InvariantCulture)),
         ], SchemeName, "sub", null));
         return (principal, string.Empty);
     }
@@ -207,15 +211,18 @@ public sealed class DeviceAuthenticationHandler(
 /// <summary>Endpoint metadata: the caller is an enrolled device; <see cref="AllowRevoked"/> lets a revoked one in (uploads to quarantine).</summary>
 public sealed record DeviceEndpoint(bool AllowRevoked);
 
-/// <summary>Who called a device endpoint.</summary>
-public readonly record struct DeviceCaller(Guid DeviceId, Guid SiteId, bool Revoked)
+/// <summary>Who called a device endpoint; <see cref="IssuedAt"/> is when the tablet signed the request, by its own clock.</summary>
+public readonly record struct DeviceCaller(Guid DeviceId, Guid SiteId, bool Revoked, DateTimeOffset? IssuedAt = null)
 {
     public static DeviceCaller? From(ClaimsPrincipal user)
     {
         ArgumentNullException.ThrowIfNull(user);
+        DateTimeOffset? issuedAt = long.TryParse(user.FindFirst(DeviceAuthenticationHandler.IssuedAtClaim)?.Value, CultureInfo.InvariantCulture, out var iat)
+            ? DateTimeOffset.FromUnixTimeSeconds(iat)
+            : null;
         return Guid.TryParse(user.FindFirst(DeviceAuthenticationHandler.DeviceIdClaim)?.Value, CultureInfo.InvariantCulture, out var device)
             && Guid.TryParse(user.FindFirst(DeviceAuthenticationHandler.SiteIdClaim)?.Value, CultureInfo.InvariantCulture, out var site)
-                ? new DeviceCaller(device, site, user.FindFirst(DeviceAuthenticationHandler.StatusClaim)?.Value != "active")
+                ? new DeviceCaller(device, site, user.FindFirst(DeviceAuthenticationHandler.StatusClaim)?.Value != "active", issuedAt)
                 : null;
     }
 }

@@ -13,6 +13,7 @@ public static class SyncInfrastructure
         services.AddModuleDbContext<SyncDbContext>(connectionString);
         services.AddScoped<IInboxStore, InboxStore>();
         services.AddScoped<IWaitingReport, WaitingReport>();
+        services.AddScoped<BuildingBlocks.Sync.ISyncSource, SubmissionsSync>();
         services.AddScoped<MeasureSyncGaps>();
         services.TryAddSingleton<SyncGapMetrics>();
         services.TryAddSingleton(TimeProvider.System);

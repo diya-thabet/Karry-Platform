@@ -2,6 +2,7 @@ using System.Data.Common;
 using Karry.BuildingBlocks.Sync;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Sync.Domain;
+using Karry.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
@@ -27,7 +28,8 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
             var waiting = await db.Waiting.Where(w => w.DeviceId == deviceId && w.Sequence > last
                     && !db.Inbox.Any(i => i.DeviceId == w.DeviceId && i.Id == w.Id))
                 .OrderBy(w => w.Sequence).Take(InboxRules.MaxWaiting).ToListAsync(cancellationToken).ConfigureAwait(false);
-            return new Session(db, transaction, stored, unhandled, last, waiting);
+            var clock = await db.Clocks.SingleOrDefaultAsync(c => c.DeviceId == deviceId, cancellationToken).ConfigureAwait(false);
+            return new Session(db, transaction, deviceId, stored, unhandled, last, waiting, clock);
         }
         catch
         {
@@ -37,8 +39,8 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
     }
 
     private sealed class Session(
-        SyncDbContext db, IDbContextTransaction transaction, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last,
-        IReadOnlyList<WaitingCommand> waiting)
+        SyncDbContext db, IDbContextTransaction transaction, Guid deviceId, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last,
+        IReadOnlyList<WaitingCommand> waiting, DeviceClock? clock)
         : IInboxSession, ISyncTransaction
     {
         public IReadOnlySet<CommandId> Stored => stored;
@@ -68,6 +70,19 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
         public void Add(UnhandledCommand unhandled) => db.Unhandled.Add(unhandled);
 
         public void Add(WaitingCommand waiting) => db.Waiting.Add(waiting);
+
+        public void MeasureClock(TenantId tenant, int offsetMs, DateTimeOffset measuredAt)
+        {
+            if (clock is null)
+            {
+                clock = new DeviceClock(tenant, deviceId, offsetMs, measuredAt);
+                db.Clocks.Add(clock);
+            }
+            else
+            {
+                clock.Measure(offsetMs, measuredAt);
+            }
+        }
 
         public async Task<bool> CommitAsync(CancellationToken cancellationToken)
         {

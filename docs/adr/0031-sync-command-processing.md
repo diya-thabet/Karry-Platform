@@ -3,7 +3,7 @@ title: "ADR-0031: Sync command processing: handlers in the upload request, one s
 area: adr
 tags: [sync, offline, commands, handlers, savepoint, sequence, gaps, clock-offset, idempotency, phase-2]
 source: "Phase 2 sub-phase P2.0 (decision for P2.1)"
-status: proposed
+status: accepted
 last_updated: 2026-11-09
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-09
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (2026-11-09, P2.0)
+- **Status:** Accepted (2026-11-09, built in P2.1; proposed in P2.0)
 - **Date:** 2026-11-09
 - **Deciders:** Product owner, software architect
 - **Related:** US-P2-OFF-03 (AC1–AC4), US-P2-OFF-04 AC1, US-P2-OFF-05 (AC1–AC2); TC-P2-SYNC-001, 003, 008, 009, 010,
@@ -172,7 +172,7 @@ command twice gives one record and the handler is called once), replay, the reje
 rollback when the handler throws. A handler for tests only (`test.echo.v1`, compiled only into test hosts) proves
 the pipeline before the first real handler exists.
 
-### 8. As built (P2.1 slices 1 and 2, 2026-11-09)
+### 8. As built (P2.1, 2026-11-09)
 
 - The contracts live in **`Karry.BuildingBlocks.Sync`** (`SyncCommands.cs`), next to `ISyncSource`, rather than in
   `Sync.Contracts`: modules already reference the building blocks for the pull side, and a handler then needs no
@@ -202,6 +202,17 @@ the pipeline before the first real handler exists.
   A tablet past 24 h is logged by name (event 7206; 7207 when a company cannot be measured), so the metrics carry
   no device label. Alert `KarrySyncGapOpen` (ticket, 15 minutes), runbook
   [karry-sync-gap](../06-operations/runbooks/karry-sync-gap.md).
+- **Slice 3 (status pull and clock, §6):** `GET /sync/changes` gains the collection **`submissions`**, from the
+  Sync module's own `ISyncSource`. It has one row per command this tablet sent: `{id (the command ID), sequence, status, code,
+  flags, recordId, at}`. The statuses are `accepted`/`conflict` from `processed_commands`, `waiting`, and `rejected` with
+  `sync.type_unknown`; a handled command's outcome wins. A snapshot covers 14 days; a delta covers what changed since the
+  cursor, under the usual 5-minute overlap. The field app ignores the collection until P2.2 stores it. The **clock offset** is
+  measured by the server, not reported by the tablet: it is the difference between the time the tablet signed the upload
+  (the assertion's `iat`, now on `DeviceCaller.IssuedAt`) and the server's receipt, so it is trustworthy and within the
+  5-minute assertion window (whole seconds, plus network time). The last value is kept in `sync.device_clocks`, owned by
+  Sync and updated rather than appended; it is not on the device row of Identity, which keeps the boundary. Handlers get it
+  in `VerifiedCommand.ClockOffsetMs`. A waiting command keeps the **receipt time and offset of its arrival**
+  (`waiting_commands.clock_offset_ms`), and its handler and inbox row use those, not the time the gap closed.
 - Log events: 7203 (type unknown, warning), 7204 (handler failed, error, with the exception).
 
 ## Options considered
