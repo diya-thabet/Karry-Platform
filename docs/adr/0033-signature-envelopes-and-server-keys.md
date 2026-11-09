@@ -165,8 +165,22 @@ signed part, as in ADR-0007.
   4010, security) and `trust.envelope_conflict` (the same ID with other content, event 4011, security).
   Tests: `EnvelopeRecorderTests` (TC-P2-SIG-002 and TC-P2-SIG-007 on real PostgreSQL). Table named
   `audit.signature_envelopes` (the Trust module's schema is `audit`), not `trust.signature_envelope` as in the card.
-- **Still to build in P2.3:** `audit.server_keys` and the countersignature row (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
-  the countersign job with its metrics and alerts, the SignaturePad, and the portal's "Verified" badge.
+- **Slice 3c, countersigning:** what is signed is SHA-256 of the RFC 8785 text
+  `{"envelopeHash","receivedAt","v":1}` with `receivedAt` in UTC to the microsecond (`Countersignatures` in
+  Trust.Contracts; the database's precision, so the stored row always rebuilds the signed text). `CountersignEnvelopes`
+  (Trust.Application), run by `CountersignJob` in Karry.Workers **every 30 seconds**: per tenant, pending envelopes
+  oldest first, batches of 100, at most 10 per tenant and run; a key version not yet published is first added to
+  `audit.server_keys` (global, append-only: public keys, so anyone can verify from the database alone); the
+  countersignature goes in `audit.envelope_countersignatures` (one per envelope, append-only, RLS; a second worker's
+  duplicate is dropped and the first stands). When the service does not answer, the run stops signing, envelopes stay
+  pending, the lag is still measured (event 4012). Metrics `karry_trust_countersigned_total`,
+  `karry_trust_countersign_failures_total`, `karry_trust_countersign_lag_seconds`; alerts `KarryCountersignLagHigh`
+  (> 15 min for 5 min) and `KarryCountersignFailing` (> 5 failed runs in 15 min, for 10 min), with promtool tests;
+  runbook [signing service down](../06-operations/runbooks/karry-signing-service-down.md). Tests:
+  `CountersignTests` with PostgreSQL and OpenBao (TC-P2-SIG-001, TC-P2-SIG-004 end to end, TC-P2-SIG-006,
+  TC-P2-SIG-007 for both tables), `CountersignMetricsTests`.
+- **Still to build in P2.3:** the verification endpoint `GET /api/v1/trust/envelopes/{id}/verification`, the
+  SignaturePad (TC-P2-SIG-008), the portal "Verified" badge, and the close-out (security review, ADR accepted).
 
 ## Options considered
 

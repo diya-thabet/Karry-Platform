@@ -30,4 +30,5 @@ Alert rules live in [`deploy/observability/alerts/karry-alerts.yaml`](../../../d
 | [karry-evidence-upload](karry-evidence-upload.md) | `KarryEvidenceStoreUnavailable`: the evidence store has not answered for 15 min, photos wait on the tablets (P2.2, ADR-0032) | ticket |
 | [karry-break-glass-support](karry-break-glass-support.md) | A Karry operator opened a support session without the company's code | page |
 | [karry-evidence-upload](karry-evidence-upload.md#karrysyncblobmismatch-page-security) | `KarrySyncBlobMismatch`: a stored photo does not match its signed entry (threat T-03) | page |
+| [karry-signing-service-down](karry-signing-service-down.md) | `KarryCountersignLagHigh` / `KarryCountersignFailing`: envelopes wait for the server's countersignature; nothing is lost (P2.3, ADR-0033 §4) | ticket |
 | [karry-server-key-rotation](karry-server-key-rotation.md) | Procedure (no alert): rotate the server signing key in OpenBao; old versions stay verify-only (P2.3, ADR-0033) | — |

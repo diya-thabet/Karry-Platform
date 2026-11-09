@@ -354,6 +354,49 @@ tests:
         alertname: KarrySyncBlobMismatch
         exp_alerts: []
 
+  # --- Countersigning (ADR-0033 §4) -------------------------------------------------------------------------------
+  - name: a countersign lag over 15 minutes for 5 minutes opens a ticket
+    interval: 1m
+    input_series:
+      - series: 'karry_trust_countersign_lag_seconds{job="karry-workers"}'
+        values: '0x10 600+60x20 0x10'
+    alert_rule_test:
+      - eval_time: 15m
+        alertname: KarryCountersignLagHigh
+        exp_alerts: []
+      - eval_time: 27m
+        alertname: KarryCountersignLagHigh
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "Envelopes have waited over 15 minutes for the server's countersignature"
+              description: "The countersign job is behind or the signing service does not answer. Check the Workers logs (events 4012, 4013) and OpenBao."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-signing-service-down.md"
+      - eval_time: 38m
+        alertname: KarryCountersignLagHigh
+        exp_alerts: []
+
+  - name: countersign failures for 15 minutes open a ticket, a single one does not
+    interval: 1m
+    input_series:
+      - series: 'karry_trust_countersign_failures_total{job="karry-workers"}'
+        values: '0 1x20 1+2x40'
+    alert_rule_test:
+      - eval_time: 16m
+        alertname: KarryCountersignFailing
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: KarryCountersignFailing
+        exp_alerts: []
+      - eval_time: 55m
+        alertname: KarryCountersignFailing
+        exp_alerts:
+          - exp_labels: {job: karry-workers, severity: ticket}
+            exp_annotations:
+              summary: "Countersigning keeps failing"
+              description: "Every countersign run fails: the signing service is down, sealed or refuses the Workers' token. Envelopes stay pending until it recovers."
+              runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-signing-service-down.md"
+
   # --- Break-glass support session (ADR-0029 §4) -------------------------------------------------------------
   - name: the first break-glass session after a start (new series at 1) fires at once
     interval: 1m

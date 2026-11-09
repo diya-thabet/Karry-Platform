@@ -169,6 +169,7 @@ builder.Services.AddQuartz(quartz =>
     Schedule<ShiftInstanceJob>(quartz, "shift-instances", ShiftInstanceJob.Schedule);
     Schedule<ImportRetentionJob>(quartz, "import-retention", ImportRetentionJob.Schedule);
     Schedule<SyncGapJob>(quartz, "sync-gaps", SyncGapJob.Schedule);
+    Schedule<CountersignJob>(quartz, "countersign", CountersignJob.Schedule);
     if (anchoring)
     {
         Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);

@@ -179,6 +179,32 @@ groups:
           description: "Commands with photos are refused for now (sync.blobs_unavailable) and wait on the tablets. Check the object store and the API's Storage:Evidence settings."
           runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-evidence-upload.md"
 
+  - name: karry-trust
+    rules:
+      - alert: KarryCountersignLagHigh
+        # An envelope has waited over 15 minutes for the server's countersignature (ADR-0033 §4; target 5). Entries
+        # are stored and ledgered meanwhile, so nothing is lost, but they show "pending" to controllers.
+        expr: max by (job) (karry_trust_countersign_lag_seconds) > 900
+        for: 5m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Envelopes have waited over 15 minutes for the server's countersignature"
+          description: "The countersign job is behind or the signing service does not answer. Check the Workers logs (events 4012, 4013) and OpenBao."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-signing-service-down.md"
+
+      - alert: KarryCountersignFailing
+        # Countersign runs keep failing (the signing service is down, sealed, or refuses the token). A run every 30 s
+        # fails about 30 times in 15 minutes during an outage; a lone failure (a restart of OpenBao) does not page.
+        expr: sum by (job) (increase(karry_trust_countersign_failures_total[15m])) > 5
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: "Countersigning keeps failing"
+          description: "Every countersign run fails: the signing service is down, sealed or refuses the Workers' token. Envelopes stay pending until it recovers."
+          runbook_url: "https://github.com/diya-thabet/Karry-Platform/blob/main/docs/06-operations/runbooks/karry-signing-service-down.md"
+
   - name: karry-security
     rules:
       - alert: KarryBreakGlassSupport
