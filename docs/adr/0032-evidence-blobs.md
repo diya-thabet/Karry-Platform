@@ -153,8 +153,16 @@ A blob stays in the tablet's store until **the command that references it** is a
   Tests: `SyncBlobsTests` (TC-P2-SYNC-004, TC-P2-SYNC-005 server side), `SyncBlobRulesTests`. The `HEAD` calls run
   inside the upload's transaction (a few per command, each bounded by the store's 20 s budget); if they prove slow
   at shift change they can be made before the lock.
-- **Still to build in P2.2:** the tablet's blob store and uploader (its E2E test also proves the CORS rule from a
-  real browser).
+- **The tablet's outbox and blobs (slice 4, `@karry/offline`, Dexie schema v2):** `enqueue` hashes the evidence,
+  names it in the payload, takes the next sequence number, signs, and writes the command, its blobs and the last
+  number in one IndexedDB transaction (signing is asynchronous and cannot run inside it, so the number is checked
+  again inside and the command is signed anew if another tab took it: TC-P2-SYNC-014, storage side). `nextBatch`
+  (pending commands and the server's `missingSequences`, ≤ 50 commands, ≈ 2 MB, with the blobs still to upload),
+  `markUploaded`, `applyReceipts`, `applySubmissions` (`sync.type_unknown` is sent again), `purgeBlobs` (bytes freed 7
+  days after every command naming the blob is confirmed, never before, thumbnail kept: TC-P2-SYNC-011) and
+  `outboxSummary`. A refused command keeps its evidence. Bytes are stored as `Uint8Array`.
+- **Still to build in P2.2:** the field app's sync engine (presign and `PUT`, then the batch; triggers, backoff, Web
+  Locks), the sync centre screen, and the browser E2E tests (they also prove the CORS rule from a real browser).
 
 ## Options considered
 

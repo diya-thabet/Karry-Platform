@@ -17,7 +17,7 @@ last_updated: 2026-10-21
 Dexie (IndexedDB)
 ├── reference/*       master data snapshot for the user's sites (assets, materials, customers, roles)
 ├── drafts/*          unsaved form state (auto-saved)
-├── outbox            signed, immutable commands awaiting upload (ordered, with retry metadata)
+├── outbox            signed, immutable commands in sequence: pending → waiting / confirmed / rejected, with the server's code and flags (P2.2)
 ├── blobs             photos/signature strokes (compressed WebP/JPEG ≤ 1 MB, one pre-signed PUT each; ADR-0032)
 └── sync_state        per-collection cursors, last success, device clock offset
 ```
