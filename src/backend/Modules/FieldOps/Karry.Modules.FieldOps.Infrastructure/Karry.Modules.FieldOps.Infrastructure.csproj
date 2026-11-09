@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Persistence (EF Core mappings, migrations), adapters implementing Application ports. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.FieldOps.Application/Karry.Modules.FieldOps.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.FieldOps.Domain/Karry.Modules.FieldOps.Domain.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

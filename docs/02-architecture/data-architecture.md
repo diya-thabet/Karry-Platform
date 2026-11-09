@@ -34,6 +34,8 @@ last_updated: 2026-10-21
 
 ## 11.3 Illustrative core tables (abridged)
 
+The shift entry as built is in [ADR-0034 §3, §8](../adr/0034-shift-entries.md) (append-only versions, `numeric(9,1)` meter values); the sketch below is the original idea.
+
 ```sql
 -- fieldops.shift_entry
 id uuid pk, tenant_id uuid, site_id uuid, asset_id uuid, operator_id uuid,

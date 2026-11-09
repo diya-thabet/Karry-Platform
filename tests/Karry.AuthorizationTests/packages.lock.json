@@ -784,6 +784,7 @@
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Assets.Api": "[1.0.0, )",
           "Karry.Modules.Billing.Api": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Api": "[1.0.0, )",
           "Karry.Modules.Flags.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
           "Karry.Modules.Imports.Api": "[1.0.0, )",
@@ -868,6 +869,44 @@
         "type": "Project",
         "dependencies": {
           "Karry.Modules.Billing.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.fieldops.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.FieldOps.Application": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.fieldops.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Assets.Contracts": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Contracts": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Domain": "[1.0.0, )",
+          "Karry.Modules.Organization.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )"
+        }
+      },
+      "karry.modules.fieldops.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.fieldops.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.fieldops.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Application": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Domain": "[1.0.0, )"
         }
       },
       "karry.modules.flags.api": {

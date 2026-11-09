@@ -5,6 +5,7 @@ using System.Text.Json;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Application;
+using Karry.Modules.Assets.Contracts;
 using Karry.Modules.Assets.Domain;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
@@ -205,6 +206,29 @@ public sealed class MetersApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await first.ServiceProvider.GetRequiredService<IMeterStore>().TrySaveAsync(a, Ct)).Should().BeTrue();
         (await second.ServiceProvider.GetRequiredService<IMeterStore>().TrySaveAsync(b, Ct)).Should().BeFalse("10 after 20 would make the meter go back");
         (await ScalarAsync<long>($"SELECT count(*) FROM assets.meter_readings WHERE meter_id = '{meter}'")).Should().Be(2);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-01")]
+    public async Task The_meter_directory_gives_other_modules_the_meter_its_machine_and_site_only_in_its_company()
+    {
+        var tenant = await ProvisionAsync();
+        var other = await ProvisionAsync();
+        var site = await SiteAsync(tenant);
+        var asset = await RegisterAsync(tenant, site, "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+
+        await using var mine = Scope(tenant);
+        await using var theirs = Scope(other);
+        var found = await mine.ServiceProvider.GetRequiredService<IMeterDirectory>().FindAsync(meter, Ct);
+
+        found.Should().NotBeNull();
+        (found!.MeterId, found.AssetId, found.AssetCode, found.Kind, found.Status).Should().Be((meter, asset, "PEL-01", "hours", "ok"));
+        found.Sites.Should().ContainSingle().Which.SiteId.Should().Be(site);
+        found.SiteAt(DateTimeOffset.UtcNow).Should().Be(site);
+        found.SiteAt(found.Sites[0].From.AddTicks(-1)).Should().BeNull("the machine was on no site before its first assignment");
+        (await theirs.ServiceProvider.GetRequiredService<IMeterDirectory>().FindAsync(meter, Ct)).Should().BeNull("another company's meter is invisible");
+        (await mine.ServiceProvider.GetRequiredService<IMeterDirectory>().FindAsync(Guid.CreateVersion7(), Ct)).Should().BeNull();
     }
 
     private AsyncServiceScope Scope(Guid tenant)

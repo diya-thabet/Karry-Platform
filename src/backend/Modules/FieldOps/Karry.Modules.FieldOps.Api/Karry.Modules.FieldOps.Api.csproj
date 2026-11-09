@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- HTTP endpoints and the IModule entry point that wires the FieldOps module into the host. -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.FieldOps.Application/Karry.Modules.FieldOps.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.FieldOps.Infrastructure/Karry.Modules.FieldOps.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

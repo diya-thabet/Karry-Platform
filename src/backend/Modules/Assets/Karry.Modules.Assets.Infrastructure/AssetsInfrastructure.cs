@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Storage;
 using Karry.Modules.Assets.Application;
+using Karry.Modules.Assets.Contracts;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -24,6 +25,7 @@ public static class AssetsInfrastructure
         services.AddSingleton<ILabelSheet, LabelSheet>();
         services.AddScoped<IMeterStore, MeterStore>();
         services.AddScoped<MeterOperations>();
+        services.AddScoped<IMeterDirectory, MeterDirectory>();
         services.AddScoped<DemoAssetsSeeder>();
         services.AddScoped<IUsageSource, CountedAssets>();
 

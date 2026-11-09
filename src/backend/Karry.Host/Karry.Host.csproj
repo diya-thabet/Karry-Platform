@@ -24,5 +24,6 @@
     <ProjectReference Include="..\Modules\Assets\Karry.Modules.Assets.Api\Karry.Modules.Assets.Api.csproj" />
     <ProjectReference Include="..\Modules\Imports\Karry.Modules.Imports.Api\Karry.Modules.Imports.Api.csproj" />
     <ProjectReference Include="..\Modules\Sync\Karry.Modules.Sync.Api\Karry.Modules.Sync.Api.csproj" />
+    <ProjectReference Include="..\Modules\FieldOps\Karry.Modules.FieldOps.Api\Karry.Modules.FieldOps.Api.csproj" />
   </ItemGroup>
 </Project>

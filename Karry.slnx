@@ -14,6 +14,11 @@
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Contracts/Karry.Modules.Billing.Contracts.csproj" />
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Domain/Karry.Modules.Billing.Domain.csproj" />
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Infrastructure/Karry.Modules.Billing.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Api/Karry.Modules.FieldOps.Api.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Application/Karry.Modules.FieldOps.Application.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Contracts/Karry.Modules.FieldOps.Contracts.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Domain/Karry.Modules.FieldOps.Domain.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Infrastructure/Karry.Modules.FieldOps.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Api/Karry.Modules.Flags.Api.csproj" />
     <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Application/Karry.Modules.Flags.Application.csproj" />
     <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Contracts/Karry.Modules.Flags.Contracts.csproj" />
@@ -58,6 +63,7 @@
   <Folder Name="/tests/">
     <Project Path="src/backend/Modules/Assets/Karry.Modules.Assets.Tests/Karry.Modules.Assets.Tests.csproj" />
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Tests/Karry.Modules.Billing.Tests.csproj" />
+    <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Tests/Karry.Modules.FieldOps.Tests.csproj" />
     <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Tests/Karry.Modules.Flags.Tests.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Tests/Karry.Modules.Identity.Tests.csproj" />
     <Project Path="src/backend/Modules/Imports/Karry.Modules.Imports.Tests/Karry.Modules.Imports.Tests.csproj" />

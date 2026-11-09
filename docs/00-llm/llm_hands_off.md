@@ -9,8 +9,8 @@
 | Project | Karry Platform: Enterprise Quarry & Mining Management SaaS |
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
-| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0, P2.1 and P2.2 ✅, next P2.3 (signature envelopes) ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
-| Last updated | 2026-10-29 |
+| Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0–P2.3 ✅, P2.4 (shift entries) in progress ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
+| Last updated | 2026-11-09 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
 ---
@@ -272,7 +272,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0, P2.1, P2.2 ✅** (#147–#160), P2.3 next: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P2 Field operations | **P2.0–P2.3 ✅** (#147–#169), P2.4 in progress: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
 | P3–P11 | Not started |
 
 ---
@@ -423,7 +423,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Caught while writing R-12:** I first advised "move the unseal key off the host", but `start.sh` unseals from that file at every start, so the advice would leave OpenBao sealed after a restart. Check a mitigation against the scripts before writing it.
 - **Merged:** #169 (P2.3 close-out). **P2.3 ✅.**
 - **P2.4 slice 1 (PR from `feat/p2.4-shift-resolution`):** ADR-0034 written (proposed): module `FieldOps`; shift resolved from the rules at the start's device time (early start ≤ 60 min, else `SHIFT_OUTSIDE_PATTERN`); append-only versions `(root_id, version)` and `segment_no`; handover = end + start with `previousRootId` (each person signs their own fact; no `.handover.v1`, no `fieldops.shift_instance`: plan amended); command payload `{record, envelope, deviceSignature}`; flags `RULE-FO-01`, `RULE-FO-02`, `SHIFT_OUTSIDE_PATTERN`, `ASSET_NOT_ON_SITE`, `END_BEFORE_START`, `OVERLAP`. Code: `ShiftCalendar.Resolve`, `IShiftCalendar`/`ResolvedShift`, `ShiftResolution`. Organization tests 73/73.
-- **Next:** P2.4 slice 2: `tools/new-module.sh FieldOps` (then reference it from Karry.Host and register in `ModuleCatalog.cs`), an Assets contract for machines and meters (`Assets.Contracts` is empty today), `fieldops.shift_entries` append-only, handlers `fieldops.shift_entry.start.v1` / `.end.v1` with the envelope through `IEnvelopeRecorder`, flags.
+- **Merged:** #170 (P2.4 slice 1).
+- **P2.4 slice 2 (PR from `feat/p2.4-shift-entries`):** module `FieldOps` (`tools/new-module.sh FieldOps`, referenced by Karry.Host, `FieldOpsModule` in `ModuleCatalog.cs` after `SyncModule`); `IMeterDirectory`/`MeterSummary`/`MeterValues` in Assets.Contracts, `MeterDirectory` in Assets.Infrastructure; `fieldops.shift_entries` append-only (trigger + revoked grants, RLS); handlers `StartShiftEntry`/`EndShiftEntry` with `SignedRecord.Read` (envelope bound to the record) and the envelope stored through `IEnvelopeRecorder` in the same transaction; flags `RULE-FO-02`, `END_BEFORE_START`, `SHIFT_OUTSIDE_PATTERN`, `ASSET_NOT_ON_SITE`; `estimated` on a failed meter. Meter values: 1 decimal, `numeric(9,1)` (ADR-0034 corrected from 2 decimals). Tests: FieldOps 24 (PostgreSQL), Assets meters 9, architecture 32, tenant isolation 404, host 33.
+- **Trap:** a FieldOps handler test runs the handler like the Sync module: a scope with the tenant set, a `Joined(connection, transaction)` for `ISyncTransaction`, rollback when `Rejected`. The status column stores the enum name (`Open`/`Closed`).
+- **Next:** P2.4 slice 3: continuity `RULE-FO-01` (start ≠ last end of the same meter or previous segment, TC-P2-FO-003/006/007), `OVERLAP` (TC-P2-FO-011), property test over the shift generator; then slice 4: portal read API `GET /api/v1/fieldops/entries…` (site scope, masking, attack values in the tenant-isolation suite); then close-out (security review T-01/T-10, ADR-0034 accepted).
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.
