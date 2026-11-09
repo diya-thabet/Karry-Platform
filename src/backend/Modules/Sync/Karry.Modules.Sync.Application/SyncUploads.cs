@@ -28,13 +28,18 @@ public sealed record CommandReceipt(Guid CommandId, string Status, string? Code)
 /// <summary>The answer to a batch, in its order; <see cref="LastSequence"/> is the device's last stored sequence number.</summary>
 public sealed record BatchReceipt(IReadOnlyList<CommandReceipt> Results, long LastSequence);
 
+/// <summary>What an upload is decided against, read at one moment.</summary>
+/// <param name="Stored">Which of the batch's commands the device has already uploaded (received or quarantined).</param>
+/// <param name="LastSequence">The highest sequence number among the device's received commands; 0 before its first.</param>
+public sealed record InboxSnapshot(IReadOnlySet<CommandId> Stored, long LastSequence);
+
 public interface IInboxStore
 {
-    /// <summary>The highest sequence number among the device's received commands; 0 before its first.</summary>
-    Task<long> LastSequenceAsync(Guid deviceId, CancellationToken cancellationToken);
-
-    /// <summary>Which of <paramref name="ids"/> the device has already uploaded (received or quarantined).</summary>
-    Task<IReadOnlySet<CommandId>> StoredAsync(Guid deviceId, IReadOnlyCollection<CommandId> ids, CancellationToken cancellationToken);
+    /// <summary>
+    /// The stored commands among <paramref name="ids"/> and the last sequence number, from one snapshot: read apart, an
+    /// upload stored in between made a retry's own commands look like new ones reusing their numbers.
+    /// </summary>
+    Task<InboxSnapshot> SnapshotAsync(Guid deviceId, IReadOnlyCollection<CommandId> ids, CancellationToken cancellationToken);
 
     /// <summary>Stores the commands in one transaction; false when another upload of the device stored one of them first.</summary>
     Task<bool> TryAddAsync(IReadOnlyCollection<InboxCommand> commands, CancellationToken cancellationToken);
@@ -107,7 +112,7 @@ public sealed partial class SyncUploads(IInboxStore store, IDeviceDirectory devi
         var tenantId = tenant.Current ?? throw new InvalidOperationException("A device request always runs for its tenant.");
         var now = clock.GetUtcNow();
         var commands = batch.Commands!.Select(c => Signed(c)).ToList();
-        var stored = await store.StoredAsync(caller.DeviceId, [.. commands.Select(c => c.Id)], cancellationToken).ConfigureAwait(false);
+        var (stored, last) = await store.SnapshotAsync(caller.DeviceId, [.. commands.Select(c => c.Id)], cancellationToken).ConfigureAwait(false);
 
         if (caller.Revoked)
         {
@@ -123,7 +128,6 @@ public sealed partial class SyncUploads(IInboxStore store, IDeviceDirectory devi
 
         var key = await devices.FindAsync(caller.DeviceId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("An authenticated device has a key.");
-        var last = await store.LastSequenceAsync(caller.DeviceId, cancellationToken).ConfigureAwait(false);
         var (decisions, lastSequence) = InboxRules.Decide(last, stored, commands.Select(c => new UploadCandidate(c.Id, c.Sequence, Verify(key, c))));
 
         var received = commands.Where((_, i) => decisions[i].Outcome == UploadOutcome.Accepted)
