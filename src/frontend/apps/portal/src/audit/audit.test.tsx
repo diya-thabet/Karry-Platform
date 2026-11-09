@@ -1,5 +1,5 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import axe from "axe-core";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
@@ -256,5 +256,65 @@ describe("audit access", () => {
 
     const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
     expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+  });
+});
+
+describe("signature verification badge (US-P2-SIG-04 AC2)", () => {
+  const envelopeId = "0192f0c1-0000-7000-8000-00000000e001";
+  const received = auditEntry({
+    sequence: 4, eventId: "0192f0c1-0000-7000-8000-00000000a004", eventType: "trust.envelope_received.v1", occurredAt: "2026-11-09T18:00:00Z",
+    actor: null, actorName: null, entityType: null, entityId: null, siteId: null, changes: [],
+    event: recordedEvent({ envelopeId, envelopeHash: `sha256:${"a".repeat(64)}`, recordType: "shift.entry", recordVersion: 1 }),
+  });
+  const check = (name: string, result: string) => ({ name, result, detail: null });
+  const verification = (status: string, checks: ReturnType<typeof check>[], countersigned = true) => ({
+    envelopeId, recordType: "shift.entry", recordId: "0192f0c1-0000-7000-8000-00000000f001", recordVersion: 1, envelopeHash: `sha256:${"a".repeat(64)}`,
+    receivedAt: "2026-11-09T18:00:00Z", status, serverKeyId: countersigned ? "karry-server-v2" : null, countersignedAt: countersigned ? "2026-11-09T18:00:30Z" : null,
+    ledgerSequence: 4, checks,
+  });
+  const allPass = [check("envelope", "pass"), check("device_signature", "pass"), check("server_countersignature", "pass"), check("ledger_entry", "pass"), check("record_payload", "not_checked")];
+
+  async function openEntry(api: ReturnType<typeof fakeApi>) {
+    await renderAt("/audit", api);
+    fireEvent.click(await screen.findByRole("button", { name: "Details of entry no. 4" }));
+    return screen.findByRole("dialog", { name: "Entry no. 4" });
+  }
+
+  it("shows Verified with every check and the server key of a received signature", async () => {
+    const dialog = await openEntry(fakeApi({ permissions: auditor, auditEntries: [received], envelopeVerifications: { [envelopeId]: verification("verified", allPass) } }));
+
+    const signature = await within(dialog).findByRole("region", { name: "Signature" });
+    expect(await within(signature).findByText("Verified")).toBeInTheDocument();
+    const checks = within(within(signature).getByRole("list", { name: "Checks of the signature" })).getAllByRole("listitem");
+    expect(checks.map((item) => item.textContent)).toEqual([
+      "Signed content and its fingerprintValid", "Tablet signatureValid", "Karry server countersignatureValid", "Audit trail entryValid", "Values of the recordNot checked yet",
+    ]);
+    expect(within(signature).getByText(/with server key karry-server-v2/)).toBeInTheDocument();
+    const result = await axe.run(document.body, { rules: { "color-contrast": { enabled: false } } });
+    expect(result.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => v.id)).toEqual([]);
+  });
+
+  it("says when the countersignature is still pending, and names the check that failed on an invalid signature", async () => {
+    const pending = allPass.map((c) => c.name === "server_countersignature" ? check(c.name, "pending") : c);
+    const dialog = await openEntry(fakeApi({ permissions: auditor, auditEntries: [received], envelopeVerifications: { [envelopeId]: verification("pending", pending, false) } }));
+    expect(await within(dialog).findByText("Countersignature pending")).toBeInTheDocument();
+    expect(within(dialog).queryByText(/with server key/)).not.toBeInTheDocument();
+    cleanup();
+
+    const broken = allPass.map((c) => c.name === "ledger_entry" ? check(c.name, "fail") : c);
+    const invalid = await openEntry(fakeApi({ permissions: auditor, auditEntries: [received], envelopeVerifications: { [envelopeId]: verification("invalid", broken) } }));
+    expect(await within(invalid).findByText("Invalid")).toBeInTheDocument();
+    expect(within(invalid).getAllByRole("listitem").find((item) => item.textContent.startsWith("Audit trail entry"))?.textContent).toBe("Audit trail entryFailed");
+  });
+
+  it("says it could not check an envelope the API does not find, and shows nothing to someone who may not verify", async () => {
+    const dialog = await openEntry(fakeApi({ permissions: auditor, auditEntries: [received] }));
+    expect(await within(dialog).findByText("Could not be checked")).toBeInTheDocument();
+    cleanup();
+
+    const api = fakeApi({ permissions: ["audit.ledger.read"], auditEntries: [received], envelopeVerifications: { [envelopeId]: verification("verified", allPass) } });
+    const reader = await openEntry(api);
+    expect(within(reader).queryByRole("region", { name: "Signature" })).not.toBeInTheDocument();
+    expect(api.auditCalls.some((call) => call.path.includes("/envelopes/"))).toBe(false);
   });
 });

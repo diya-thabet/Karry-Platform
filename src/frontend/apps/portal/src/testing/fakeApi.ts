@@ -23,6 +23,7 @@ type ImportPlannedRow = components["schemas"]["ImportRowResponse"];
 type Device = components["schemas"]["DeviceResponse"];
 type SupportSession = components["schemas"]["SupportSessionResponse"];
 type AuditEntry = components["schemas"]["AuditEntryResponse"];
+type EnvelopeVerification = components["schemas"]["EnvelopeVerification"];
 type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 type Verification = components["schemas"]["LatestVerificationResponse"];
 type Subscription = components["schemas"]["SubscriptionResponse"];
@@ -99,6 +100,8 @@ export function fakeApi(options: {
   devices?: Device[];
   /** The audit log, newest first (default: empty); people's names come from the entries. */
   auditEntries?: AuditEntry[];
+  /** Verifications of signature envelopes by ID (`GET /audit/envelopes/{id}/verification`); any other ID is 404. */
+  envelopeVerifications?: Record<string, EnvelopeVerification>;
   /** What a run of the integrity check finds (default: an intact trail of every audit entry). */
   verifyFinds?: { valid: boolean; firstBrokenSequence: number | null; problem: string | null };
   /** The export answers `audit.export_too_large` (more than 100 000 matching entries). */
@@ -518,6 +521,10 @@ export function fakeApi(options: {
         return new Response(`\uFEFFsequence;occurred_at\r\n${matching.map((e) => `${String(e.sequence)};${e.occurredAt}`).join("\r\n")}`, {
           status: 200, headers: { "Content-Type": "text/csv; charset=utf-8" },
         });
+      case method === "GET" && /^\/api\/v1\/audit\/envelopes\/[^/]+\/verification$/.test(url.pathname): {
+        const found = options.envelopeVerifications?.[url.pathname.split("/")[5] ?? ""];
+        return found ? json(200, found) : problem(404, "trust.envelope_not_found");
+      }
       case method === "GET" && url.pathname === "/api/v1/audit/verifications/latest":
         return json(200, verification);
       case method === "POST" && url.pathname === "/api/v1/audit/verify": {

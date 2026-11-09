@@ -204,8 +204,15 @@ signed part, as in ADR-0007.
   from the exact bytes uploaded. Tests: minimums and stored text (unit), the pad in jsdom, the pad in a real Chromium
   in Arabic (not mirrored, the PNG has ink only where it was drawn), the hash binding against `hashlib` values
   (TC-P2-SIG-008); every story in every theme through axe.
-- **Still to build in P2.3:** the portal "Verified" badge, and the close-out (security review, ADR accepted). Wiring
-  the pad into a signed record waits for the records themselves (P2.4 server, P2.5 tablet).
+- **Slice 6, the portal badge:** `SignatureVerification` (portal, `audit/`): the overall status as a chip (Verified,
+  Countersignature pending, Invalid, or "Could not be checked" when the API does not answer) and every check with its
+  result; the server key and the time of the countersignature. Shown only to people with `audit.ledger.verify` (no
+  request otherwise). Today it appears in the audit trail's entry dialog for `trust.envelope_received.v1` entries
+  (their payload names the envelope); one request when the dialog opens, not one per row. The same component goes on
+  every signed record once records exist (P2.4/P2.5). A check this version does not know is shown by its name. 17
+  `portal.signature.*` messages in the five languages.
+- **Still to build in P2.3:** the close-out (security review, ADR accepted). Wiring the pad and the badge into signed
+  records waits for the records themselves (P2.4 server, P2.5 tablet).
 
 ## Options considered
 
