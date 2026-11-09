@@ -3,7 +3,10 @@ import { useState, type SyntheticEvent } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, Card, DataTable, Dialog, EmptyState, PageHeader, SelectField, StatusChip, TextField, useToast } from "@karry/ui";
 import { useApi } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { currencies } from "../app/currencies";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import {
   actionsFor, invoicesKey, operatorTenantsKey, statusLook, usePlans, useOperatorTenants, useTenantInvoices, useTenantSubscription,
@@ -39,7 +42,7 @@ export function TenantPage({ tenantId }: { tenantId: string }) {
         ? (
           <>
             <SubscriptionCard tenantId={tenantId} subscription={subscription.data} />
-            <TermsCard key={`${subscription.data.planCode}-${subscription.data.period}-${String(subscription.data.sites)}-${String(subscription.data.extraAssets)}`} tenantId={tenantId} subscription={subscription.data} />
+            <TermsCard key={tenantId} tenantId={tenantId} subscription={subscription.data} />
           </>
         )
         : <EmptyState title={subscription.isPending ? t("common.loading") : t("portal.operator.noSubscription")} />}
@@ -117,6 +120,14 @@ function SubscriptionCard({ tenantId, subscription }: { tenantId: string; subscr
   );
 }
 
+/** What the terms form edits, as text while typed. */
+function termsOf(subscription: Subscription | null) {
+  return {
+    planCode: subscription?.planCode ?? "", period: subscription?.period ?? "monthly",
+    sites: String(subscription?.sites ?? 1), extraAssets: String(subscription?.extraAssets ?? 0),
+  };
+}
+
 /** Plan, period, sites and extra machines; add-ons, extra features and limit overrides are kept as they are. */
 function TermsCard({ tenantId, subscription }: { tenantId: string; subscription: Subscription }) {
   const { t } = useTranslation();
@@ -124,25 +135,37 @@ function TermsCard({ tenantId, subscription }: { tenantId: string; subscription:
   const toast = useToast();
   const queryClient = useQueryClient();
   const plans = usePlans();
-  const [planCode, setPlanCode] = useState(subscription.planCode);
-  const [period, setPeriod] = useState(subscription.period);
-  const [sites, setSites] = useState(String(subscription.sites));
-  const [extraAssets, setExtraAssets] = useState(String(subscription.extraAssets));
+  // The terms and the version they were filled from: a save is applied to it only (If-Match, H-C1). A state action
+  // (activate, payment…) makes a new version without touching what the operator typed.
+  const { draft, setDraft, version, accept } = useRecordDraft(subscription, termsOf);
+  const { planCode, period, sites, extraAssets } = draft;
+  const setPlanCode = (value: string) => { setDraft((current) => ({ ...current, planCode: value })); };
+  const setPeriod = (value: string) => { setDraft((current) => ({ ...current, period: value })); };
+  const setSites = (value: string) => { setDraft((current) => ({ ...current, sites: value })); };
+  const setExtraAssets = (value: string) => { setDraft((current) => ({ ...current, extraAssets: value })); };
   const [checked, setChecked] = useState(false);
+  const [conflict, setConflict] = useState(false);
   const closed = ["cancelled", "expired", "deleted"].includes(subscription.status);
   const whole = (text: string, min: number) => (/^\d{1,5}$/.test(text.trim()) && Number(text) >= min ? Number(text) : null);
   const siteCount = whole(sites, 1);
   const extraCount = whole(extraAssets, 0);
 
   const save = useMutation({
-    mutationFn: async () => (await api.PUT("/api/v1/billing/tenants/{tenantId}/subscription", {
-      params: { path: { tenantId } },
+    meta: handlesVersionConflict,
+    mutationFn: async (expected?: string) => (await api.PUT("/api/v1/billing/tenants/{tenantId}/subscription", {
+      params: { path: { tenantId }, header: (expected ?? version) ? { "If-Match": expected ?? version ?? "" } : {} },
       body: {
         planCode, planVersion: planCode === subscription.planCode ? subscription.planVersion : null, period, sites: siteCount ?? 1, extraAssets: extraCount ?? 0,
         addOns: subscription.addOns, extraFeatures: subscription.extraFeatures, limitOverrides: subscription.limitOverrides,
       },
     })).data,
-    onSuccess: async () => {
+    onError: (error) => { setConflict(isVersionConflict(error)); },
+    onSuccess: async (saved) => {
+      if (saved) {
+        accept(saved);
+      }
+
+      setConflict(false);
       toast({ status: "ok", title: t("portal.operator.termsSaved") });
       await queryClient.invalidateQueries({ queryKey: operatorTenantsKey }); // the list and this company's queries
     },
@@ -152,7 +175,25 @@ function TermsCard({ tenantId, subscription }: { tenantId: string; subscription:
     event.preventDefault();
     setChecked(true);
     if (siteCount !== null && extraCount !== null) {
-      save.mutate();
+      save.mutate(undefined);
+    }
+  };
+
+  const latest = async () => (await api.GET("/api/v1/billing/tenants/{tenantId}/subscription", { params: { path: { tenantId } } })).data;
+  // The operator chose to save their terms over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The operator chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      await queryClient.invalidateQueries({ queryKey: operatorTenantsKey });
     }
   };
 
@@ -180,6 +221,7 @@ function TermsCard({ tenantId, subscription }: { tenantId: string; subscription:
           <TextField label={t("portal.operator.extraMachines")} inputMode="numeric" value={extraAssets} error={checked && extraCount === null ? t("portal.operator.extraInvalid") : undefined} onChange={(e) => { setExtraAssets(e.target.value); }} />
         </div>
         {planCode !== subscription.planCode && <p className="text-sm text-text-muted">{t("portal.operator.latestVersion")}</p>}
+        {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
         <div>
           <Button type="submit" disabled={closed} loading={save.isPending}>{t("portal.operator.saveTerms")}</Button>
         </div>

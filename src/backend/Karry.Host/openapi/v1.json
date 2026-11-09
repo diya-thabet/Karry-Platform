@@ -3143,6 +3143,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -3198,6 +3205,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -3289,6 +3306,16 @@
           },
           "400": {
             "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -10922,7 +10949,8 @@
           "extraAssets",
           "addOns",
           "extraFeatures",
-          "limitOverrides"
+          "limitOverrides",
+          "version"
         ],
         "type": "object",
         "properties": {
@@ -11008,6 +11036,9 @@
               ],
               "format": "int32"
             }
+          },
+          "version": {
+            "type": "string"
           }
         },
         "description": "A tenant's subscription. `Status`: trial, active, past_due, restricted, suspended, cancelled, expired,\ndeleted. `Period`: monthly or annual. Limits and features are resolved with the entitlements (slice 3)."

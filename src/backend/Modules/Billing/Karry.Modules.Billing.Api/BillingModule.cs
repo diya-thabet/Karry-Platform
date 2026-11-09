@@ -96,12 +96,14 @@ public sealed class BillingModule : IModule
         tenants.MapPut("/subscription", ChangeSubscriptionAsync)
             .Validate<ChangeSubscription>()
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("ChangeTenantSubscription");
 
         tenants.MapPost("/subscription/actions", ActOnSubscriptionAsync)
             .RequireIdempotencyKey()
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
             .WithName("ActOnTenantSubscription");
 
@@ -179,18 +181,33 @@ public sealed class BillingModule : IModule
         TypedResults.Ok(InvoiceListResponse.Of(await operations.InvoicesAsync(cancellationToken).ConfigureAwait(false)));
 
     private static Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> OperatorSubscriptionAsync(
-        Guid tenantId, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
+        Guid tenantId, HttpResponse response, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
         InTenantAsync(scopes, tenantId, async operations => await operations.CurrentAsync(cancellationToken).ConfigureAwait(false) is { } subscription
             ? Result.Success(subscription)
-            : SubscriptionOperations.NotFound, SubscriptionResponse.Of, cancellationToken);
+            : SubscriptionOperations.NotFound, Tagged(response), cancellationToken);
 
-    private static Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> ChangeSubscriptionAsync(
-        Guid tenantId, ChangeSubscription request, ClaimsPrincipal caller, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
-        InTenantAsync(scopes, tenantId, operations => operations.ChangeAsync(request, Actor(caller), cancellationToken), SubscriptionResponse.Of, cancellationToken);
+    /// <summary><c>If-Match</c>: the <c>ETag</c> (or <c>version</c>) the operator's form was filled from; newer terms or state are a 409 (H-C1).</summary>
+    private static async Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> ChangeSubscriptionAsync(
+        Guid tenantId, ChangeSubscription request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response, ClaimsPrincipal caller,
+        [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        return expected.IsSuccess
+            ? await InTenantAsync(scopes, tenantId, operations => operations.ChangeAsync(request, Actor(caller), cancellationToken, expected.Value), Tagged(response), cancellationToken)
+                .ConfigureAwait(false)
+            : expected.Error.ToProblem();
+    }
 
     private static Task<Results<Ok<SubscriptionResponse>, ProblemHttpResult>> ActOnSubscriptionAsync(
-        Guid tenantId, SubscriptionAction request, ClaimsPrincipal caller, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
-        InTenantAsync(scopes, tenantId, operations => operations.ActAsync(request, Actor(caller), cancellationToken), SubscriptionResponse.Of, cancellationToken);
+        Guid tenantId, SubscriptionAction request, HttpResponse response, ClaimsPrincipal caller, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
+        InTenantAsync(scopes, tenantId, operations => operations.ActAsync(request, Actor(caller), cancellationToken), Tagged(response), cancellationToken);
+
+    /// <summary>The subscription as an answer, with its version as <c>ETag</c>.</summary>
+    private static Func<Subscription, SubscriptionResponse> Tagged(HttpResponse response) => subscription =>
+    {
+        response.SetETag(subscription.Version);
+        return SubscriptionResponse.Of(subscription);
+    };
 
     private static Task<Results<Ok<InvoiceListResponse>, ProblemHttpResult>> OperatorInvoicesAsync(
         Guid tenantId, [FromServices] IServiceScopeFactory scopes, CancellationToken cancellationToken) =>
@@ -276,7 +293,7 @@ public sealed record PlanResponse(Guid Id, string Code, int Version, string Name
 /// </summary>
 public sealed record SubscriptionResponse(Guid Id, string Status, DateTimeOffset StatusSince, DateTimeOffset? TrialEndsAt, DateTimeOffset? UnpaidSince,
     string PlanCode, int PlanVersion, string Period, int Sites, int ExtraAssets, IReadOnlyDictionary<string, int> AddOns,
-    IReadOnlyList<string> ExtraFeatures, IReadOnlyDictionary<string, int> LimitOverrides)
+    IReadOnlyList<string> ExtraFeatures, IReadOnlyDictionary<string, int> LimitOverrides, string Version)
 {
     public static SubscriptionResponse Of(Subscription subscription)
     {
@@ -284,7 +301,7 @@ public sealed record SubscriptionResponse(Guid Id, string Status, DateTimeOffset
         var terms = subscription.Terms;
         return new(subscription.Id.Value, Subscription.Name(subscription.Status), subscription.StatusSince, subscription.TrialEndsAt,
             subscription.UnpaidSince, terms.PlanCode, terms.PlanVersion, PlanPriceDto.PeriodName(terms.Period), terms.Sites, terms.ExtraAssets,
-            terms.AddOns, terms.ExtraFeatures, terms.LimitOverrides);
+            terms.AddOns, terms.ExtraFeatures, terms.LimitOverrides, RecordVersionHttp.ETag(subscription.Version));
     }
 }
 

@@ -283,6 +283,38 @@ describe("operator console: one company (US-P1-OPS-03 AC1, US-P1-BIL-02)", () =>
     });
   });
 
+  it("never saves terms over a change made by another operator meanwhile, and keeps the operator's entries (H-C1)", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ status: "active" }) } });
+    await renderAs(nordPage, api);
+    const sites = await screen.findByLabelText("Sites");
+    api.changeSubscriptionElsewhere(nord.id, { sites: 2 });
+
+    fireEvent.change(sites, { target: { value: "4" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the terms" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(sites).toHaveValue("4");
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Save my changes over theirs" }));
+    expect(await screen.findByText("Terms saved")).toBeInTheDocument();
+    expect(api.sent.filter((s) => s.method === "PUT").at(-1)?.body).toMatchObject({ sites: 4 });
+  });
+
+  it("keeps the operator's typing through a state action on the same page (finding C-2)", async () => {
+    const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ status: "active", trialEndsAt: null }) } });
+    await renderAs(nordPage, api);
+    fireEvent.change(await screen.findByLabelText("Sites"), { target: { value: "4" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Record a missed payment" }));
+    expect(await screen.findByText("Unpaid since")).toBeInTheDocument();
+
+    expect(screen.getByLabelText("Sites")).toHaveValue("4");
+    fireEvent.click(screen.getByRole("button", { name: "Save the terms" }));
+    expect(await screen.findByText("Terms saved")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("keeps the plan version when the plan stays, and refuses quantities that are not whole", async () => {
     const api = fakeApi({ permissions: [], operatorTenants: [nord], tenantSubscriptions: { [nord.id]: subscriptionOf({ planVersion: 2 }) } });
     await renderAs(nordPage, api);

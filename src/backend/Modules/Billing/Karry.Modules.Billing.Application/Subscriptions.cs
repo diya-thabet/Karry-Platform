@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Billing.Domain;
 using Karry.Modules.Tenancy.Contracts;
@@ -20,7 +21,10 @@ public interface ISubscriptionStore
 
     void Add(Invoice invoice);
 
-    /// <summary>Saves; false when a unique key is taken (a second subscription, or an invoice number already used).</summary>
+    /// <summary>
+    /// Saves; false, with nothing saved, when a unique key is taken (a second subscription, or an invoice number already
+    /// used) or the subscription changed since it was loaded (its <see cref="Subscription.Version"/>).
+    /// </summary>
     Task<bool> TrySaveAsync(CancellationToken cancellationToken);
 }
 
@@ -51,12 +55,21 @@ public sealed class SubscriptionOperations(ISubscriptionStore store, IPlanStore 
 
     public Task<IReadOnlyList<Invoice>> InvoicesAsync(CancellationToken cancellationToken) => store.InvoicesAsync(cancellationToken);
 
-    public async Task<Result<Subscription>> ChangeAsync(ChangeSubscription command, string? actor, CancellationToken cancellationToken)
+    /// <summary>
+    /// New terms. With <paramref name="expectedVersion"/> (the operator form's <c>If-Match</c>), only the version the
+    /// operator edited is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<Subscription>> ChangeAsync(ChangeSubscription command, string? actor, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(command);
         if (await store.FindAsync(cancellationToken).ConfigureAwait(false) is not { } subscription)
         {
             return NotFound;
+        }
+
+        if (!RecordVersions.Matches(subscription.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var versions = await plans.VersionsAsync(command.PlanCode, cancellationToken).ConfigureAwait(false);
@@ -137,14 +150,24 @@ public sealed class SubscriptionOperations(ISubscriptionStore store, IPlanStore 
             }
         }
 
-        await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
+        // The invoice number never changes here: only a change of the subscription (or the invoice) saved meanwhile refuses this.
+        if (!await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return RecordVersions.Conflict;
+        }
+
         entitlements.Forget(invoice.TenantId);
         return invoice;
     }
 
+    /// <summary>A refused save is a change saved meanwhile (an operator, or the lifecycle run): never a 200 for nothing.</summary>
     private async Task<Result<Subscription>> SavedAsync(Subscription subscription, CancellationToken cancellationToken)
     {
-        await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
+        if (!await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return RecordVersions.Conflict;
+        }
+
         entitlements.Forget(subscription.TenantId);
         return subscription;
     }
@@ -201,9 +224,11 @@ public sealed partial class AdvanceSubscriptions(IServiceScopeFactory scopes, Ti
                 await using var scope = scopes.CreateAsyncScope();
                 scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(tenant);
                 var store = scope.ServiceProvider.GetRequiredService<ISubscriptionStore>();
-                if (await store.FindAsync(cancellationToken).ConfigureAwait(false) is { } subscription && subscription.Advance(clock))
+                // An operator change saved after this run loaded the subscription wins: the run never overwrites it, and
+                // the next run decides again from the new state.
+                if (await store.FindAsync(cancellationToken).ConfigureAwait(false) is { } subscription && subscription.Advance(clock)
+                    && await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
                 {
-                    await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
                     entitlements.Forget(tenant); // the state is enforced from the cached entitlements
                     changed++;
                 }

@@ -4,10 +4,13 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Outbox;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Tenancy.Infrastructure;
+using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Time.Testing;
 using Npgsql;
 
 namespace Karry.Modules.Billing.Tests;
@@ -159,6 +162,99 @@ public sealed class SubscriptionApiTests(BillingHost host) : IClassFixture<Billi
         after.GetProperty("limits").GetProperty("assets-per-site").GetInt64().Should().Be((20 * 2) + 5, "the tenant-wide total");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Terms_changed_from_an_old_version_are_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two operators opened the same subscription; the second to save must not overwrite the first.
+        var tenant = await ProvisionAsync();
+        var opened = await SendAsync(HttpMethod.Get, $"/api/v1/billing/tenants/{tenant}/subscription");
+        var version = opened.Headers.ETag!.Tag;
+        (await Json(opened)).GetProperty("version").GetString().Should().Be(version, "body and header carry the same version");
+
+        var first = await SendAsync(HttpMethod.Put, $"/api/v1/billing/tenants/{tenant}/subscription", body: Terms(sites: 3), ifMatch: version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version);
+
+        var second = await SendAsync(HttpMethod.Put, $"/api/v1/billing/tenants/{tenant}/subscription", body: Terms(sites: 5), ifMatch: version);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Json(second)).GetProperty("code").GetString().Should().Be("request.version_conflict");
+
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/billing/tenants/{tenant}/subscription"))).GetProperty("sites").GetInt32().Should().Be(3);
+        (await LedgerCountAsync(tenant, "billing.subscription_terms_changed.v1")).Should().Be(1, "the refused change left no trace");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Actions_at_the_same_moment_answer_200_409_or_422_never_500()
+    {
+        // The subscription always had a row version, but nobody caught its conflict: two operator actions at once
+        // (or an action during the hourly run) answered 500.
+        // A 200 must also report what was saved: one version is one state, whoever answers it.
+        var tenant = await ProvisionAsync();
+        var activated = await ActAsync(tenant, "activate");
+        activated.StatusCode.Should().Be(HttpStatusCode.OK);
+        var states = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal) { [activated.Headers.ETag!.Tag] = ["active"] };
+
+        var actions = await Task.WhenAll(Enumerable.Range(0, 8).Select(n => ActAsync(tenant, n % 2 == 0 ? "missed-payment" : "payment")));
+
+        // 422: the move is not allowed from the state that request loaded (a missed payment on a PastDue subscription).
+        actions.Should().OnlyContain(a => a.StatusCode == HttpStatusCode.OK || a.StatusCode == HttpStatusCode.Conflict || a.StatusCode == HttpStatusCode.UnprocessableEntity);
+        foreach (var action in actions.Where(a => a.StatusCode != HttpStatusCode.UnprocessableEntity))
+        {
+            var body = await Json(action);
+            if (action.StatusCode == HttpStatusCode.Conflict)
+            {
+                body.GetProperty("code").GetString().Should().Be("request.version_conflict");
+                continue;
+            }
+
+            var version = body.GetProperty("version").GetString()!;
+            states.TryAdd(version, []);
+            states[version].Add(body.GetProperty("status").GetString()!);
+        }
+
+        states.Should().OnlyContain(s => s.Value.Count == 1, "a 200 for a save that was refused would report a state no version has");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task The_lifecycle_run_never_overwrites_a_payment_recorded_after_it_loaded_the_subscription()
+    {
+        // The run loaded a PastDue subscription and would restrict it; meanwhile an operator recorded the payment. The
+        // run's save is refused (false, not an exception) and the company stays Active.
+        var tenant = await ProvisionAsync();
+        (await ActAsync(tenant, "activate")).StatusCode.Should().Be(HttpStatusCode.OK);
+        (await ActAsync(tenant, "missed-payment")).StatusCode.Should().Be(HttpStatusCode.OK);
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var store = scope.ServiceProvider.GetRequiredService<ISubscriptionStore>();
+        var stale = (await store.FindAsync(Ct))!;
+
+        (await ActAsync(tenant, "payment")).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var later = new FakeTimeProvider(host.Clock.GetUtcNow().AddDays(20));
+        stale.Advance(later).Should().BeTrue("from what it loaded, the run would restrict the company");
+        (await store.TrySaveAsync(Ct)).Should().BeFalse();
+        (await Status(tenant)).Should().Be("active");
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("4711")]
+    [InlineData("\"abc\"")]
+    public async Task A_malformed_if_match_is_refused(string ifMatch)
+    {
+        var tenant = await ProvisionAsync();
+
+        var response = await SendAsync(HttpMethod.Put, $"/api/v1/billing/tenants/{tenant}/subscription", body: Terms(sites: 3), ifMatch: ifMatch);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(response)).GetProperty("code").GetString().Should().Be("request.if_match_invalid");
+    }
+
+    private static object Terms(int sites) => new { planCode = "business", period = "annual", sites, extraAssets = 0 };
+
     private async Task<Guid> ProvisionAsync()
     {
         var slug = $"t-{Guid.NewGuid():N}"[..20];
@@ -189,9 +285,14 @@ public sealed class SubscriptionApiTests(BillingHost host) : IClassFixture<Billi
     private Task<HttpResponseMessage> ActAsync(Guid tenant, string action) =>
         SendAsync(HttpMethod.Post, $"/api/v1/billing/tenants/{tenant}/subscription/actions", body: new { action });
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? token = null, object? body = null)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string? token = null, object? body = null, string? ifMatch = null)
     {
         using var request = new HttpRequestMessage(method, path);
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);

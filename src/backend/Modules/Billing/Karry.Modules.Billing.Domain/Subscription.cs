@@ -157,6 +157,12 @@ public sealed class Subscription : AggregateRoot<SubscriptionId>, ITenantOwned
 
     public DateTimeOffset CreatedAt { get; private set; }
 
+    /// <summary>
+    /// The record version (PostgreSQL <c>xmin</c>): changes with every save. The operator's form sends it back as
+    /// <c>If-Match</c>, and the hourly lifecycle run never overwrites a change saved after it loaded (H-C1).
+    /// </summary>
+    public uint Version { get; private set; }
+
     /// <summary>A new tenant's subscription: a <see cref="TrialDays"/>-day trial on the given plan, one site, monthly.</summary>
     public static Subscription StartTrial(TimeProvider clock, TenantId tenant, Plan plan, string? actor)
     {
