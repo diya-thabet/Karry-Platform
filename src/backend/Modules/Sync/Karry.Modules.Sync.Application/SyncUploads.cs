@@ -76,6 +76,9 @@ public interface IInboxSession : IAsyncDisposable
 
     void Add(WaitingCommand waiting);
 
+    /// <summary>Keeps the tablet's latest clock offset (ADR-0031 §6).</summary>
+    void MeasureClock(TenantId tenant, int offsetMs, DateTimeOffset measuredAt);
+
     /// <summary>
     /// Writes what was added and commits, with the handlers' work; false (nothing kept) if a row was stored by an upload
     /// that did not take the tablet's lock, which should never happen.
@@ -177,18 +180,22 @@ public sealed partial class SyncUploads(
 
         var key = await devices.FindAsync(caller.DeviceId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("An authenticated device has a key.");
+        // The tablet's clock against ours: the time it signed this request (whole seconds, so within a second plus the
+        // network time). Assertions are refused beyond 5 minutes of skew, so the offset stays within that.
+        var offset = caller.IssuedAt is { } signedAt ? DeviceClock.OffsetOf(signedAt, now) : 0;
+        session.MeasureClock(tenantId, offset, now);
         var keptUnhandled = new HashSet<CommandId>(session.Unhandled);
         var earlier = session.Waiting.ToDictionary(w => w.Id);
         var plan = await InboxRules.DecideAsync(
             session.LastSequence, session.Stored, [.. earlier.Values.Select(w => new UploadCandidate(w.Id, w.Sequence, SignatureValid: true))],
             commands.Select(c => new UploadCandidate(c.Id, c.Sequence, Verify(key, c))),
             c => c.Index >= 0
-                ? HandleAsync(session, caller, tenantId, commands[c.Index], uploaded[c.Index].Payload, now, keptUnhandled, cancellationToken)
-                : HandleAsync(session, caller, tenantId, earlier[c.Id].Command, PayloadOf(earlier[c.Id].Body), now, keptUnhandled, cancellationToken))
+                ? HandleAsync(session, caller, tenantId, new Arrival(commands[c.Index], uploaded[c.Index].Payload, now, offset), now, keptUnhandled, cancellationToken)
+                : HandleAsync(session, caller, tenantId, Arrival.Of(earlier[c.Id]), now, keptUnhandled, cancellationToken))
             .ConfigureAwait(false);
         foreach (var held in plan.Held)
         {
-            session.Add(new WaitingCommand(tenantId, caller.DeviceId, commands[held.Index], now));
+            session.Add(new WaitingCommand(tenantId, caller.DeviceId, commands[held.Index], now, offset));
         }
 
         if (!await session.CommitAsync(cancellationToken).ConfigureAwait(false))
@@ -219,14 +226,15 @@ public sealed partial class SyncUploads(
     /// throws or rejects, nothing of the command remains and the batch goes on (ADR-0031 §2–§3).
     /// </summary>
     private async Task<UploadDecision> HandleAsync(
-        IInboxSession session, DeviceCaller caller, TenantId tenantId, SignedCommand command, JsonElement payload, DateTimeOffset now,
+        IInboxSession session, DeviceCaller caller, TenantId tenantId, Arrival arrival, DateTimeOffset now,
         HashSet<CommandId> keptUnhandled, CancellationToken cancellationToken)
     {
+        var command = arrival.Command;
         if (handlers.HandlerOf(command.Type) is not { } handlerType)
         {
             if (keptUnhandled.Add(command.Id))
             {
-                session.Add(new UnhandledCommand(tenantId, caller.DeviceId, command, InboxRules.TypeUnknown, now));
+                session.Add(new UnhandledCommand(tenantId, caller.DeviceId, command, InboxRules.TypeUnknown, arrival.ReceivedAt));
             }
 
             LogTypeUnknown(logger, caller.DeviceId, command.Type);
@@ -234,7 +242,7 @@ public sealed partial class SyncUploads(
         }
 
         var verified = new VerifiedCommand(command.Id.Value, caller.DeviceId, caller.SiteId, command.Sequence, command.Type,
-            payload.Clone(), command.DeviceTime, now, ClockOffsetMs: 0, command.Body);
+            arrival.Payload.Clone(), command.DeviceTime, arrival.ReceivedAt, arrival.ClockOffsetMs, command.Body);
         var savepoint = $"command_{command.Sequence}";
         await session.SavepointAsync(savepoint, cancellationToken).ConfigureAwait(false);
         HandlerOutcome outcome;
@@ -277,9 +285,18 @@ public sealed partial class SyncUploads(
 
         void Store(UploadOutcome stored, Guid? recordId, IReadOnlyList<string> flags)
         {
-            session.Add(InboxCommand.Receive(tenantId, caller.DeviceId, command, now));
+            session.Add(InboxCommand.Receive(tenantId, caller.DeviceId, command, arrival.ReceivedAt));
             session.Add(new ProcessedCommand(tenantId, caller.DeviceId, command.Id, stored, recordId, flags, now));
         }
+    }
+
+    /// <summary>
+    /// A command as it came: now, or earlier for one that waited for an earlier number, which keeps the time and clock
+    /// offset of its arrival (ADR-0031 §4, §6).
+    /// </summary>
+    private sealed record Arrival(SignedCommand Command, JsonElement Payload, DateTimeOffset ReceivedAt, int ClockOffsetMs)
+    {
+        public static Arrival Of(WaitingCommand waiting) => new(waiting.Command, PayloadOf(waiting.Body), waiting.ReceivedAt, waiting.ClockOffsetMs);
     }
 
     /// <summary>The payload of a stored command, from the text the tablet signed.</summary>

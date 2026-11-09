@@ -243,6 +243,80 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
     }
 
     [Fact]
+    [Trait("Story", "US-P2-OFF-05")]
+    public async Task The_tablet_s_clock_offset_is_measured_from_its_signed_time_kept_and_given_to_handlers()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var ahead = tablet.Command(2, new { n = 2 });
+        var slow = host.Clock.GetUtcNow() - TimeSpan.FromMinutes(2);
+
+        // Signed by a clock two minutes slow; the command waits. The gap is closed by an upload with a right clock.
+        var response = await tablet.SendWithAsync(HttpMethod.Post, Batches, tablet.Assertion("POST", Batches, issuedAt: slow), new { commands = new[] { ahead } });
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var measured = await ClockAsync(tablet.Id);
+        await UploadAsync(tablet, [tablet.Command(1, new { n = 1 })]);
+
+        // The assertion carries whole seconds, so the offset is two minutes up to one second more.
+        measured.Should().BeInRange(-121_000, -120_000);
+        (await ClockAsync(tablet.Id)).Should().BeInRange(-1_000, 0, "the latest upload's offset is kept");
+        var handled = await RowsAsync($"SELECT h.command_id, h.clock_offset_ms FROM {TestCommandHandler.Table} h WHERE h.device_id = $1", tablet.Id, r => (r.GetGuid(0), r.GetInt32(1)));
+        handled.Should().ContainSingle(h => h.Item1 == Id(ahead)).Which.Item2.Should().Be(measured, "a waiting command is handled with the offset of its arrival");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-04")]
+    public async Task The_tablet_s_pull_tells_what_became_of_each_command_it_sent()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var flagged = tablet.Command(1, new { n = 1 }, type: TestCommandHandler.Flagged.Name);
+        var unknown = tablet.Command(2, new { n = 2 }, type: "test.item_from_the_future.v1");
+        var ahead = tablet.Command(3, new { n = 3 });
+        await UploadAsync(tablet, [flagged, unknown, ahead]);
+        using var other = await host.TabletAsync(host.A);
+        await UploadAsync(other, [other.Command(1, new { n = 1 })]);
+
+        var snapshot = await PullAsync(tablet, null);
+
+        snapshot.Submissions.Should().BeEquivalentTo(new[]
+        {
+            new { Id = Id(flagged), Status = "conflict", Code = (string?)null, Flags = new[] { TestCommandHandler.Flagged.Flag } },
+            new { Id = Id(unknown), Status = "rejected", Code = (string?)"sync.type_unknown", Flags = Array.Empty<string>() },
+            new { Id = Id(ahead), Status = "waiting", Code = (string?)null, Flags = Array.Empty<string>() },
+        }, options => options.WithStrictOrdering(), "only this tablet's commands, in their order");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-04")]
+    public async Task A_command_answered_waiting_gets_its_final_status_in_a_later_pull()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var (first, ahead) = (tablet.Command(1, new { n = 1 }), tablet.Command(2, new { n = 2 }));
+        await UploadAsync(tablet, [ahead]);
+        var (cursor, before) = await PullAsync(tablet, null);
+
+        await UploadAsync(tablet, [first]);
+        var (_, after) = await PullAsync(tablet, cursor);
+
+        before.Select(r => (r.Id, r.Status)).Should().Equal((Id(ahead), "waiting"));
+        after.Select(r => (r.Id, r.Status)).Should().Equal((Id(first), "accepted"), (Id(ahead), "accepted"));
+    }
+
+    private async Task<int> ClockAsync(Guid deviceId) =>
+        (await RowsAsync("SELECT offset_ms FROM sync.device_clocks WHERE device_id = $1", deviceId, r => r.GetInt32(0))).Single();
+
+    private static async Task<(string Cursor, List<Submission> Submissions)> PullAsync(TestTablet tablet, string? cursor)
+    {
+        var path = cursor is null ? "/api/v1/sync/changes" : $"/api/v1/sync/changes?cursor={Uri.EscapeDataString(cursor)}";
+        var response = await tablet.SendAsync(HttpMethod.Get, path);
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var body = (await response.Content.ReadFromJsonAsync<JsonObject>())!;
+        var rows = body["changes"]!["submissions"]!["upserts"]!.Deserialize<List<Submission>>(JsonSerializerOptions.Web)!;
+        return (body["cursor"]!.GetValue<string>(), rows);
+    }
+
+    private sealed record Submission(Guid Id, long Sequence, string Status, string? Code, IReadOnlyList<string> Flags, Guid? RecordId, DateTimeOffset At);
+
+    [Fact]
     [Trait("Story", "US-P2-OFF-03")]
     [Trait("TestCase", "TC-P2-SYNC-009")]
     public async Task A_failing_handler_leaves_nothing_of_its_command_and_the_batch_goes_on()

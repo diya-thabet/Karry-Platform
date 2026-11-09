@@ -430,9 +430,10 @@ public sealed class UnhandledCommand : ITenantOwned
 /// </summary>
 public sealed class WaitingCommand : ITenantOwned
 {
-    public WaitingCommand(TenantId tenantId, Guid deviceId, SignedCommand command, DateTimeOffset receivedAt)
+    public WaitingCommand(TenantId tenantId, Guid deviceId, SignedCommand command, DateTimeOffset receivedAt, int clockOffsetMs)
     {
         ArgumentNullException.ThrowIfNull(command);
+        ClockOffsetMs = clockOffsetMs;
         TenantId = tenantId;
         DeviceId = deviceId;
         Id = command.Id;
@@ -467,5 +468,45 @@ public sealed class WaitingCommand : ITenantOwned
 
     public DateTimeOffset ReceivedAt { get; private set; }
 
+    /// <summary>The tablet's clock offset measured when the command came (ADR-0031 §6): its handler, later, gets this one.</summary>
+    public int ClockOffsetMs { get; private set; }
+
     public SignedCommand Command => new(Id, Sequence, Type, DeviceTime, Body, Signature);
+}
+
+/// <summary>
+/// A tablet's clock against the server's (ADR-0031 §6), measured at each upload from the time the tablet signed the
+/// request: positive when the tablet runs ahead. The last measurement is kept; it is not evidence, so it is updated.
+/// </summary>
+public sealed class DeviceClock : ITenantOwned
+{
+    public DeviceClock(TenantId tenantId, Guid deviceId, int offsetMs, DateTimeOffset measuredAt)
+    {
+        TenantId = tenantId;
+        DeviceId = deviceId;
+        Measure(offsetMs, measuredAt);
+    }
+
+    // EF Core
+    private DeviceClock()
+    {
+    }
+
+    public TenantId TenantId { get; private set; }
+
+    public Guid DeviceId { get; private set; }
+
+    public int OffsetMs { get; private set; }
+
+    public DateTimeOffset MeasuredAt { get; private set; }
+
+    public void Measure(int offsetMs, DateTimeOffset measuredAt)
+    {
+        OffsetMs = offsetMs;
+        MeasuredAt = measuredAt;
+    }
+
+    /// <summary>The offset of a request signed at <paramref name="signedAt"/> and received at <paramref name="receivedAt"/>, in milliseconds.</summary>
+    public static int OffsetOf(DateTimeOffset signedAt, DateTimeOffset receivedAt) =>
+        (int)Math.Clamp(Math.Round((signedAt - receivedAt).TotalMilliseconds), int.MinValue, int.MaxValue);
 }

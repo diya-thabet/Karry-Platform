@@ -117,6 +117,34 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                     b.ToTable("processed_messages", "sync");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Sync.Domain.DeviceClock", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<DateTimeOffset>("MeasuredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("measured_at");
+
+                    b.Property<int>("OffsetMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("offset_ms");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("DeviceId")
+                        .HasName("pk_device_clocks");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_device_clocks_tenant_id");
+
+                    b.ToTable("device_clocks", "sync");
+                });
+
             modelBuilder.Entity("Karry.Modules.Sync.Domain.InboxCommand", b =>
                 {
                     b.Property<Guid>("DeviceId")
@@ -294,6 +322,10 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("body");
+
+                    b.Property<int>("ClockOffsetMs")
+                        .HasColumnType("integer")
+                        .HasColumnName("clock_offset_ms");
 
                     b.Property<DateTimeOffset>("DeviceTime")
                         .HasColumnType("timestamp with time zone")

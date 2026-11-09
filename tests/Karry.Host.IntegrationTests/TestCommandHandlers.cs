@@ -13,7 +13,8 @@ internal abstract class TestCommandHandler : ISyncCommandHandler
     public const string Table = "public.test_handled";
 
     public const string CreateTable = $"""
-        CREATE TABLE {Table} (device_id uuid NOT NULL, command_id uuid NOT NULL, type text NOT NULL, site_id uuid NOT NULL, PRIMARY KEY (device_id, command_id));
+        CREATE TABLE {Table} (device_id uuid NOT NULL, command_id uuid NOT NULL, type text NOT NULL, site_id uuid NOT NULL,
+          received_at timestamptz NOT NULL, clock_offset_ms integer NOT NULL, PRIMARY KEY (device_id, command_id));
         GRANT SELECT, INSERT ON {Table} TO karry_app;
         """;
 
@@ -29,12 +30,14 @@ internal abstract class TestCommandHandler : ISyncCommandHandler
 
     public async Task<HandlerOutcome> HandleAsync(VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
     {
-        await using var insert = new NpgsqlCommand($"INSERT INTO {Table} (device_id, command_id, type, site_id) VALUES ($1, $2, $3, $4)",
+        await using var insert = new NpgsqlCommand($"INSERT INTO {Table} (device_id, command_id, type, site_id, received_at, clock_offset_ms) VALUES ($1, $2, $3, $4, $5, $6)",
             (NpgsqlConnection)transaction.Connection, (NpgsqlTransaction)transaction.Transaction);
         insert.Parameters.AddWithValue(command.DeviceId);
         insert.Parameters.AddWithValue(command.CommandId);
         insert.Parameters.AddWithValue(command.Type);
         insert.Parameters.AddWithValue(command.SiteId);
+        insert.Parameters.AddWithValue(command.ReceivedAt);
+        insert.Parameters.AddWithValue(command.ClockOffsetMs);
         await insert.ExecuteNonQueryAsync(cancellationToken);
         return Answer(command);
     }

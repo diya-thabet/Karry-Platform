@@ -68,7 +68,7 @@ public sealed class TestTablet(HttpClient client, Func<DateTimeOffset> now) : ID
         return SendRawAsync(method, path, Assertion(method.Method, path.Split('?')[0]), body);
     }
 
-    public Task<HttpResponseMessage> SendWithAsync(HttpMethod method, string path, string assertion) => SendRawAsync(method, path, assertion, null);
+    public Task<HttpResponseMessage> SendWithAsync(HttpMethod method, string path, string assertion, object? body = null) => SendRawAsync(method, path, assertion, body);
 
     /// <summary>
     /// A compact JWS ES256 for one request, issued now by the given clock unless told otherwise; <paramref name="header"/>
