@@ -4,7 +4,7 @@ area: phases
 tags: [phase-2, sub-phases, execution-plan, sequencing, sync, signatures, verification, field-ops, continuity, notifications, definition-of-done]
 source: "Phase 2 plan (plan.md) broken into executable steps; architect review 2026-11-04"
 status: draft
-last_updated: 2026-11-09
+last_updated: 2026-11-10
 ---
 
 # Phase 2 Execution Plan: Sub-Phases P2.0 – P2.12
@@ -464,6 +464,8 @@ start and end, who drove, and whether the numbers make sense. Nothing is shown o
 ---
 
 ### P2.5 — Field capture flows (tablet)
+
+> Slice plan: [P2.5 field capture flows](p2.5-capture-flows-plan.md).
 
 **In plain words:** the operator starts and ends a shift on the tablet in under a minute, with a photo of the meter,
 a signature, and no network.

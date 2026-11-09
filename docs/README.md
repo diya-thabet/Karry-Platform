@@ -28,6 +28,7 @@
 | How to work: testing, CI, security, git, Definition of Done | [00-llm/llm_guidelines.md](00-llm/llm_guidelines.md) |
 | **Current phase status** (what is done, what is waiting on the owner) | [04-phases/phase-00-discovery/tracker.md](04-phases/phase-00-discovery/tracker.md) (Phase 0), [04-phases/phase-01-platform-foundation/tracker.md](04-phases/phase-01-platform-foundation/tracker.md) (Phase 1) |
 | **Phase 1 step-by-step execution plan** (sub-phases P1.0 – P1.18: order, inputs, tests, done criteria) | [04-phases/phase-01-platform-foundation/sub-phases.md](04-phases/phase-01-platform-foundation/sub-phases.md) |
+| **Field capture flows** (P2.5: start/end a shift on the tablet, sign, history, browser E2E; slices and decisions) | [04-phases/phase-02-field-operations/p2.5-capture-flows-plan.md](04-phases/phase-02-field-operations/p2.5-capture-flows-plan.md) |
 | **Hardening and scenario tests** (P1.18a: load, abuse, identity, resilience, concurrency, web security) | [04-phases/phase-01-platform-foundation/hardening-plan.md](04-phases/phase-01-platform-foundation/hardening-plan.md) |
 | **Security headers, page policy (CSP), ZAP scan** | [05-quality/security-testing.md](05-quality/security-testing.md) |
 | **Load tests** (k6: how to run, thresholds, results, findings) | [05-quality/load-testing.md](05-quality/load-testing.md) |
