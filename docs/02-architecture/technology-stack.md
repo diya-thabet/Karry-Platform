@@ -4,7 +4,7 @@ area: architecture
 tags: [stack, dotnet, react, postgresql, keycloak, python]
 source: "MASTER_PLAN.md §7"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-09
 ---
 
 # Technology Stack
@@ -116,6 +116,25 @@ Checked against the official registries (NuGet, npm, Docker Hub, Quay, GitHub re
 **Supply-chain rule (P1.2):** npm packages must be **at least 7 days old** (`minimumReleaseAge` in `src/frontend/pnpm-workspace.yaml`, enforced at install) and CI tools at least one week old when pinned; hence vite 8.3.4, eslint 10.12.0, typescript-eslint 8.71.2 and Trivy 0.75.0 instead of the newest releases.
 
 **Dropped or replaced:** MinIO (OSS repository archived, no community images; replaced by SeaweedFS). `exceljs` (no release since 2024; Excel parsing moves server-side to ClosedXML, which also suits the server-side validation of US-P1-ORG-03).
+
+## 7.1.2 Verified versions (Phase 2 start, 2026-11-09)
+
+Checked in sub-phase P2.0 against NuGet, Docker Hub and the projects' release pages: current stable, at least 7 days
+old, licence read from the package itself (not only the project's web page).
+
+| Component | Version | Licence | Notes |
+|---|---|---|---|
+| `openbao/openbao` (server signing key, [ADR-0033](../adr/0033-signature-envelopes-and-server-keys.md)) | 2.7.2 (2026-10-26), digest `sha256:5046911075e137e154ce49ab051502f4ec7cf367d484ae4a4dce665d9b90561f` | MPL-2.0 | Transit engine, reached by its plain HTTP API: no SDK package. HashiCorp Vault is BSL and is not used |
+| FsCheck / FsCheck.Xunit.v3 (property tests, P2.6) | 3.6.0 / 3.6.0 (2026-10-21) | BSD-3-Clause | Built for xUnit v3, which the test projects use |
+| PDFsharp + MigraDoc (PDF candidate, P2.11) | **6.2.4** (2026-01-06) is MIT; **6.5.0** (2026-10-14) declares `AGPL-3.0-only` in its package | MIT ≤ 6.2.4 / AGPL ≥ 6.5 | The project's licensing page still says MIT, but the package metadata is what binds. AGPL is not acceptable for a SaaS (D22). See below |
+| QuestPDF (PDF candidate, P2.11) | 2026.9.1 (2026-09-25) | Community licence, free up to USD 1 M annual revenue; paid above | Needs owner approval under the licence rule ([guidelines](../00-llm/llm_guidelines.md)) |
+| Camera and image compression | none | — | The browser APIs (`getUserMedia`, `OffscreenCanvas`, `createImageBitmap`) are enough; no helper library |
+
+**PDF engine (open, decided by the P2.11 spike, ADR-0038):** the recommendation going into Phase 2 was PDFsharp +
+MigraDoc because it was MIT. Since 6.5.0 its packages are AGPL, so the options are now: (1) **pin PDFsharp/MigraDoc
+6.2.4 (MIT)**, accepting no further fixes from upstream (Renovate must be told not to update it); (2) **QuestPDF
+Community** with the owner's approval and a revenue check each year; (3) another MIT engine found in the spike. The
+spike measures all candidates on the generated 200-entry shift.
 
 ## 7.2 Why a modular monolith (not microservices)
 

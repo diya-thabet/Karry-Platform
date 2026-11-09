@@ -4,7 +4,7 @@ area: quality
 tags: [environments, test-data, devices]
 source: "PHASES_DETAILED_PLAN.md §28"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-11-09
 ---
 
 # Test Environments, Data & Device Matrix
@@ -25,7 +25,7 @@ last_updated: 2026-10-21
 ## 28.2 Test data
 
 - **Golden datasets** (from P0, extended per phase): real anonymised shift sheets, fuel logs, tickets, maintenance history, plant configuration, finance schedules, with expected results computed by domain expert.
-- **Synthetic generator**: configurable tenants (sites, assets, months of history) with seeded anomalies for detection rules.
+- **Synthetic generator**: configurable tenants (sites, assets, months of history) with seeded anomalies for detection rules. The first one, for shifts and meter readings, is [`tools/demo/generate_shifts.py`](../../tools/demo/generate_shifts.py) (P2.0; [testing strategy](testing-strategy.md#shift-data-generator-one-source-of-realistic-data)).
 - **Anonymisation**: names, plates, customer names, prices scrambled; structure and distributions preserved.
 
 ## 28.3 Device matrix (field app)

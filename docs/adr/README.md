@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-09
 ---
 
 # Architecture Decision Records (ADR) Index
@@ -82,3 +82,11 @@ Added after P1.16 (owner request, 2026-10-29):
 | ADR | Title | Status |
 |---|---|---|
 | [0030](0030-arabic-and-malinke-languages.md) | Arabic and Malinké (Latin and N'Ko scripts) in the apps: right to left, bundled fonts, N'Ko spelled from Latin, drafts for native review | Accepted |
+
+Added in Phase 2 sub-phase P2.0 (they shape P2.1–P2.3; proposed, accepted when their sub-phase is done):
+
+| ADR | Title | Status |
+|---|---|---|
+| [0031](0031-sync-command-processing.md) | Sync command processing: handlers in the upload request, one savepoint per command, business problems stored and flagged | Proposed |
+| [0032](0032-evidence-blobs.md) | Evidence blobs: content-addressed, pre-signed PUT with a checksum the store verifies, Object Lock retention, signed capture record instead of EXIF | Proposed |
+| [0033](0033-signature-envelopes-and-server-keys.md) | Signature envelopes v1 and server keys: OpenBao transit behind `IServerSigner`, asynchronous countersignature, rotation by `kid` | Proposed |
