@@ -95,7 +95,11 @@ public enum UploadOutcome
     /// <summary>Already stored (a batch sent again after a lost answer): the tablet marks it sent.</summary>
     Duplicate,
 
-    /// <summary>Not stored; <see cref="UploadDecision.Code"/> says why. The tablet keeps it.</summary>
+    /// <summary>
+    /// Refused; <see cref="UploadDecision.Code"/> says why. A retryable rejection is not stored and the tablet sends the
+    /// command again; a final one from its handler or the evidence check is kept with its code and takes its place in
+    /// the sequence (<see cref="UploadDecision.Kept"/>), so the tablet's later commands are not blocked behind it.
+    /// </summary>
     Rejected,
 
     /// <summary>Stored now and flagged for review (<see cref="UploadDecision.Flags"/>); final, the tablet marks it sent.</summary>
@@ -127,14 +131,17 @@ public sealed record UploadPlan(
 /// What happened to one command. A rejection is <see cref="Retryable"/> when sending the same command later can
 /// succeed (a missing earlier command, a type the server learns in an update, a handler failure).
 /// </summary>
-public sealed record UploadDecision(CommandId Id, UploadOutcome Outcome, string? Code, bool Retryable = false, IReadOnlyList<string>? Flags = null)
+public sealed record UploadDecision(CommandId Id, UploadOutcome Outcome, string? Code, bool Retryable = false, IReadOnlyList<string>? Flags = null, bool Kept = false)
 {
     public static UploadDecision Accepted(CommandId id) => new(id, UploadOutcome.Accepted, null);
 
     public static UploadDecision Rejected(CommandId id, string code, bool retryable) => new(id, UploadOutcome.Rejected, code, retryable);
 
-    /// <summary>Stored in the device's sequence (accepted or flagged): the next number is due.</summary>
-    public bool Stored => Outcome is UploadOutcome.Accepted or UploadOutcome.Conflict;
+    /// <summary>A final rejection kept with its code in the device's sequence (ADR-0031 §3).</summary>
+    public static UploadDecision RejectedAndKept(CommandId id, string code) => new(id, UploadOutcome.Rejected, code, Kept: true);
+
+    /// <summary>Stored in the device's sequence (accepted, flagged, or a kept final rejection): the next number is due.</summary>
+    public bool Stored => Outcome is UploadOutcome.Accepted or UploadOutcome.Conflict || Kept;
 }
 
 /// <summary>The rules of an upload (ADR-0028 §6): command shape, duplicates and the gap-free sequence of a device.</summary>
@@ -337,9 +344,14 @@ public static partial class InboxRules
 public sealed class ProcessedCommand : ITenantOwned
 {
     public ProcessedCommand(TenantId tenantId, Guid deviceId, CommandId commandId, UploadOutcome outcome, Guid? recordId, IReadOnlyList<string> flags, DateTimeOffset handledAt)
+        : this(tenantId, deviceId, commandId, outcome, recordId, flags, handledAt, null)
+    {
+    }
+
+    private ProcessedCommand(TenantId tenantId, Guid deviceId, CommandId commandId, UploadOutcome outcome, Guid? recordId, IReadOnlyList<string> flags, DateTimeOffset handledAt, string? code)
     {
         ArgumentNullException.ThrowIfNull(flags);
-        if (outcome is not (UploadOutcome.Accepted or UploadOutcome.Conflict))
+        if (outcome is not (UploadOutcome.Accepted or UploadOutcome.Conflict) && !(outcome == UploadOutcome.Rejected && code is not null))
         {
             throw new ArgumentOutOfRangeException(nameof(outcome), outcome, "Only a stored command is processed.");
         }
@@ -351,6 +363,7 @@ public sealed class ProcessedCommand : ITenantOwned
         RecordId = recordId;
         Flags = [.. flags];
         HandledAt = handledAt;
+        Code = code;
     }
 
     // EF Core
@@ -368,6 +381,16 @@ public sealed class ProcessedCommand : ITenantOwned
 
     /// <summary>The record the command created or changed, when there is one.</summary>
     public Guid? RecordId { get; private set; }
+
+    /// <summary>Why a kept command was rejected for good; null for an accepted or flagged one.</summary>
+    public string? Code { get; private set; }
+
+    /// <summary>A command rejected for good, kept with its code so the device's sequence goes on (ADR-0031 §3).</summary>
+    public static ProcessedCommand Rejected(TenantId tenantId, Guid deviceId, CommandId commandId, string code, DateTimeOffset handledAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(code);
+        return new(tenantId, deviceId, commandId, UploadOutcome.Rejected, null, [], handledAt, code);
+    }
 
     public List<string> Flags { get; private set; } = [];
 

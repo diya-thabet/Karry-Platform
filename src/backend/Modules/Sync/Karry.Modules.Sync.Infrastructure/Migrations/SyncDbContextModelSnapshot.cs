@@ -264,6 +264,11 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("command_id");
 
+                    b.Property<string>("Code")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("code");
+
                     b.PrimitiveCollection<List<string>>("Flags")
                         .IsRequired()
                         .HasColumnType("text[]")

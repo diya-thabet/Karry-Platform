@@ -115,6 +115,17 @@ The **tablet** blocks impossible entries before they are signed (plan amendment 
 for example a later entry, so it stores and flags; it never refuses a signed fact, because a refused fact would stay
 on the tablet forever and the evidence would be lost.
 
+**A final rejection takes its place in the sequence (amended in P2.2, 2026-11-09).** A structural rejection that is
+not retryable (a handler's own code, `sync.blob_mismatch`, `sync.evidence_invalid`) would otherwise leave its number
+unfilled forever: the tablet cannot change a signed command, so every later command of that tablet would wait behind
+it (and raise `KarrySyncGapOpen` after 24 h). Such a command is therefore **kept**: stored in the inbox in its place,
+with a `processed_commands` row of outcome `Rejected` and its code, never handled; the sequence goes on, the answer is
+`rejected(code, retryable: false)`, the status pull shows it, and the tablet marks it rejected and shows the error.
+A retryable rejection (`sync.blob_missing`, `sync.handler_failed`, `sync.type_unknown`, `sync.too_far_ahead`) is not
+stored and holds its number until it is sent again. `sync.signature_invalid` and `sync.sequence_reused` are not kept
+either: a command that does not verify cannot be trusted to take a place in the device's sequence (a tablet that
+produces them needs an app fix; the gap alert reports it). Log event 7209.
+
 ### 4. Gaps in the sequence: held, then handled in order
 
 Today a command ahead of the next expected number is `rejected(sync.sequence_gap)` and the tablet keeps it. From
@@ -213,6 +224,8 @@ the pipeline before the first real handler exists.
   Sync and updated rather than appended; it is not on the device row of Identity, which keeps the boundary. Handlers get it
   in `VerifiedCommand.ClockOffsetMs`. A waiting command keeps the **receipt time and offset of its arrival**
   (`waiting_commands.clock_offset_ms`), and its handler and inbox row use those, not the time the gap closed.
+- **P2.2 amendment (final rejections kept, §3):** `UploadDecision.Kept`, `ProcessedCommand.Rejected(code)` (migration
+  `FinalRejections`: `processed_commands.code`); the status pull shows `rejected` with that code.
 - Log events: 7203 (type unknown, warning), 7204 (handler failed, error, with the exception).
 
 ## Options considered

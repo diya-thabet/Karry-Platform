@@ -34,7 +34,7 @@ internal sealed class SubmissionsSync(SyncDbContext db, TimeProvider clock) : IS
                 from p in db.Processed.AsNoTracking()
                 join i in db.Inbox.AsNoTracking() on new { p.DeviceId, Id = p.CommandId } equals new { i.DeviceId, i.Id }
                 where p.DeviceId == device && p.HandledAt >= start
-                select new { i.Id, i.Sequence, p.Outcome, p.Flags, p.RecordId, p.HandledAt })
+                select new { i.Id, i.Sequence, p.Outcome, p.Code, p.Flags, p.RecordId, p.HandledAt })
             .ToListAsync(cancellationToken).ConfigureAwait(false);
         var waiting = await db.Waiting.AsNoTracking()
             .Where(w => w.DeviceId == device && w.ReceivedAt >= start && !db.Inbox.Any(i => i.DeviceId == w.DeviceId && i.Id == w.Id))
@@ -59,7 +59,7 @@ internal sealed class SubmissionsSync(SyncDbContext db, TimeProvider clock) : IS
 
         foreach (var p in processed)
         {
-            rows[p.Id] = new SubmissionSyncRow(p.Id.Value, p.Sequence, p.Outcome.ToString().ToLowerInvariant(), null, p.Flags, p.RecordId, p.HandledAt);
+            rows[p.Id] = new SubmissionSyncRow(p.Id.Value, p.Sequence, p.Outcome.ToString().ToLowerInvariant(), p.Code, p.Flags, p.RecordId, p.HandledAt);
         }
 
         return [new SyncDelta(Collection, [.. rows.Values.OrderBy(r => r.Sequence)], [])];

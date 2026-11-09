@@ -146,7 +146,7 @@ A blob stays in the tablet's store until **the command that references it** is a
 - **The check in the upload (slice 3):** a command's signed payload names its blobs in `evidence:
   [{sha256, size, contentType}]` (up to 20; other members, such as the capture record, are the handler's). Before
   its handler runs, the server `HEAD`s each one under the tablet's key: missing → `rejected(sync.blob_missing,
-  retryable)`; another size, checksum or type → `rejected(sync.blob_mismatch)` and log event 7208 (security);
+  retryable)`; another size, checksum or type → `rejected(sync.blob_mismatch)` and log event 7208 (security), the command kept in its place in the sequence (ADR-0031 §3 amendment);
   malformed → `rejected(sync.evidence_invalid)`; no store or a store that does not answer →
   `rejected(sync.blobs_unavailable, retryable)`. A stored command's blobs are kept in `sync.command_evidence`
   (append-only, RLS; which command uses which content), the registry the orphan job and evidence reads will use.
