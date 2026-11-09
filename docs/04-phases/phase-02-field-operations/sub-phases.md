@@ -4,7 +4,7 @@ area: phases
 tags: [phase-2, sub-phases, execution-plan, sequencing, sync, signatures, verification, field-ops, continuity, notifications, definition-of-done]
 source: "Phase 2 plan (plan.md) broken into executable steps; architect review 2026-11-04"
 status: draft
-last_updated: 2026-11-04
+last_updated: 2026-11-09
 ---
 
 # Phase 2 Execution Plan: Sub-Phases P2.0 – P2.12
@@ -225,7 +225,7 @@ sequenceDiagram
 | ADR-0035 | **Verification engine:** generic `ReviewItem` per record version; policies versioned and pinned on the item; SoD and four-eyes evaluated server side from facts the record type supplies; every action is a signed envelope plus a ledger entry; SLA and escalation as scheduled jobs. | P2.8 |
 | ADR-0036 | **Integrity rules:** a rule is code (owning module) + settings (tenant thresholds, on/off except security rules) + a flag (Integrity module); flags are re-evaluated when the facts they depend on change, and closed, never deleted. | P2.7 |
 | ADR-0037 | **Notifications:** rule = event → audience (role + scope) → channels; in-app center read by **polling with ETag** (the queue's ≤ 10 s target does not need WebSockets for tens of users per company; it also works through every proxy); e-mail through an `IEmailSender` port (Mailpit locally, provider later); Web Push optional and behind a flag. | P2.10 |
-| ADR-0038 | **Documents and public verification:** PDF engine chosen by a time-boxed spike (200 entries < 10 s, images, embedded fonts); the recommendation going in is **PDFsharp + MigraDoc (MIT)** over QuestPDF, whose Community licence ends at USD 1 M revenue. Public page on the platform address `/verify/{envelopeId}#{token}` until the `verify.` domain exists; token 128 random bits, stored hashed; rate-limited; shows only what the tenant's policy allows. | P2.11 |
+| ADR-0038 | **Documents and public verification:** PDF engine chosen by a time-boxed spike (200 entries < 10 s, images, embedded fonts); candidates (P2.0 check, [technology stack §7.1.2](../../02-architecture/technology-stack.md#712-verified-versions-phase-2-start-2026-11-09)): **PDFsharp + MigraDoc pinned at 6.2.4**, the last MIT release (6.5.0 is AGPL-3.0-only), or **QuestPDF**, whose Community licence ends at USD 1 M revenue and needs owner approval, or another MIT engine. Public page on the platform address `/verify/{envelopeId}#{token}` until the `verify.` domain exists; token 128 random bits, stored hashed; rate-limited; shows only what the tenant's policy allows. | P2.11 |
 
 ### 3.4 New permissions (role matrix)
 
@@ -742,5 +742,5 @@ when the ADR is accepted.
 | Low-end tablet too slow for camera + compression | Medium / Medium | Compression in a worker, measured on the reference tablet as soon as it exists; fall back to a lower resolution setting |
 | Continuity engine wrong in edge cases (late data, resets) | Medium / High | Property tests with shrinking, generator anomalies, mutation checks |
 | Signing key custody before a KMS exists | Low / High | OpenBao with persistent storage; unseal key outside the repository; production waits for KMS (P1.17) |
-| PDF licence surprise | Low / Medium | MIT engine recommended; spike before committing (ADR-0038) |
+| PDF licence surprise | **Happened** (P2.0: PDFsharp 6.5 became AGPL) / Medium | Licence read from the package, not the web page; pin the last MIT release or choose another engine in the spike (ADR-0038) |
 | Notification noise makes people ignore them | Medium / Medium | Digests instead of one message per event; per-user preferences; defaults reviewed after the shadow run |

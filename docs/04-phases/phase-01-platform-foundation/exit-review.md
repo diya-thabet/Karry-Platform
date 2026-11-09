@@ -18,7 +18,7 @@ version is written in P1.18b, after P1.17, and needs the owner's acceptance. Unt
 is proven and what is still missing.
 
 **Recommendation for now: _Go with conditions_ for starting Phase 2 work (already agreed in D56), _No-go_ for
-declaring M1.** The product works end to end on the local stack and in CI, and P1.18a found and fixed 18 defects ([§4](#4-what-hardening-found)).
+declaring M1.** The product works end to end on the local stack and in CI, and P1.18a found and fixed 19 defects ([§4](#4-what-hardening-found)).
 M1 is a promise about a hosted, restorable system with a real customer's data, and none of those exist yet.
 
 ## 1. Exit gate checklist ([plan §8.9](plan.md#89-exit-gate-m1--walking-skeleton))
@@ -90,6 +90,7 @@ reproduced by a test first, then fixed, and each fix was mutation-checked.
 | C-4 | The subscription's row-version conflict was never caught: a 500 for operators, a failed lifecycle run | Conflict reported, 409 |
 | C-5 | Crossing uploads of a tablet deadlocked: the tablet got 503 | Per-tablet lock on the inbox insert |
 | C-6 | Shifts and flag overrides set at once answered 500 (unique violations, deadlocks) | Conflicts reported as 409; per-company lock on shift writes |
+| C-7 | A retried upload read the inbox in two steps: with a crossing upload in between, its own commands came back `sync.sequence_reused` instead of `duplicate` | Both reads in one snapshot (#146) |
 | H-W3 | 5 threats claimed for Phase 1 cited no test | Traceability check in CI; the threat model cites its tests |
 
 ## 5. Metrics

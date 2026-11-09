@@ -345,6 +345,17 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
+- **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).
+- **Finding C-7 (sync, H-C3 follow-up), fixed in #146:** `SyncUploads` read the stored commands and the last sequence with two queries. An upload of the same batch committed between them made a retry answer `rejected / sync.sequence_reused` instead of `duplicate`. Seen as `SyncBatchesTests.The_same_batch_sent_many_times_at_once_is_stored_once` failing in CI on #145 and in the nightly `stability` job. Now `IInboxStore.SnapshotAsync` reads both in one repeatable-read transaction.
+- **Lesson:** a lock around the write is not enough when the decision is made from reads taken before it. Read everything the decision needs in one snapshot (or under the same lock).
+- **P2.0 (PR from `docs/phase-2-entry`):**
+  - ADRs 0031 (sync command processing), 0032 (evidence blobs) and 0033 (signature envelopes, OpenBao transit) proposed.
+  - Versions recorded in [technology stack §7.1.2](../02-architecture/technology-stack.md#712-verified-versions-phase-2-start-2026-11-09): OpenBao 2.7.2 (MPL-2.0, digest pinned), FsCheck 3.6.0. **PDFsharp/MigraDoc 6.5.0 declares AGPL-3.0-only in its package** (6.2.4 is the last MIT release; empira's web page still says MIT), so ADR-0038's recommendation changes to: pin 6.2.4, QuestPDF Community with owner approval, or another engine, decided by the P2.11 spike.
+  - Shift data generator `tools/demo/generate_shifts.py` (deterministic from the seed; `expected_flags` and `edge_cases` as ground truth; 12 tests in CI `tooling`).
+  - Phase 2 test strategy (generator, property tests, device lab and usability protocols) in [testing strategy](../05-quality/testing-strategy.md).
+- **Next:** P2.1 sync command processing per [ADR-0031](../adr/0031-sync-command-processing.md).
+
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.
 - **Done:** stopped the 5-day-old demo host and portal preview (by PID); Keycloak capped at 768 MB in compose (was ~2.2 GB incl. swap), login checked (realm discovery 200); trap note in §5. Owner-side steps (disk swapfile on btrfs, zstd zram, Chrome Memory Saver) given in chat; they need sudo or the browser.
