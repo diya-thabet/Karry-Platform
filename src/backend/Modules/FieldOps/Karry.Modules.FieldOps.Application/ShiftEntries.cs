@@ -79,6 +79,14 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
             : null;
 }
 
+/// <summary>A start record as signed (ADR-0034 §5); the operator is the envelope's signer, never a record field.</summary>
+public sealed record StartRecord(
+    Guid RootId, Guid AssetId, Guid MeterId, DateTimeOffset StartedAt, decimal StartValue, int FuelPercent, string Photo, string? Remarks, Guid? PreviousRootId);
+
+/// <summary>An end record as signed (ADR-0034 §5).</summary>
+public sealed record EndRecord(
+    Guid RootId, int Version, DateTimeOffset EndedAt, decimal EndValue, int FuelPercent, string Photo, string? Remarks, IReadOnlyList<Stoppage> Stoppages);
+
 /// <summary>Reading the members of a record strictly: exact names, exact types, no nulls (ADR-0034 §5).</summary>
 public static partial class RecordFields
 {
@@ -170,18 +178,20 @@ public sealed class StartShiftEntry(
 
     public string Type => Name;
 
-    public async Task<HandlerOutcome> HandleAsync(VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    /// <summary>
+    /// The start record when it has exactly the shape of ADR-0034 §5, else null (a final <c>fieldops.entry_invalid</c>).
+    /// The field app checks the same shape before signing (shared vectors, TC-P2-FO-012).
+    /// </summary>
+    public static StartRecord? ReadRecord(JsonElement record)
     {
-        ArgumentNullException.ThrowIfNull(command);
-        ArgumentNullException.ThrowIfNull(transaction);
-        if (!command.Payload.TryGetProperty("record", out var record) || !RecordFields.HasOnly(record, Required, Optional)
+        if (!RecordFields.HasOnly(record, Required, Optional)
             || !RecordFields.Uuid(record, "rootId", out var rootId) || !RecordFields.WholeNumber(record, "version", 1, 1, out _)
             || !RecordFields.Uuid(record, "assetId", out var assetId) || !RecordFields.Uuid(record, "meterId", out var meterId)
             || !RecordFields.Instant(record, "startedAt", out var startedAt) || !RecordFields.MeterValue(record, "startValue", out var startValue)
             || !RecordFields.WholeNumber(record, "fuelStartPercent", 0, 100, out var fuel) || !RecordFields.ContentHash(record, "startPhoto", out var photo)
             || !RecordFields.OptionalText(record, "remarks", ShiftEntryRules.MaxRemarks, out var remarks))
         {
-            return SignedRecord.Invalid;
+            return null;
         }
 
         Guid? previousRootId = null;
@@ -189,12 +199,25 @@ public sealed class StartShiftEntry(
         {
             if (!RecordFields.Uuid(record, "previousRootId", out var previous) || previous == rootId)
             {
-                return SignedRecord.Invalid;
+                return null;
             }
 
             previousRootId = previous;
         }
 
+        return new StartRecord(rootId, assetId, meterId, startedAt, startValue, fuel, photo, remarks, previousRootId);
+    }
+
+    public async Task<HandlerOutcome> HandleAsync(VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(transaction);
+        if (!command.Payload.TryGetProperty("record", out var json) || ReadRecord(json) is not { } record)
+        {
+            return SignedRecord.Invalid;
+        }
+
+        var (rootId, assetId, meterId, startedAt, startValue, fuel, photo, remarks, previousRootId) = record;
         var (signed, problem) = SignedRecord.Read(command.Payload, rootId, 1);
         if (signed is null)
         {
@@ -325,20 +348,32 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
 
     public string Type => Name;
 
-    public async Task<HandlerOutcome> HandleAsync(VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    /// <summary>The end record when it has exactly the shape of ADR-0034 §5, else null (shared vectors, TC-P2-FO-012).</summary>
+    public static EndRecord? ReadRecord(JsonElement record)
     {
-        ArgumentNullException.ThrowIfNull(command);
-        ArgumentNullException.ThrowIfNull(transaction);
-        if (!command.Payload.TryGetProperty("record", out var record) || !RecordFields.HasOnly(record, Required, Optional)
+        if (!RecordFields.HasOnly(record, Required, Optional)
             || !RecordFields.Uuid(record, "rootId", out var rootId) || !RecordFields.WholeNumber(record, "version", 2, int.MaxValue, out var version)
             || !RecordFields.Instant(record, "endedAt", out var endedAt) || !RecordFields.MeterValue(record, "endValue", out var endValue)
             || !RecordFields.WholeNumber(record, "fuelEndPercent", 0, 100, out var fuel) || !RecordFields.ContentHash(record, "endPhoto", out var photo)
             || !RecordFields.OptionalText(record, "remarks", ShiftEntryRules.MaxRemarks, out var remarks)
             || !Stoppages(record, out var stoppages))
         {
+            return null;
+        }
+
+        return new EndRecord(rootId, version, endedAt, endValue, fuel, photo, remarks, stoppages);
+    }
+
+    public async Task<HandlerOutcome> HandleAsync(VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(transaction);
+        if (!command.Payload.TryGetProperty("record", out var json) || ReadRecord(json) is not { } record)
+        {
             return SignedRecord.Invalid;
         }
 
+        var (rootId, version, endedAt, endValue, fuel, photo, remarks, stoppages) = record;
         var (signed, problem) = SignedRecord.Read(command.Payload, rootId, version);
         if (signed is null)
         {

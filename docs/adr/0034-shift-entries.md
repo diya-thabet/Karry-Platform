@@ -177,6 +177,10 @@ The portal reads entries by site, shift, machine and operator, and an entry with
   older end when the meter's last segment never ended; a segment without an end overlapped every later segment of its
   operator; the current version did not show the start's flags. Tests for each in `ShiftEntryHandlersTests`.
 
+- **After P2.4, shared rules (P2.5 slice 1, TC-P2-FO-012):** the record readers are pure (`StartShiftEntry.ReadRecord`,
+  `EndShiftEntry.ReadRecord`) and Δ is compared exactly (tenths of an hour against ticks, no floating point). The field
+  app's `shiftRules.ts` implements the same rules, and both test suites read `tests/vectors/shift-entry-rules.json`.
+
 ## 9. Security review (P2.4 close-out, 2026-11-09)
 
 | Threat | What P2.4 does | Evidence |

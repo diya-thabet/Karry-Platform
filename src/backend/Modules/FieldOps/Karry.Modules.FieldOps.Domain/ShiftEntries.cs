@@ -164,8 +164,9 @@ public static partial class ShiftEntryRules
             flags.Add(ShiftEntryFlags.EndBeforeStart);
         }
 
+        // Exact: tenths of an hour against ticks (no floating point), as the field app computes it (shared vectors).
         var delta = endValue - startValue;
-        var tooLarge = meterKind == "hours" && endedAt > startedAt && delta > (decimal)(endedAt - startedAt + DeltaTolerance).TotalHours;
+        var tooLarge = meterKind == "hours" && endedAt > startedAt && delta * TimeSpan.TicksPerHour > (endedAt - startedAt + DeltaTolerance).Ticks;
         if (delta < 0 || tooLarge)
         {
             flags.Add(ShiftEntryFlags.Delta);
