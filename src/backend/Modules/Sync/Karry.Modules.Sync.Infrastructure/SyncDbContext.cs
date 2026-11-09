@@ -51,6 +51,7 @@ public sealed class SyncDbContext(DbContextOptions<SyncDbContext> options) : Mod
             processed.Property(p => p.CommandId).HasConversion(id => id.Value, value => new CommandId(value)).ValueGeneratedNever();
             processed.Property(p => p.Outcome).HasConversion<string>().HasMaxLength(20);
             processed.Property(p => p.Flags).HasColumnType("text[]");
+            processed.Property(p => p.Code).HasMaxLength(60);
             processed.HasOne<InboxCommand>().WithOne().HasForeignKey<ProcessedCommand>(p => new { p.DeviceId, p.CommandId }).OnDelete(DeleteBehavior.Restrict);
         });
 

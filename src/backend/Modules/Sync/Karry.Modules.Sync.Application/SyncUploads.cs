@@ -247,7 +247,7 @@ public sealed partial class SyncUploads(
         var (evidence, refused) = await CheckEvidenceAsync(tenantId, caller.DeviceId, command, arrival.Payload, cancellationToken).ConfigureAwait(false);
         if (refused is { } refusal)
         {
-            return UploadDecision.Rejected(command.Id, refusal.Code, refusal.Retryable);
+            return refusal.Retryable ? UploadDecision.Rejected(command.Id, refusal.Code, retryable: true) : KeepRejected(refusal.Code);
         }
 
         var verified = new VerifiedCommand(command.Id.Value, caller.DeviceId, caller.SiteId, command.Sequence, command.Type,
@@ -287,9 +287,19 @@ public sealed partial class SyncUploads(
                 return new UploadDecision(command.Id, UploadOutcome.Conflict, null, Flags: conflict.Flags);
             case HandlerOutcome.Rejected rejected:
                 await session.RollbackToAsync(savepoint, cancellationToken).ConfigureAwait(false);
-                return UploadDecision.Rejected(command.Id, rejected.Code, rejected.Retryable);
+                return rejected.Retryable ? UploadDecision.Rejected(command.Id, rejected.Code, retryable: true) : KeepRejected(rejected.Code);
             default:
                 throw new InvalidOperationException($"Unknown handler outcome {outcome}.");
+        }
+
+        // A final rejection takes its place in the sequence, kept with its code, so the tablet's later commands are
+        // not blocked behind a command it can never change (ADR-0031 §3). Nothing of it was handled.
+        UploadDecision KeepRejected(string code)
+        {
+            session.Add(InboxCommand.Receive(tenantId, caller.DeviceId, command, arrival.ReceivedAt));
+            session.Add(ProcessedCommand.Rejected(tenantId, caller.DeviceId, command.Id, code, now));
+            LogKeptRejected(logger, caller.DeviceId, command.Id.Value, code);
+            return UploadDecision.RejectedAndKept(command.Id, code);
         }
 
         void Store(UploadOutcome stored, Guid? recordId, IReadOnlyList<string> flags)
@@ -387,6 +397,9 @@ public sealed partial class SyncUploads(
         using var ecdsa = ECDsa.Create(new ECParameters { Curve = ECCurve.NamedCurves.nistP256, Q = new ECPoint { X = key.X, Y = key.Y } });
         return ecdsa.VerifyData(Encoding.UTF8.GetBytes(command.Body), signature[..64], HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
     }
+
+    [LoggerMessage(EventId = 7209, Level = LogLevel.Warning, Message = "Command {CommandId} of tablet {DeviceId} was rejected for good ({Code}) and kept in its sequence")]
+    private static partial void LogKeptRejected(ILogger logger, Guid deviceId, Guid commandId, string code);
 
     [LoggerMessage(EventId = 7208, Level = LogLevel.Warning,
         Message = "Security: command {CommandId} of tablet {DeviceId} names blob {Sha256}, but the store holds other content under its key")]

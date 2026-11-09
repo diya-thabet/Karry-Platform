@@ -219,6 +219,8 @@ public sealed class SyncBlobsTests(BlobSyncHost host) : IClassFixture<BlobSyncHo
         receipt.GetProperty("code").GetString().Should().Be("sync.blob_mismatch");
         receipt.GetProperty("retryable").GetBoolean().Should().BeFalse();
         (await EvidenceAsync(tablet.Id)).Should().BeEmpty();
+        (await UploadAsync(tablet, tablet.Command(2, new { n = 2 }))).GetProperty("status").GetString()
+            .Should().Be("accepted", "the refused command keeps its number, so the tablet's next commands are not blocked");
     }
 
     [Fact]

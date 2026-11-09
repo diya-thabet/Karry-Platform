@@ -35,6 +35,21 @@ public sealed class InboxRulesTests
     }
 
     [Fact]
+    public async Task A_final_rejection_kept_by_its_handler_takes_its_number_and_the_commands_after_it_go_on()
+    {
+        var (refused, after, waiting) = (Id(), Id(), Id());
+
+        var plan = await InboxRules.DecideAsync(0, NothingStored, [new(waiting, 4, true)], [new(refused, 1, true), new(after, 2, true), new(Id(), 3, true)],
+            c => Task.FromResult(c.Id == refused ? UploadDecision.RejectedAndKept(c.Id, "sync.blob_mismatch") : UploadDecision.Accepted(c.Id)));
+
+        plan.Decisions[0].Should().Be(UploadDecision.RejectedAndKept(refused, "sync.blob_mismatch"));
+        plan.Decisions[0].Retryable.Should().BeFalse();
+        plan.Decisions.Skip(1).Select(d => d.Outcome).Should().Equal(UploadOutcome.Accepted, UploadOutcome.Accepted);
+        plan.LastSequence.Should().Be(4, "the kept rejection took number 1, so 2 and 3 followed and the waiting 4 was handled");
+        plan.Promoted.Select(p => p.Id).Should().Equal(waiting);
+    }
+
+    [Fact]
     public async Task Commands_in_the_next_sequence_numbers_are_accepted_and_advance_the_sequence()
     {
         var (first, second) = (Id(), Id());

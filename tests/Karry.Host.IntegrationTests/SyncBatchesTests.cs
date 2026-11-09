@@ -339,16 +339,23 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
     [Fact]
     [Trait("Story", "US-P2-OFF-03")]
-    public async Task A_handler_that_refuses_a_command_leaves_nothing_of_it()
+    public async Task A_command_its_handler_refuses_for_good_leaves_nothing_handled_is_kept_with_its_code_and_the_next_ones_go_on()
     {
+        // ADR-0031 §3: a command the tablet can never change must not block every later command of the tablet.
         using var tablet = await host.TabletAsync(host.A);
         var refused = tablet.Command(1, new { n = 1 }, type: TestCommandHandler.Refused.Name);
+        var next = tablet.Command(2, new { n = 2 });
 
-        var receipt = await UploadAsync(tablet, [refused]);
+        var receipt = await UploadAsync(tablet, [refused, next]);
 
-        receipt.Results.Should().BeEquivalentTo([Result(refused, "rejected", TestCommandHandler.Refused.Code)]);
-        (await HandledAsync(tablet.Id)).Should().BeEmpty();
-        (await InboxAsync(tablet.Id)).Should().BeEmpty();
+        receipt.Results.Should().BeEquivalentTo([Result(refused, "rejected", TestCommandHandler.Refused.Code), Result(next, "accepted")],
+            options => options.WithStrictOrdering());
+        receipt.LastSequence.Should().Be(2);
+        (await HandledAsync(tablet.Id)).Select(h => h.Command).Should().Equal(Id(next));
+        (await InboxAsync(tablet.Id)).Select(r => (r.Id, r.Sequence)).Should().Equal((Id(refused), 1L), (Id(next), 2L));
+        (await ProcessedAsync(tablet.Id)).Select(p => (p.Command, p.Outcome)).Should().Equal((Id(refused), "Rejected"), (Id(next), "Accepted"));
+        (await PullAsync(tablet, null)).Submissions.Select(r => (r.Id, r.Status, r.Code))
+            .Should().Equal((Id(refused), "rejected", TestCommandHandler.Refused.Code), (Id(next), "accepted", (string?)null));
     }
 
     [Fact]
