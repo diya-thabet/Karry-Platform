@@ -161,8 +161,16 @@ A blob stays in the tablet's store until **the command that references it** is a
   `markUploaded`, `applyReceipts`, `applySubmissions` (`sync.type_unknown` is sent again), `purgeBlobs` (bytes freed 7
   days after every command naming the blob is confirmed, never before, thumbnail kept: TC-P2-SYNC-011) and
   `outboxSummary`. A refused command keeps its evidence. Bytes are stored as `Uint8Array`.
-- **Still to build in P2.2:** the field app's sync engine (presign and `PUT`, then the batch; triggers, backoff, Web
-  Locks), the sync centre screen, and the browser E2E tests (they also prove the CORS rule from a real browser).
+- **The field app's upload (slice 5a, `apps/field/src/uploads.ts`):** `pushOutbox` runs under the Web Lock
+  `karry-outbox` (one upload per tablet across tabs, TC-P2-SYNC-014): for each batch, every blob still to upload is
+  presigned and `PUT` with the given headers (skipped on `exists`), then the batch is sent, its answers applied, and
+  `missingSequences` sent next; at most 20 batches per run. A cut connection leaves every command as it was
+  (TC-P2-SYNC-002, unit level). `syncTablet` = upload, then the pull (which now applies `submissions`), then the
+  purge; it replaces the pull in the home screen's refresh loop (opening, about every 5 minutes, network back, on
+  request).
+- **Still to build in P2.2:** the sync centre screen (pending, waiting, refused with reasons; "Sync now"), the 2-minute
+  upload trigger while commands are pending, backoff with jitter, and the browser E2E tests TC-P2-SYNC-002/007/011/014
+  (they also prove the CORS rule from a real browser).
 
 ## Options considered
 
