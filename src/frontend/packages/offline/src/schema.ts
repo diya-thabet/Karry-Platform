@@ -13,6 +13,8 @@ export interface DeviceRecord {
   enrolledAt: string;
   /** Server clock minus device clock, in milliseconds, measured at each successful exchange. */
   clockOffsetMs: number;
+  /** The last sequence number given to a command (schema v2); absent before the first command. */
+  lastSequence?: number;
 }
 
 /** What the server says about how this tablet behaves (US-P1-OFF-04 AC2/AC3). */
@@ -58,7 +60,14 @@ export interface UnlockRecord {
   lockedUntil: string | null;
 }
 
-/** A signed command waiting for upload (Phase 2 fills it; the schema is fixed now so v1 never needs migrating for it). */
+/**
+ * Where a command stands (ADR-0031 §3–§4): `pending` (to upload, also after a retryable rejection), `waiting` (the
+ * server holds it until an earlier number arrives), `confirmed` (stored: accepted, flagged or already there) or
+ * `rejected` (refused for good; kept on the tablet with its evidence and shown).
+ */
+export type OutboxStatus = "pending" | "waiting" | "confirmed" | "rejected";
+
+/** A signed command (P2.2). It leaves the outbox only by being confirmed; the record stays as the tablet's history. */
 export interface OutboxRecord {
   commandId: string;
   sequence: number;
@@ -66,7 +75,33 @@ export interface OutboxRecord {
   payload: unknown;
   deviceTime: string;
   signature: string;
-  status: "pending" | "sent";
+  status: OutboxStatus;
+  /** Uploads that ended in a retryable rejection. */
+  attempts: number;
+  /** The server's last code for it (a rejection), or null. */
+  code: string | null;
+  /** Why a confirmed command was flagged for review (`conflict`). */
+  flags: string[];
+  /** When the server last answered about it. */
+  answeredAt: string | null;
+  /** SHA-256 (hex) of the evidence blobs its payload names. */
+  blobs: string[];
+}
+
+/**
+ * An evidence blob (ADR-0032 §6): the exact bytes whose hash the command signed, until 7 days after every command
+ * naming it is confirmed; a small thumbnail stays for the tablet's history.
+ */
+export interface BlobRecord {
+  sha256: string;
+  /** Null once purged. */
+  content: Uint8Array | null;
+  size: number;
+  contentType: string;
+  thumbnail: Uint8Array | null;
+  uploadedAt: string | null;
+  /** When the bytes may go (7 days after confirmation); null while a command naming it is not confirmed. */
+  purgeAfter: string | null;
 }
 
 export type KarryOfflineDb = Dexie & {
@@ -81,10 +116,11 @@ export type KarryOfflineDb = Dexie & {
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
   outbox: EntityTable<OutboxRecord, "commandId">;
+  blobs: EntityTable<BlobRecord, "sha256">;
 };
 
 /**
- * Opens the tablet's database, schema v1 (ADR-0028 §5). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v2 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -101,6 +137,11 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
     syncState: "collection",
     unlocks: "userId",
     outbox: "commandId, &sequence, status",
+  });
+  // v2 (P2.2): evidence blobs; outbox records gain their answer (no v1 record exists: v1 never wrote the outbox).
+  db.version(2).stores({
+    outbox: "commandId, &sequence, status",
+    blobs: "sha256, purgeAfter",
   });
   return db;
 }

@@ -2,7 +2,7 @@
   "name": "@karry/offline",
   "private": true,
   "version": "0.0.0",
-  "description": "Dexie schema v1 of the field tablet: reference data, sync state, unlocks, outbox (ADR-0028).",
+  "description": "Dexie schema v2 of the field tablet: reference data, sync state, unlocks, outbox of signed commands and evidence blobs (ADR-0028, ADR-0032).",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
