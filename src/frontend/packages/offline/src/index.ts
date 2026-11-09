@@ -3,7 +3,7 @@
 export { applyChanges, assetByLabel, lastRefresh, searchAssets, userByEmployeeId, words, type ChangeSet } from "./reference";
 export {
   applyReceipts, applySubmissions, batchLimits, blobContentTypes, commandBody, enqueue, keepConfirmedBlobsMs, markUploaded, maxBlobBytes, nextBatch,
-  outboxSummary, purgeBlobs, sha256Hex, uuidv7,
+  outboxSummary, purgeBlobs, sha256Hex, uuidv7, watchOutbox,
   type Batch, type BlobContentType, type CommandReceipt, type EnqueueInput, type EvidenceInput, type OutboxSummary, type SubmissionRow, type UploadedCommand,
 } from "./outbox";
 export {

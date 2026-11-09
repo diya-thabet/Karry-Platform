@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
-import { lastRefresh, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
+import { lastRefresh, outboxSummary, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
 import { Button, StatusChip, type Status } from "@karry/ui";
-import { nextRefreshMs, type PullOutcome } from "./sync";
+import type { PullOutcome } from "./sync";
+import { nextSyncMs } from "./uploads";
 
 
 interface Snapshot {
@@ -34,7 +35,8 @@ const chips: Record<PullOutcome | "syncing", { status: Status; key: string }> = 
 
 /**
  * The tablet's reference data on the home screen (US-P1-OFF-03 AC1/AC2): its site, when the data was last refreshed
- * and how much is kept offline. It refreshes on opening, about every 5 minutes (see {@link nextRefreshMs}), when the
+ * and how much is kept offline. It exchanges with the server on opening, about every 5 minutes (every 2 while entries
+ * wait to be sent, longer after failures: {@link nextSyncMs}), when the
  * network returns and on request.
  */
 export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; device: DeviceRecord; pull: () => Promise<PullOutcome> }) {
@@ -52,15 +54,18 @@ export function ReferenceStatus({ db, device, pull }: { db: KarryOfflineDb; devi
   useEffect(() => {
     let active = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let failures = 0;
     const download = async () => {
       const outcome = await pull();
       const snapshot = await read(db, device);
+      const { pending } = await outboxSummary(db);
+      failures = outcome === "failed" ? failures + 1 : 0;
       // Together, so "up to date" never shows next to the data from before the refresh.
       if (active) {
         setData(snapshot);
         setState(outcome);
         clearTimeout(timer);
-        timer = setTimeout(again, nextRefreshMs(outcome));
+        timer = setTimeout(again, nextSyncMs(outcome, pending, failures));
       }
     };
     const again = () => {

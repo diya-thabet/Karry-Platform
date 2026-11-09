@@ -1,3 +1,4 @@
+import { liveQuery } from "dexie";
 import { canonicalize, sign, toBase64Url } from "@karry/crypto";
 import type { BlobRecord, KarryOfflineDb, OutboxRecord } from "./schema";
 
@@ -294,4 +295,10 @@ export async function outboxSummary(db: KarryOfflineDb): Promise<OutboxSummary> 
   ]);
   const lastAnswerAt = answered.reduce<string | null>((latest, c) => (latest === null || (c.answeredAt ?? "") > latest ? c.answeredAt : latest), null);
   return { pending, waiting, rejected, lastAnswerAt };
+}
+
+/** Calls `next` with the summary now and after every change of the outbox (also from another tab); returns the stop. */
+export function watchOutbox(db: KarryOfflineDb, next: (summary: OutboxSummary) => void): () => void {
+  const subscription = liveQuery(() => outboxSummary(db)).subscribe({ next, error: () => undefined });
+  return () => { subscription.unsubscribe(); };
 }

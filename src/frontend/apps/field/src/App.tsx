@@ -6,6 +6,7 @@ import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitch
 import { Enroll } from "./Enroll";
 import { MachineFinder } from "./MachineFinder";
 import { findMachine, type QrScanner } from "./machines";
+import { OutboxStatus } from "./OutboxStatus";
 import { ReferenceStatus } from "./ReferenceStatus";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
@@ -109,6 +110,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
       <UpdateOffer updates={environment.updates} />
       <StorageWarning persisted={environment.persisted} />
       <ReferenceStatus db={environment.db} device={device} pull={environment.pull} />
+      <OutboxStatus db={environment.db} />
       <Button block onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
         <ScanLine aria-hidden className="size-8" />
         {t("field.machines.open")}

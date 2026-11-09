@@ -168,9 +168,13 @@ A blob stays in the tablet's store until **the command that references it** is a
   (TC-P2-SYNC-002, unit level). `syncTablet` = upload, then the pull (which now applies `submissions`), then the
   purge; it replaces the pull in the home screen's refresh loop (opening, about every 5 minutes, network back, on
   request).
-- **Still to build in P2.2:** the sync centre screen (pending, waiting, refused with reasons; "Sync now"), the 2-minute
-  upload trigger while commands are pending, backoff with jitter, and the browser E2E tests TC-P2-SYNC-002/007/011/014
-  (they also prove the CORS rule from a real browser).
+- **Sync centre and timing (slice 5b):** the home screen shows `OutboxStatus` ("everything is sent", entries to send,
+  entries the server holds for an earlier one, refused entries with the reason for each), following the outbox live
+  (`watchOutbox`, also across tabs); "Refresh" is the "sync now". `nextSyncMs`: every 2 minutes (± 15 s) while entries
+  wait to be sent, otherwise about every 5; after failures in a row the interval doubles up to 30 minutes, ± 10 %.
+  Strings in fr, en, ar, emk, nqo (the Malinké and N'Ko ones are drafts for native review, D-09).
+- **Still to build in P2.2:** the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the CORS rule from a
+  real browser).
 
 ## Options considered
 
