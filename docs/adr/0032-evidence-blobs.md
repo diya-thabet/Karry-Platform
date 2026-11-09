@@ -135,10 +135,16 @@ A blob stays in the tablet's store until **the command that references it** is a
   address), `Storage:Evidence:UploadValidFor` (default 15 minutes). Endpoint and keys are those of `Storage`.
 - **Tests:** `SyncBlobsTests` (host, SeaweedFS: upload with the URL, `exists` on retry, other bytes and another key
   refused, per-tablet and per-company keys, validation, tablets only) and `SyncBlobRulesTests`.
-- **Still to build in P2.2:** Object Lock on the evidence bucket, the `HEAD` check when a command that uses a blob
-  is handled (`sync.blob_missing`), and the tablet's blob store and uploader. The tablet `PUT`s from the browser to
-  another origin, so the evidence bucket needs a CORS rule for the field app's origin; it is set with the bucket as
-  code and checked in the field app's E2E test.
+- **The bucket (slice 2):** created on first use where `CreateBucketIfMissing` is set (local stack, CI) with Object
+  Lock on, default retention **compliance** for `Storage:Evidence:RetentionDays` (1826, 5 years), and a CORS rule:
+  `PUT` with `content-type` and `x-amz-checksum-sha256` from `Storage:Evidence:AllowedOrigins` (one `*` per origin;
+  locally `http://*.localhost:5174`, every company's field address). An existing bucket is left as it is, so a
+  setting never lowers a retention. Verified on SeaweedFS 4.48 (`EvidenceStoreTests`): deleting a retained version is
+  `403 AccessDenied`; a `PUT` to the same key makes a new version and the retained one stays readable; a preflight
+  from another origin is refused. In production the bucket is infrastructure as code with the same settings (waits
+  for the hosting provider).
+- **Still to build in P2.2:** the `HEAD` check when a command that uses a blob is handled (`sync.blob_missing`), and
+  the tablet's blob store and uploader (its E2E test also proves the CORS rule from a real browser).
 
 ## Options considered
 

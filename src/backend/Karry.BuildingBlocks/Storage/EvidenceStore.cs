@@ -58,7 +58,23 @@ public sealed class EvidenceStoreOptions
     /// <summary>How long a pre-signed URL can be used (ADR-0032 §2: 15 minutes).</summary>
     public TimeSpan UploadValidFor { get; set; } = TimeSpan.FromMinutes(15);
 
+    /// <summary>
+    /// Creates the bucket on first use (local stack, CI), with Object Lock and the CORS rule below. In production the
+    /// bucket is infrastructure as code with the same settings.
+    /// </summary>
     public bool CreateBucketIfMissing { get; set; }
+
+    /// <summary>
+    /// The bucket's default retention, in compliance mode (ADR-0032 §4): nobody, administrators included, can delete or
+    /// shorten it before it ends. 5 years until the owner gives the legal period (WP-P0-06); it can only go up.
+    /// </summary>
+    public int RetentionDays { get; set; } = 1826;
+
+    /// <summary>
+    /// Origins of the field app, which <c>PUT</c>s from the browser to the store (CORS). One <c>*</c> per origin is
+    /// allowed, for the companies' addresses (<c>http://*.localhost:5174</c> locally).
+    /// </summary>
+    public IReadOnlyList<string> AllowedOrigins { get; set; } = [];
 }
 
 public static class EvidenceStoreRegistration
@@ -104,6 +120,7 @@ public sealed class S3EvidenceStore : IEvidenceStore, IDisposable
     private readonly AmazonS3Client client;
     private readonly AmazonS3Client signer;
     private readonly Protocol protocol;
+    private readonly EvidenceStoreOptions evidence;
     private readonly SemaphoreSlim bucketCheck = new(1, 1);
     private bool bucketReady;
 
@@ -113,6 +130,7 @@ public sealed class S3EvidenceStore : IEvidenceStore, IDisposable
         ArgumentNullException.ThrowIfNull(evidence);
         bucket = evidence.Bucket ?? throw new ArgumentException("The evidence bucket is not set.", nameof(evidence));
         bucketReady = !evidence.CreateBucketIfMissing;
+        this.evidence = evidence;
         client = Client(storage, storage.ServiceUrl);
         var publicUrl = string.IsNullOrWhiteSpace(evidence.PublicUrl) ? storage.ServiceUrl : evidence.PublicUrl;
         signer = Client(storage, publicUrl);
@@ -181,6 +199,44 @@ public sealed class S3EvidenceStore : IEvidenceStore, IDisposable
         });
     }
 
+    /// <summary>
+    /// Object Lock can only be turned on when the bucket is created; the retention applies to every new object. An
+    /// existing bucket is left as it is (its retention is never lowered by a setting).
+    /// </summary>
+    private async Task CreateBucketAsync(CancellationToken cancellationToken)
+    {
+        await client.PutBucketAsync(new PutBucketRequest { BucketName = bucket, ObjectLockEnabledForBucket = true }, cancellationToken).ConfigureAwait(false);
+        await client.PutObjectLockConfigurationAsync(new PutObjectLockConfigurationRequest
+        {
+            BucketName = bucket,
+            ObjectLockConfiguration = new ObjectLockConfiguration
+            {
+                ObjectLockEnabled = ObjectLockEnabled.Enabled,
+                Rule = new ObjectLockRule { DefaultRetention = new DefaultRetention { Mode = ObjectLockRetentionMode.Compliance, Days = evidence.RetentionDays } },
+            },
+        }, cancellationToken).ConfigureAwait(false);
+        if (evidence.AllowedOrigins.Count > 0)
+        {
+            await client.PutCORSConfigurationAsync(new PutCORSConfigurationRequest
+            {
+                BucketName = bucket,
+                Configuration = new CORSConfiguration
+                {
+                    Rules =
+                    [
+                        new CORSRule
+                        {
+                            AllowedOrigins = [.. evidence.AllowedOrigins],
+                            AllowedMethods = ["PUT"],
+                            AllowedHeaders = ["content-type", ChecksumHeader],
+                            MaxAgeSeconds = 3600,
+                        },
+                    ],
+                },
+            }, cancellationToken).ConfigureAwait(false);
+        }
+    }
+
     private async Task EnsureBucketAsync(CancellationToken cancellationToken)
     {
         if (bucketReady)
@@ -194,7 +250,7 @@ public sealed class S3EvidenceStore : IEvidenceStore, IDisposable
             var buckets = await client.ListBucketsAsync(cancellationToken).ConfigureAwait(false);
             if (!(buckets.Buckets ?? []).Any(b => b.BucketName == bucket))
             {
-                await client.PutBucketAsync(new PutBucketRequest { BucketName = bucket }, cancellationToken).ConfigureAwait(false);
+                await CreateBucketAsync(cancellationToken).ConfigureAwait(false);
             }
 
             bucketReady = true;
