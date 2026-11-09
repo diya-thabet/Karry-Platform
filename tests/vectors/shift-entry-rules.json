@@ -1,0 +1,1012 @@
+{
+  "description": "Shared rules of shift entry records (ADR-0034 §3, §5, §6; TC-P2-FO-012). Read by the server (FieldOps ShiftEntryVectorsTests) and the field app (shiftRules.test.ts): both must give exactly these answers. Meter values are tenths; times are compared to the tick (100 ns). Hand-curated: add a case here when a rule changes, never in one suite only.",
+  "meterValues": {
+    "valid": [
+      {
+        "text": "0",
+        "tenths": 0
+      },
+      {
+        "text": "0.0",
+        "tenths": 0
+      },
+      {
+        "text": "1.0",
+        "tenths": 10
+      },
+      {
+        "text": "10",
+        "tenths": 100
+      },
+      {
+        "text": "12482.5",
+        "tenths": 124825
+      },
+      {
+        "text": "9999999.9",
+        "tenths": 99999999
+      }
+    ],
+    "invalid": [
+      "",
+      "12482.55",
+      "-1",
+      "+1",
+      "01",
+      "00.5",
+      "1e3",
+      "1.",
+      ".5",
+      "10000000",
+      "10000000.0",
+      " 1",
+      "1 ",
+      "١٢",
+      "1,5"
+    ]
+  },
+  "instants": {
+    "valid": [
+      "2026-11-09T06:00:00Z",
+      "2026-11-09T07:00:00+01:00",
+      "2026-11-09T06:00:00.1234567Z",
+      "2026-11-09T02:30:00.5-03:30",
+      "2026-11-09T20:00:00+14:00",
+      "2024-02-29T00:00:00Z"
+    ],
+    "invalid": [
+      "2026-11-09 06:00:00Z",
+      "2026-11-09T06:00:00",
+      "2026-02-30T06:00:00Z",
+      "2025-02-29T00:00:00Z",
+      "2026-11-09T24:00:00Z",
+      "2026-11-09T06:60:00Z",
+      "2026-11-09T06:00:00+15:00",
+      "2026-11-09T06:00:00.12345678Z",
+      "2026-11-09t06:00:00z",
+      "2026-11-09T06:00Z",
+      "2026-13-01T00:00:00Z"
+    ]
+  },
+  "endFlags": [
+    {
+      "name": "hour meter, 8 h + 0.5 h exactly",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T14:00:00Z",
+      "endValue": "108.5",
+      "flags": []
+    },
+    {
+      "name": "hour meter, one tenth beyond the tolerance",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T14:00:00Z",
+      "endValue": "108.6",
+      "flags": [
+        "RULE-FO-02"
+      ]
+    },
+    {
+      "name": "hour meter going back",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T14:00:00Z",
+      "endValue": "99.9",
+      "flags": [
+        "RULE-FO-02"
+      ]
+    },
+    {
+      "name": "end at the start time",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T06:00:00Z",
+      "endValue": "100.0",
+      "flags": [
+        "END_BEFORE_START"
+      ]
+    },
+    {
+      "name": "end before the start and going back",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T05:00:00Z",
+      "endValue": "99.0",
+      "flags": [
+        "END_BEFORE_START",
+        "RULE-FO-02"
+      ]
+    },
+    {
+      "name": "km meter, any distance forward",
+      "meterKind": "km",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "1000.0",
+      "endedAt": "2026-11-09T14:00:00Z",
+      "endValue": "1240.0",
+      "flags": []
+    },
+    {
+      "name": "km meter going back",
+      "meterKind": "km",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "1000.0",
+      "endedAt": "2026-11-09T14:00:00Z",
+      "endValue": "999.9",
+      "flags": [
+        "RULE-FO-02"
+      ]
+    },
+    {
+      "name": "7 h 20 min + 0.5 h holds 7.8 h",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "0",
+      "endedAt": "2026-11-09T13:20:00Z",
+      "endValue": "7.8",
+      "flags": []
+    },
+    {
+      "name": "7 h 20 min + 0.5 h does not hold 7.9 h",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "0",
+      "endedAt": "2026-11-09T13:20:00Z",
+      "endValue": "7.9",
+      "flags": [
+        "RULE-FO-02"
+      ]
+    },
+    {
+      "name": "offsets count: 05:00Z to 13:00Z is 8 h",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00+01:00",
+      "startValue": "100.0",
+      "endedAt": "2026-11-09T13:00:00Z",
+      "endValue": "108.5",
+      "flags": []
+    },
+    {
+      "name": "one tick after the start is after it",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "0",
+      "endedAt": "2026-11-09T06:00:00.0000001Z",
+      "endValue": "0.5",
+      "flags": []
+    },
+    {
+      "name": "one tick plus the tolerance does not hold 0.6 h",
+      "meterKind": "hours",
+      "startedAt": "2026-11-09T06:00:00Z",
+      "startValue": "0",
+      "endedAt": "2026-11-09T06:00:00.0000001Z",
+      "endValue": "0.6",
+      "flags": [
+        "RULE-FO-02"
+      ]
+    }
+  ],
+  "startFlags": [
+    {
+      "name": "nothing to continue",
+      "continuesFrom": null,
+      "startValue": "100.0",
+      "flags": []
+    },
+    {
+      "name": "same value",
+      "continuesFrom": "100.0",
+      "startValue": "100.0",
+      "flags": []
+    },
+    {
+      "name": "same value, other spelling",
+      "continuesFrom": "100",
+      "startValue": "100.0",
+      "flags": []
+    },
+    {
+      "name": "below the last end",
+      "continuesFrom": "100.0",
+      "startValue": "99.9",
+      "flags": [
+        "RULE-FO-01"
+      ]
+    },
+    {
+      "name": "above the last end",
+      "continuesFrom": "100.0",
+      "startValue": "100.1",
+      "flags": [
+        "RULE-FO-01"
+      ]
+    }
+  ],
+  "overlaps": [
+    {
+      "name": "back to back",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": "2026-11-09T14:00:00Z"
+      },
+      "b": {
+        "start": "2026-11-09T14:00:00Z",
+        "end": "2026-11-09T22:00:00Z"
+      },
+      "overlaps": false
+    },
+    {
+      "name": "one hour shared",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": "2026-11-09T14:00:00Z"
+      },
+      "b": {
+        "start": "2026-11-09T13:00:00Z",
+        "end": "2026-11-09T22:00:00Z"
+      },
+      "overlaps": true
+    },
+    {
+      "name": "still running holds a later segment",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": null
+      },
+      "b": {
+        "start": "2026-11-09T10:00:00Z",
+        "end": "2026-11-09T12:00:00Z"
+      },
+      "overlaps": true
+    },
+    {
+      "name": "still running starts as the other ends",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": null
+      },
+      "b": {
+        "start": "2026-11-09T05:00:00Z",
+        "end": "2026-11-09T06:00:00Z"
+      },
+      "overlaps": false
+    },
+    {
+      "name": "two still running",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": null
+      },
+      "b": {
+        "start": "2026-11-09T07:00:00Z",
+        "end": null
+      },
+      "overlaps": true
+    },
+    {
+      "name": "an empty segment holds no time",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": "2026-11-09T06:00:00Z"
+      },
+      "b": {
+        "start": "2026-11-09T05:00:00Z",
+        "end": "2026-11-09T07:00:00Z"
+      },
+      "overlaps": false
+    },
+    {
+      "name": "an end before its start holds no time",
+      "a": {
+        "start": "2026-11-09T06:00:00Z",
+        "end": "2026-11-09T05:00:00Z"
+      },
+      "b": {
+        "start": "2026-11-09T04:00:00Z",
+        "end": "2026-11-09T08:00:00Z"
+      },
+      "overlaps": false
+    }
+  ],
+  "records": {
+    "start": {
+      "valid": [
+        {
+          "name": "minimal",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "with remarks of 1000 characters",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "remarks": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+        },
+        {
+          "name": "handover from a previous entry",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "previousRootId": "01970000-0000-7000-8000-0000000f0002"
+          }
+        },
+        {
+          "name": "zero meter and empty tank",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "0",
+            "fuelStartPercent": 0,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "largest meter value, full tank",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "9999999.9",
+            "fuelStartPercent": 100,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ],
+      "invalid": [
+        {
+          "name": "missing startPhoto",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75
+          }
+        },
+        {
+          "name": "extra member operatorId",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "operatorId": "01970000-0000-7000-8000-0000000f0001"
+          }
+        },
+        {
+          "name": "null remarks",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "remarks": null
+          }
+        },
+        {
+          "name": "version 2",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "uppercase UUID",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000F0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "UUID without dashes",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000000070008000000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "start value as a JSON number",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": 12482.5,
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "start value with two decimals",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.55",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "fuel above 100",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 101,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "fuel below 0",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": -1,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "fuel as text",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": "75",
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "photo hash too short",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:abc"
+          }
+        },
+        {
+          "name": "photo hash in upper case",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          }
+        },
+        {
+          "name": "time without offset",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "blank remarks",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "remarks": "   "
+          }
+        },
+        {
+          "name": "remarks of 1001 characters",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "remarks": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+          }
+        },
+        {
+          "name": "previous entry is itself",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "previousRootId": "01970000-0000-7000-8000-0000000f0001"
+          }
+        },
+        {
+          "name": "previous entry not a UUID",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "assetId": "01970000-0000-7000-8000-000000000a01",
+            "meterId": "01970000-0000-7000-8000-000000000b01",
+            "startedAt": "2026-11-09T06:00:00Z",
+            "startValue": "12482.5",
+            "fuelStartPercent": 75,
+            "startPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "previousRootId": "previous"
+          }
+        }
+      ]
+    },
+    "end": {
+      "valid": [
+        {
+          "name": "minimal",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "with stoppages and remarks",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "weather",
+                "minutes": 30
+              },
+              {
+                "reason": "breakdown",
+                "minutes": 1440
+              }
+            ],
+            "remarks": "rain"
+          }
+        },
+        {
+          "name": "empty stoppage list",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": []
+          }
+        },
+        {
+          "name": "a later version",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 3,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "twenty stoppages",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              }
+            ]
+          }
+        }
+      ],
+      "invalid": [
+        {
+          "name": "version 1",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 1,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "start member in an end",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "startValue": "1.0"
+          }
+        },
+        {
+          "name": "unknown stoppage reason",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "lunch",
+                "minutes": 30
+              }
+            ]
+          }
+        },
+        {
+          "name": "stoppage of 0 minutes",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "weather",
+                "minutes": 0
+              }
+            ]
+          }
+        },
+        {
+          "name": "stoppage longer than a day",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "weather",
+                "minutes": 1441
+              }
+            ]
+          }
+        },
+        {
+          "name": "stoppage with an extra member",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "weather",
+                "minutes": 5,
+                "note": "x"
+              }
+            ]
+          }
+        },
+        {
+          "name": "twenty-one stoppages",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": [
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              },
+              {
+                "reason": "other",
+                "minutes": 1
+              }
+            ]
+          }
+        },
+        {
+          "name": "stoppages not a list",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "stoppages": {
+              "reason": "weather",
+              "minutes": 5
+            }
+          }
+        },
+        {
+          "name": "end value with a sign",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endedAt": "2026-11-09T14:00:00Z",
+            "endValue": "+12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        },
+        {
+          "name": "missing endedAt",
+          "record": {
+            "rootId": "01970000-0000-7000-8000-0000000f0001",
+            "version": 2,
+            "endValue": "12490.0",
+            "fuelEndPercent": 40,
+            "endPhoto": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          }
+        }
+      ]
+    }
+  }
+}
