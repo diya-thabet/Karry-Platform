@@ -41,7 +41,7 @@ These items **must be closed before P2.12b**.
 
 | Item | Blocked on | Owner | Status |
 |---|---|---|---|
-| P1.18a hardening (slices 6b, 6 rest, 7) | — (agent work) | Agent | 🟡 must be ✅ before P2.1 |
+| P1.18a hardening (slices 6b, 6 rest, 7) | — (agent work) | Agent | ✅ 2026-11-09 ([exit review draft](../phase-01-platform-foundation/exit-review.md)) |
 | P1.15 real-tablet run (cold start, search timing, PIN unlock time, QR scan) | A low-end Android tablet | Owner | ⏳ |
 | P1.17 environments & continuous delivery | Hosting provider & region (WP-P0-14) | Owner → agent | ⏳ |
 | P1.18b staging hardening, restore drill, pilot data | P1.17 | Agent | ⏳ |

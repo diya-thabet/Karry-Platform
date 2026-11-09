@@ -5,7 +5,8 @@
 # (six demo accounts stand for many people, and setup enrols the tablets from one address; the tablet and company
 # limits stay as in production). Runs H-L1 (devices.js: burst and shift), TC-P1-TEN-005 (tenants.js mixed) and the
 # spike (tenants.js spike), one at a time, and keeps each summary in tests/load/results/<time>/ (git-ignored).
-# Exit code: non-zero when any threshold fails. TABLETS, REQUESTS, VUS and SPIKE_VUS change the sizes.
+# Exit code: non-zero when any threshold fails. TABLETS, REQUESTS, VUS and SPIKE_VUS change the sizes; PAUSE_SECONDS
+# the wait between runs (65 s: one rate-limit window).
 set -euo pipefail
 
 here="$(cd "$(dirname "$0")" && pwd)"
@@ -31,8 +32,15 @@ run() {
   grep -E "^\s+(✓|✗) '" "$out/$name.txt" || true
 }
 
+# Each run starts with empty rate-limit windows: the company limit is a one-minute sliding window, and devices.js
+# loads demo-carriere-a at about 7,500 requests a minute. Without the pause the mixed run (5,000 more for that company
+# in a few seconds) crossed the 12,000 limit on a fast runner and got 429s, and the spike's setup was refused
+# (nightly 2026-11-08 and -09: "too few identifiers to look for (2)").
+pause="${PAUSE_SECONDS:-65}"
 run devices "$here/devices.js"
+sleep "$pause"
 run tenants-mixed -e SCENARIO=mixed "$here/tenants.js"
+sleep "$pause"
 run tenants-spike -e SCENARIO=spike "$here/tenants.js"
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
