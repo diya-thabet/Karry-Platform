@@ -71,6 +71,8 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
 
         public void Add(WaitingCommand waiting) => db.Waiting.Add(waiting);
 
+        public void Add(CommandEvidence evidence) => db.Evidence.Add(evidence);
+
         public void MeasureClock(TenantId tenant, int offsetMs, DateTimeOffset measuredAt)
         {
             if (clock is null)

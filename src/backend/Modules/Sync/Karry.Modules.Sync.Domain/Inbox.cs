@@ -510,3 +510,43 @@ public sealed class DeviceClock : ITenantOwned
     public static int OffsetOf(DateTimeOffset signedAt, DateTimeOffset receivedAt) =>
         (int)Math.Clamp(Math.Round((signedAt - receivedAt).TotalMilliseconds), int.MinValue, int.MaxValue);
 }
+
+/// <summary>
+/// An evidence blob a stored command references (ADR-0032): the registry of which command uses which content, kept with
+/// the command. The blob itself is in the evidence bucket, under the key its tenant, device and hash make. Append-only.
+/// </summary>
+public sealed class CommandEvidence : ITenantOwned
+{
+    public CommandEvidence(TenantId tenantId, Guid deviceId, CommandId commandId, string sha256, long size, string contentType, DateTimeOffset recordedAt)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sha256);
+        ArgumentException.ThrowIfNullOrWhiteSpace(contentType);
+        TenantId = tenantId;
+        DeviceId = deviceId;
+        CommandId = commandId;
+        Sha256 = sha256;
+        Size = size;
+        ContentType = contentType;
+        RecordedAt = recordedAt;
+    }
+
+    // EF Core
+    private CommandEvidence()
+    {
+    }
+
+    public TenantId TenantId { get; private set; }
+
+    public Guid DeviceId { get; private set; }
+
+    public CommandId CommandId { get; private set; }
+
+    /// <summary>The lowercase hex SHA-256 of the exact bytes (the last part of the key).</summary>
+    public string Sha256 { get; private set; } = string.Empty;
+
+    public long Size { get; private set; }
+
+    public string ContentType { get; private set; } = string.Empty;
+
+    public DateTimeOffset RecordedAt { get; private set; }
+}

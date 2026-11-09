@@ -28,6 +28,8 @@ public sealed class SyncDbContext(DbContextOptions<SyncDbContext> options) : Mod
 
     public DbSet<DeviceClock> Clocks => Set<DeviceClock>();
 
+    public DbSet<CommandEvidence> Evidence => Set<CommandEvidence>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -71,6 +73,17 @@ public sealed class SyncDbContext(DbContextOptions<SyncDbContext> options) : Mod
             waiting.Property(c => c.Signature).HasMaxLength(100);
             waiting.Ignore(c => c.Command);
             waiting.HasIndex(c => new { c.DeviceId, c.Sequence });
+        });
+
+        modelBuilder.Entity<CommandEvidence>(evidence =>
+        {
+            evidence.ToTable("command_evidence");
+            evidence.HasKey(e => new { e.DeviceId, e.CommandId, e.Sha256 });
+            evidence.Property(e => e.CommandId).HasConversion(id => id.Value, value => new CommandId(value)).ValueGeneratedNever();
+            evidence.Property(e => e.Sha256).HasMaxLength(64).IsFixedLength();
+            evidence.Property(e => e.ContentType).HasMaxLength(40);
+            evidence.HasIndex(e => new { e.DeviceId, e.Sha256 });
+            evidence.HasOne<InboxCommand>().WithMany().HasForeignKey(e => new { e.DeviceId, e.CommandId }).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<DeviceClock>(clock =>
