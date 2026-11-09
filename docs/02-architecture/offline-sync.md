@@ -18,16 +18,16 @@ Dexie (IndexedDB)
 ├── reference/*       master data snapshot for the user's sites (assets, materials, customers, roles)
 ├── drafts/*          unsaved form state (auto-saved)
 ├── outbox            signed, immutable commands awaiting upload (ordered, with retry metadata)
-├── blobs             photos/signature images (compressed WebP/JPEG, chunked upload)
+├── blobs             photos/signature strokes (compressed WebP/JPEG ≤ 1 MB, one pre-signed PUT each; ADR-0032)
 └── sync_state        per-collection cursors, last success, device clock offset
 ```
 
 ## 12.2 Sync protocol
 
-1. **Push:** `POST /api/v1/sync/batches` with up to 100 commands, each signed by the tablet's key; its `commandId` (UUIDv7) makes a resend harmless (no `Idempotency-Key`). The server answers per command `accepted | duplicate | rejected(code)` (P1.15, [ADR-0028 §6](../adr/0028-field-devices-offline-data-shared-tablet.md#6-uploads-preparing-phase-2)); Phase 2 adds `conflict(details)` when handlers process commands.
-2. **Blobs:** uploaded first via pre-signed URLs; commands reference blob hashes; server verifies hash on receipt.
-3. **Pull:** `GET /api/v1/sync/changes?cursor=…` returns the reference data of the tablet's site as a snapshot or a delta ([ADR-0028 §5](../adr/0028-field-devices-offline-data-shared-tablet.md#5-reference-data-and-delta-pulls-us-p1-off-03)); Phase 2 adds the statuses of the tablet's own submissions.
-4. **Ordering:** per-device sequence without gaps; the server stores received commands in it and reports a gap or a reused number per command.
+1. **Push:** `POST /api/v1/sync/batches` with up to 100 commands, each signed by the tablet's key; its `commandId` (UUIDv7) makes a resend harmless (no `Idempotency-Key`). The server answers per command `accepted | conflict(flags) | duplicate | waiting | rejected(code, retryable)` (P1.15, [ADR-0028 §6](../adr/0028-field-devices-offline-data-shared-tablet.md#6-uploads-preparing-phase-2); handlers run in the upload since P2.1, [ADR-0031](../adr/0031-sync-command-processing.md)).
+2. **Blobs:** uploaded first. `POST /api/v1/sync/blobs/presign {sha256, size, contentType}` answers `exists` or a pre-signed `PUT` (15 min) signed with `x-amz-checksum-sha256`, so the store refuses other bytes; commands reference blob hashes and the server checks the object when it handles them ([ADR-0032](../adr/0032-evidence-blobs.md)).
+3. **Pull:** `GET /api/v1/sync/changes?cursor=…` returns the reference data of the tablet's site as a snapshot or a delta ([ADR-0028 §5](../adr/0028-field-devices-offline-data-shared-tablet.md#5-reference-data-and-delta-pulls-us-p1-off-03)); since P2.1 it also holds the `submissions` collection, the final status of each command the tablet sent.
+4. **Ordering:** per-device sequence without gaps; commands after a gap are held and answered `waiting` with `missingSequences`, then handled in order when the gap closes; a reused number is rejected ([ADR-0031 §4](../adr/0031-sync-command-processing.md)).
 
 ## 12.3 Conflict policy
 

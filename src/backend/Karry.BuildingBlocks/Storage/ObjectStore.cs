@@ -183,7 +183,7 @@ public sealed class S3ObjectStore(ObjectStoreOptions options) : IObjectStore, ID
     /// A storage that cannot be reached, times out or answers 5xx is unavailable; anything else (a refused request, a
     /// missing bucket) stays a fault of ours. The caller's own cancellation stays a cancellation.
     /// </summary>
-    private static async Task<T> CallAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
+    internal static async Task<T> CallAsync<T>(Func<CancellationToken, Task<T>> call, CancellationToken cancellationToken)
     {
         // One deadline for the whole call, retries included: the SDK's own timeouts bound each attempt, not the sum
         // (on a slow CI runner a frozen storage took 31 s). WaitAsync holds it even if the SDK ignores the cancellation.

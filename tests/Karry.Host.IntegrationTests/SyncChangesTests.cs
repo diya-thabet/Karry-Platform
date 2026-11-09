@@ -23,7 +23,7 @@ namespace Karry.Host.IntegrationTests;
 /// The real host (every module's sync source) with two companies: North (the tablet's site) and South in company A,
 /// and company B with its own tablet. Data is seeded as the modules store it; changes go through the API.
 /// </summary>
-public sealed class SyncHost : IAsyncLifetime
+public class SyncHost : IAsyncLifetime
 {
     public const string Pin = "804613";
 
@@ -46,7 +46,7 @@ public sealed class SyncHost : IAsyncLifetime
     {
         server = await PostgresServer.StartAsync();
         Database = await server.NewKarryDatabaseAsync();
-        factory = new Factory(Database.App, Clock);
+        factory = new Factory(Database.App, Clock, await StartStorageAsync());
         await MigrationRunner.MigrateAsync(factory.Services, Database.Owner, CancellationToken.None);
         await ExecuteAsync(TestCommandHandler.CreateTable);
         Client = factory.CreateClient();
@@ -117,7 +117,7 @@ public sealed class SyncHost : IAsyncLifetime
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public virtual async ValueTask DisposeAsync()
     {
         Client?.Dispose();
         if (factory is not null)
@@ -129,7 +129,13 @@ public sealed class SyncHost : IAsyncLifetime
         {
             await server.DisposeAsync();
         }
+
+        GC.SuppressFinalize(this);
     }
+
+    /// <summary>Settings of the object storage the host uses; none here (a host with storage overrides it).</summary>
+    protected virtual Task<IReadOnlyDictionary<string, string?>> StartStorageAsync() =>
+        Task.FromResult<IReadOnlyDictionary<string, string?>>(new Dictionary<string, string?>());
 
     /// <summary>The PBKDF2 hash a field user's PIN is stored as (few iterations: fast tests, same format).</summary>
     public static string PinHash(byte[] salt) =>
@@ -203,12 +209,17 @@ public sealed class SyncHost : IAsyncLifetime
         return company;
     }
 
-    private sealed class Factory(string connectionString, TimeProvider clock) : WebApplicationFactory<Program>
+    private sealed class Factory(string connectionString, TimeProvider clock, IReadOnlyDictionary<string, string?> settings) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.UseEnvironment("Testing");
             builder.UseSetting("ConnectionStrings:Karry", connectionString);
+            foreach (var (key, value) in settings)
+            {
+                builder.UseSetting(key, value);
+            }
+
             builder.ConfigureTestServices(services =>
             {
                 services.TrustTestIssuer();
