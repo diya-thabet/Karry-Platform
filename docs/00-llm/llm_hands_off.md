@@ -399,7 +399,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.3 slice 2 (PR from `feat/p2.3-openbao-stack`):** compose service `openbao` (127.0.0.1:8200) with `deploy/docker/openbao/{openbao.hcl,start.sh}`: raft storage on `baodata`, unseal key + root token in `baokeys`, key `karry-server`, policy `karry-signer`, periodic token `KARRY_OPENBAO_SIGNER_TOKEN` (default `karry-local-signer-only-for-dev`). `Trust:ServerSigning` in the Host and Workers development settings. Smoke test: signs, cannot rotate, cannot make exportable. Runbook `karry-server-key-rotation`.
 - **Trap:** OpenBao 2.x has **no `file` storage** (`unknown storage type file`) and no `disable_mlock`: use `storage "raft"` with `node_id`, plus `cluster_addr`. The image runs as `openbao` (uid 100); the start script runs as root and starts the server with `su-exec openbao`.
 - **How I tested compose changes without the smoke test:** `docker compose -p karry-bao-check -f deploy/docker/compose.yaml up -d --wait openbao`, then `down -v` on that project only (never on the main stack).
-- **Next:** P2.3 slice 3: `trust.server_keys` (append-only, filled from `KeysAsync`) and the envelope (`packages/crypto` builder, shared vectors, `trust.signature_envelope`).
+- **Merged:** #162 (slice 2; CI local-stack ran the OpenBao smoke checks).
+- **P2.3 slice 3a (PR from `feat/p2.3-envelope-format`):** envelope v1 in `@karry/crypto` (`envelope.ts`) and `Karry.Modules.Trust.Contracts.SignatureEnvelopes`; vectors `tests/vectors/signature-envelope.json` (regenerate with `python3 tests/vectors/generate-signature-envelope-vectors.py > tests/vectors/signature-envelope.json`; needs Python `cryptography`).
+- **Trap:** a .NET regex shared with JavaScript must use `\z` and `[0-9]`: `$` also matches before a final `\n` and `\d` matches any Unicode digit. And a vector meant to test an anchor must not be caught by a length limit first (my first newline case was; mutation testing showed it).
+- **Next:** P2.3 slice 3b: `trust.server_keys` (append-only, filled from `KeysAsync`) and `trust.signature_envelope` (append-only, RLS), stored by the handler of a record's command, with the ledger entry in the same transaction.
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

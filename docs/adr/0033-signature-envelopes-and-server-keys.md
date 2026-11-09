@@ -143,7 +143,18 @@ signed part, as in ADR-0007.
   the public key, and gets `403` on rotate, export, a new key and `sys/`. The smoke test checks signing and two
   refusals. `Trust:ServerSigning` is set in both hosts' development settings. Rotation:
   [runbook](../06-operations/runbooks/karry-server-key-rotation.md).
-- **Still to build in P2.3:** `trust.server_keys`, envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
+- **Slice 3a, envelope v1 on both sides:** `@karry/crypto` `envelopeProblem`, `payloadHash`, `sha256Text`,
+  `signEnvelope` (checks, then signs the RFC 8785 text with the device key) and `verifyEnvelope`; .NET
+  `SignatureEnvelopes` in Trust.Contracts (`Problem`, `Canonical`, `Hash`, `PayloadHash`, `VerifyDevice` against the
+  device's stored P-256 point), so the module that handles a record's command can check its envelope. **Strict
+  rules** (both sides): exactly the members of §1, optional ones absent rather than `null`; lowercase UUIDs;
+  `recordType` `module.record_name`; `recordVersion` an integer ≥ 1; hashes `sha256:` + 64 lowercase hex; evidence
+  1–20 distinct hashes when present; handwriting both hashes; `deviceTime` ISO 8601 with an offset; `geo` in range.
+  Shared vectors `tests/vectors/signature-envelope.json` from an independent Python implementation
+  (`generate-signature-envelope-vectors.py`): 2 valid envelopes (text, hash, a device signature both sides verify,
+  and a one-character change that must not) and 22 malformed ones both sides refuse. The .NET patterns use `\z` and
+  `[0-9]` (not `$` and `\d`) to match JavaScript; a mutation back to `$` is caught by the vectors.
+- **Still to build in P2.3:** `trust.server_keys`, storing envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
   the countersign job with its metrics and alerts, the SignaturePad, and the portal's "Verified" badge.
 
 ## Options considered

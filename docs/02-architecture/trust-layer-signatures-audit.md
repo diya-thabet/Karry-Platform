@@ -37,7 +37,9 @@ Rules:
 
 ## 13.2 Signature envelope
 
-Each signable record produces a `SignatureEnvelope`:
+Each signable record produces a `SignatureEnvelope`. **The exact signed form is envelope v1 in
+[ADR-0033 §1](../adr/0033-signature-envelopes-and-server-keys.md#1-envelope-v1-what-is-signed)** (built and checked
+on both sides against `tests/vectors/signature-envelope.json`, P2.3); the sketch below is the original Phase 0 outline:
 
 ```json
 {
