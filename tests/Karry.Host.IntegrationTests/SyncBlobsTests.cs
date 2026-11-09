@@ -2,7 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using Amazon.Runtime;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Karry.Testing;
+using Npgsql;
 
 namespace Karry.Host.IntegrationTests;
 
@@ -12,6 +17,18 @@ public sealed class BlobSyncHost : SyncHost
     public const string Bucket = "karry-evidence-test";
 
     private SeaweedFsServer? storage;
+
+    /// <summary>The store as an administrator sees it, to write around the API (a forged blob).</summary>
+    public AmazonS3Client StoreAdmin() => new(
+        new BasicAWSCredentials(SeaweedFsServer.AccessKey, SeaweedFsServer.SecretKey),
+        new AmazonS3Config
+        {
+            ServiceURL = storage!.ServiceUrl,
+            AuthenticationRegion = "us-east-1",
+            ForcePathStyle = true,
+            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+        });
 
     public override async ValueTask DisposeAsync()
     {
@@ -154,6 +171,94 @@ public sealed class SyncBlobsTests(BlobSyncHost host) : IClassFixture<BlobSyncHo
 
         admin.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         revoked.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-SYNC-004")]
+    public async Task A_command_sent_before_its_blob_is_rejected_retryable_and_accepted_once_the_blob_is_uploaded()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var photo = Photo();
+        var command = tablet.Command(1, WithEvidence(photo));
+
+        var early = await UploadAsync(tablet, command);
+        early.GetProperty("status").GetString().Should().Be("rejected");
+        early.GetProperty("code").GetString().Should().Be("sync.blob_missing");
+        early.GetProperty("retryable").GetBoolean().Should().BeTrue();
+        (await EvidenceAsync(tablet.Id)).Should().BeEmpty();
+
+        using (await PutAsync(await PresignAsync(tablet, photo), photo))
+        {
+        }
+
+        (await UploadAsync(tablet, command)).GetProperty("status").GetString().Should().Be("accepted");
+        (await EvidenceAsync(tablet.Id)).Should().Equal((Guid.Parse(command["commandId"]!.GetValue<string>()), Hex(photo), (long)photo.Length, "image/jpeg"));
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-SYNC-005")]
+    public async Task A_command_whose_blob_was_replaced_around_the_api_is_rejected_for_good()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var photo = Photo();
+        using (var s3 = host.StoreAdmin())
+        {
+            (await PresignAsync(tablet, Photo())).GetProperty("exists").GetBoolean().Should().BeFalse("the first call creates the bucket");
+            await s3.PutObjectAsync(new PutObjectRequest
+            {
+                BucketName = BlobSyncHost.Bucket,
+                Key = $"tenants/{host.A.Id:D}/devices/{tablet.Id:D}/evidence/{Hex(photo)}",
+                InputStream = new MemoryStream(Photo()),
+                ContentType = "image/jpeg",
+            }, Ct);
+        }
+
+        var receipt = await UploadAsync(tablet, tablet.Command(1, WithEvidence(photo)));
+
+        receipt.GetProperty("status").GetString().Should().Be("rejected");
+        receipt.GetProperty("code").GetString().Should().Be("sync.blob_mismatch");
+        receipt.GetProperty("retryable").GetBoolean().Should().BeFalse();
+        (await EvidenceAsync(tablet.Id)).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_command_with_malformed_evidence_is_rejected_for_good()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+
+        var receipt = await UploadAsync(tablet, tablet.Command(1, new { evidence = new[] { new { sha256 = "abc", size = 10, contentType = "image/jpeg" } } }));
+
+        receipt.GetProperty("code").GetString().Should().Be("sync.evidence_invalid");
+        receipt.GetProperty("retryable").GetBoolean().Should().BeFalse();
+    }
+
+    private static object WithEvidence(byte[] photo) =>
+        new { n = 1, evidence = new[] { new { sha256 = Hex(photo), size = photo.Length, contentType = "image/jpeg" } } };
+
+    /// <summary>Uploads one command and answers its receipt.</summary>
+    private static async Task<JsonElement> UploadAsync(TestTablet tablet, JsonObject command)
+    {
+        using var response = await tablet.SendAsync(HttpMethod.Post, "/api/v1/sync/batches", new { commands = new[] { command } });
+        response.StatusCode.Should().Be(HttpStatusCode.OK, await response.Content.ReadAsStringAsync(Ct));
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("results")[0];
+    }
+
+    private async Task<List<(Guid Command, string Sha256, long Size, string ContentType)>> EvidenceAsync(Guid deviceId)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var query = new NpgsqlCommand("SELECT command_id, sha256, size, content_type FROM sync.command_evidence WHERE device_id = $1", connection)
+        {
+            Parameters = { new() { Value = deviceId } },
+        };
+        await using var reader = await query.ExecuteReaderAsync(Ct);
+        var rows = new List<(Guid, string, long, string)>();
+        while (await reader.ReadAsync(Ct))
+        {
+            rows.Add((reader.GetGuid(0), reader.GetString(1), reader.GetInt64(2), reader.GetString(3)));
+        }
+
+        return rows;
     }
 
     /// <summary>A small JPEG-like blob, different each time.</summary>

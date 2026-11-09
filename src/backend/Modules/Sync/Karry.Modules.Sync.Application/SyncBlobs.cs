@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentValidation;
 using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Storage;
@@ -26,7 +27,18 @@ public static class SyncBlobRules
         "image/jpeg", "image/webp", "image/png", "application/json",
     };
 
-    public static readonly Error Unavailable = Error.BusinessRule("sync.blobs_unavailable", "Evidence storage is not configured on this server.");
+    public const string UnavailableCode = "sync.blobs_unavailable";
+
+    /// <summary>A blob the command names is not in the store (yet): the tablet uploads it and sends the command again.</summary>
+    public const string BlobMissing = "sync.blob_missing";
+
+    /// <summary>The store holds other content than the command names (size, checksum or type): never accepted.</summary>
+    public const string BlobMismatch = "sync.blob_mismatch";
+
+    /// <summary>The payload's <c>evidence</c> member is malformed.</summary>
+    public const string EvidenceInvalid = "sync.evidence_invalid";
+
+    public static readonly Error Unavailable = Error.BusinessRule(UnavailableCode, "Evidence storage is not configured on this server.");
 
     /// <summary>64 lowercase hex characters: the key is built from it, so nothing else may get into a path.</summary>
     public static bool IsSha256Hex(string? value) =>
@@ -34,6 +46,53 @@ public static class SyncBlobRules
 
     /// <summary>The checksum header's form of the same hash (base64 of the 32 bytes).</summary>
     public static string ToBase64(string sha256Hex) => Convert.ToBase64String(Convert.FromHexString(sha256Hex));
+}
+
+/// <summary>A blob a command's signed payload names: what the store must hold, byte for byte (ADR-0032 §1).</summary>
+public sealed record EvidenceRef(string Sha256, long Size, string ContentType);
+
+/// <summary>
+/// The <c>evidence</c> member of a command's payload: an array of <c>{sha256, size, contentType}</c> (other members,
+/// such as the capture record, are the handler's). No member means no evidence.
+/// </summary>
+public static class CommandEvidenceRefs
+{
+    public const string Member = "evidence";
+
+    /// <summary>More blobs than any field form needs (a few photos and a signature).</summary>
+    public const int MaxPerCommand = 20;
+
+    /// <summary>The references, or null when the member is there but malformed (the command is rejected for it).</summary>
+    public static IReadOnlyList<EvidenceRef>? Read(JsonElement payload)
+    {
+        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(Member, out var evidence))
+        {
+            return [];
+        }
+
+        if (evidence.ValueKind != JsonValueKind.Array || evidence.GetArrayLength() > MaxPerCommand)
+        {
+            return null;
+        }
+
+        var refs = new List<EvidenceRef>();
+        foreach (var item in evidence.EnumerateArray())
+        {
+            if (item.ValueKind != JsonValueKind.Object
+                || !item.TryGetProperty("sha256", out var sha256) || sha256.ValueKind != JsonValueKind.String || !SyncBlobRules.IsSha256Hex(sha256.GetString())
+                || !item.TryGetProperty("size", out var size) || size.ValueKind != JsonValueKind.Number || !size.TryGetInt64(out var bytes) || bytes is < 1 or > SyncBlobRules.MaxBytes
+                || !item.TryGetProperty("contentType", out var type) || type.ValueKind != JsonValueKind.String || !SyncBlobRules.ContentTypes.Contains(type.GetString()!))
+            {
+                return null;
+            }
+
+            refs.Add(new EvidenceRef(sha256.GetString()!, bytes, type.GetString()!));
+        }
+
+        // The same blob named twice is one blob; the same hash with another size or type is a malformed payload.
+        var distinct = refs.Distinct().ToList();
+        return distinct.DistinctBy(r => r.Sha256).Count() == distinct.Count ? distinct : null;
+    }
 }
 
 public sealed class PresignBlobValidator : AbstractValidator<PresignBlob>

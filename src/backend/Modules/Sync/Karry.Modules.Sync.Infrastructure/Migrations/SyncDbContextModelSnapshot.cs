@@ -117,6 +117,52 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                     b.ToTable("processed_messages", "sync");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Sync.Domain.CommandEvidence", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<Guid>("CommandId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("command_id");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("sha256")
+                        .IsFixedLength();
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("content_type");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<long>("Size")
+                        .HasColumnType("bigint")
+                        .HasColumnName("size");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("DeviceId", "CommandId", "Sha256")
+                        .HasName("pk_command_evidence");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_command_evidence_tenant_id");
+
+                    b.HasIndex("DeviceId", "Sha256")
+                        .HasDatabaseName("ix_command_evidence_device_id_sha256");
+
+                    b.ToTable("command_evidence", "sync");
+                });
+
             modelBuilder.Entity("Karry.Modules.Sync.Domain.DeviceClock", b =>
                 {
                     b.Property<Guid>("DeviceId")
@@ -365,6 +411,16 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                         .HasDatabaseName("ix_waiting_commands_device_id_sequence");
 
                     b.ToTable("waiting_commands", "sync");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Sync.Domain.CommandEvidence", b =>
+                {
+                    b.HasOne("Karry.Modules.Sync.Domain.InboxCommand", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceId", "CommandId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_command_evidence_inbox_device_id_command_id");
                 });
 
             modelBuilder.Entity("Karry.Modules.Sync.Domain.ProcessedCommand", b =>

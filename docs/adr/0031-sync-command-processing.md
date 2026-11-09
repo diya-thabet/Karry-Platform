@@ -239,7 +239,7 @@ the pipeline before the first real handler exists.
   (`JoinAsync`), which is a new building block with its own tests. Held commands add a state to the inbox and a
   metric to watch.
 - **Follow-ups:** P2.1 builds the pipeline, the contracts, the test kit, `test.echo.v1`, the status pull and the
-  offset. P2.2 adds the blob check to the structural rejections (ADR-0032). P2.4 writes the first real handlers.
+  offset. P2.2 adds the blob check to the structural rejections (ADR-0032 §7: `sync.blob_missing`, `sync.blob_mismatch`, `sync.evidence_invalid`, `sync.blobs_unavailable`). P2.4 writes the first real handlers.
   The 24 h gap alert and its runbook ship with P2.1.
 
 ## Security review (to complete when P2.1 is done)

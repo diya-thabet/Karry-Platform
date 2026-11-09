@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using FluentValidation;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Devices;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Sync.Domain;
@@ -75,6 +76,8 @@ public interface IInboxSession : IAsyncDisposable
     void Add(UnhandledCommand unhandled);
 
     void Add(WaitingCommand waiting);
+
+    void Add(CommandEvidence evidence);
 
     /// <summary>Keeps the tablet's latest clock offset (ADR-0031 §6).</summary>
     void MeasureClock(TenantId tenant, int offsetMs, DateTimeOffset measuredAt);
@@ -150,7 +153,7 @@ public sealed class UploadBatchValidator : AbstractValidator<UploadBatch>
 /// </summary>
 public sealed partial class SyncUploads(
     IInboxStore store, IDeviceDirectory devices, SyncCommandTypes handlers, IServiceScopeFactory scopes, ITenantContext tenant,
-    TimeProvider clock, ILogger<SyncUploads> logger)
+    IEvidenceStore evidenceStore, TimeProvider clock, ILogger<SyncUploads> logger)
 {
     public static readonly Error Revoked = Error.Forbidden(PermissionMiddleware.RevokedDeviceCode, "This tablet has been revoked.");
 
@@ -241,6 +244,12 @@ public sealed partial class SyncUploads(
             return UploadDecision.Rejected(command.Id, InboxRules.TypeUnknown, retryable: true);
         }
 
+        var (evidence, refused) = await CheckEvidenceAsync(tenantId, caller.DeviceId, command, arrival.Payload, cancellationToken).ConfigureAwait(false);
+        if (refused is { } refusal)
+        {
+            return UploadDecision.Rejected(command.Id, refusal.Code, refusal.Retryable);
+        }
+
         var verified = new VerifiedCommand(command.Id.Value, caller.DeviceId, caller.SiteId, command.Sequence, command.Type,
             arrival.Payload.Clone(), command.DeviceTime, arrival.ReceivedAt, arrival.ClockOffsetMs, command.Body);
         var savepoint = $"command_{command.Sequence}";
@@ -287,7 +296,61 @@ public sealed partial class SyncUploads(
         {
             session.Add(InboxCommand.Receive(tenantId, caller.DeviceId, command, arrival.ReceivedAt));
             session.Add(new ProcessedCommand(tenantId, caller.DeviceId, command.Id, stored, recordId, flags, now));
+            foreach (var blob in evidence)
+            {
+                session.Add(new CommandEvidence(tenantId, caller.DeviceId, command.Id, blob.Sha256, blob.Size, blob.ContentType, now));
+            }
         }
+    }
+
+    /// <summary>
+    /// The blobs the command's signed payload names must be in the store, under this tablet's keys, exactly as named
+    /// (ADR-0032 §2): a missing one is retryable (the tablet uploads it and sends again); other content under the key
+    /// (only possible by writing to the store around the API) is refused for good and logged as a security event.
+    /// </summary>
+    private async Task<(IReadOnlyList<EvidenceRef> Evidence, (string Code, bool Retryable)? Refused)> CheckEvidenceAsync(
+        TenantId tenantId, Guid deviceId, SignedCommand command, JsonElement payload, CancellationToken cancellationToken)
+    {
+        if (CommandEvidenceRefs.Read(payload) is not { } evidence)
+        {
+            return ([], (SyncBlobRules.EvidenceInvalid, false));
+        }
+
+        if (evidence.Count == 0)
+        {
+            return (evidence, null);
+        }
+
+        if (!evidenceStore.Available)
+        {
+            return (evidence, (SyncBlobRules.UnavailableCode, true));
+        }
+
+        foreach (var blob in evidence)
+        {
+            BlobHead? head;
+            try
+            {
+                head = await evidenceStore.HeadAsync(EvidenceKeys.For(tenantId.Value, deviceId, blob.Sha256), cancellationToken).ConfigureAwait(false);
+            }
+            catch (ObjectStoreUnavailableException)
+            {
+                return (evidence, (SyncBlobRules.UnavailableCode, true));
+            }
+
+            if (head is null)
+            {
+                return (evidence, (SyncBlobRules.BlobMissing, true));
+            }
+
+            if (head.Size != blob.Size || head.Sha256 != SyncBlobRules.ToBase64(blob.Sha256) || head.ContentType != blob.ContentType)
+            {
+                LogBlobMismatch(logger, deviceId, command.Id.Value, blob.Sha256);
+                return (evidence, (SyncBlobRules.BlobMismatch, false));
+            }
+        }
+
+        return (evidence, null);
     }
 
     /// <summary>
@@ -324,6 +387,10 @@ public sealed partial class SyncUploads(
         using var ecdsa = ECDsa.Create(new ECParameters { Curve = ECCurve.NamedCurves.nistP256, Q = new ECPoint { X = key.X, Y = key.Y } });
         return ecdsa.VerifyData(Encoding.UTF8.GetBytes(command.Body), signature[..64], HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
     }
+
+    [LoggerMessage(EventId = 7208, Level = LogLevel.Warning,
+        Message = "Security: command {CommandId} of tablet {DeviceId} names blob {Sha256}, but the store holds other content under its key")]
+    private static partial void LogBlobMismatch(ILogger logger, Guid deviceId, Guid commandId, string sha256);
 
     [LoggerMessage(EventId = 7201, Level = LogLevel.Warning, Message = "Revoked device {DeviceId} uploaded commands; {Count} new one(s) quarantined")]
     private static partial void LogQuarantined(ILogger logger, Guid deviceId, int count);
