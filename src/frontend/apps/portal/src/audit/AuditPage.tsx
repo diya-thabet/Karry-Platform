@@ -6,9 +6,10 @@ import { useAccess, useApi } from "../app/api";
 import { useSiteNames } from "../assets/api";
 import { saveFile } from "../imports/api";
 import {
-  auditKey, auditQuery, AuditReadPermission, AuditVerifyPermission, latestVerificationKey, maskedFieldsOf, noFilters, shownValue, useAuditActors,
+  auditKey, auditQuery, AuditReadPermission, envelopeOf, AuditVerifyPermission, latestVerificationKey, maskedFieldsOf, noFilters, shownValue, useAuditActors,
   useLatestVerification, type AuditEntry, type AuditFilters,
 } from "./api";
+import { SignatureVerification } from "./SignatureVerification";
 
 /** "Any" in a select: the select needs a value of its own. */
 const any = "any";
@@ -226,6 +227,7 @@ function AuditLog() {
 function EntryDialog({ entry, person, at, onClose }: { entry: AuditEntry | null; person: string; at: string; onClose: () => void }) {
   const { t } = useTranslation();
   const masked = entry ? maskedFieldsOf(entry) : [];
+  const envelope = entry ? envelopeOf(entry.eventType, entry.event) : null;
 
   return (
     <Dialog
@@ -238,6 +240,7 @@ function EntryDialog({ entry, person, at, onClose }: { entry: AuditEntry | null;
       {entry && (
         <div className="flex max-h-[60vh] flex-col gap-4 overflow-y-auto text-sm">
           <p><code translate="no">{entry.eventType}</code></p>
+          {envelope && <SignatureVerification envelopeId={envelope} />}
           {entry.changes.length > 0
             ? (
               <table className="w-full text-start">

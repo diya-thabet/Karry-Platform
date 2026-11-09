@@ -5,6 +5,7 @@ import { useAccess, useApi } from "../app/api";
 export type AuditEntry = components["schemas"]["AuditEntryResponse"];
 export type AuditChange = components["schemas"]["AuditChange"];
 export type AuditActor = components["schemas"]["AuditActorResponse"];
+export type EnvelopeVerification = components["schemas"]["EnvelopeVerification"];
 
 export const AuditReadPermission = "audit.ledger.read";
 export const AuditVerifyPermission = "audit.ledger.verify";
@@ -79,4 +80,30 @@ export function useLatestVerification() {
     queryFn: async () => (await api.GET("/api/v1/audit/verifications/latest")).data ?? { verification: null, verifiedBy: null, verifiedByName: null },
     enabled: can(AuditVerifyPermission),
   });
+}
+
+/** The event the server records when a signed envelope arrives; its payload names the envelope. */
+export const envelopeReceivedEvent = "trust.envelope_received.v1";
+
+/** The verification of one signature envelope (`GET /audit/envelopes/{id}/verification`, US-P2-SIG-04). */
+export function useEnvelopeVerification(envelopeId: string) {
+  const api = useApi();
+  const { can } = useAccess();
+  return useQuery({
+    queryKey: [...auditKey, "envelopes", envelopeId],
+    queryFn: async () => {
+      const { data, error } = await api.GET("/api/v1/audit/envelopes/{envelopeId}/verification", { params: { path: { envelopeId } } });
+      if (error) throw new Error("verification unavailable");
+      return data;
+    },
+    enabled: can(AuditVerifyPermission),
+    retry: false,
+  });
+}
+
+/** The envelope an audit entry is about, when it records a received signature. */
+export function envelopeOf(eventType: string, event: unknown): string | null {
+  if (eventType !== envelopeReceivedEvent || typeof event !== "object" || event === null) return null;
+  const id = (event as { envelopeId?: unknown }).envelopeId;
+  return typeof id === "string" ? id : null;
 }
