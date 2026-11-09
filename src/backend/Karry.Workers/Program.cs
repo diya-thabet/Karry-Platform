@@ -27,6 +27,7 @@ var connectionString = builder.Configuration.GetConnectionString("Karry")
 builder.Services.AddTenancyInfrastructure(connectionString);
 builder.Services.AddTrustInfrastructure(connectionString);
 builder.Services.AddTrustAnchoring(builder.Configuration);
+builder.Services.AddTrustServerSigning(builder.Configuration); // countersigning (ADR-0033 §4)
 builder.Services.AddIdentityInfrastructure(builder.Configuration, connectionString);
 
 // Billing subscribes to tenant provisioning (the trial subscription) and runs the subscription lifecycle.

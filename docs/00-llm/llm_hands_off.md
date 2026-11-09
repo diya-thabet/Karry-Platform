@@ -393,7 +393,9 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Mistake (fixed in #159):** I wrote an nqo message by hand; CI's `nko_from_latin.py --check` refused it. **Never hand-write nqo:** remove the key from `nqo.json` and run `python3 tools/i18n/nko_from_latin.py --missing` (a native reader's correction goes in `tools/i18n/nko-reviewed.txt`).
 - **Merged:** #159 (slice 5b).
 - **P2.2 close-out (PR from `feat/p2.2-close-out`):** counter `karry.sync.blobs` (`SyncBlobMetrics`, result presigned/exists/verified/missing/mismatch/unavailable; `SyncBlobMetricsTests`); alerts `KarryEvidenceStoreUnavailable` (ticket) and `KarrySyncBlobMismatch` (page) with promtool tests; runbook `karry-evidence-upload`; ADR-0032 **accepted** with its security review (§8); threat model T-03/05/09/17 extended. **Decision:** the browser E2E TC-P2-SYNC-002/007/011/014 and the card's "done when" moved to P2.5 (no entry screen before P2.5, no real command type before P2.4); covered now at unit and host level. Bucket size per tenant deferred to the usage work (Phase 3 plan limits). **P2.2 ✅.**
-- **Next:** P2.3 (signature envelopes, ADR-0033).
+- **Merged:** #160 (P2.2 close-out). **P2.2 ✅.**
+- **P2.3 slice 1 (PR from `feat/p2.3-server-signer`):** spike first: OpenBao 2.7.2 transit `ecdsa-p256` with `prehashed`, `sha2-256` and `marshaling_algorithm: jws` answers `vault:v{n}:<base64url 64 bytes>` (P1363), verifiable with the version's PEM; rotation keeps old versions verifiable. Built `IServerSigner`/`ServerSignatures`/`UnavailableServerSigner` (Trust.Application), `OpenBaoTransitSigner` + `Trust:ServerSigning` (Trust.Infrastructure), `AddTrustServerSigning` in the API and Workers, `OpenBaoServer` in Karry.Testing, `OpenBaoTransitSignerTests` (4). The `kid` comes with each signature (ADR-0033 §6 change).
+- **Next:** P2.3 slice 2: OpenBao in compose (file storage, persistent volume, init script; unseal key in an ignored file) and `trust.server_keys`.
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

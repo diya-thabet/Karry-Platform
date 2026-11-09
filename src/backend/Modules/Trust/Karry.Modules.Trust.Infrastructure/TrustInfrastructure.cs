@@ -63,6 +63,31 @@ public static class TrustInfrastructure
         return services;
     }
 
+    /// <summary>
+    /// The server signing key (ADR-0033 §3) from <c>Trust:ServerSigning</c>: OpenBao transit when an address is set,
+    /// otherwise <see cref="UnavailableServerSigner"/> (nothing is countersigned; envelopes stay pending).
+    /// </summary>
+    public static IServiceCollection AddTrustServerSigning(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(configuration);
+        var options = new ServerSigningOptions();
+        configuration.GetSection(ServerSigningOptions.Section).Bind(options);
+        if (string.IsNullOrWhiteSpace(options.Address))
+        {
+            services.TryAddSingleton<IServerSigner, UnavailableServerSigner>();
+            return services;
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Token))
+        {
+            throw new InvalidOperationException($"{ServerSigningOptions.Section}: an address is configured but no token.");
+        }
+
+        services.AddSingleton(options);
+        services.TryAddSingleton<IServerSigner>(_ => new OpenBaoTransitSigner(options));
+        return services;
+    }
+
     private static ECDsa LoadKey(AnchoringOptions options)
     {
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);

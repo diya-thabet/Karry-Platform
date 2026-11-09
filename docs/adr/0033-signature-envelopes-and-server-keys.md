@@ -116,6 +116,26 @@ There is no consumer in Phase 2, and a TSA is an external dependency and a cost.
 tickets in Phase 3, per tenant policy (plan amendment A8). The envelope keeps room for `timestampToken` outside the
 signed part, as in ADR-0007.
 
+### 6. As built (P2.3, 2026-11-09)
+
+- **Slice 1, the server key:** `IServerSigner` (`SignAsync` over a 32-byte SHA-256 digest → `ServerSignature(kid,
+  64-byte P1363)`, `KeysAsync` → every version's `kid`, SPKI PEM and creation time), `ServerSignatures.Verify` (needs
+  only a published key) and `ServerSignerUnavailableException` in Trust.Application. Adapter `OpenBaoTransitSigner`
+  (Trust.Infrastructure, plain HTTP, no SDK) and settings `Trust:ServerSigning {Address, Token, Mount = transit,
+  KeyName = karry-server, CreateKeyIfMissing, Timeout = 10 s}`; no address → `UnavailableServerSigner` (nothing is
+  countersigned), an address without a token does not start. Registered in the API and in Karry.Workers.
+- **Change from §3:** the `kid` comes **with each signature**, not from a `KeyId` property: OpenBao signs with the
+  latest version, and only its answer says which one (`vault:v{n}:…`), so a property read before signing could name
+  the wrong version after a rotation. `kid` = `{KeyName}-v{n}`.
+- **Verified on OpenBao 2.7.2** (the pinned image, `OpenBaoTransitSignerTests` with Testcontainers in dev mode):
+  `prehashed: true`, `hash_algorithm: sha2-256`, `marshaling_algorithm: jws` gives 64 bytes that verify with the
+  version's public key; after `rotate`, the new version signs and old signatures still verify with the old key
+  (TC-P2-SIG-004 at adapter level); a refused connection, a timeout, `429` or `5xx` (sealed) is "unavailable" (retry
+  later), a `4xx` such as a wrong token is a configuration error.
+- **Still to build in P2.3:** OpenBao in compose with file storage and an init script (keys survive restarts),
+  `trust.server_keys`, envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
+  the countersign job with its metrics and alerts, the SignaturePad, and the portal's "Verified" badge.
+
 ## Options considered
 
 1. **OpenBao transit behind `IServerSigner`, asynchronous countersignature (chosen).**
