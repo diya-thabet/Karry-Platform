@@ -61,10 +61,21 @@ lowercase hex SHA-256 of the exact bytes. The command that uses the blob carries
    and checksum (`HEAD`, checksum mode). A missing or mismatching blob is a **structural** rejection,
    `rejected(sync.blob_missing, retryable: true)` (ADR-0031 §3). The tablet uploads again and re-sends.
 
-**To verify in P2.2 before it is relied on:** that SeaweedFS (local, CI, on-premises) honours
-`x-amz-checksum-sha256` on a pre-signed `PUT` and returns it on `HEAD` with checksum mode. If it does not, the
-fallback is the same flow with a **server-side check**: the handler reads the object once and compares the hash,
-which is cheap at ≤ 1 MB. A test proves whichever path is used (TC-P2-SYNC-012).
+**Verified in P2.2 (2026-11-09, SeaweedFS 4.48, AWSSDK.S3 4.0.104.4):** SeaweedFS honours
+`x-amz-checksum-sha256` on a pre-signed `PUT`, so the store-side check is used and no server-side fallback is
+built. `tests/Karry.BuildingBlocks.IntegrationTests/PresignedChecksumTests.cs` pins the behaviour:
+
+| Case | Store answer | Stored? |
+|---|---|---|
+| Bytes match the signed checksum | `200` | Yes |
+| Other bytes, signed checksum header | `400 BadDigest` | No |
+| Other bytes, header changed to their checksum | `403 SignatureDoesNotMatch` (the header is signed) | No |
+| URL used after it expired | `403` | No |
+| `HEAD` with checksum mode | returns `Content-Length` and `ChecksumSHA256` | — |
+
+The checksum header must be put in the presign request's `Headers` so it is part of the signature. The fallback
+(the handler reads the object once and compares the hash) stays documented for a store that does not honour it;
+the test above must pass on any store before it is used (on-premises included).
 
 **Pre-signed URL misuse (TC-P2-SYNC-012):** the URL is valid for one key, one size, one checksum and 15 minutes.
 Another key, other bytes or a late use is refused by the store. Another tenant's key cannot be requested: the
@@ -125,7 +136,7 @@ A blob stays in the tablet's store until **the command that references it** is a
 - **Positive:** the API is not on the byte path, a changed photo breaks the signature, retries cost nothing, and
   evidence is retained even through corrections and insider access to the database.
 - **Negative:** a second network call per blob (presign) and a dependency on the store honouring the checksum
-  (verified in P2.2, with a fallback). Evidence that is never used cannot be deleted before its retention ends.
+  (verified for SeaweedFS in P2.2; another store must pass the same test). Evidence that is never used cannot be deleted before its retention ends.
   The 5-year default may need to change after the legal answer; it can only go up for blobs already stored.
 - **Follow-ups:** P2.2 builds the presign endpoint, the evidence bucket with its retention, the `HEAD` check in the
   pipeline, the tablet's blob store and upload queue, and TC-P2-SYNC-011/012/014. The owner answers the retention
