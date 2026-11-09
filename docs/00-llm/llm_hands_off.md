@@ -402,7 +402,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Merged:** #162 (slice 2; CI local-stack ran the OpenBao smoke checks).
 - **P2.3 slice 3a (PR from `feat/p2.3-envelope-format`):** envelope v1 in `@karry/crypto` (`envelope.ts`) and `Karry.Modules.Trust.Contracts.SignatureEnvelopes`; vectors `tests/vectors/signature-envelope.json` (regenerate with `python3 tests/vectors/generate-signature-envelope-vectors.py > tests/vectors/signature-envelope.json`; needs Python `cryptography`).
 - **Trap:** a .NET regex shared with JavaScript must use `\z` and `[0-9]`: `$` also matches before a final `\n` and `\d` matches any Unicode digit. And a vector meant to test an anchor must not be caught by a length limit first (my first newline case was; mutation testing showed it).
-- **Next:** P2.3 slice 3b: `trust.server_keys` (append-only, filled from `KeysAsync`) and `trust.signature_envelope` (append-only, RLS), stored by the handler of a record's command, with the ledger entry in the same transaction.
+- **Merged:** #163 (slice 3a).
+- **P2.3 slice 3b (PR from `feat/p2.3-envelope-store`):** `IEnvelopeRecorder`/`EnvelopeSubmission`/`EnvelopeOutcome`/`EnvelopeCodes`/`EnvelopeLedger` in Trust.Contracts; `PostgresEnvelopeRecorder` (raw SQL in the caller's transaction, like the ledger writer); migration `SignatureEnvelopes` (`audit.signature_envelopes`, RLS, append-only triggers, grants revoked); events 4010/4011. `EnvelopeRecorderTests` 5.
+- **Trap:** with forced RLS, an `UPDATE` by the owner without `app.tenant_id` matches no row, so a row trigger never fires: an append-only test must set the tenant first, or it passes for the wrong reason.
+- **Next:** P2.3 slice 3c: `audit.server_keys` (append-only, platform rows), `audit.envelope_countersignatures` (one per envelope), the countersign job in Karry.Workers (batches of 100, backoff, `karry_trust_countersign_lag_seconds`, `…_failures_total`), alerts and the "signing service down" runbook (TC-P2-SIG-001, 006).
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

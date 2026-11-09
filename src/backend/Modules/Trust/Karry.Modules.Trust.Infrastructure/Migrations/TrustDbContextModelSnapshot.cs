@@ -346,6 +346,82 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                     b.ToTable("ledger_subjects", "audit");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.SignatureEnvelopeRow", b =>
+                {
+                    b.Property<Guid>("EnvelopeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("envelope_id");
+
+                    b.Property<string>("Canonical")
+                        .IsRequired()
+                        .HasMaxLength(8000)
+                        .HasColumnType("character varying(8000)")
+                        .HasColumnName("canonical");
+
+                    b.Property<Guid>("CommandId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("command_id");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<string>("DeviceSignature")
+                        .IsRequired()
+                        .HasMaxLength(86)
+                        .HasColumnType("character varying(86)")
+                        .HasColumnName("device_signature");
+
+                    b.Property<string>("EnvelopeHash")
+                        .IsRequired()
+                        .HasMaxLength(71)
+                        .HasColumnType("character varying(71)")
+                        .HasColumnName("envelope_hash");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<Guid>("RecordId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("record_id");
+
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("record_type");
+
+                    b.Property<int>("RecordVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("record_version");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at")
+                        .HasDefaultValueSql("now()");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("EnvelopeId")
+                        .HasName("pk_signature_envelopes");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_signature_envelopes_tenant_id");
+
+                    b.HasIndex("TenantId", "ReceivedAt")
+                        .HasDatabaseName("ix_signature_envelopes_tenant_id_received_at");
+
+                    b.HasIndex("TenantId", "RecordType", "RecordId")
+                        .HasDatabaseName("ix_signature_envelopes_tenant_id_record_type_record_id");
+
+                    b.ToTable("signature_envelopes", "audit");
+                });
+
             modelBuilder.Entity("Karry.Modules.Trust.Infrastructure.VerificationRow", b =>
                 {
                     b.Property<Guid>("Id")

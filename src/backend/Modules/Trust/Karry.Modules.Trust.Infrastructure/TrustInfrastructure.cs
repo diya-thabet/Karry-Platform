@@ -28,6 +28,7 @@ public static class TrustInfrastructure
         services.TryAddSingleton(TimeProvider.System);
         services.AddScoped<VerifyLedgerHandler>();
         services.AddScoped<IVerificationRecords, EfVerificationRecords>();
+        services.AddScoped<Contracts.IEnvelopeRecorder, PostgresEnvelopeRecorder>();
         services.AddScoped<BuildingBlocks.Tenancy.ITenantSummarySource, LedgerActivity>();
         services.AddScoped<IntegrityChecks>();
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();
