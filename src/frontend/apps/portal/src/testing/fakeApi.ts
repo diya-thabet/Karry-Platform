@@ -250,11 +250,20 @@ export function fakeApi(options: {
       switch (true) {
         case request.method === "GET" && what === "subscription":
           return json(200, subscription);
-        case request.method === "PUT" && what === "subscription":
-          return json(200, (tenantSubscriptions[tenantId] = { ...subscription, ...(body as Partial<Subscription>), planVersion: 1 }));
+        // As the API: every saved change (a state action included) is a new version; terms for an older one are refused (H-C1).
+        case request.method === "PUT" && what === "subscription": {
+          const ifMatch = request.headers.get("If-Match");
+          if (ifMatch !== null && ifMatch !== subscription.version) {
+            return problem(409, "request.version_conflict");
+          }
+
+          return json(200, (tenantSubscriptions[tenantId] = { ...subscription, ...(body as Partial<Subscription>), planVersion: 1, version: nextVersion(subscription.version) }));
+        }
         case request.method === "POST" && what === "subscription/actions": {
           const status = { activate: "active", "missed-payment": "past_due", payment: "active", cancel: "cancelled" }[(body as { action: string }).action] ?? subscription.status;
-          return json(200, (tenantSubscriptions[tenantId] = { ...subscription, status, statusSince: "2026-10-29T08:00:00Z", unpaidSince: status === "past_due" ? "2026-10-29T08:00:00Z" : null }));
+          return json(200, (tenantSubscriptions[tenantId] = {
+            ...subscription, status, statusSince: "2026-10-29T08:00:00Z", unpaidSince: status === "past_due" ? "2026-10-29T08:00:00Z" : null, version: nextVersion(subscription.version),
+          }));
         }
         case request.method === "GET" && what === "invoices":
           return json(200, { items: invoices });
@@ -825,6 +834,11 @@ export function fakeApi(options: {
         materials[index] = { ...found, ...change, version: nextVersion(found.version) };
       }
     },
+    /** Another operator changes the company's subscription meanwhile (a new version): the open terms form is now out of date (H-C1). */
+    changeSubscriptionElsewhere: (tenantId: string, change: Partial<Subscription>) => {
+      const found = tenantSubscriptions[tenantId] ?? subscriptionOf();
+      tenantSubscriptions[tenantId] = { ...found, ...change, version: nextVersion(found.version) };
+    },
     /** Another administrator saves the company settings meanwhile (a new version): the open form is now out of date (H-C1). */
     changeTenantElsewhere: (change: Partial<Tenant>) => {
       tenant = { ...tenant, ...change, version: nextVersion(tenant.version) };
@@ -985,7 +999,7 @@ export function subscriptionOf(overrides: Partial<Subscription> = {}): Subscript
   return {
     id: "01970000-0000-7000-8000-0000000000bb", status: "trial", statusSince: "2026-10-01T08:00:00Z", trialEndsAt: "2026-10-31T08:00:00Z",
     unpaidSince: null, planCode: "professional", planVersion: 1, period: "monthly", sites: 1, extraAssets: 0, addOns: {}, extraFeatures: [], limitOverrides: {},
-    ...overrides,
+    version: '"1"', ...overrides,
   };
 }
 

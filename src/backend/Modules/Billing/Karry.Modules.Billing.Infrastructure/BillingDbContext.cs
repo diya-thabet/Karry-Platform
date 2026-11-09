@@ -68,7 +68,9 @@ public sealed class BillingDbContext(DbContextOptions<BillingDbContext> options)
                 terms => JsonSerializer.Serialize(terms, Json),
                 json => JsonSerializer.Deserialize<SubscriptionTerms>(json, Json)!,
                 Immutable<SubscriptionTerms>());
-            subscription.Property<uint>("xmin").IsRowVersion();
+            // The record version was a shadow property (P1.11) whose conflict nobody caught (a 500, or a "failed" lifecycle
+            // run); now the aggregate carries it, the store reports it and the API answers 409 (H-C1).
+            subscription.Property(s => s.Version).IsRecordVersion();
 
             // One subscription per tenant (ADR-0023).
             subscription.HasIndex(s => s.TenantId).IsUnique();

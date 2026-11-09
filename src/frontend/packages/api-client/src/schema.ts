@@ -2420,6 +2420,7 @@ export interface components {
             limitOverrides: {
                 [key: string]: number | string;
             };
+            version: string;
         };
         /** @description The code (shown once) a Tenant Admin reads to Karry support, and until when it can be used. */
         SupportConsentResponse: {
@@ -5184,7 +5185,9 @@ export interface operations {
     ChangeTenantSubscription: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "If-Match"?: string;
+            };
             path: {
                 tenantId: string;
             };
@@ -5234,6 +5237,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5305,6 +5317,15 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
