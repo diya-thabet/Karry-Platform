@@ -5,6 +5,7 @@ import io
 import json
 import sys
 import unittest
+import uuid
 from contextlib import redirect_stdout
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -31,6 +32,13 @@ class Determinism(unittest.TestCase):
             gen.main(["--seed", "7", "--days", "3"])
         self.assertEqual(first.getvalue(), second.getvalue())
         json.loads(first.getvalue())
+
+    def test_ids_are_uuid_v7(self) -> None:
+        data = gen.generate(seed=8, days=1)
+        for entry in data["entries"]:
+            parsed = uuid.UUID(entry["id"])
+            self.assertEqual((parsed.int >> 76) & 0xF, 7)
+            self.assertEqual(parsed.variant, uuid.RFC_4122)
 
     def test_another_seed_gives_other_data(self) -> None:
         self.assertNotEqual(entries(seed=1), entries(seed=2))

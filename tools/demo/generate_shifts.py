@@ -44,7 +44,9 @@ class Generator:
         self.rng = random.Random(seed)
 
     def id(self) -> str:
-        return str(uuid.UUID(int=self.rng.getrandbits(128), version=7))
+        # UUIDv7 layout (version and variant bits set by hand: Python 3.12's uuid module has no version 7)
+        bits = self.rng.getrandbits(128) & ~(0xF << 76) & ~(0x3 << 62)
+        return str(uuid.UUID(int=bits | (0x7 << 76) | (0x2 << 62)))
 
     def sha256(self) -> str:
         return f"sha256:{self.rng.getrandbits(256):064x}"

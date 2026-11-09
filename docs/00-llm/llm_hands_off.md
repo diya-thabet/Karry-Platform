@@ -352,7 +352,7 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.0 (PR from `docs/phase-2-entry`):**
   - ADRs 0031 (sync command processing), 0032 (evidence blobs) and 0033 (signature envelopes, OpenBao transit) proposed.
   - Versions recorded in [technology stack §7.1.2](../02-architecture/technology-stack.md#712-verified-versions-phase-2-start-2026-11-09): OpenBao 2.7.2 (MPL-2.0, digest pinned), FsCheck 3.6.0. **PDFsharp/MigraDoc 6.5.0 declares AGPL-3.0-only in its package** (6.2.4 is the last MIT release; empira's web page still says MIT), so ADR-0038's recommendation changes to: pin 6.2.4, QuestPDF Community with owner approval, or another engine, decided by the P2.11 spike.
-  - Shift data generator `tools/demo/generate_shifts.py` (deterministic from the seed; `expected_flags` and `edge_cases` as ground truth; 11 tests in CI `tooling`).
+  - Shift data generator `tools/demo/generate_shifts.py` (deterministic from the seed; `expected_flags` and `edge_cases` as ground truth; 12 tests in CI `tooling`).
   - Phase 2 test strategy (generator, property tests, device lab and usability protocols) in [testing strategy](../05-quality/testing-strategy.md).
 - **Next:** P2.1 sync command processing per [ADR-0031](../adr/0031-sync-command-processing.md).
 
