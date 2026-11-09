@@ -151,6 +151,18 @@ The portal reads entries by site, shift, machine and operator, and an entry with
   over 10 000 random cases each in `ShiftEntryRulesTests` (Δ flagged exactly when negative or beyond the segment +
   0.5 h on an hour meter, only when negative on a km meter; end-before-start; continuity; overlaps match a
   minute-by-minute check; every stored meter value reads back from its wire text).
+- **Slice 4, the portal's read API:** permission `fieldops.entries.read` (site scope; Tenant Admin, Executive, Finance,
+  Controller, Site Manager, Maintenance Planner). `GET /api/v1/fieldops/entries` lists current versions newest first
+  (entry ID order, UUIDv7), filters `siteId`, `shiftDate`, `shiftCode`, `assetId`, `operatorId`, `status`
+  (`open`/`closed`), `flagged`, pages by `cursor` (the last entry ID) and `limit` (1–200, default 50);
+  `GET /api/v1/fieldops/entries/{entryId}` gives `entry` (the current version) and `versions` (oldest first), 404
+  `fieldops.entry_not_found` outside the caller's sites. Each version carries its meter kind and unit (`h`, `km`) and
+  `usage` (end − start once closed). **No field is masked:** a shift entry holds no price, cost, margin or wage (T-10);
+  machine costs per hour come with Finance (Phase 7) and will be masked there. Tests: `EntriesApiTests` (HTTP,
+  PostgreSQL, site scope), the tenant-isolation suite (seeded entry, attack value `entryId`).
+- **Stoppage reasons stay a fixed list** (`breakdown`, `weather`, `no_material`, `no_operator`, `other`) until the
+  owner confirms the real codes (sub-phases §7 open questions); the tenant-editable catalogue the plan lists is built
+  then, as data, without changing the command shape (a reason is a code).
 
 ## Options considered
 

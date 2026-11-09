@@ -1444,6 +1444,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fieldops/entries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SearchShiftEntries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fieldops/entries/{entryId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShiftEntry"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2390,6 +2422,69 @@ export interface components {
         SetPin: {
             pin: null | string;
         };
+        /** @description An entry as it stands (`entry`) and every version it went through, oldest first. */
+        ShiftEntryDetailResponse: {
+            entry: components["schemas"]["ShiftEntryResponse"];
+            versions: components["schemas"]["ShiftEntryResponse"][];
+        };
+        /** @description A page of shift entries (current versions), newest first; `nextCursor` asks for the next page. */
+        ShiftEntryListResponse: {
+            items: components["schemas"]["ShiftEntryResponse"][];
+            /** Format: uuid */
+            nextCursor: null | string;
+        };
+        /**
+         * @description One version of a shift entry. Meter values come with the meter's kind and unit (`h` or `km`), never bare
+         *     (ADR-0025); `usage` is end − start once the entry is closed.
+         */
+        ShiftEntryResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            version: number | string;
+            status: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: uuid */
+            assetId: string;
+            /** Format: uuid */
+            meterId: string;
+            meterKind: string;
+            unit: string;
+            /** Format: uuid */
+            operatorId: string;
+            /** Format: int32 */
+            segmentNo: number | string;
+            /** Format: uuid */
+            previousEntryId: null | string;
+            shift: null | components["schemas"]["ShiftResponse"];
+            /** Format: date-time */
+            startedAt: string;
+            /** Format: double */
+            startValue: number | string;
+            /** Format: int32 */
+            fuelStartPercent: number | string;
+            startPhoto: string;
+            /** Format: date-time */
+            endedAt: null | string;
+            /** Format: double */
+            endValue: null | number | string;
+            /** Format: double */
+            usage: null | number | string;
+            /** Format: int32 */
+            fuelEndPercent: null | number | string;
+            endPhoto: null | string;
+            stoppages: components["schemas"]["StoppageResponse"][];
+            remarks: null | string;
+            estimated: boolean;
+            flags: string[];
+            /** Format: uuid */
+            envelopeId: string;
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: date-time */
+            receivedAt: string;
+        };
         ShiftInput: {
             code: null | string;
             name: null | string;
@@ -2483,6 +2578,12 @@ export interface components {
         StartSupportSession: {
             code: null | string;
             reason: null | string;
+        };
+        /** @description A stoppage during the segment. */
+        StoppageResponse: {
+            reason: string;
+            /** Format: int32 */
+            minutes: number | string;
         };
         /** @description An operator action on the state: `activate`, `missed-payment`, `payment` or `cancel`. */
         SubscriptionAction: {
@@ -8320,6 +8421,76 @@ export interface operations {
             };
             /** @description Service Unavailable */
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SearchShiftEntries: {
+        parameters: {
+            query?: {
+                siteId?: string;
+                shiftDate?: string;
+                shiftCode?: string;
+                assetId?: string;
+                operatorId?: string;
+                status?: string;
+                flagged?: boolean;
+                cursor?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftEntryListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShiftEntry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entryId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShiftEntryDetailResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

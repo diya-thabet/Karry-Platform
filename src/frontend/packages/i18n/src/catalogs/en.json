@@ -1005,6 +1005,7 @@
   "permissions.materials.catalog.manage": "Create and change materials and densities",
   "permissions.assets.registry.read": "See machines and their meters",
   "permissions.assets.registry.manage": "Register, move and change machines, record meter readings",
+  "permissions.fieldops.entries.read": "See shift entries and their versions",
   "permissions.imports.files.manage": "Import data from Excel",
   "permissions.tenancy.settings.manage": "Change the company settings",
   "modules.organization": "Sites and shifts",

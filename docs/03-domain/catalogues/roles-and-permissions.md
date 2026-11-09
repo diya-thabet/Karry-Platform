@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-10-29
+last_updated: 2026-11-09
 ---
 
 # Default Role & Permission Matrix
@@ -62,6 +62,7 @@ The matrix above is the target for the whole product. In code it is the union of
 | `materials.catalog.manage` | tenant | yes | Tenant Admin | Create, change, archive materials and set density versions (they change invoiced volumes) |
 | `assets.registry.read` | site | no | all 12 default roles | The asset register on the caller's sites, the type catalogue (US-P1-AST-01, US-P1-AST-02) |
 | `assets.registry.manage` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Register, change, move and set the status of assets on the caller's sites |
+| `fieldops.entries.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager, Maintenance Planner | Shift entries of the caller's sites with every version (ADR-0034 §7; P2.4). Field roles see their own history on the tablet (P2.5) |
 | `imports.files.manage` | tenant | yes | Tenant Admin | Excel import (US-P1-ORG-03, ADR-0027): templates, uploads, reports, commit and discard; each kind also needs the permission of the data it writes |
 | `tenancy.settings.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): company settings and logo (P1.11; every member reads them) |
 | `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |

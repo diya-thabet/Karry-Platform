@@ -443,7 +443,8 @@ start and end, who drove, and whether the numbers make sense. Nothing is shown o
   **Amended by ADR-0034 (2026-11-09):** no `fieldops.shift_instance` table (the shift is resolved from the site's
   rules through `IShiftCalendar` in Organization, whose `organization.shift_instances` already stores the next 30 days);
   no `.handover.v1` command (the outgoing operator ends, the incoming one starts with `previousRootId`, each signing
-  their own fact).
+  their own fact). **Stoppage reason codes (2026-11-09):** a fixed list in code until the owner confirms the real
+  codes; the tenant-editable catalogue follows then (ADR-0034 §8).
 - **Tests:**
 
   | Test | What it proves |

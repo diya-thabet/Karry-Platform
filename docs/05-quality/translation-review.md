@@ -4,7 +4,7 @@ area: quality
 tags: [i18n, l10n, translation, review, arabic, malinke, maninka, nko, rtl, catalogs, native-speaker, glossary]
 source: "ADR-0030 (owner decisions 2026-10-29)"
 status: live
-last_updated: 2026-11-03
+last_updated: 2026-11-09
 ---
 
 # Translation review
@@ -94,6 +94,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-04 | `portal.conflict.title`, `portal.conflict.body`, `portal.conflict.keepMine`, `portal.conflict.showTheirs` | ar, emk, nqo | P1.18a record versions (someone else saved while you edited) |
 | 2026-11-04 | `errors.request.version_conflict` | ar, emk, nqo | P1.18a record versions (two saves at the same moment, e.g. density versions of one material) |
 | 2026-11-09 | `common.signature.*` (9 keys: title, statement, instructions, area, clear, confirm, `problem.tooFewStrokes`, `problem.tooFewPoints`, `problem.tooSmall`) | ar, emk, nqo | P2.3 signature pad: "I confirm the values above" is a legal statement, check it first |
+| 2026-11-09 | `permissions.fieldops.entries.read` | ar, emk, nqo | P2.4 read permission of shift entries ("saisies de poste" in French) |
 | 2026-11-09 | `portal.signature.*` (17 keys: the verification badge, its checks and results) | ar, emk, nqo | P2.3 portal "Verified" badge |
 
 ## 6. Not translated yet

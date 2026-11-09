@@ -1005,6 +1005,7 @@
   "permissions.materials.catalog.manage": "إنشاء المواد والكثافات وتغييرها",
   "permissions.assets.registry.read": "عرض الآلات وعداداتها",
   "permissions.assets.registry.manage": "تسجيل الآلات ونقلها وتغييرها، وتسجيل قراءات العدادات",
+  "permissions.fieldops.entries.read": "عرض سجلات النوبات وإصداراتها",
   "permissions.imports.files.manage": "استيراد البيانات من Excel",
   "permissions.tenancy.settings.manage": "تغيير إعدادات الشركة",
   "modules.organization": "المواقع والورديات",
