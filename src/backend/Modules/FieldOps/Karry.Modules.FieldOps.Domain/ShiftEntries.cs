@@ -160,6 +160,27 @@ public static partial class ShiftEntryRules
         return flags;
     }
 
+    /// <summary>
+    /// The flag of a start (RULE-FO-01): the value differs from the end it should continue (the previous segment's end
+    /// in a handover, otherwise the meter's last end before the start). Nothing to compare with, nothing to flag.
+    /// </summary>
+    public static IReadOnlyList<string> StartFlags(decimal? continuesFrom, decimal startValue) =>
+        continuesFrom is { } end && end != startValue ? [ShiftEntryFlags.Continuity] : [];
+
+    /// <summary>
+    /// Whether two segments share time (OVERLAP, TC-P2-FO-011): <c>[start, end)</c>, a segment without an end still runs.
+    /// A segment that ends at or before its start (END_BEFORE_START) holds no time and overlaps nothing.
+    /// </summary>
+    public static bool Overlaps(DateTimeOffset aStart, DateTimeOffset? aEnd, DateTimeOffset bStart, DateTimeOffset? bEnd)
+    {
+        if (aEnd <= aStart || bEnd <= bStart)
+        {
+            return false;
+        }
+
+        return aStart < (bEnd ?? DateTimeOffset.MaxValue) && bStart < (aEnd ?? DateTimeOffset.MaxValue);
+    }
+
     [GeneratedRegex(@"\A(0|[1-9][0-9]{0,6})(\.[0-9])?\z", RegexOptions.CultureInvariant)]
     private static partial Regex MeterValue();
 }

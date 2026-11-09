@@ -4,6 +4,9 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="CsCheck" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="../Karry.Modules.FieldOps.Api/Karry.Modules.FieldOps.Api.csproj" />
     <!-- Direct references so Stryker (nightly mutation testing) can find the projects it mutates. -->
     <ProjectReference Include="../Karry.Modules.FieldOps.Domain/Karry.Modules.FieldOps.Domain.csproj" />
