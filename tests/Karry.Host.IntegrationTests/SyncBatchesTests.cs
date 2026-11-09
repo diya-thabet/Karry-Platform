@@ -38,6 +38,53 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
     }
 
     [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task The_same_batch_sent_many_times_at_once_is_stored_once()
+    {
+        // Hardening plan H-C3: a tablet that retries before its first upload answered. Each answer is the receipt
+        // (accepted once, duplicates after) or 409 sync.batch_conflict (send again); never a 500 or a second row.
+        using var tablet = await host.TabletAsync(host.A);
+        var commands = new[] { tablet.Command(1, new { n = 1 }), tablet.Command(2, new { n = 2 }), tablet.Command(3, new { n = 3 }) };
+
+        var answers = await Task.WhenAll(Enumerable.Range(0, 6).Select(_ => Upload(tablet, commands)));
+
+        var receipts = new List<Receipt>();
+        foreach (var answer in answers)
+        {
+            if (answer.StatusCode == HttpStatusCode.Conflict)
+            {
+                await ExpectProblemAsync(answer, HttpStatusCode.Conflict, "sync.batch_conflict");
+                continue;
+            }
+
+            answer.StatusCode.Should().Be(HttpStatusCode.OK, await answer.Content.ReadAsStringAsync(TestContext.Current.CancellationToken));
+            receipts.Add((await answer.Content.ReadFromJsonAsync<Receipt>(TestContext.Current.CancellationToken))!);
+        }
+
+        receipts.Count(r => r.Results.All(c => c.Status == "accepted")).Should().Be(1, "exactly one upload stored the batch");
+        receipts.Where(r => r.Results.Any(c => c.Status != "accepted")).Should().AllSatisfy(r => r.Results.Should().OnlyContain(c => c.Status == "duplicate"));
+        (await InboxAsync(tablet.Id)).Select(r => r.Sequence).Should().Equal(1, 2, 3);
+        (await UploadAsync(tablet, commands)).Results.Should().OnlyContain(c => c.Status == "duplicate", "sending it again later changes nothing");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Different_commands_with_the_same_numbers_sent_at_once_never_share_a_place_in_the_sequence()
+    {
+        // Two outboxes of one tablet (a restored backup) numbering differently: one number holds one command.
+        using var tablet = await host.TabletAsync(host.A);
+        var batches = Enumerable.Range(0, 4).Select(i => new[] { tablet.Command(1, new { from = i }), tablet.Command(2, new { from = i }) }).ToList();
+
+        var answers = await Task.WhenAll(batches.Select(b => Upload(tablet, b)));
+
+        answers.Should().OnlyContain(a => a.StatusCode == HttpStatusCode.OK || a.StatusCode == HttpStatusCode.Conflict, "never a 500");
+        var rows = await InboxAsync(tablet.Id);
+        rows.Select(r => r.Sequence).Should().Equal(1, 2);
+        var winner = batches.Single(b => b.Any(c => Id(c) == rows[0].Id));
+        rows.Select(r => r.Id).Should().Equal(winner.Select(Id), "both places come from the same upload");
+    }
+
+    [Fact]
     public async Task Commands_must_follow_on_without_gaps_and_a_new_command_cannot_reuse_a_number()
     {
         using var tablet = await host.TabletAsync(host.A);
