@@ -59,17 +59,20 @@ internal sealed partial class PostgresEnvelopeRecorder(IDeviceDirectory devices,
             }
         }
 
+        // The ledger entry's ID is chosen first and kept with the envelope, so verification finds the entry directly.
+        var ledgerEventId = Guid.CreateVersion7(submission.ReceivedAt);
         await ExecuteAsync(connection, transaction,
             """
             INSERT INTO audit.signature_envelopes (envelope_id, tenant_id, record_type, record_id, record_version, envelope_hash,
-              canonical, device_id, device_signature, command_id, received_at)
-            VALUES (@id, @tenant, @record_type, @record_id, @record_version, @hash, @canonical, @device, @signature, @command, @received_at)
+              canonical, device_id, device_signature, command_id, received_at, ledger_event_id)
+            VALUES (@id, @tenant, @record_type, @record_id, @record_version, @hash, @canonical, @device, @signature, @command, @received_at, @ledger_event_id)
             """,
             cancellationToken,
             ("id", envelopeId), ("tenant", tenant.Value), ("record_type", envelope.GetProperty("recordType").GetString()!),
             ("record_id", Guid.Parse(envelope.GetProperty("recordId").GetString()!)), ("record_version", envelope.GetProperty("recordVersion").GetInt32()),
             ("hash", hash), ("canonical", Encoding.UTF8.GetString(SignatureEnvelopes.Canonical(envelope))), ("device", submission.DeviceId),
-            ("signature", submission.DeviceSignature), ("command", submission.CommandId), ("received_at", submission.ReceivedAt)).ConfigureAwait(false);
+            ("signature", submission.DeviceSignature), ("command", submission.CommandId), ("received_at", submission.ReceivedAt),
+            ("ledger_event_id", ledgerEventId)).ConfigureAwait(false);
 
         var received = JsonSerializer.Serialize(new
         {
@@ -83,7 +86,7 @@ internal sealed partial class PostgresEnvelopeRecorder(IDeviceDirectory devices,
             receivedAt = submission.ReceivedAt,
         });
         await ledger.AppendAsync(connection, transaction, tenant,
-            [new LedgerRecord(tenant, Guid.CreateVersion7(submission.ReceivedAt), EnvelopeLedger.ReceivedEvent, received, submission.ReceivedAt)], cancellationToken).ConfigureAwait(false);
+            [new LedgerRecord(tenant, ledgerEventId, EnvelopeLedger.ReceivedEvent, received, submission.ReceivedAt)], cancellationToken).ConfigureAwait(false);
         return new EnvelopeOutcome.Recorded(hash);
     }
 

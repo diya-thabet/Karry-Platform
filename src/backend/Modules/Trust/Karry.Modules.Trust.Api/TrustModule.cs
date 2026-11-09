@@ -7,6 +7,7 @@ using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.SharedKernel.Authorization;
+using Karry.SharedKernel.Results;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -72,6 +73,15 @@ public sealed class TrustModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("GetLatestLedgerVerification");
 
+        // One signature envelope, every check and its result (US-P2-SIG-04, ADR-0033 §6). Same permission as the ledger
+        // check: the answer holds hashes, IDs and results, no business data.
+        endpoints.MapGet("/envelopes/{envelopeId:guid}/verification", VerifyEnvelopeAsync)
+            .RequirePermission(LedgerVerify)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("VerifyEnvelope");
+
         // The audit log, newest first (US-P1-AUD-04). Readable whatever the subscription state, like exports.
         endpoints.MapGet("/entries", SearchEntriesAsync)
             .ExportAccess()
@@ -99,6 +109,12 @@ public sealed class TrustModule : IModule
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("ExportAuditEntries");
     }
+
+    private static async Task<Results<Ok<EnvelopeVerification>, ProblemHttpResult>> VerifyEnvelopeAsync(
+        Guid envelopeId, [FromServices] VerifyEnvelope verify, CancellationToken cancellationToken) =>
+        await verify.RunAsync(envelopeId, cancellationToken).ConfigureAwait(false) is { } verification
+            ? TypedResults.Ok(verification)
+            : Error.NotFound("trust.envelope_not_found", "No signature envelope with this ID in this company.").ToProblem();
 
     private static async Task<Results<Ok<AuditEntryListResponse>, ProblemHttpResult>> SearchEntriesAsync(
         [FromServices] AuditLogQueries audit, [FromServices] EventSerializer events, [FromServices] IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions> json,

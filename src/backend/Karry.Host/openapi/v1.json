@@ -2499,6 +2499,67 @@
         }
       }
     },
+    "/api/v1/audit/envelopes/{envelopeId}/verification": {
+      "get": {
+        "tags": [
+          "TrustModule"
+        ],
+        "operationId": "VerifyEnvelope",
+        "parameters": [
+          {
+            "name": "envelopeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvelopeVerification"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/audit/entries": {
       "get": {
         "tags": [
@@ -8848,6 +8909,104 @@
           }
         },
         "description": "What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is\nunlimited). The apps show or lock features with it; the API checks every call."
+      },
+      "EnvelopeCheck": {
+        "required": [
+          "name",
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One check of the verification and its result: `pass`, `fail`, `pending` or `not_checked`."
+      },
+      "EnvelopeVerification": {
+        "required": [
+          "envelopeId",
+          "recordType",
+          "recordId",
+          "recordVersion",
+          "envelopeHash",
+          "receivedAt",
+          "status",
+          "serverKeyId",
+          "countersignedAt",
+          "ledgerSequence",
+          "checks"
+        ],
+        "type": "object",
+        "properties": {
+          "envelopeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordType": {
+            "type": "string"
+          },
+          "recordId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "recordVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "envelopeHash": {
+            "type": "string"
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "serverKeyId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "countersignedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "ledgerSequence": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "null",
+              "integer",
+              "string"
+            ],
+            "format": "int64"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EnvelopeCheck"
+            }
+          }
+        },
+        "description": "The verification of one envelope (US-P2-SIG-04): `verified` when every check passes, `pending` while only\nthe countersignature is missing, `invalid` when any check fails."
       },
       "FirstAdmin": {
         "required": [

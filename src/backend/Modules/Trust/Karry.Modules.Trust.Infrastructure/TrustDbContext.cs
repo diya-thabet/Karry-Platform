@@ -116,6 +116,9 @@ public sealed class SignatureEnvelopeRow : ITenantOwned
 
     public required DateTimeOffset ReceivedAt { get; init; }
 
+    /// <summary>The <c>event_id</c> of its ledger entry <c>trust.envelope_received.v1</c>.</summary>
+    public Guid? LedgerEventId { get; init; }
+
     public DateTimeOffset RecordedAt { get; init; }
 }
 

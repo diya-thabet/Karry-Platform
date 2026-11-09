@@ -179,8 +179,21 @@ signed part, as in ADR-0007.
   runbook [signing service down](../06-operations/runbooks/karry-signing-service-down.md). Tests:
   `CountersignTests` with PostgreSQL and OpenBao (TC-P2-SIG-001, TC-P2-SIG-004 end to end, TC-P2-SIG-006,
   TC-P2-SIG-007 for both tables), `CountersignMetricsTests`.
-- **Still to build in P2.3:** the verification endpoint `GET /api/v1/trust/envelopes/{id}/verification`, the
-  SignaturePad (TC-P2-SIG-008), the portal "Verified" badge, and the close-out (security review, ADR accepted).
+- **Slice 4, verification:** `GET /api/v1/audit/envelopes/{id}/verification` (the Trust module's routes live under
+  `/api/v1/audit`, not `/api/v1/trust` as in the card), permission `ledger.verify`, 404 `trust.envelope_not_found`
+  for an ID that is not in the caller's company (RLS scopes the read). `VerifyEnvelope` (Trust.Application) checks,
+  each on its own so a failure names what broke: `envelope` (valid v1, stored in canonical form, stored hash is its
+  hash), `device_signature` (the tablet's key from `IDeviceDirectory`; a revoked tablet's key still verifies what it
+  signed before), `server_countersignature` (`pending` while not yet signed; `fail` when the key version is not in
+  `audit.server_keys` or the signature does not match), `ledger_entry` (names this envelope's hash, payload and entry
+  hash recomputed, linked to the entry before it or to genesis), `record_payload` (`not_checked` until records exist
+  in P2.4). Status `verified`, `pending` or `invalid`. To find the ledger entry without scanning, the envelope row now
+  stores the ledger event ID (`ledger_event_id`, migration `EnvelopeLedgerEvent`, nullable for rows from before;
+  the recorder sets it in the same transaction). Tests: `EnvelopeVerificationTests` (TC-P2-SIG-001 pending then
+  verified, another company gets 404; TC-P2-SIG-002 five changes made in the database behind the application's back,
+  each named by the check it breaks).
+- **Still to build in P2.3:** the SignaturePad (TC-P2-SIG-008), the portal "Verified" badge, and the close-out
+  (security review, ADR accepted).
 
 ## Options considered
 

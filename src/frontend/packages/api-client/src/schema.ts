@@ -548,6 +548,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/audit/envelopes/{envelopeId}/verification": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VerifyEnvelope"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/audit/entries": {
         parameters: {
             query?: never;
@@ -1864,6 +1880,35 @@ export interface components {
             limits: {
                 [key: string]: number | string;
             };
+        };
+        /** @description One check of the verification and its result: `pass`, `fail`, `pending` or `not_checked`. */
+        EnvelopeCheck: {
+            name: string;
+            result: string;
+            detail?: null | string;
+        };
+        /**
+         * @description The verification of one envelope (US-P2-SIG-04): `verified` when every check passes, `pending` while only
+         *     the countersignature is missing, `invalid` when any check fails.
+         */
+        EnvelopeVerification: {
+            /** Format: uuid */
+            envelopeId: string;
+            recordType: string;
+            /** Format: uuid */
+            recordId: string;
+            /** Format: int32 */
+            recordVersion: number | string;
+            envelopeHash: string;
+            /** Format: date-time */
+            receivedAt: string;
+            status: string;
+            serverKeyId: null | string;
+            /** Format: date-time */
+            countersignedAt: null | string;
+            /** Format: int64 */
+            ledgerSequence: null | number | string;
+            checks: components["schemas"]["EnvelopeCheck"][];
         };
         FirstAdmin: {
             firstName: string;
@@ -4729,6 +4774,55 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    VerifyEnvelope: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                envelopeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EnvelopeVerification"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
