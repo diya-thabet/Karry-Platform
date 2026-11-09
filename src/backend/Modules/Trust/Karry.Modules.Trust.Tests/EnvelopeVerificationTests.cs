@@ -50,7 +50,11 @@ public sealed class EnvelopeVerificationTests(CountersignServices stack) : IClas
         pending.Status.Should().Be("pending");
         pending.Checks.Should().Equal(new Dictionary<string, string>
         {
-            ["envelope"] = "pass", ["device_signature"] = "pass", ["server_countersignature"] = "pending", ["ledger_entry"] = "pass", ["record_payload"] = "not_checked",
+            ["envelope"] = "pass",
+            ["device_signature"] = "pass",
+            ["server_countersignature"] = "pending",
+            ["ledger_entry"] = "pass",
+            ["record_payload"] = "not_checked",
         });
         verified.Status.Should().Be("verified");
         verified.Checks["server_countersignature"].Should().Be("pass");
