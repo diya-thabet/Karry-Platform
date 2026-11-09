@@ -271,7 +271,7 @@ generator of realistic shift data that every later test and demo uses.
   - **Version checks** (current stable, ≥ 7 days old, licence): OpenBao server image and its .NET client approach
     (plain HTTP API, no SDK needed), FsCheck (property tests), PDF engine candidates (for P2.11), any camera or
     image helper (recommendation: none, the browser APIs are enough).
-  - **Shift data generator** `tools/demo/generate-shifts` (in the host's `seed-demo` family): N sites × M assets ×
+  - **Shift data generator** `tools/demo/generate-shifts` (built as `tools/demo/generate_shifts.py`, P2.0): N sites × M assets ×
     D days of shifts with realistic meter progressions, a configurable rate of anomalies (continuity gaps, skewed
     clocks, reused photos, negative Δ, night shifts across midnight, a meter replacement). Deterministic from a seed,
     so a failing test can be replayed. Used by property tests, load tests, the PDF test and the demo.

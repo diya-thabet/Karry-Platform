@@ -195,7 +195,13 @@ the pipeline before the first real handler exists.
   retried by the next upload. A command of the batch answered `waiting` and handled later in the same request is
   answered with its final status. Another command with a waiting command's number is `sync.sequence_reused`; beyond
   500 waiting, `sync.too_far_ahead` (retryable). `sync.sequence_gap` is no longer sent. Log event 7205 (waiting
-  commands handled). The gauge `karry_sync_waiting_commands`, the 24 h alert and its runbook are slice 2b.
+  commands handled).
+- **Slice 2b (the 24 h gap alert):** a Workers job every 5 minutes (`MeasureSyncGaps`, also
+  `Karry.Workers measure-sync-gaps`) counts the still-waiting commands per tenant under RLS and reports two gauges
+  (`karry_sync_waiting_commands` and `karry_sync_oldest_waiting_age_seconds`, nothing before the first measurement).
+  A tablet past 24 h is logged by name (event 7206; 7207 when a company cannot be measured), so the metrics carry
+  no device label. Alert `KarrySyncGapOpen` (ticket, 15 minutes), runbook
+  [karry-sync-gap](../06-operations/runbooks/karry-sync-gap.md).
 - Log events: 7203 (type unknown, warning), 7204 (handler failed, error, with the exception).
 
 ## Options considered

@@ -358,7 +358,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Trap:** `UploadDecision`/receipt records now hold a flags list, so `Should().Equal(...)` compares lists by reference and fails; use `BeEquivalentTo(..., WithStrictOrdering())`.
 - **Merged:** #148 (slice 1).
 - **P2.1 slice 2 (PR from `feat/p2.1-waiting-commands`):** gaps are held in `sync.waiting_commands` (migration `WaitingCommands`, append-only; a waiting row whose command is in the inbox was handled) and answered `waiting` with `missingSequences`. When the gap closes they are handled in order in the same request. `InboxRules.DecideAsync` now returns an `UploadPlan` (decisions, last sequence, missing, held, promoted). Max 500 waiting → `sync.too_far_ahead`. `sync.sequence_gap` is no longer sent.
-- **Next:** slice 2b (gauge `karry_sync_waiting_commands`, 24 h gap alert, runbook "a tablet has a sequence gap"), then slice 3 (status pull `submissions`, clock offset).
+- **Merged:** #149 (slice 2).
+- **P2.1 slice 2b (PR from `feat/p2.1-gap-alert`):** `MeasureSyncGaps` in Sync.Application (now references Tenancy.Contracts for `ITenantDirectory`). Workers job `SyncGapJob` every 5 minutes, and `Karry.Workers measure-sync-gaps` (the Workers host now adds the Sync infrastructure). Gauges `karry.sync.waiting_commands` and `karry.sync.oldest_waiting_age`. Alert `KarrySyncGapOpen` with a promtool test. Runbook `karry-sync-gap`. Events 7206/7207.
+- **Trap:** merge_guard deletes the merged local branch. A branch started from it must be moved with `git reset --hard origin/main` (work stashed first), not `rebase --onto <deleted branch>`.
+- **Next:** slice 3 (status pull `submissions`, clock offset stored per device and passed to handlers), then P2.1 is done.
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.
