@@ -23,3 +23,5 @@ export { Menu, type MenuAction, type MenuChoice, type MenuEntry, type MenuOption
 export { Breadcrumbs } from "./components/Breadcrumbs";
 export { Checkbox } from "./components/Checkbox";
 export { PageSkeleton, Skeleton } from "./components/Skeleton";
+export { SignaturePad, type SignatureCapture, type SignaturePadProps } from "./components/SignaturePad";
+export { signatureMinimums, signatureProblem, strokesJson, type SignaturePoint, type SignatureProblem, type SignatureStroke } from "./components/signature";

@@ -119,10 +119,21 @@ export function envelopeProblem(value: unknown): string | null {
   return null;
 }
 
-/** `sha256:` + hex of SHA-256 over UTF-8 text. */
-export async function sha256Text(value: string): Promise<ContentHash> {
-  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", utf8(value)));
+/** `sha256:` + hex of SHA-256 over bytes. */
+export async function sha256Bytes(value: Uint8Array<ArrayBuffer>): Promise<ContentHash> {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", value));
   return `sha256:${Array.from(digest, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+}
+
+/** `sha256:` + hex of SHA-256 over UTF-8 text. */
+export const sha256Text = (value: string): Promise<ContentHash> => sha256Bytes(utf8(value));
+
+/**
+ * The `handwritten` member of an envelope (ADR-0033 §2): the hashes of the strokes text and of the PNG exactly as they
+ * are uploaded as evidence blobs, so the blobs the server keeps are bound to what the tablet signed.
+ */
+export async function handwrittenHashes(strokesJson: string, png: Uint8Array<ArrayBuffer>): Promise<NonNullable<SignatureEnvelopeV1["handwritten"]>> {
+  return { strokesHash: await sha256Text(strokesJson), imageHash: await sha256Bytes(png) };
 }
 
 /** The hash of a record's payload that the envelope signs: SHA-256 over its RFC 8785 form. */
