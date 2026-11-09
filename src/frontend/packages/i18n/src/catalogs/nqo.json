@@ -249,7 +249,7 @@
   "field.outbox.waiting": "{count, plural, one {ߛߍߓߍ߲ # ߛߐߙߐߟߊ߸ ߊ ߓߍ ߞߊ ߛߍߓߍ߲ ߝߐߟߐ ߡߊߞߐߣߐ} other {ߛߍߓߍ߲ # ߛߐߙߐߟߊ߸ ߎ ߓߍ ߞߊ ߛߍߓߍ߲ ߝߐߟߐߟߎ ߡߊߞߐߣߐ}}",
   "field.outbox.rejected": "{count, plural, one {ߛߍߓߍ߲ # ߓߊ߲ߣߊ} other {ߛߍߓߍ߲ # ߓߊ߲ߣߊ}}",
   "field.outbox.recordedAt": "ߛߍߓߍ߲ߣߊ {at, date, medium} {at, time, short}",
-  "field.outbox.reason.blobMismatch": "ߖߊ ߡߌ߲ ߛߐߙߐߟߊ߸ ߏ ߕߍ ߖߊ ߕߊߙߊ ߦߋ. ߊ ߝߐ ߢߍߡߐ߯ ߘߐ ߦߋ.",
+  "field.outbox.reason.blobMismatch": "ߖߊ min ߛߐߙߐߟߊ߸ ߏ ߕߍ ߖߊ ߕߊߙߊ ߦߋ. ߊ ߝߐ ߢߍߡߐ߯ ߘߐ ߦߋ.",
   "field.outbox.reason.evidenceInvalid": "ߛߍߓߍ߲ ߣߌ߲ ߝߍ߲ߟߎ ߕߍ ߛߋ ߞߊ ߞߊߟߊ߲. ߊ ߝߐ ߢߍߡߐ߯ ߘߐ ߦߋ.",
   "field.outbox.reason.signatureInvalid": "ߕߊߓߌߟߋߕߌ ߓߏߟߏߣߐ ߕߍ ߓߍ߲. ߊ ߝߐ ߢߍߡߐ߯ ߘߐ ߦߋ.",
   "field.outbox.reason.sequenceReused": "ߛߍߓߍ߲ ߣߌߡߐߙߐ ߣߌ߲ ߕߊߙߊ ߞߊ ߓߊ߲. ߊ ߝߐ ߢߍߡߐ߯ ߘߐ ߦߋ.",
