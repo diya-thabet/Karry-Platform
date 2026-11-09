@@ -1,3 +1,4 @@
+using System.Data;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Sync.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -7,12 +8,16 @@ namespace Karry.Modules.Sync.Infrastructure;
 
 internal sealed class InboxStore(SyncDbContext db) : IInboxStore
 {
-    public async Task<long> LastSequenceAsync(Guid deviceId, CancellationToken cancellationToken) =>
-        await db.Inbox.Where(c => c.DeviceId == deviceId && c.Status == InboxStatus.Received)
+    public async Task<InboxSnapshot> SnapshotAsync(Guid deviceId, IReadOnlyCollection<CommandId> ids, CancellationToken cancellationToken)
+    {
+        // Repeatable read: both queries see the same committed uploads (hardening plan H-C3).
+        await using var transaction = await db.Database.BeginTransactionAsync(IsolationLevel.RepeatableRead, cancellationToken).ConfigureAwait(false);
+        var stored = (await db.Inbox.Where(c => c.DeviceId == deviceId && ids.Contains(c.Id)).Select(c => c.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+        var last = await db.Inbox.Where(c => c.DeviceId == deviceId && c.Status == InboxStatus.Received)
             .MaxAsync(c => (long?)c.Sequence, cancellationToken).ConfigureAwait(false) ?? 0;
-
-    public async Task<IReadOnlySet<CommandId>> StoredAsync(Guid deviceId, IReadOnlyCollection<CommandId> ids, CancellationToken cancellationToken) =>
-        (await db.Inbox.Where(c => c.DeviceId == deviceId && ids.Contains(c.Id)).Select(c => c.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+        await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return new InboxSnapshot(stored, last);
+    }
 
     public async Task<bool> TryAddAsync(IReadOnlyCollection<InboxCommand> commands, CancellationToken cancellationToken)
     {
