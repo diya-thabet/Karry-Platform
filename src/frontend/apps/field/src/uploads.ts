@@ -1,5 +1,5 @@
 import { applyReceipts, markUploaded, nextBatch, purgeBlobs, type BlobRecord, type CommandReceipt, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
-import { deviceFetch, pullChanges, type PullOutcome } from "./sync";
+import { deviceFetch, nextRefreshMs, pullChanges, refreshEveryMs, type PullOutcome } from "./sync";
 
 export const batchesPath = "/api/v1/sync/batches";
 export const presignPath = "/api/v1/sync/blobs/presign";
@@ -134,4 +134,28 @@ export async function syncTablet(db: KarryOfflineDb, send: typeof fetch = fetch,
   const pulled = await pullChanges(db, send);
   await purgeBlobs(db, new Date());
   return pulled === "ok" && pushed === "busy" ? "busy" : pulled;
+}
+
+/** While commands wait to be sent, the tablet tries every 2 minutes (P2.2 card), give or take 15 seconds. */
+export const uploadEveryMs = 2 * 60 * 1000;
+
+/** The longest wait after repeated failures. */
+export const maxBackoffMs = 30 * 60 * 1000;
+
+/**
+ * When to exchange with the server next. With commands to send: every 2 minutes. After `failures` failed runs in a
+ * row: the usual interval doubled each time, up to 30 minutes. Always with jitter, so a site's tablets that failed
+ * together (the server was down) do not all come back at the same second.
+ */
+export function nextSyncMs(outcome: PullOutcome, pending: number, failures: number, random: () => number = Math.random): number {
+  if (outcome === "failed" && failures > 0) {
+    const backoff = Math.min(refreshEveryMs * 2 ** (failures - 1), maxBackoffMs);
+    return backoff * (0.9 + random() * 0.2);
+  }
+
+  if (outcome === "ok" && pending > 0) {
+    return uploadEveryMs - 15_000 + random() * 30_000;
+  }
+
+  return nextRefreshMs(outcome, random);
 }
