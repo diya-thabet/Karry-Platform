@@ -118,6 +118,16 @@ public sealed class TestTablet(HttpClient client, Func<DateTimeOffset> now) : ID
         return command;
     }
 
+    /// <summary>
+    /// The tablet's ES256 signature over a signature envelope (ADR-0033): IEEE P1363, base64url, over the RFC 8785 form;
+    /// what the field app puts in a command's <c>deviceSignature</c>.
+    /// </summary>
+    public string SignEnvelope(JsonObject envelope)
+    {
+        ArgumentNullException.ThrowIfNull(envelope);
+        return Base64Url.EncodeToString(key.SignData(JsonCanonicalizer.Canonicalize(envelope.ToJsonString()), HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation));
+    }
+
     public void Dispose() => key.Dispose();
 
     private static string Part(object value) => Base64Url.EncodeToString(JsonSerializer.SerializeToUtf8Bytes(value));

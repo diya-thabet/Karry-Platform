@@ -1,0 +1,500 @@
+{
+ "assets": [
+  {
+   "code": "S1-A01",
+   "id": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "meter": {
+    "initial": "1954.9",
+    "unit": "h"
+   },
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de"
+  }
+ ],
+ "entries": [
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-02",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-02T14:00:00+00:00",
+    "deviceTime": "2026-11-02T13:58:52+00:00",
+    "photo": "sha256:a92e6b951cce9c7771992790f25bc8cf6c7ec515fcb4d02bfd4cb8b3174a554f",
+    "reading": "1960.5"
+   },
+   "expected_flags": [],
+   "id": "8a1c0f22-2293-7a28-b8a8-85186c5744bc",
+   "operatorId": "7b87a9e2-5fef-7911-bf22-a27b02c7bff2",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-02T06:00:00+00:00",
+    "deviceTime": "2026-11-02T05:58:52+00:00",
+    "photo": "sha256:3926847b8248f803a97bcc25ea3fa51cd1d4d2b30f8f95efeb3d787304c3405b",
+    "reading": "1954.9"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-02",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-02T22:00:00+00:00",
+    "deviceTime": "2026-11-02T22:01:28+00:00",
+    "photo": "sha256:6273ed069bfad94f7a0d7bda78370ed498918dd8ab0bcefa6b391ca99b811f47",
+    "reading": "1965.2"
+   },
+   "expected_flags": [],
+   "id": "b9f09825-a406-7f0c-87ce-7ade8a88c067",
+   "operatorId": "75d0dd66-cf72-7858-a4b6-6f8c462804db",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-02T14:00:00+00:00",
+    "deviceTime": "2026-11-02T14:01:28+00:00",
+    "photo": "sha256:668864bf1566fe20d0d18fb081dafbbb2bd4afc18e1e55400d257da2e2b50ae1",
+    "reading": "1960.5"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-02",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": {
+    "at": "2026-11-03T06:00:00+00:00",
+    "deviceTime": "2026-11-03T06:00:02+00:00",
+    "photo": "sha256:8000cb60c3dc69fccf632d4992bf2f7382e7ddc95f0b4a7f5d02b20055d1ce91",
+    "reading": "1961.3"
+   },
+   "expected_flags": [
+    "negative_delta"
+   ],
+   "id": "d293ca94-6183-79eb-8734-65b82dedb6a7",
+   "operatorId": "3a46e6b0-99f9-76b1-9d45-af1cb0caae1c",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-02T22:00:00+00:00",
+    "deviceTime": "2026-11-02T22:00:02+00:00",
+    "photo": "sha256:3c272728409bd3051d241ed64f55c73dac7c603b62b64cfeb0ab577addbad0b1",
+    "reading": "1965.2"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-03",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-03T14:00:00+00:00",
+    "deviceTime": "2026-11-03T14:01:22+00:00",
+    "photo": "sha256:6ef8b434096ebec44616e73db22635cb13f68ff12d94a778387be8b88ccaec71",
+    "reading": "1965.4"
+   },
+   "expected_flags": [],
+   "id": "9a211dab-581c-74cf-bf90-925c46cbd355",
+   "operatorId": "9fcdb9e1-a94c-76b9-806d-2cc78ee58b06",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-03T06:00:00+00:00",
+    "deviceTime": "2026-11-03T06:01:22+00:00",
+    "photo": "sha256:c0d7fcc51a44db6e9b774054c59c74ab3453e71c636419110b21bbba6d5fcd18",
+    "reading": "1961.3"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-03",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-03T22:00:00+00:00",
+    "deviceTime": "2026-11-03T21:59:23+00:00",
+    "photo": "sha256:5d3bbce08c81dda8ec9ba19876f860372ae568bafd1032e8f4b5546c3d6ae5bd",
+    "reading": "1971.2"
+   },
+   "expected_flags": [],
+   "id": "bf9f842d-c435-77b6-b071-86cf2e9115b6",
+   "operatorId": "5e1ea978-70a7-7e49-ba60-dbd625329041",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-03T14:00:00+00:00",
+    "deviceTime": "2026-11-03T13:59:23+00:00",
+    "photo": "sha256:7b246c17db04a838f57083efb26b2b3079ec55a374a43821482a52a256f3eef1",
+    "reading": "1965.4"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-03",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": {
+    "at": "2026-11-04T06:00:00+00:00",
+    "deviceTime": "2026-11-04T05:59:15+00:00",
+    "photo": "sha256:ed711aba061eefe027a1689480ebe5578beb81b1ff9d608a5c675c72fbdb4de8",
+    "reading": "1996.8"
+   },
+   "expected_flags": [
+    "continuity_gap"
+   ],
+   "id": "ab288d38-c993-7fb6-a1c8-8247528c8100",
+   "operatorId": "35d30d74-e7ed-7867-96f5-47ab298a59f8",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-03T22:00:00+00:00",
+    "deviceTime": "2026-11-03T21:59:15+00:00",
+    "photo": "sha256:1db6027c9e7bd62f3f5fcff50a3ef19e805c2f63023590f7cb8193ef3dd8a0af",
+    "reading": "1989.6"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-04",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-04T14:00:00+00:00",
+    "deviceTime": "2026-11-04T14:00:44+00:00",
+    "photo": "sha256:df880b119dec1a324a9409b172e45d1d29828207bd230058e4f20d3471e07116",
+    "reading": "2001.7"
+   },
+   "expected_flags": [],
+   "id": "f1a3ab9f-547a-748d-873e-ffcf0bc66a8a",
+   "operatorId": "7b87a9e2-5fef-7911-bf22-a27b02c7bff2",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-04T06:00:00+00:00",
+    "deviceTime": "2026-11-04T06:00:44+00:00",
+    "photo": "sha256:f2597377af3d6c6b433ededd5a8e7f31a0835b6b7d6019397a3621f580904b4c",
+    "reading": "1996.8"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-04",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-04T22:00:00+00:00",
+    "deviceTime": "2026-11-04T21:59:24+00:00",
+    "photo": "sha256:3dc1523c236cc43d6b9a4742440d8382e2ed89718eda6fbd21b92d1d06fa7b3e",
+    "reading": "2007.5"
+   },
+   "expected_flags": [],
+   "id": "fabf0a79-78c5-7723-af6e-71b73344cbb0",
+   "operatorId": "75d0dd66-cf72-7858-a4b6-6f8c462804db",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-04T14:00:00+00:00",
+    "deviceTime": "2026-11-04T13:59:24+00:00",
+    "photo": "sha256:b1b0d8fe00f1f68eaeec6a9b074ce8724143da51855efa7448f71cb0bbe7ec1e",
+    "reading": "2001.7"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-04",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": {
+    "at": "2026-11-05T06:00:00+00:00",
+    "deviceTime": "2026-11-05T06:01:00+00:00",
+    "photo": "sha256:046173f029324e16903636cf6291f0e2bc5fb419a358201d5e540e8ffae216dc",
+    "reading": "2018.6"
+   },
+   "expected_flags": [
+    "oversized_delta"
+   ],
+   "id": "e75fda1d-27c9-7066-b5cb-2a93b055a7f9",
+   "operatorId": "3a46e6b0-99f9-76b1-9d45-af1cb0caae1c",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-04T22:00:00+00:00",
+    "deviceTime": "2026-11-04T22:01:00+00:00",
+    "photo": "sha256:58f453288e92e1b89485997232f11f13ca0b296a679c67d6e6a56ae617c67895",
+    "reading": "2007.5"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-05",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-05T14:00:00+00:00",
+    "deviceTime": "2026-11-05T14:00:07+00:00",
+    "photo": "sha256:1fedadeb9c734d779f427f7b7de18f488aa721d7afc371e1b069adc0cb0067a7",
+    "reading": "2043.0"
+   },
+   "expected_flags": [
+    "continuity_gap"
+   ],
+   "id": "b35bc343-9958-7cd0-88c4-ee0736400788",
+   "operatorId": "9fcdb9e1-a94c-76b9-806d-2cc78ee58b06",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-05T06:00:00+00:00",
+    "deviceTime": "2026-11-05T06:00:07+00:00",
+    "photo": "sha256:ef1c28a2454c66484fe6a6f6305e3f805a694bcab5d527971929c848cadb5bec",
+    "reading": "2036.9"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-05",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-05T22:00:00+00:00",
+    "deviceTime": "2026-11-05T22:00:01+00:00",
+    "photo": "sha256:a31b6b3da8cdfd74adac7fafc276ea3f2e01ab2db21e137c4f832ec84ffe831a",
+    "reading": "2047.3"
+   },
+   "expected_flags": [],
+   "id": "2d010b10-5d98-718d-af9f-34b2ef48ef10",
+   "operatorId": "5e1ea978-70a7-7e49-ba60-dbd625329041",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-05T14:00:00+00:00",
+    "deviceTime": "2026-11-05T14:00:01+00:00",
+    "photo": "sha256:b880eb0e172d76f8afc08ace244d9206551ca0f0af6e905515153da452d700ac",
+    "reading": "2043.0"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-05",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": null,
+   "expected_flags": [
+    "missing_end"
+   ],
+   "id": "4bca2f3e-6eb5-768b-b03f-f489338ab854",
+   "operatorId": "35d30d74-e7ed-7867-96f5-47ab298a59f8",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-05T22:00:00+00:00",
+    "deviceTime": "2026-11-05T21:58:44+00:00",
+    "photo": "sha256:18ccd7f753d3b920e2609b843d04270374fb05dc575d258e981e17cbaada80ff",
+    "reading": "2047.3"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-06",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-06T14:00:00+00:00",
+    "deviceTime": "2026-11-06T13:59:11+00:00",
+    "photo": "sha256:3a3dc2d8c5b4278bd4e853440c9aefb8dad5796ac9128d4f75aa70c875cdcd80",
+    "reading": "2059.0"
+   },
+   "expected_flags": [],
+   "id": "c2e469cc-b2e8-725c-89b9-bd0668547750",
+   "operatorId": "7b87a9e2-5fef-7911-bf22-a27b02c7bff2",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-06T06:00:00+00:00",
+    "deviceTime": "2026-11-06T05:59:11+00:00",
+    "photo": "sha256:3ff7e48db4bdc5b1d7c6cee9803a58569b459212638bea7a76f2004c802e5b82",
+    "reading": "2052.2"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-06",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-06T22:00:00+00:00",
+    "deviceTime": "2026-11-06T21:58:43+00:00",
+    "photo": "sha256:a1edc5415c600407e54c77937ff9755fc66ad56a527feea0045abe77bb75156a",
+    "reading": "2064.8"
+   },
+   "expected_flags": [],
+   "id": "7a214ab5-22cb-7057-ab9c-75b64ea4788d",
+   "operatorId": "75d0dd66-cf72-7858-a4b6-6f8c462804db",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-06T14:00:00+00:00",
+    "deviceTime": "2026-11-06T13:58:43+00:00",
+    "photo": "sha256:c3116e1e59a89fd44fe2fd6dae47ce5a920690958dcb30921b37930ff8f188e5",
+    "reading": "2059.0"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-06",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": {
+    "at": "2026-11-07T06:00:00+00:00",
+    "deviceTime": "2026-11-07T05:59:43+00:00",
+    "photo": "sha256:a414ee1d42618a202037010e25f013ba522ae8229b71da6ae5b05ef3ca17a6a4",
+    "reading": "2056.7"
+   },
+   "expected_flags": [
+    "negative_delta"
+   ],
+   "id": "9bc6d727-a880-75f6-97ba-5a650856ee18",
+   "operatorId": "3a46e6b0-99f9-76b1-9d45-af1cb0caae1c",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-06T22:00:00+00:00",
+    "deviceTime": "2026-11-06T21:59:43+00:00",
+    "photo": "sha256:df835744d01be775639a990d48659245994a555fa0a2aa85efa67ac96894b93d",
+    "reading": "2064.8"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-07",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-07T14:00:00+00:00",
+    "deviceTime": "2026-11-07T14:01:18+00:00",
+    "photo": "sha256:d5f381d63480c0adc9ed87a22b79c38e2ec5c4dccea38310d09131986649036a",
+    "reading": "2062.4"
+   },
+   "expected_flags": [],
+   "id": "4495c3fc-f896-7ddc-9c12-3b3b41323cc5",
+   "operatorId": "9fcdb9e1-a94c-76b9-806d-2cc78ee58b06",
+   "shift": "morning",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-07T06:00:00+00:00",
+    "deviceTime": "2026-11-07T06:01:18+00:00",
+    "photo": "sha256:f09c9b1a62786fe27e1160e7613353f6c4c7f5e9682ac2a356ffe58d4360fec9",
+    "reading": "2056.7"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-07",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [],
+   "end": {
+    "at": "2026-11-07T22:00:00+00:00",
+    "deviceTime": "2026-11-07T22:00:01+00:00",
+    "photo": "sha256:064ba2fadc0b005ee13b2a0abfbeaeb13611b1d0df675139d541eaa04fa04557",
+    "reading": "2069.7"
+   },
+   "expected_flags": [],
+   "id": "03510e48-0ae5-7e17-8ef4-3b6f8e3c70e3",
+   "operatorId": "5e1ea978-70a7-7e49-ba60-dbd625329041",
+   "shift": "afternoon",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-07T14:00:00+00:00",
+    "deviceTime": "2026-11-07T14:00:01+00:00",
+    "photo": "sha256:dd82ff35dbe4644b232486bbc553a16d4e34ed8bea3fcbe0bc11ef7dfaf4940f",
+    "reading": "2062.4"
+   },
+   "unit": "h"
+  },
+  {
+   "assetId": "331b2fb3-d19e-7224-9382-cc710f0f1c69",
+   "date": "2026-11-07",
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "edge_cases": [
+    "crosses_midnight"
+   ],
+   "end": {
+    "at": "2026-11-08T06:00:00+00:00",
+    "deviceTime": "2026-11-08T05:59:45+00:00",
+    "photo": "sha256:89476e6e7f8c74b1af5bc16c5d5809a31a323609e92a61309b5b6bd6058f8d92",
+    "reading": "2074.5"
+   },
+   "expected_flags": [],
+   "id": "870eda12-191f-7fae-b2cd-c5d933439fc4",
+   "operatorId": "35d30d74-e7ed-7867-96f5-47ab298a59f8",
+   "shift": "night",
+   "siteId": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "start": {
+    "at": "2026-11-07T22:00:00+00:00",
+    "deviceTime": "2026-11-07T21:59:45+00:00",
+    "photo": "sha256:dcb7349d8bd1732a4fdcbdecc603f12f2f1e98a2fb45b99a30a74f97ed4eced7",
+    "reading": "2069.7"
+   },
+   "unit": "h"
+  }
+ ],
+ "meta": {
+  "anomalies": [
+   "continuity_gap",
+   "negative_delta",
+   "oversized_delta",
+   "missing_end"
+  ],
+  "anomalyRate": 0.3,
+  "assets": 1,
+  "days": 6,
+  "generator": "tools/demo/generate_shifts.py",
+  "replacementRate": 0.0,
+  "seed": 12,
+  "shiftHours": 8,
+  "sites": 1,
+  "skewLimitMinutes": 10,
+  "start": "2026-11-02"
+ },
+ "meterEvents": [],
+ "sites": [
+  {
+   "deviceId": "61b339ff-2481-74e5-998b-88dbaa99e079",
+   "id": "87751d4c-a850-7e2c-84dc-da6a797d76de",
+   "name": "Site 1",
+   "operators": [
+    "7b87a9e2-5fef-7911-bf22-a27b02c7bff2",
+    "75d0dd66-cf72-7858-a4b6-6f8c462804db",
+    "3a46e6b0-99f9-76b1-9d45-af1cb0caae1c",
+    "9fcdb9e1-a94c-76b9-806d-2cc78ee58b06",
+    "5e1ea978-70a7-7e49-ba60-dbd625329041",
+    "35d30d74-e7ed-7867-96f5-47ab298a59f8"
+   ]
+  }
+ ]
+}

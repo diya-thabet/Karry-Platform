@@ -90,4 +90,4 @@ Added in Phase 2 sub-phase P2.0 (they shape P2.1–P2.3; proposed, accepted when
 | [0031](0031-sync-command-processing.md) | Sync command processing: handlers in the upload request, one savepoint per command, business problems stored and flagged | Accepted (built in P2.1) |
 | [0032](0032-evidence-blobs.md) | Evidence blobs: content-addressed, pre-signed PUT with a checksum the store verifies, Object Lock retention, signed capture record instead of EXIF | Accepted |
 | [0033](0033-signature-envelopes-and-server-keys.md) | Signature envelopes v1 and server keys: OpenBao transit behind `IServerSigner`, asynchronous countersignature, rotation by `kid` | Accepted |
-| [0034](0034-shift-entries.md) | Shift entries: shift resolved from the site's rules at the start's device time, append-only versions and segments, each operator signs their own segment, flags instead of rejections | Proposed |
+| [0034](0034-shift-entries.md) | Shift entries: shift resolved from the site's rules at the start's device time, append-only versions and segments, each operator signs their own segment, flags instead of rejections | Accepted |

@@ -4,6 +4,7 @@ using Karry.Modules.FieldOps.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Karry.Modules.FieldOps.Infrastructure;
@@ -30,6 +31,11 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
                 t.HasCheckConstraint("ck_shift_entries_kind", "meter_kind IN ('hours', 'km')");
                 t.HasCheckConstraint("ck_shift_entries_values", "start_value >= 0 AND (end_value IS NULL OR end_value >= 0)");
                 t.HasCheckConstraint("ck_shift_entries_fuel", "fuel_start_percent BETWEEN 0 AND 100 AND (fuel_end_percent IS NULL OR fuel_end_percent BETWEEN 0 AND 100)");
+                t.HasCheckConstraint("ck_shift_entries_positions",
+                    "(start_latitude IS NULL) = (start_longitude IS NULL) AND (start_latitude IS NULL) = (start_accuracy_m IS NULL)"
+                    + " AND (end_latitude IS NULL) = (end_longitude IS NULL) AND (end_latitude IS NULL) = (end_accuracy_m IS NULL)"
+                    + " AND coalesce(abs(start_latitude) <= 90 AND abs(start_longitude) <= 180 AND start_accuracy_m >= 0, true)"
+                    + " AND coalesce(abs(end_latitude) <= 90 AND abs(end_longitude) <= 180 AND end_accuracy_m >= 0, true)");
                 t.HasCheckConstraint("ck_shift_entries_closed", "(status = 'Closed') = (ended_at IS NOT NULL AND end_value IS NOT NULL AND end_photo IS NOT NULL)");
             });
             entry.HasKey(e => new { e.TenantId, e.RootId, e.Version });
@@ -42,6 +48,8 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
             entry.Property(e => e.ShiftCode).HasMaxLength(20);
             entry.Property(e => e.StartValue).HasPrecision(9, 1);
             entry.Property(e => e.EndValue).HasPrecision(9, 1);
+            Position(entry.ComplexProperty(e => e.StartPosition), "start");
+            Position(entry.ComplexProperty(e => e.EndPosition), "end");
             entry.Property(e => e.StartPhoto).HasMaxLength(71);
             entry.Property(e => e.EndPhoto).HasMaxLength(71);
             entry.Property(e => e.Remarks).HasMaxLength(ShiftEntryRules.MaxRemarks);
@@ -50,6 +58,14 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
                 new ValueConverter<IReadOnlyList<string>, string[]>(flags => flags.ToArray(), array => array),
                 new ValueComparer<IReadOnlyList<string>>((a, b) => a!.SequenceEqual(b!), flags => string.Join(',', flags).GetHashCode(StringComparison.Ordinal), flags => flags.ToArray()));
         });
+    }
+
+    /// <summary>A position as three columns, <c>{side}_latitude</c>, <c>{side}_longitude</c>, <c>{side}_accuracy_m</c>.</summary>
+    private static void Position(ComplexPropertyBuilder<Position> position, string side)
+    {
+        position.Property(p => p.Latitude).HasColumnName($"{side}_latitude").HasPrecision(8, 6);
+        position.Property(p => p.Longitude).HasColumnName($"{side}_longitude").HasPrecision(9, 6);
+        position.Property(p => p.AccuracyM).HasColumnName($"{side}_accuracy_m");
     }
 
     private static class Json<T>

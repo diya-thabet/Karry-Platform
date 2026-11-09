@@ -44,6 +44,7 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
         closed.GetProperty("shift").GetProperty("code").GetString().Should().Be("D");
         closed.GetProperty("shift").GetProperty("date").GetString().Should().Be("2026-11-09");
         page.GetProperty("items")[0].GetProperty("usage").ValueKind.Should().Be(JsonValueKind.Null, "an open entry has no usage yet");
+        closed.GetProperty("startLocation").ValueKind.Should().Be(JsonValueKind.Null, "no location was given");
     }
 
     [Fact]

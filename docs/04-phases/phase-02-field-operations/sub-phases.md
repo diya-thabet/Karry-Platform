@@ -457,6 +457,9 @@ start and end, who drove, and whether the numbers make sense. Nothing is shown o
   | Property | ΔH is never negative unless a meter event explains it (generator, 10 000 cases) |
 - **Security review:** T-01 (operator identity: PIN-unlocked user id is inside the signed payload), T-10 (masking on the read API).
 - **Done when:** generated shifts load through the sync pipeline and read back with correct shifts and Δ.
+  **Done (2026-11-09):** `ShiftEntriesSyncTests` (18 generated shifts, every anomaly kind, flags as planted).
+  The property row is covered by `ShiftEntryRulesTests` (rules over 10 000 random cases) and the generator run; meter
+  events that explain a negative Δ come in P2.7.
 
 ---
 

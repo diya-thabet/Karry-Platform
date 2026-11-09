@@ -19,8 +19,8 @@ public interface IShiftEntryStore
     /// <summary>The highest version of an entry, or null when the entry is unknown in this company.</summary>
     Task<ShiftEntryVersion?> LatestAsync(Guid rootId, CancellationToken cancellationToken);
 
-    /// <summary>The latest closed version on <paramref name="meterId"/> that ended at or before <paramref name="before"/>, other entries only.</summary>
-    Task<ShiftEntryVersion?> LastEndOfMeterAsync(Guid meterId, Guid exceptRootId, DateTimeOffset before, CancellationToken cancellationToken);
+    /// <summary>The current version of the last other entry on <paramref name="meterId"/> that started before <paramref name="before"/>.</summary>
+    Task<ShiftEntryVersion?> LastSegmentOfMeterAsync(Guid meterId, Guid exceptRootId, DateTimeOffset before, CancellationToken cancellationToken);
 
     /// <summary>
     /// The current versions of the operator's other entries that may share time with <c>[from, to)</c> (no
@@ -65,6 +65,18 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
     public Guid Signer => Guid.Parse(Envelope.GetProperty("signer").GetProperty("userId").GetString()!);
 
     public Guid EnvelopeId => Guid.Parse(Envelope.GetProperty("envelopeId").GetString()!);
+
+    /// <summary>
+    /// Where the tablet was (the envelope's <c>context.geo</c>, ADR-0033), degrees rounded to 6 decimals and accuracy
+    /// up to the next whole metre; null without one. Read after the envelope was accepted (its ranges are checked there).
+    /// </summary>
+    public Position? Position =>
+        Envelope.TryGetProperty("context", out var context) && context.TryGetProperty("geo", out var geo)
+            ? new Position(
+                Math.Round(geo.GetProperty("lat").GetDecimal(), 6, MidpointRounding.AwayFromZero),
+                Math.Round(geo.GetProperty("lon").GetDecimal(), 6, MidpointRounding.AwayFromZero),
+                (int)Math.Ceiling(geo.GetProperty("acc").GetDecimal()))
+            : null;
 }
 
 /// <summary>Reading the members of a record strictly: exact names, exact types, no nulls (ADR-0034 §5).</summary>
@@ -257,6 +269,7 @@ public sealed class StartShiftEntry(
             ShiftEndsAt = shift?.EndsAt,
             StartedAt = startedAt,
             StartValue = startValue,
+            StartPosition = signed.Position,
             FuelStartPercent = fuel,
             StartPhoto = photo,
             Remarks = remarks,
@@ -274,11 +287,12 @@ public sealed class StartShiftEntry(
     /// <summary>Whether the operator has another segment sharing time with <c>[from, to)</c> (OVERLAP, TC-P2-FO-011).</summary>
     internal static async Task<bool> OverlapsAsync(IShiftEntryStore store, Guid operatorId, Guid rootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken) =>
         (await store.SegmentsOfOperatorAsync(operatorId, rootId, from, to, cancellationToken).ConfigureAwait(false))
-            .Any(other => ShiftEntryRules.Overlaps(from, to, other.StartedAt, other.EndedAt));
+            .Any(other => ShiftEntryRules.Overlaps(from, to, other.StartedAt, ShiftEntryRules.RunsUntil(other)));
 
     /// <summary>
-    /// The end a start should continue (RULE-FO-01): the previous segment's end in a handover (none yet while that
-    /// segment is open: P2.7 re-evaluates), otherwise the meter's last end before the start.
+    /// The end a start should continue (RULE-FO-01): the previous segment's end in a handover, otherwise the end of the
+    /// meter's last segment before the start. None while that segment is open (its end is missing or not here yet):
+    /// nothing is compared, and P2.7 re-evaluates in shift-time order.
     /// </summary>
     private async Task<decimal?> ContinuesFromAsync(ShiftEntryVersion? previous, Guid meterId, Guid rootId, DateTimeOffset startedAt, CancellationToken cancellationToken)
     {
@@ -287,7 +301,7 @@ public sealed class StartShiftEntry(
             return previous.EndValue;
         }
 
-        return (await store.LastEndOfMeterAsync(meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false))?.EndValue;
+        return (await store.LastSegmentOfMeterAsync(meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false))?.EndValue;
     }
 }
 
@@ -350,11 +364,14 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
             return new HandlerOutcome.Rejected(refused.Code, Retryable: false);
         }
 
-        var flags = new List<string>(ShiftEntryRules.EndFlags(start.MeterKind, start.StartedAt, start.StartValue, endedAt, endValue));
+        // A version carries the entry's flags as of that version: the start's, then what the end raises (ADR-0034 §6).
+        var raised = new List<string>(ShiftEntryRules.EndFlags(start.MeterKind, start.StartedAt, start.StartValue, endedAt, endValue));
         if (await StartShiftEntry.OverlapsAsync(store, start.OperatorId, rootId, start.StartedAt, endedAt, cancellationToken).ConfigureAwait(false))
         {
-            flags.Add(ShiftEntryFlags.Overlap);
+            raised.Add(ShiftEntryFlags.Overlap);
         }
+
+        var flags = start.Flags.Union(raised, StringComparer.Ordinal).ToList();
 
         store.Add(new ShiftEntryVersion
         {
@@ -375,10 +392,12 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
             ShiftEndsAt = start.ShiftEndsAt,
             StartedAt = start.StartedAt,
             StartValue = start.StartValue,
+            StartPosition = start.StartPosition,
             FuelStartPercent = start.FuelStartPercent,
             StartPhoto = start.StartPhoto,
             EndedAt = endedAt,
             EndValue = endValue,
+            EndPosition = signed.Position,
             FuelEndPercent = fuel,
             EndPhoto = photo,
             Stoppages = stoppages,
@@ -391,7 +410,7 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
             ReceivedAt = command.ReceivedAt,
         });
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
-        return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
+        return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);
     }
 
     private static bool Stoppages(JsonElement record, out IReadOnlyList<Stoppage> stoppages)
