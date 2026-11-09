@@ -35,6 +35,10 @@ services:
       KC_DB_USERNAME: keycloak
       KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak-local-only}
       KC_HEALTH_ENABLED: "true"
+      # Without a cap the JVM sizes its heap from the host (70 % of RAM) and held ~2.2 GB on a 14 GB dev PC.
+      # 768 MB is plenty for one dev realm; the container limit keeps the JVM's own estimate honest.
+      JAVA_OPTS_KC_HEAP: "-XX:MaxRAMPercentage=70 -XX:MaxHeapFreeRatio=20 -XX:MinHeapFreeRatio=10"
+    mem_limit: 768m
     ports: ["127.0.0.1:8080:8080", "127.0.0.1:9000:9000"]
     volumes:
       # Realm and login theme as code (P1.8, ADR-0012): the realm is imported on first start, themes are read live.

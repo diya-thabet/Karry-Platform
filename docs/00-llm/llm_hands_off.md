@@ -187,6 +187,7 @@ Do **not** implement these as written in the codex. Use the corrected version.
 - **Git push works** (since 2026-10-22): owner ran `gh auth login` + `gh auth setup-git`; `gh` (`/usr/bin/gh`) is logged in as `diya-thabet` with `repo` + `workflow` scopes. Use `gh run list/watch/view --log-failed` to check CI after every push. Never force-push without the owner's explicit approval.
 - **Product code exists since P1.1**: `Karry.slnx` (backend under `src/backend`, tests under `tests/` and inside each module), `src/frontend` (own pnpm workspace), `deploy/docker` (local stack). CI: `ci.yml` (backend, frontend, local-stack), `docs.yml`, `spikes.yml`.
 - **.NET SDK** is installed per-user at `~/.dotnet` (10.0.402), **not on PATH**: call `~/.dotnet/dotnet`. Set `DOTNET_CLI_TELEMETRY_OPTOUT=1 DOTNET_NOLOGO=1`.
+- **Memory on the owner's PC (2026-11-09):** 14 GB RAM, swap is only an 8 GB zram device (compressed RAM, no disk swap), so when both fill the desktop thrashes instead of slowing down. Measured: Chrome ~7 GB, Keycloak ~2.2 GB before its cap (the JVM sized its heap from the whole host), a demo host and `vite preview` left running for 5 days. Keycloak now has `mem_limit: 768m` in `deploy/docker/compose.yaml` (~480 MB used). Stop any demo host or preview you start before ending a session (by PID); check `free -h` before a .NET build and wait if less than ~4 GB is available.
 - **IPv6 is broken on the owner's network**: NuGet restore hangs forever. Always set `DOTNET_SYSTEM_NET_DISABLEIPV6=1` for dotnet restore/build. (curl -4 works; curl -6 times out.)
 - **Docker works via `sg docker -c "<command>"`** (owner added the user to the `docker` group on 2026-10-22; the current session has not re-logged in). Run Testcontainers tests as `sg docker -c "DOTNET_SYSTEM_NET_DISABLEIPV6=1 ~/.dotnet/dotnet test --solution Karry.slnx -c Release"`. After a re-login plain `docker` works. Previously: **Docker was not usable by the agent** (`permission denied` on `/var/run/docker.sock`; user not in `docker` group). Testcontainers and the extension check cannot run locally until the owner runs `sudo usermod -aG docker $USER` and re-logs in. Workaround used for PostgreSQL: portable binaries (zonky `embedded-postgres-binaries-linux-amd64` 17.5 from Maven Central) started with `initdb`/`pg_ctl` on TCP `127.0.0.1:55432` in the scratchpad (`-k ''`, because the Unix socket path exceeds 107 bytes). No `psql` in that bundle.
 - **.NET 10 + xunit v3**: `dotnet test` requires the Microsoft Testing Platform runner (`global.json` → `"test": {"runner": "Microsoft.Testing.Platform"}`), and the syntax is `dotnet test --solution X.slnx`. Do not add `Microsoft.NET.Test.Sdk`/`xunit.runner.visualstudio`. Add `<Using Include="Xunit" />`.
@@ -343,6 +344,11 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-09 — Dev machine memory (agent)
+- **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.
+- **Done:** stopped the 5-day-old demo host and portal preview (by PID); Keycloak capped at 768 MB in compose (was ~2.2 GB incl. swap), login checked (realm discovery 200); trap note in §5. Owner-side steps (disk swapfile on btrfs, zstd zram, Chrome Memory Saver) given in chat; they need sudo or the browser.
+- **Next:** slice 6b-1b (assets record versions) once memory allows.
 
 ### 2026-11-03 — P1.18 split, hardening plan (agent)
 - **Goal:** owner: "start it without cloud provider … add more tests and make it hardened and battle tested system for many scenarios, act as top tier senior QA".
