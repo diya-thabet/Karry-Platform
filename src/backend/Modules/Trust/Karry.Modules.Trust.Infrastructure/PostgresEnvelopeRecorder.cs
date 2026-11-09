@@ -40,6 +40,12 @@ internal sealed partial class PostgresEnvelopeRecorder(IDeviceDirectory devices,
             return new EnvelopeOutcome.Refused(EnvelopeCodes.SignatureInvalid);
         }
 
+        if (key.Revoked)
+        {
+            LogDeviceRevoked(logger, submission.TenantId, submission.DeviceId, submission.CommandId);
+            return new EnvelopeOutcome.Refused(EnvelopeCodes.DeviceRevoked);
+        }
+
         var hash = SignatureEnvelopes.Hash(envelope);
         var envelopeId = Guid.Parse(envelope.GetProperty("envelopeId").GetString()!);
         var tenant = new TenantId(submission.TenantId);
@@ -110,6 +116,10 @@ internal sealed partial class PostgresEnvelopeRecorder(IDeviceDirectory devices,
     [LoggerMessage(EventId = 4010, Level = LogLevel.Warning,
         Message = "Security: the signature envelope of command {CommandId} from tablet {DeviceId} of tenant {Tenant} does not verify; refused")]
     private static partial void LogSignatureInvalid(ILogger logger, Guid tenant, Guid deviceId, Guid commandId);
+
+    [LoggerMessage(EventId = 4014, Level = LogLevel.Warning,
+        Message = "Security: revoked tablet {DeviceId} of tenant {Tenant} sent a signature envelope with command {CommandId}; refused")]
+    private static partial void LogDeviceRevoked(ILogger logger, Guid tenant, Guid deviceId, Guid commandId);
 
     [LoggerMessage(EventId = 4011, Level = LogLevel.Warning,
         Message = "Security: tablet {DeviceId} of tenant {Tenant} sent envelope {EnvelopeId} again with other content; refused")]

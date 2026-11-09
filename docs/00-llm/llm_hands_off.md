@@ -417,7 +417,11 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Traps:** `setPointerCapture` throws for a pointer that is gone (and for synthetic events): wrapped in try/catch. `PointerEvent.pressure` is a float32 (0.6 → 0.6000000238). `0.3 - 0.1 < 0.2` in floating point: test boundaries with exact values.
 - **Merged:** #167 (slice 5).
 - **P2.3 slice 6 (PR from `feat/p2.3-verified-badge`):** portal `audit/SignatureVerification.tsx` (badge + list of checks), `useEnvelopeVerification`/`envelopeOf`/`envelopeReceivedEvent` in `audit/api.ts` (react-refresh lint: a component file exports only components), fake route `envelopeVerifications` in `testing/fakeApi.ts`. Shown in the audit entry dialog for `trust.envelope_received.v1` (inline section, not a drawer: the entry is already a dialog). 17 `portal.signature.*` keys. Portal tests 208/208 (3 new + axe with the badge open).
-- **Next:** P2.3 close-out: security review T-02/T-03/T-06/T-07 + key custody (who reads `/openbao/keys/init.txt`), ADR-0033 accepted, tracker P2.3 ✅; move the "done when" end-to-end browser test (needs records) to P2.5. Then P2.4 (shifts and shift entries, server).
+- **Merged:** #168 (slice 6).
+- **P2.3 close-out (PR from `feat/p2.3-close-out`):** ADR-0033 accepted with its security review (§7); threat model T-02/T-03/T-06/T-07 extended, new residual risk **R-12** (OpenBao unseal key and root token on the same host until KMS/auto-unseal); "done when" end-to-end browser test moved to P2.5 (row in its test table); tracker P2.3 ✅.
+- **Finding fixed in the close-out:** the envelope recorder did not check `DeviceKey.Revoked` (it relied on device authentication): now refuses with `trust.envelope_device_revoked`, event 4014 (TC-P2-SIG-003, `EnvelopeRecorderTests`). Trust event IDs in use: 4001, 4010–4014.
+- **Caught while writing R-12:** I first advised "move the unseal key off the host", but `start.sh` unseals from that file at every start, so the advice would leave OpenBao sealed after a restart. Check a mitigation against the scripts before writing it.
+- **Next:** P2.4 — shifts and shift entries on the server (read `docs/04-phases/phase-02-field-operations/sub-phases.md` §P2.4 first).
 
 ### 2026-11-09 — Dev machine memory; P1.18a slice 6b-1b assets (agent)
 - **Goal:** owner: RAM fills on every prompt and the PC lags; fix it first.

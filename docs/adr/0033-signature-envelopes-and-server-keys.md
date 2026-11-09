@@ -3,7 +3,7 @@ title: "ADR-0033: Signature envelopes v1 and server keys: OpenBao transit behind
 area: adr
 tags: [signatures, envelope, countersignature, openbao, kms, keys, rotation, handwriting, trust, phase-2]
 source: "Phase 2 sub-phase P2.0 (decision for P2.3)"
-status: proposed
+status: accepted
 last_updated: 2026-11-09
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-09
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (2026-11-09, P2.0)
+- **Status:** Accepted (2026-11-09, P2.3; proposed in P2.0)
 - **Date:** 2026-11-09
 - **Deciders:** Product owner, software architect
 - **Related:** US-P2-SIG-01 … 04; TC-P2-SIG-001 … 004, 006, 007, 008; threats T-01, T-03, T-06, T-07;
@@ -211,8 +211,27 @@ signed part, as in ADR-0007.
   (their payload names the envelope); one request when the dialog opens, not one per row. The same component goes on
   every signed record once records exist (P2.4/P2.5). A check this version does not know is shown by its name. 17
   `portal.signature.*` messages in the five languages.
-- **Still to build in P2.3:** the close-out (security review, ADR accepted). Wiring the pad and the badge into signed
-  records waits for the records themselves (P2.4 server, P2.5 tablet).
+- **Close-out finding, fixed:** the envelope recorder relied on device authentication alone to stop a revoked
+  tablet. It now refuses a revoked tablet's envelope itself (`trust.envelope_device_revoked`, event 4014), even when
+  the signature verifies (TC-P2-SIG-003, `EnvelopeRecorderTests`).
+- **Moved to P2.5:** the "done when" (a command signed in a Playwright browser, verified end to end, also after a
+  rotation). Records do not exist before P2.4 and the entry screens before P2.5; every link of the chain is tested
+  at its own level (browser signing against shared vectors, the pad in Chromium, recording, countersigning with a
+  rotation, verification). Wiring the pad and the badge into signed records comes with the records.
+
+### 7. Security review (P2.3 close-out, 2026-11-09)
+
+| Threat | Question | Answer, and the test that proves it |
+|---|---|---|
+| T-02 spoofing | Can an unenrolled, cloned or revoked tablet get a signature accepted? | No: the envelope must name the tablet that sent the command (`trust.envelope_device_mismatch`) and verify with that tablet's enrolled key (`trust.envelope_signature_invalid`, event 4010); a revoked tablet is refused even with a valid signature (`trust.envelope_device_revoked`, event 4014). `EnvelopeRecorderTests` (TC-P2-SIG-002, TC-P2-SIG-003). |
+| T-03 tampering | Can what was signed be changed between the tablet and the server, or after? | No undetected change: the tablet signs the RFC 8785 text, which holds the payload hash, the evidence hashes and the handwriting hashes (`handwrittenHashes`, TC-P2-SIG-008); one changed character fails the signature on both sides (shared vectors, `SignatureEnvelopesTests`, `envelope.test.ts`); the verification names the check that breaks (`EnvelopeVerificationTests`, TC-P2-SIG-002). |
+| T-06 insider | Can someone with database access change a signature, a countersignature or a published key unnoticed? | Not through the application role: `audit.signature_envelopes`, `audit.envelope_countersignatures` and `audit.server_keys` are append-only (triggers, grants revoked; TC-P2-SIG-007). A superuser who turns triggers off is caught by the verification: five such changes, each named by the check it breaks (`EnvelopeVerificationTests`). Forging a countersignature needs the private key, which never leaves OpenBao. |
+| T-07 repudiation | Can a signer deny a signature? | The envelope binds the person (`signer.userId`, role), the tablet's non-extractable key, the handwriting (vectors and image, both hashed), and the server's receipt time through the ledger at once and the countersignature within minutes (`CountersignTests`, TC-P2-SIG-001). Controller actions are signed from P2.6 (US-P2-VER-02..04); the legal weight per country stays R-03. |
+| Key custody | Who can sign as the server? | Only OpenBao's transit engine: the API's token may sign with `karry-server` and read its public keys, nothing else (rotate, export, new keys and `sys/` answer 403; checked in the local stack's smoke test). After a rotation the server signs with the new version and every older countersignature still verifies with its published key (TC-P2-SIG-004). The unseal key and root token live in the `baokeys` volume on the same host locally: residual risk R-12 until KMS (P1.17). |
+| T-18 telemetry | Do the new logs or metrics leak personal data? | No: events 4010–4014 name the tenant, the tablet, the command or the envelope, never a person or a signature image; the metrics have no labels beyond the result. |
+
+Residual risks: R-12 (key custody before KMS); a countersignature lags by up to minutes (shown as `pending`, alert
+`KarryCountersignLagHigh`); the envelope v1 format is a long-term contract.
 
 ## Options considered
 

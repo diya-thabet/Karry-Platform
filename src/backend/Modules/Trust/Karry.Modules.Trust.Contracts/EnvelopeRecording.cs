@@ -40,6 +40,12 @@ public static class EnvelopeCodes
     /// <summary>The device signature does not verify with the device's key (TC-P2-SIG-002): a security event.</summary>
     public const string SignatureInvalid = "trust.envelope_signature_invalid";
 
+    /// <summary>
+    /// The tablet was revoked (TC-P2-SIG-003): nothing it sends is accepted any more, even when its signature verifies.
+    /// Device authentication already refuses a revoked tablet's requests; this holds even if a caller skipped it.
+    /// </summary>
+    public const string DeviceRevoked = "trust.envelope_device_revoked";
+
     /// <summary>An envelope with this ID but other content is already stored: a security event.</summary>
     public const string Conflict = "trust.envelope_conflict";
 }

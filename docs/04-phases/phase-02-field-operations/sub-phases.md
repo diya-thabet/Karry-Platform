@@ -418,6 +418,9 @@ it at a given time, and anyone can check that proof later.
 - **DevOps:** OpenBao in compose and CI; metrics `karry_trust_countersign_lag_seconds`, `…_failures_total`; alerts
   (lag > 5 min, failures); runbooks "signing service down", "rotate the server signing key".
 - **Done when:** a command signed in a Playwright browser is verified end to end, including after a key rotation.
+  **As built (2026-11-09):** every link is tested at its own level (browser signing against shared vectors, the pad
+  in Chromium, recording, countersigning with a rotation, verification; ADR-0033 §6–§7). The end-to-end browser test
+  **moved to P2.5**: no record type exists before P2.4 and no entry screen before P2.5.
 
 ---
 
@@ -482,6 +485,7 @@ a signature, and no network.
   | TC-P2-SYNC-007 *(from P2.2)* | Service worker update while the outbox is not empty → outbox intact, upload continues |
   | TC-P2-SYNC-011 *(from P2.2)* | In the browser: a photo is never purged while its entry is not confirmed |
   | TC-P2-SYNC-014 *(from P2.2)* | Two tabs of the field app → one upload at a time, no sequence reuse; the `PUT` passes the bucket's CORS rule |
+  | E2E *(from P2.3)* | An entry signed in the Playwright browser (pad + device key) is verified `verified` end to end, also after a server key rotation |
 - **Security review:** T-01 (who is unlocked is shown on every screen; auto-lock applies inside the flow), T-17.
 - **Done when:** demo steps 1–2 of the [demo script](plan.md#98-demo-script) run on the local stack, and a tablet in
   the E2E suite goes offline, queues 20 entries with photos, comes back and everything arrives once, verified (from P2.2).

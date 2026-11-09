@@ -99,6 +99,19 @@ public sealed class EnvelopeRecorderTests(LedgerDatabase postgres) : IClassFixtu
     }
 
     [Fact]
+    [Trait("TestCase", "TC-P2-SIG-003")]
+    public async Task A_revoked_tablets_envelope_is_refused_even_with_a_valid_signature_and_nothing_is_written()
+    {
+        devices.Revoked.Add(VectorDevice);
+
+        var outcome = await RecordAsync(Submission(TenantA, VectorDevice, Minimal.GetProperty("envelope"), Minimal.GetProperty("deviceSignature").GetString()!));
+
+        outcome.Should().Be(new EnvelopeOutcome.Refused(EnvelopeCodes.DeviceRevoked));
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.signature_envelopes")).Should().Be(0);
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries")).Should().Be(0);
+    }
+
+    [Fact]
     public async Task The_same_envelope_ID_with_other_content_is_refused()
     {
         var (id, device) = (Guid.CreateVersion7(), Guid.CreateVersion7());
@@ -209,8 +222,10 @@ public sealed class EnvelopeRecorderTests(LedgerDatabase postgres) : IClassFixtu
 
         public Dictionary<Guid, ECParameters> Private { get; } = [];
 
+        public HashSet<Guid> Revoked { get; } = [];
+
         public Task<DeviceKey?> FindAsync(Guid deviceId, CancellationToken cancellationToken) =>
-            Task.FromResult(Keys.TryGetValue(deviceId, out var key) ? new DeviceKey(deviceId, Guid.Empty, key.X, key.Y, false) : null);
+            Task.FromResult(Keys.TryGetValue(deviceId, out var key) ? new DeviceKey(deviceId, Guid.Empty, key.X, key.Y, Revoked.Contains(deviceId)) : null);
 
         public Task<bool> RememberAssertionAsync(Guid deviceId, string assertionId, DateTimeOffset expiresAt, CancellationToken cancellationToken) =>
             Task.FromResult(true);
