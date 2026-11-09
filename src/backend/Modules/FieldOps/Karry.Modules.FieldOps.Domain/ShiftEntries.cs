@@ -11,6 +11,13 @@ public enum ShiftEntryStatus
     Closed = 2,
 }
 
+/// <summary>
+/// Where the tablet was when a fact was signed (US-P2-FO-01 AC5): the envelope's <c>context.geo</c> (ADR-0033), WGS 84
+/// degrees to 6 decimals and the fix's accuracy in whole metres. Kept for the geofence rule (RULE-FO-04, P2.7); absent
+/// when the operator refused location access.
+/// </summary>
+public sealed record Position(decimal Latitude, decimal Longitude, int AccuracyM);
+
 /// <summary>A stoppage during a segment: why, and for how long (US-P2-FO-04 AC1).</summary>
 public sealed record Stoppage(string Reason, int Minutes);
 
@@ -60,6 +67,8 @@ public sealed class ShiftEntryVersion : ITenantOwned
 
     public decimal StartValue { get; init; }
 
+    public Position? StartPosition { get; init; }
+
     public int FuelStartPercent { get; init; }
 
     public required string StartPhoto { get; init; }
@@ -67,6 +76,8 @@ public sealed class ShiftEntryVersion : ITenantOwned
     public DateTimeOffset? EndedAt { get; init; }
 
     public decimal? EndValue { get; init; }
+
+    public Position? EndPosition { get; init; }
 
     public int? FuelEndPercent { get; init; }
 
@@ -79,7 +90,10 @@ public sealed class ShiftEntryVersion : ITenantOwned
     /// <summary>Made while the meter is known to be failed (usage estimated; failed-meter mode comes in P2.7).</summary>
     public bool Estimated { get; init; }
 
-    /// <summary>The flags this version raised (ADR-0034 §6); empty when nothing needs a look.</summary>
+    /// <summary>
+    /// The entry's flags as of this version (ADR-0034 §6): the previous version's and the ones this version raised;
+    /// empty when nothing needs a look.
+    /// </summary>
     public IReadOnlyList<string> Flags { get; init; } = [];
 
     public Guid EnvelopeId { get; init; }
@@ -166,6 +180,20 @@ public static partial class ShiftEntryRules
     /// </summary>
     public static IReadOnlyList<string> StartFlags(decimal? continuesFrom, decimal startValue) =>
         continuesFrom is { } end && end != startValue ? [ShiftEntryFlags.Continuity] : [];
+
+    /// <summary>How long a segment without an end and without a shift is taken to run (OVERLAP).</summary>
+    public static readonly TimeSpan MaxOpenRun = TimeSpan.FromHours(12);
+
+    /// <summary>
+    /// Until when a stored segment counts as running, for OVERLAP: its end; without one, its shift's end (an end that
+    /// never came is RULE-FO-08's business, P2.7, not a reason to flag every later segment of the operator); without a
+    /// shift, <see cref="MaxOpenRun"/> after its start.
+    /// </summary>
+    public static DateTimeOffset RunsUntil(ShiftEntryVersion segment)
+    {
+        ArgumentNullException.ThrowIfNull(segment);
+        return segment.EndedAt ?? segment.ShiftEndsAt ?? segment.StartedAt + MaxOpenRun;
+    }
 
     /// <summary>
     /// Whether two segments share time (OVERLAP, TC-P2-FO-011): <c>[start, end)</c>, a segment without an end still runs.

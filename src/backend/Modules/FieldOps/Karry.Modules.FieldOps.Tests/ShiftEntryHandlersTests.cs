@@ -104,6 +104,30 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    public async Task Where_the_tablet_was_when_the_start_and_the_end_were_signed_is_kept_on_the_entry()
+    {
+        var root = Guid.CreateVersion7();
+
+        (await HandleAsync(TenantA, StartShiftEntry.Name, Signed(Record(root, ShiftStart, "10.0"), 1, geo: Geo(36.80451234, 10.0056, 12.2))))
+            .Should().Be(new HandlerOutcome.Accepted(root));
+        (await HandleAsync(TenantA, EndShiftEntry.Name, End(root, 2, ShiftStart.AddHours(8), "18.0", geo: Geo(-36.8, -10.5, 0))))
+            .Should().Be(new HandlerOutcome.Accepted(root));
+
+        (await RowsAsync(TenantA, "SELECT version || '|' || coalesce(start_latitude || ',' || start_longitude || ',' || start_accuracy_m, '-') || '|' "
+            + "|| coalesce(end_latitude || ',' || end_longitude || ',' || end_accuracy_m, '-') FROM fieldops.shift_entries ORDER BY version"))
+            .Should().Equal("1|36.804512,10.005600,13|-", "2|36.804512,10.005600,13|-36.800000,-10.500000,0");
+    }
+
+    [Fact]
+    public async Task A_position_out_of_range_is_refused_with_its_envelope()
+    {
+        var outcome = await HandleAsync(TenantA, StartShiftEntry.Name, Signed(Record(Guid.CreateVersion7(), ShiftStart, "10.0"), 1, geo: Geo(91, 10, 5)));
+
+        outcome.Should().Be(new HandlerOutcome.Rejected(EnvelopeCodes.Invalid, false));
+        await NothingWrittenAsync();
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-FO-005")]
     public async Task An_hour_meter_running_beyond_the_segment_going_backwards_or_ending_before_its_start_is_stored_and_flagged()
     {
@@ -276,6 +300,43 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         continues.Should().Be(new HandlerOutcome.Accepted(night));
         lower.Should().BeEquivalentTo(new HandlerOutcome.Conflict(nextDay, [ShiftEntryFlags.Continuity]), "the night shift ended at 116.0 (TC-P2-FO-007)");
         beforeAnyEnd.Should().Be(new HandlerOutcome.Accepted(early), "no end of the meter comes before it: nothing to compare with");
+
+        var ended = await HandleAsync(TenantA, EndShiftEntry.Name, End(nextDay, 2, ShiftStart.AddDays(1).AddHours(8), "123.0"));
+        ended.Should().Be(new HandlerOutcome.Accepted(nextDay), "the end raises nothing new");
+        (await RowsAsync(TenantA, $"SELECT version || ':' || array_to_string(flags, ',') FROM fieldops.shift_entries WHERE root_id = '{nextDay}' ORDER BY version"))
+            .Should().Equal("1:RULE-FO-01", "2:RULE-FO-01");
+    }
+
+    [Fact]
+    public async Task A_start_after_a_segment_whose_end_never_came_is_not_compared()
+    {
+        var (day, forgotten, next) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "100.0"));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(forgotten, ShiftStart.AddHours(8), "108.0", signer: NextOperator));
+
+        var outcome = await HandleAsync(TenantA, StartShiftEntry.Name, Start(next, ShiftStart.AddDays(1), "116.0", signer: Guid.CreateVersion7()));
+
+        outcome.Should().Be(new HandlerOutcome.Accepted(next), "the last segment's end is missing (RULE-FO-08, P2.7), so 108.0 is not the value to continue");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-05")]
+    public async Task A_segment_whose_end_never_came_does_not_overlap_the_operators_later_shifts()
+    {
+        var (forgotten, inShift, today) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var otherMeter = Guid.CreateVersion7();
+        meters.All[otherMeter] = meters.All[HourMeter] with { MeterId = otherMeter };
+        shifts.Shift = null;
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(forgotten, ShiftStart.AddDays(-2), "10.0"));
+        shifts.Shift = DayShift with { StartsAt = ShiftStart.AddDays(-1), EndsAt = ShiftStart.AddDays(-1).AddHours(8) };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(inShift, ShiftStart.AddDays(-1), "500.0", meter: otherMeter));
+        shifts.Shift = DayShift;
+
+        var late = await HandleAsync(TenantA, StartShiftEntry.Name, Start(today, ShiftStart, "10.0"));
+
+        late.Should().Be(new HandlerOutcome.Accepted(today),
+            "a segment without an end runs to its shift's end, or 12 h without a shift; the missing end is RULE-FO-08's business (P2.7)");
     }
 
     [Fact]
@@ -317,6 +378,8 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
+
+    private static JsonObject Geo(double lat, double lon, double accuracy) => new() { ["lat"] = lat, ["lon"] = lon, ["acc"] = accuracy };
 
     /// <summary>One segment on a fresh meter by a fresh operator, so continuity and overlaps stay out of the way.</summary>
     private async Task<HandlerOutcome> StartAndEndAsync(DateTimeOffset startedAt, string startValue, DateTimeOffset endedAt, string endValue)
@@ -360,7 +423,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         return Signed(record, 1, signer);
     }
 
-    private JsonObject End(Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null)
+    private JsonObject End(Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null, JsonObject? geo = null)
     {
         var record = new JsonObject
         {
@@ -376,11 +439,11 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             record["stoppages"] = JsonNode.Parse(stoppages);
         }
 
-        return Signed(record, version);
+        return Signed(record, version, geo: geo);
     }
 
     /// <summary>The command payload: the record, an envelope naming it, and the tablet's signature over the envelope.</summary>
-    private JsonObject Signed(JsonObject record, int version, Guid? signer = null)
+    private JsonObject Signed(JsonObject record, int version, Guid? signer = null, JsonObject? geo = null)
     {
         using var recordDocument = JsonDocument.Parse(record.ToJsonString());
         var envelope = new JsonObject
@@ -394,6 +457,11 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             ["signer"] = new JsonObject { ["userId"] = (signer ?? Operator).ToString(), ["role"] = "operator", ["deviceId"] = Device.ToString() },
             ["context"] = new JsonObject { ["deviceTime"] = "2026-11-09T06:02:11.250+00:00", ["appVersion"] = "1.4.0" },
         };
+        if (geo is not null)
+        {
+            envelope["context"]!["geo"] = geo;
+        }
+
         return new JsonObject { ["record"] = record, ["envelope"] = envelope, ["deviceSignature"] = devices.Sign(envelope) };
     }
 

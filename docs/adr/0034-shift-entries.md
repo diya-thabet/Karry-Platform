@@ -3,7 +3,7 @@ title: "ADR-0034: Shift entries: resolved against the site's shift rules, versio
 area: adr
 tags: [field-operations, shifts, shift-entries, meters, segments, handover, flags, signatures, phase-2]
 source: "Phase 2 sub-phase P2.0 (decision for P2.4), written in P2.4"
-status: proposed
+status: accepted
 last_updated: 2026-11-09
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-09
 
 > [Docs index](../README.md) › [adr](README.md)
 
-- **Status:** Proposed (2026-11-09, P2.4)
+- **Status:** Accepted (2026-11-09, P2.4 close-out; security review in §9)
 - **Date:** 2026-11-09
 - **Deciders:** Product owner, software architect
 - **Related:** US-P2-FO-01 (AC1, AC4, AC5), US-P2-FO-04 (AC2), US-P2-FO-05 (AC1–AC2); TC-P2-FO-001, 003, 005, 006,
@@ -69,6 +69,9 @@ Shift entries, and later checklists and stoppage reason codes, live in a new mod
   kept in Assets, no sign, no leading zero, never a JSON number), `numeric(9,1)` in the table (largest value
   9 999 999.9), always next to the meter's kind (`hours` or `km`) and the meter's ID (ADR-0025: no bare
   number). Fuel level is a whole percentage 0–100.
+- **Where the tablet was** comes from the signed envelope's `context.geo` (`lat`, `lon`, `acc`, checked by Trust, ADR-0033),
+  not from the record: the start's and the end's are stored on the entry (degrees to 6 decimals, accuracy in whole
+  metres) for the geofence rule RULE-FO-04 (P2.7). Absent when the operator refused location access.
 - `estimated` marks an entry made while the meter is known to be failed (P2.7 adds failed-meter mode); the field is
   there from the first version so the shape does not change.
 
@@ -103,14 +106,15 @@ The handler stores every signed fact and returns `Conflict(flags)` when it needs
 
 | Flag | When |
 |---|---|
-| `RULE-FO-01` | The start differs from the end it continues: in a handover, the previous segment's end (not compared while that segment is still open); otherwise the meter's last end at or before the start (by the end's time, among the entries already received). No meter event explains it yet (meter events come in P2.7) |
+| `RULE-FO-01` | The start differs from the end it continues: in a handover, the previous segment's end; otherwise the end of the meter's last segment before the start (among the entries already received). Not compared while that segment is open (its end is missing or not here yet). No meter event explains it yet (meter events come in P2.7) |
 | `RULE-FO-02` | Δ < 0, or for an hour meter Δ > the segment's real length + 0.5 h ([detection rules](../03-domain/catalogues/detection-rules.md)); an oversized Δkm waits for the tenant thresholds of P2.7 |
 | `SHIFT_OUTSIDE_PATTERN` | The start is in no shift of the site (§2) |
 | `ASSET_NOT_ON_SITE` | The machine is not (or no longer) assigned to the command's site, or the meter is not the machine's |
 | `END_BEFORE_START` | The end's time is not after the start's |
-| `OVERLAP` | The same operator has another segment sharing time with this one, `[start, end)`, a segment without an end still running; checked at the start and again at the end (TC-P2-FO-011; US-P2-FO-05 AC2 is enforced on the tablet, flagged on the server) |
+| `OVERLAP` | The same operator has another segment sharing time with this one, `[start, end)`; a stored segment without an end runs until its shift's end (12 h without a shift: a missing end is RULE-FO-08's business, P2.7); checked at the start and again at the end (TC-P2-FO-011; US-P2-FO-05 AC2 is enforced on the tablet, flagged on the server) |
 
-Flags are stored on the version that raised them. P2.7 moves them into the `Integrity` module with explanations and
+Each version carries the entry's flags as of that version: the previous version's and the ones it raised (so the
+current version shows everything the entry needs looked at; the receipt of a command lists only what it raised). P2.7 moves them into the `Integrity` module with explanations and
 severities, re-evaluates continuity in shift-time order and closes flags that no longer hold.
 
 ### 7. Reading entries
@@ -163,6 +167,25 @@ The portal reads entries by site, shift, machine and operator, and an entry with
 - **Stoppage reasons stay a fixed list** (`breakdown`, `weather`, `no_material`, `no_operator`, `other`) until the
   owner confirms the real codes (sub-phases §7 open questions); the tenant-editable catalogue the plan lists is built
   then, as data, without changing the command shape (a reason is a code).
+
+- **Slice 5, positions, the "done when" run and fixes it found:** the start's and the end's positions from the
+  envelope's `geo` (migration `EntryPositions`: `start_/end_latitude numeric(8,6)`, `_longitude numeric(9,6)`,
+  `_accuracy_m`, all or none), returned as `startLocation`/`endLocation`. `ShiftEntriesSyncTests` (host, the whole
+  pipeline): 18 generated shifts (`tests/vectors/generated-shifts.json`, seed 12, every anomaly kind) signed by an
+  enrolled tablet, uploaded as one batch and read back from the API with the right shift code and date, unit, Δ and
+  exactly the generator's planted flags. The run found three faults, fixed here: continuity compared a start with an
+  older end when the meter's last segment never ended; a segment without an end overlapped every later segment of its
+  operator; the current version did not show the start's flags. Tests for each in `ShiftEntryHandlersTests`.
+
+## 9. Security review (P2.4 close-out, 2026-11-09)
+
+| Threat | What P2.4 does | Evidence |
+|---|---|---|
+| T-01 operator identity | The operator is the envelope's `signer.userId` (the person unlocked by PIN on the tablet), never a record field; the envelope is signed by the enrolled tablet's key and verified, a revoked tablet is refused, and a record whose envelope names another record, version or hash is refused | `ShiftEntryHandlersTests` (envelope binding, other tablet, bad signature, handover signed by the incoming operator), `ShiftEntriesSyncTests` |
+| T-01 residual | The server does not yet check that `signer.userId` is an active field user of the tablet's site: a tampered app on an enrolled tablet could sign as anyone. Recorded as **R-13**; the check comes with P2.7's rules (a flag, as every business check) through an Identity contract | threat model R-13 |
+| T-06 tampering | Entries are append-only (trigger and revoked privileges), every version keeps its envelope, command and device | `ShiftEntryHandlersTests` (append-only, owner refused) |
+| T-09/T-11 isolation | RLS on `fieldops.shift_entries`; the read API under the tenant and the caller's sites; seeded entry attacked by the isolation suite (`entryId`) | `EntriesApiTests`, `TenantIsolationSuite` |
+| T-10 disclosure | No field is masked: an entry holds no price, cost, margin or wage. Costs per machine hour arrive with Finance (Phase 7) and are masked there | review |
 
 ## Options considered
 

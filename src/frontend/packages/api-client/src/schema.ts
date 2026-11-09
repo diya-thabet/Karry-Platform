@@ -2465,6 +2465,7 @@ export interface components {
             /** Format: int32 */
             fuelStartPercent: number | string;
             startPhoto: string;
+            startLocation: null | components["schemas"]["LocationResponse"];
             /** Format: date-time */
             endedAt: null | string;
             /** Format: double */
@@ -2474,6 +2475,7 @@ export interface components {
             /** Format: int32 */
             fuelEndPercent: null | number | string;
             endPhoto: null | string;
+            endLocation: null | components["schemas"]["LocationResponse"];
             stoppages: components["schemas"]["StoppageResponse"][];
             remarks: null | string;
             estimated: boolean;

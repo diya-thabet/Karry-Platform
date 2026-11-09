@@ -12,10 +12,11 @@ internal sealed class ShiftEntryStore(FieldOpsDbContext db) : IShiftEntryStore
     public Task<ShiftEntryVersion?> LatestAsync(Guid rootId, CancellationToken cancellationToken) =>
         db.ShiftEntries.AsNoTracking().Where(e => e.RootId == rootId).OrderByDescending(e => e.Version).FirstOrDefaultAsync(cancellationToken);
 
-    public Task<ShiftEntryVersion?> LastEndOfMeterAsync(Guid meterId, Guid exceptRootId, DateTimeOffset before, CancellationToken cancellationToken) =>
+    public Task<ShiftEntryVersion?> LastSegmentOfMeterAsync(Guid meterId, Guid exceptRootId, DateTimeOffset before, CancellationToken cancellationToken) =>
         db.ShiftEntries.AsNoTracking()
-            .Where(e => e.MeterId == meterId && e.RootId != exceptRootId && e.Status == ShiftEntryStatus.Closed && e.EndedAt <= before)
-            .OrderByDescending(e => e.EndedAt).ThenByDescending(e => e.Version)
+            .Where(e => e.MeterId == meterId && e.RootId != exceptRootId && e.StartedAt < before)
+            .Where(e => !db.ShiftEntries.Any(later => later.RootId == e.RootId && later.Version > e.Version))
+            .OrderByDescending(e => e.StartedAt).ThenByDescending(e => e.RootId)
             .FirstOrDefaultAsync(cancellationToken);
 
     public async Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfOperatorAsync(
