@@ -100,7 +100,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | H-W1 | OWASP ZAP baseline scan of the portal, field app and API | No high finding; medium findings fixed or accepted with a reason | `tests/security/zap.sh` + `zap_summary.py`, nightly `zap` job; first run: no high, one medium accepted after measuring (W-2) | ✅ |
 | H-W2 | Security headers on every answer (CSP, `X-Content-Type-Options`, `Referrer-Policy`, frame-ancestors, HSTS, no `Server`) and a page policy for both apps | Present; no page breaks under the policy | `SecurityHeadersTests`, `securityHeaders.test.ts`, E2E guard on every browser test, `security-headers.spec.ts` | ✅ |
 | H-W3 | The site map in the production build | Draws under the page policy | `map.spec.ts`. **Found broken** (MapLibre's worker file was never shipped, [W-3](../../05-quality/security-testing.md#3-findings)), fixed | ✅ |
-| H-W3 | Every threat of the [threat model](../../02-architecture/threat-model.md) that Phase 1 claims is linked to a passing test | Traceability check | `tools/ci` check | ⬜ |
+| H-W3 | Every threat of the [threat model](../../02-architecture/threat-model.md) that Phase 1 claims is linked to a passing test | Traceability check | `tools/ci/threat_traceability.py` in the `tooling` job (with its tests): a claimed threat without a cited `TC-P1-…` case or `` `…Tests` `` class, or citing one no test names, fails the build; first run found 5 claims without evidence, now cited | ✅ |
 
 ## 3. Slices (one PR each)
 
@@ -114,7 +114,7 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2, H-W3); findings: no headers (W-1), the production map's missing worker (W-3), the anchoring race (H-C5, fixed in its own PR) | ✅ #129 |
 | 5 | Resilience scenarios (H-R1–R5), ledger after load (H-L3); findings R-1 (readiness hung 60 s), R-2 (storage outage was a slow 500), R-3 (saved photo change reported as failed), all fixed; outages answer 503 `server.unavailable` (D54) | 🟡 |
-| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3); 6a: record versions (`ETag`/`If-Match`) on sites, finding C-1; 6b-1: materials (density race), finding C-2 (form drafts lost on refetch); 6b-1b: assets (photo race); 6b-2a: company settings, finding C-3 (logo outside the transaction); 6b-2b: subscription, finding C-4 (uncaught row-version conflict); 6b-3: roles and a person's roles; 6c: enrolment race (H-C2), sync batch races (H-C3), finding C-5 (deadlock answered 503) | 🟡 |
+| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3); 6a: record versions (`ETag`/`If-Match`) on sites, finding C-1; 6b-1: materials (density race), finding C-2 (form drafts lost on refetch); 6b-1b: assets (photo race); 6b-2a: company settings, finding C-3 (logo outside the transaction); 6b-2b: subscription, finding C-4 (uncaught row-version conflict); 6b-3: roles and a person's roles; 6c: enrolment race (H-C2), sync batch races (H-C3), finding C-5 (deadlock answered 503); threat traceability check (H-W3) | 🟡 |
 | 7 | Demo rehearsal, exit review draft | ⬜ |
 
 ## 4. Evidence
