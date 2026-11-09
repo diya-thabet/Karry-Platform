@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Flags.Domain;
 using Karry.SharedKernel.Flags;
 using Karry.SharedKernel.Results;
@@ -22,7 +23,8 @@ public interface IFlagStore
 
     void Add(TenantFlag flag);
 
-    Task SaveAsync(CancellationToken cancellationToken);
+    /// <summary>False when another operator stored the same flag first (its first value is a new row): nothing is saved.</summary>
+    Task<bool> TrySaveAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>The evaluation cache: a change on this instance forgets at once (others within 60 s).</summary>
@@ -72,7 +74,11 @@ public sealed class FlagOperations(IFlagStore store, IFlagCache cache, TimeProvi
         if (flag.Change(clock, request.Enabled, actor) is { } change)
         {
             store.Add(change);
-            await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+            if (!await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
+            {
+                return RecordVersions.Conflict; // the same flag set by two operators at once (hardening plan H-C1)
+            }
+
             cache.Forget(null);
         }
 
@@ -106,7 +112,11 @@ public sealed class FlagOperations(IFlagStore store, IFlagCache cache, TimeProvi
             return flag;
         }
 
-        await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+        if (!await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return RecordVersions.Conflict; // the same override set by two operators at once (hardening plan H-C1)
+        }
+
         cache.Forget(tenant);
         return flag;
     }

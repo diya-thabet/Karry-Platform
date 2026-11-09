@@ -25,7 +25,7 @@ internal sealed class SiteStore(OrganizationDbContext db) : ISiteStore
 
         try
         {
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await db.SaveChangesSerializedAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
@@ -45,7 +45,7 @@ internal sealed class SiteStore(OrganizationDbContext db) : ISiteStore
         // One SaveChanges is one transaction: the sites, their outbox rows and ledger entries.
         try
         {
-            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            await db.SaveChangesSerializedAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
         catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })

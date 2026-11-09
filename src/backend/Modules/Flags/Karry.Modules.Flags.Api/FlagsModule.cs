@@ -67,6 +67,7 @@ public sealed class FlagsModule : IModule
         operators.MapPut("/{key}", SetPlatformAsync)
             .RequireIdempotencyKey()
             .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("SetPlatformFlag");
 
         operators.MapGet("/tenants/{tenantId:guid}", TenantOverridesAsync)
@@ -78,6 +79,7 @@ public sealed class FlagsModule : IModule
             .RequireIdempotencyKey()
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("SetTenantFlag");
     }
 

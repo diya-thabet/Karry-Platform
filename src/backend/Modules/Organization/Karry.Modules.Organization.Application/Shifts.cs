@@ -1,5 +1,6 @@
 using System.Diagnostics.Metrics;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Organization.Domain;
 using Karry.Modules.Tenancy.Contracts;
@@ -41,7 +42,11 @@ public interface IShiftStore
 
     void Remove(ShiftInstance instance);
 
-    Task SaveAsync(CancellationToken cancellationToken);
+    /// <summary>
+    /// Saves the unit of work; false when a concurrent change of the same site's shifts was saved first (the same date
+    /// added twice, or the same instances replaced twice): nothing is saved and the caller answers 409.
+    /// </summary>
+    Task<bool> TrySaveAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>What one reconciliation of stored instances changed.</summary>
@@ -169,8 +174,7 @@ public sealed class ShiftOperations(IShiftStore store, SiteOperations sites, Shi
             return pattern;
         }
 
-        await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        return pattern;
+        return await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false) ? pattern : RecordVersions.Conflict;
     }
 
     /// <summary>Removes a version not yet in effect.</summary>
@@ -196,8 +200,7 @@ public sealed class ShiftOperations(IShiftStore store, SiteOperations sites, Shi
 
         pattern.Remove(clock, caller.Subject);
         store.Remove(pattern);
-        await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        return true;
+        return await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false) ? true : RecordVersions.Conflict;
     }
 
     /// <summary>The non-working days of a range (by default the year from the site's today).</summary>
@@ -249,8 +252,7 @@ public sealed class ShiftOperations(IShiftStore store, SiteOperations sites, Shi
             return day;
         }
 
-        await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        return day;
+        return await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false) ? day : RecordVersions.Conflict;
     }
 
     public async Task<Result<bool>> RemoveNonWorkingDayAsync(SiteId siteId, DateOnly date, CancellationToken cancellationToken)
@@ -275,8 +277,7 @@ public sealed class ShiftOperations(IShiftStore store, SiteOperations sites, Shi
 
         day.Remove(clock, caller.Subject);
         store.Remove(day);
-        await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false);
-        return true;
+        return await ReconcileAndSaveAsync(site.Value, cancellationToken).ConfigureAwait(false) ? true : RecordVersions.Conflict;
     }
 
     /// <summary>
@@ -316,10 +317,14 @@ public sealed class ShiftOperations(IShiftStore store, SiteOperations sites, Shi
         return site.Value.Status == SiteStatus.Active ? site : SiteArchived;
     }
 
-    private async Task ReconcileAndSaveAsync(Site site, CancellationToken cancellationToken)
+    /// <summary>
+    /// Two people setting the same date (or the generator and a person replacing the same instances) at once: one is
+    /// saved, the other is a 409 to try again (hardening plan H-C1, finding C-6; before, a 500).
+    /// </summary>
+    private async Task<bool> ReconcileAndSaveAsync(Site site, CancellationToken cancellationToken)
     {
         await instances.ReconcileAsync(site, cancellationToken).ConfigureAwait(false);
-        await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+        return await store.TrySaveAsync(cancellationToken).ConfigureAwait(false);
     }
 }
 
@@ -359,7 +364,15 @@ public sealed partial class GenerateShiftInstances(IServiceScopeFactory scopes, 
                     tenantChanges += await instances.ReconcileAsync(site, cancellationToken).ConfigureAwait(false);
                 }
 
-                await scope.ServiceProvider.GetRequiredService<IShiftStore>().SaveAsync(cancellationToken).ConfigureAwait(false);
+                if (!await scope.ServiceProvider.GetRequiredService<IShiftStore>().TrySaveAsync(cancellationToken).ConfigureAwait(false))
+                {
+                    // A person changed this company's shifts meanwhile: their change reconciled its site; the rest is
+                    // filled by the next run (idempotent).
+                    failed++;
+                    LogTenantConflict(logger, tenant.ToString());
+                    continue;
+                }
+
                 siteCount += sites.Count;
                 changes += tenantChanges;
             }
@@ -377,6 +390,9 @@ public sealed partial class GenerateShiftInstances(IServiceScopeFactory scopes, 
 
     [LoggerMessage(EventId = 7001, Level = LogLevel.Error, Message = "Shift instances of tenant {Tenant} could not be generated")]
     private static partial void LogTenantFailed(ILogger logger, Exception exception, string tenant);
+
+    [LoggerMessage(EventId = 7003, Level = LogLevel.Warning, Message = "Shift instances of tenant {Tenant} changed meanwhile; the next run fills them")]
+    private static partial void LogTenantConflict(ILogger logger, string tenant);
 
     [LoggerMessage(EventId = 7002, Level = LogLevel.Information,
         Message = "Shift instances: {Tenants} tenants, {Sites} sites, {Added} added, {Changed} changed, {Removed} removed, {Failed} failed")]

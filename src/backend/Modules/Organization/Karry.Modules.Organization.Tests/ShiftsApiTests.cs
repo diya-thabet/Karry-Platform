@@ -229,6 +229,33 @@ public sealed class ShiftsApiTests(OrganizationHost host) : IClassFixture<Organi
         (again.Added + again.Changed + again.Removed).Should().Be(0, "a second run has nothing to do");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Many_people_setting_the_same_pattern_or_day_at_once_never_get_a_server_error()
+    {
+        // Hardening plan H-C1: a pattern or non-working day is set by its date (a PUT of the whole thing). Saved at the
+        // same moment by several people, each answer is the saved state or a 409 (try again), never a 500, and one
+        // row is stored per date with the shifts that follow from it.
+        var (_, token, site) = await SiteAsync();
+        var from = Iso(Today().AddDays(5));
+        var day = Iso(Today().AddDays(9));
+        object[] patterns = [TwoTwelves, ThreeEights, TwoTwelves, ThreeEights, TwoTwelves, ThreeEights];
+
+        var sets = await Task.WhenAll(patterns.Select(p => SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{site}/shift-patterns/{from}", token, p)));
+        var days = await Task.WhenAll(Enumerable.Range(0, 6).Select(i =>
+            SendAsync(HttpMethod.Put, $"/api/v1/organization/sites/{site}/non-working-days/{day}", token, new { kind = "public-holiday", name = $"Fête {i}" })));
+
+        foreach (var answer in sets.Concat(days))
+        {
+            answer.StatusCode.Should().BeOneOf([HttpStatusCode.OK, HttpStatusCode.Conflict], await answer.Content.ReadAsStringAsync(Ct));
+        }
+
+        sets.Should().Contain(a => a.StatusCode == HttpStatusCode.OK);
+        days.Should().Contain(a => a.StatusCode == HttpStatusCode.OK);
+        (await ScalarAsync<long>($"SELECT count(*) FROM organization.shift_patterns WHERE site_id = '{site}'")).Should().Be(1);
+        (await ScalarAsync<long>($"SELECT count(*) FROM organization.non_working_days WHERE site_id = '{site}'")).Should().Be(1);
+    }
+
     private async Task<(Guid Tenant, string Token, Guid Site)> SiteAsync(string zone = Zone)
     {
         var slug = $"s-{Guid.NewGuid():N}"[..20];

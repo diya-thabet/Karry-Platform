@@ -16,6 +16,9 @@ last_updated: 2026-10-26
 - **Diagnosis:**
   1. Is `karry-workers` running? It generates the instances daily at 00:15 UTC and once at start-up.
   2. Worker logs, event **7001** (`Shift instances of tenant {Tenant} could not be generated`): one tenant failing keeps the others going but makes the run incomplete. Usual causes: database unreachable, a stored pattern that no longer validates (the exception names the error code).
+     Event **7003** (`Shift instances of tenant {Tenant} changed meanwhile; the next run fills them`, warning): a person
+     changed that company's shifts while the run was saving it; the run counts the company as failed and the next run
+     fills it. Only repeated 7003 for the same company is worth a look.
   3. Run it by hand: `Karry.Workers generate-shifts` prints tenants, sites and the instances added, changed and removed (exit 1 if a tenant failed).
 - **Mitigation:** fix the cause and run `Karry.Workers generate-shifts`; the generator is idempotent, so it is safe to repeat. It never changes an instance that has started.
 - **Resolution:** a complete run moves the last-success time forward and the alert clears.
