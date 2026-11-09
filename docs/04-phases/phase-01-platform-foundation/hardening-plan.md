@@ -4,7 +4,7 @@ area: phases
 tags: [phase-1, p1-18, hardening, qa, load-test, k6, security, zap, resilience, rate-limiting, keycloak, threat-model, scenarios]
 source: "Owner decision 2026-11-03: start P1.18 without a cloud provider"
 status: live
-last_updated: 2026-11-03
+last_updated: 2026-11-09
 ---
 
 # P1.18a hardening plan
@@ -111,11 +111,11 @@ Status: ✅ covered (test name or file) · 🟡 partly · ⬜ to do. "Existing" 
 | 1b | Request limits and the contract-wide abuse tests (H-A4–A6) | ✅ #125 |
 | 1c | Clients: portal messages for 429 and 413, no immediate retry after 429; tablets wait 60–90 s after a 429 and spread their five-minute refreshes | ✅ #126 |
 | 2 | k6 load suite with signed tablets and real sign-in (H-L1, L2, L4), nightly job; finding L-1 fixed (one connection pool per process) | ✅ #127 |
-| 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | 🟡 |
+| 3 | Realm policy test and Keycloak review (H-I4, H-I5, H-I6), authentication audit (H-I1, H-I3); findings: the reset flow (H-I6) and the 5-minute token tolerance (H-I1), both fixed | ✅ #128 |
 | 4 | Security headers and ZAP baseline (H-W1, H-W2, H-W3); findings: no headers (W-1), the production map's missing worker (W-3), the anchoring race (H-C5, fixed in its own PR) | ✅ #129 |
-| 5 | Resilience scenarios (H-R1–R5), ledger after load (H-L3); findings R-1 (readiness hung 60 s), R-2 (storage outage was a slow 500), R-3 (saved photo change reported as failed), all fixed; outages answer 503 `server.unavailable` (D54) | 🟡 |
-| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3); 6a: record versions (`ETag`/`If-Match`) on sites, finding C-1; 6b-1: materials (density race), finding C-2 (form drafts lost on refetch); 6b-1b: assets (photo race); 6b-2a: company settings, finding C-3 (logo outside the transaction); 6b-2b: subscription, finding C-4 (uncaught row-version conflict); 6b-3: roles and a person's roles; 6c: enrolment race (H-C2), sync batch races (H-C3), finding C-5 (deadlock answered 503); threat traceability check (H-W3); 6d: shift and flag races, finding C-6 | 🟡 |
-| 7 | Demo rehearsal, exit review draft | ⬜ |
+| 5 | Resilience scenarios (H-R1–R5), ledger after load (H-L3); findings R-1 (readiness hung 60 s), R-2 (storage outage was a slow 500), R-3 (saved photo change reported as failed), all fixed; outages answer 503 `server.unavailable` (D54) | ✅ #131 |
+| 6 | Concurrency scenarios (H-C1–C3), threat traceability (H-W3); 6a: record versions (`ETag`/`If-Match`) on sites, finding C-1; 6b-1: materials (density race), finding C-2 (form drafts lost on refetch); 6b-1b: assets (photo race); 6b-2a: company settings, finding C-3 (logo outside the transaction); 6b-2b: subscription, finding C-4 (uncaught row-version conflict); 6b-3: roles and a person's roles; 6c: enrolment race (H-C2), sync batch races (H-C3), finding C-5 (deadlock answered 503); threat traceability check (H-W3); 6d: shift and flag races, finding C-6 | ✅ #138–#144 |
+| 7 | Demo rehearsal, exit review draft: [exit review (draft)](exit-review.md), with the demo script checked step by step against its tests and the gaps to close before the recorded demo | ✅ |
 
 ## 4. Evidence
 

@@ -39,7 +39,7 @@ or minimum count. A snapshot must also contain the tablet's own site before the 
 tools/ci/install-tool.sh k6                    # pinned k6 2.3.0, checksum verified
 # local stack up, migrated and seeded; Karry.Host (Release) started with the load-run limits:
 RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 dotnet Karry.Host.dll --urls http://127.0.0.1:5000
-tests/load/run.sh                              # all three runs, one at a time; summaries in tests/load/results/<time>/
+tests/load/run.sh                              # all three runs, one at a time, 65 s apart; summaries in tests/load/results/<time>/
 tests/load/verify-ledgers.sh                   # H-L3: every company's audit ledger still verifies
 ```
 
@@ -58,6 +58,11 @@ tests/load/verify-ledgers.sh                   # H-L3: every company's audit led
   response times. A shared GitHub runner (2 vCPU, k6 and the whole stack on it) is 7× slower than the owner's
   laptop, and its times vary with its neighbours, so they say nothing about Karry. The latency targets gate on known
   hardware: the owner's machine (`tests/load/run.sh` without the variable), then staging in P1.18b.
+- **Runs are 65 s apart** (`PAUSE_SECONDS`): the company rate limit is a one-minute sliding window, and `devices.js`
+  loads demo company A at about 7,500 requests a minute. Run back to back, the mixed run's 5,000 extra requests for
+  that company crossed the 12,000 limit on a fast runner (2.4 % answered 429), and the spike's setup was refused
+  ("too few identifiers to look for"): nightly 2026-11-08 and -09 failed this way with no code change. The limit was
+  right; the suite now lets each window empty.
 - **The owner's machine (14 GB).** k6 needs about 1.4 GB for 500 tablets. Run one script at a time, with nothing
   else heavy open.
 
