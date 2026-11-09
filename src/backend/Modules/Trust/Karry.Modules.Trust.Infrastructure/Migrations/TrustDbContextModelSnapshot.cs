@@ -446,6 +446,10 @@ namespace Karry.Modules.Trust.Infrastructure.Migrations
                         .HasColumnType("character varying(71)")
                         .HasColumnName("envelope_hash");
 
+                    b.Property<Guid?>("LedgerEventId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("ledger_event_id");
+
                     b.Property<DateTimeOffset>("ReceivedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("received_at");

@@ -31,6 +31,8 @@ public static class TrustInfrastructure
         services.AddScoped<Contracts.IEnvelopeRecorder, PostgresEnvelopeRecorder>();
         services.AddScoped<ICountersignBook, EfCountersignBook>();
         services.AddScoped<IServerKeyBook, EfServerKeyBook>();
+        services.AddScoped<IEnvelopeEvidence, EfEnvelopeEvidence>();
+        services.AddScoped<VerifyEnvelope>();
         services.AddScoped<BuildingBlocks.Tenancy.ITenantSummarySource, LedgerActivity>();
         services.AddScoped<IntegrityChecks>();
         services.AddSingleton<ILedgerSubjectBackfill, LedgerSubjectBackfill>();

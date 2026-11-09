@@ -62,7 +62,12 @@ public sealed class IsolationHost : IAsyncLifetime
         ADevice = await SeedDeviceAsync(A.Id, ASite);
         // Support access (P1.16): a running break-glass session of a Karry operator on A, to list or end.
         ASupportSession = await SeedSupportSessionAsync(A.Id);
+        // Signatures (P2.3): a stored signature envelope of A, whose verification B must not read.
+        AEnvelope = await SeedEnvelopeAsync(A.Id, ADevice);
     }
+
+    /// <summary>ID of a signature envelope of tenant A (its record type, <c>alpha.envelope</c>, is a marker too).</summary>
+    public Guid AEnvelope { get; private set; }
 
     /// <summary>ID of a support session on tenant A (its operator name, <c>Alphasupport</c>, is a marker too).</summary>
     public Guid ASupportSession { get; private set; }
@@ -210,6 +215,23 @@ public sealed class IsolationHost : IAsyncLifetime
             """, connection);
         insert.Parameters.AddWithValue(id);
         insert.Parameters.AddWithValue(tenant);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedEnvelopeAsync(Guid tenant, Guid device)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO audit.signature_envelopes (envelope_id, tenant_id, record_type, record_id, record_version, envelope_hash, canonical, device_id, device_signature, command_id, received_at)
+            VALUES ($1, $2, 'alpha.envelope', gen_random_uuid(), 1, 'sha256:' || repeat('a', 64), '{"alpha":"envelope"}', $3, repeat('A', 86), gen_random_uuid(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(device);
         await insert.ExecuteNonQueryAsync();
         return id;
     }
@@ -522,6 +544,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "assetId" => host.AAsset.ToString(),
         "meterId" => host.AMeter.ToString(),
         "importId" => host.AImport.ToString(),
+        "envelopeId" => host.AEnvelope.ToString(),
         "label" => "KRY1:" + IsolationHost.ALabelToken,
         // A template lists the caller's own values (e.g. site codes): B gets its own, never A's (see CatalogueParameters).
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
