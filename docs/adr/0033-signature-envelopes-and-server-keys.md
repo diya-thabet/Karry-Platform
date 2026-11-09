@@ -132,8 +132,18 @@ signed part, as in ADR-0007.
   version's public key; after `rotate`, the new version signs and old signatures still verify with the old key
   (TC-P2-SIG-004 at adapter level); a refused connection, a timeout, `429` or `5xx` (sealed) is "unavailable" (retry
   later), a `4xx` such as a wrong token is a configuration error.
-- **Still to build in P2.3:** OpenBao in compose with file storage and an init script (keys survive restarts),
-  `trust.server_keys`, envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
+- **Slice 2, OpenBao in the local stack:** service `openbao` in `deploy/docker/compose.yaml` (127.0.0.1:8200), the
+  pinned 2.7.2 image with **raft** storage on the `baodata` volume (OpenBao 2.x removed the `file` storage that §3's
+  card named; one raft node is its single-server form). `deploy/docker/openbao/start.sh` initialises it once (one
+  unseal key; key and root token in the separate `baokeys` volume, never in the repository or the data volume),
+  unseals it on every start, creates the `ecdsa-p256` key `karry-server` (not exportable), writes the policy
+  `karry-signer` (`update` on `transit/sign/karry-server`, `read` on `transit/keys/karry-server`, nothing else) and
+  creates or renews the API's periodic token (`KARRY_OPENBAO_SIGNER_TOKEN`, a known local value). The healthcheck
+  passes only once unsealed and ready. Checked: the key is the same after a restart; the API's token signs and reads
+  the public key, and gets `403` on rotate, export, a new key and `sys/`. The smoke test checks signing and two
+  refusals. `Trust:ServerSigning` is set in both hosts' development settings. Rotation:
+  [runbook](../06-operations/runbooks/karry-server-key-rotation.md).
+- **Still to build in P2.3:** `trust.server_keys`, envelopes (`packages/crypto` builder, `trust.signature_envelope`, verification endpoint),
   the countersign job with its metrics and alerts, the SignaturePad, and the portal's "Verified" badge.
 
 ## Options considered

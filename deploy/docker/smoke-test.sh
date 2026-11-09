@@ -54,6 +54,13 @@ login_page="$(curl -fsS 'http://127.0.0.1:8080/realms/karry/protocol/openid-conn
 if [[ "$login_page" == *karry-branding.js* && "$login_page" == *'lang="fr"'* ]]; then pass "keycloak login page uses the karry theme (fr)"; else fail "keycloak login page theme"; fi
 check "mailpit API answers" curl -fsS http://127.0.0.1:8025/api/v1/info
 check "valkey answers PING" bash -c "${compose[*]} exec -T valkey valkey-cli ping | grep -q PONG"
+# P2.3: the server signing key (ADR-0033 §3). The API's token signs with karry-server and nothing more.
+bao() { curl -fsS -H "X-Vault-Token: ${KARRY_OPENBAO_SIGNER_TOKEN:-karry-local-signer-only-for-dev}" "$@"; }
+digest="$(python3 -c 'import base64,hashlib; print(base64.b64encode(hashlib.sha256(b"karry").digest()).decode())')"
+signed="$(bao -X POST -d "{\"input\":\"$digest\",\"prehashed\":true,\"hash_algorithm\":\"sha2-256\",\"marshaling_algorithm\":\"jws\"}" http://127.0.0.1:8200/v1/transit/sign/karry-server || true)"
+if [[ "$signed" == *'"signature":"vault:v'* ]]; then pass "openbao signs with karry-server"; else fail "openbao signs with karry-server"; fi
+refused "openbao: the API's token cannot rotate the key" bao -X POST http://127.0.0.1:8200/v1/transit/keys/karry-server/rotate
+refused "openbao: the API's token cannot make the key exportable" bao -X POST -d '{"exportable":true}' http://127.0.0.1:8200/v1/transit/keys/karry-server/config
 
 # S3 Object Lock (compliance mode): locked versions cannot be deleted and retention cannot be shortened.
 aws() {
