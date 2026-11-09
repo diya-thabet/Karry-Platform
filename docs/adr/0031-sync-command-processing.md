@@ -172,7 +172,7 @@ command twice gives one record and the handler is called once), replay, the reje
 rollback when the handler throws. A handler for tests only (`test.echo.v1`, compiled only into test hosts) proves
 the pipeline before the first real handler exists.
 
-### 8. As built (P2.1 slice 1, 2026-11-09)
+### 8. As built (P2.1 slices 1 and 2, 2026-11-09)
 
 - The contracts live in **`Karry.BuildingBlocks.Sync`** (`SyncCommands.cs`), next to `ISyncSource`, rather than in
   `Sync.Contracts`: modules already reference the building blocks for the pull side, and a handler then needs no
@@ -187,7 +187,15 @@ the pipeline before the first real handler exists.
   one row per received command) and `sync.unhandled_commands` (§5: the signed command and the reason, outside the
   sequence; a re-send while the type is still unknown adds nothing).
 - The answer carries `retryable`, `flags` and `serverTime` (§6). The clock offset passed to handlers is 0 until slice 3
-  stores the measured one. Waiting commands (§4) and the status pull (§6) are slices 2 and 3.
+  stores the measured one. The status pull (§6) is slice 3.
+- **Slice 2 (waiting commands, §4):** a number further on is kept in `sync.waiting_commands` (append-only; a row
+  whose command reached the inbox has been handled) and answered `waiting`; the answer lists `missingSequences`
+  (at most 100). When a command fills the gap, the waiting ones are handled in order **in the same request**, each in
+  its savepoint; one that is not stored stops the run, and an earlier upload's waiting command then stays to be
+  retried by the next upload. A command of the batch answered `waiting` and handled later in the same request is
+  answered with its final status. Another command with a waiting command's number is `sync.sequence_reused`; beyond
+  500 waiting, `sync.too_far_ahead` (retryable). `sync.sequence_gap` is no longer sent. Log event 7205 (waiting
+  commands handled). The gauge `karry_sync_waiting_commands`, the 24 h alert and its runbook are slice 2b.
 - Log events: 7203 (type unknown, warning), 7204 (handler failed, error, with the exception).
 
 ## Options considered

@@ -7,23 +7,31 @@ public sealed class InboxRulesTests
 {
     private static readonly IReadOnlySet<CommandId> NothingStored = new HashSet<CommandId>();
 
-    /// <summary>Every command that reaches its handler is accepted.</summary>
-    private static Task<(IReadOnlyList<UploadDecision> Decisions, long LastSequence)> DecideAsync(long last, IReadOnlySet<CommandId> stored, UploadCandidate[] commands) =>
-        InboxRules.DecideAsync(last, stored, commands, (c, _) => Task.FromResult(UploadDecision.Accepted(c.Id)));
+    private static readonly UploadCandidate[] NothingWaiting = [];
+
+    /// <summary>Every command that reaches its handler is accepted; <paramref name="handled"/> collects them in order.</summary>
+    private static Task<UploadPlan> DecideAsync(long last, IReadOnlySet<CommandId> stored, UploadCandidate[] commands, UploadCandidate[]? waiting = null, List<UploadCandidate>? handled = null) =>
+        InboxRules.DecideAsync(last, stored, waiting ?? NothingWaiting, commands, c =>
+        {
+            handled?.Add(c);
+            return Task.FromResult(UploadDecision.Accepted(c.Id));
+        });
 
     [Fact]
     public async Task Only_a_command_its_handler_stored_advances_the_sequence()
     {
         var (flagged, refused, after) = (Id(), Id(), Id());
 
-        var (decisions, last) = await InboxRules.DecideAsync(0, NothingStored, [new(flagged, 1, true), new(refused, 2, true), new(after, 3, true)],
-            (c, _) => Task.FromResult(c.Id == flagged
+        var plan = await InboxRules.DecideAsync(0, NothingStored, NothingWaiting, [new(flagged, 1, true), new(refused, 2, true), new(after, 3, true)],
+            c => Task.FromResult(c.Id == flagged
                 ? new UploadDecision(c.Id, UploadOutcome.Conflict, null, Flags: ["test.flag"])
                 : UploadDecision.Rejected(c.Id, InboxRules.HandlerFailed, retryable: true)));
 
-        decisions.Select(d => (d.Outcome, d.Code)).Should().Equal(
-            (UploadOutcome.Conflict, null), (UploadOutcome.Rejected, InboxRules.HandlerFailed), (UploadOutcome.Rejected, InboxRules.SequenceGap));
-        last.Should().Be(1, "the refused command keeps its number free, so the one after it waits");
+        plan.Decisions.Select(d => (d.Outcome, d.Code)).Should().Equal(
+            (UploadOutcome.Conflict, null), (UploadOutcome.Rejected, InboxRules.HandlerFailed), (UploadOutcome.Waiting, null));
+        plan.LastSequence.Should().Be(1, "the refused command keeps its number free, so the one after it waits");
+        plan.Held.Select(h => h.Id).Should().Equal(after);
+        plan.MissingSequences.Should().Equal(2);
     }
 
     [Fact]
@@ -31,10 +39,11 @@ public sealed class InboxRulesTests
     {
         var (first, second) = (Id(), Id());
 
-        var (decisions, last) = await DecideAsync(4, NothingStored, [new(first, 5, true), new(second, 6, true)]);
+        var plan = await DecideAsync(4, NothingStored, [new(first, 5, true), new(second, 6, true)]);
 
-        decisions.Should().Equal(new UploadDecision(first, UploadOutcome.Accepted, null), new UploadDecision(second, UploadOutcome.Accepted, null));
-        last.Should().Be(6);
+        plan.Decisions.Should().Equal(new UploadDecision(first, UploadOutcome.Accepted, null), new UploadDecision(second, UploadOutcome.Accepted, null));
+        plan.LastSequence.Should().Be(6);
+        plan.MissingSequences.Should().BeEmpty();
     }
 
     [Fact]
@@ -42,32 +51,39 @@ public sealed class InboxRulesTests
     {
         var (stored, fresh) = (Id(), Id());
 
-        var (decisions, last) = await DecideAsync(1, new HashSet<CommandId> { stored }, [new(stored, 1, true), new(fresh, 2, true), new(fresh, 2, true)]);
+        var plan = await DecideAsync(1, new HashSet<CommandId> { stored }, [new(stored, 1, true), new(fresh, 2, true), new(fresh, 2, true)]);
 
-        decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Duplicate, UploadOutcome.Accepted, UploadOutcome.Duplicate);
-        last.Should().Be(2);
+        plan.Decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Duplicate, UploadOutcome.Accepted, UploadOutcome.Duplicate);
+        plan.LastSequence.Should().Be(2);
     }
 
     [Fact]
-    public async Task A_bad_signature_is_rejected_and_the_commands_after_it_are_gaps()
+    public async Task A_bad_signature_is_rejected_and_the_commands_after_it_wait()
     {
         var (forged, next) = (Id(), Id());
 
-        var (decisions, last) = await DecideAsync(0, NothingStored, [new(forged, 1, false), new(next, 2, true)]);
+        var plan = await DecideAsync(0, NothingStored, [new(forged, 1, false), new(next, 2, true)]);
 
-        decisions.Should().Equal(
+        plan.Decisions.Should().Equal(
             UploadDecision.Rejected(forged, InboxRules.SignatureInvalid, retryable: false),
-            UploadDecision.Rejected(next, InboxRules.SequenceGap, retryable: true));
-        last.Should().Be(0);
+            new UploadDecision(next, UploadOutcome.Waiting, null));
+        plan.LastSequence.Should().Be(0);
+        plan.MissingSequences.Should().Equal(1);
     }
 
     [Fact]
-    public async Task A_new_command_must_take_the_next_number_not_a_used_one_nor_one_further()
+    public async Task A_new_command_must_not_take_a_used_number_and_one_further_on_waits_for_the_gap()
     {
-        var (decisions, last) = await DecideAsync(3, NothingStored, [new(Id(), 3, true), new(Id(), 5, true), new(Id(), 4, true)]);
+        var (used, ahead, next) = (Id(), Id(), Id());
+        var handled = new List<UploadCandidate>();
 
-        decisions.Select(d => d.Code).Should().Equal(InboxRules.SequenceReused, InboxRules.SequenceGap, null);
-        last.Should().Be(4);
+        var plan = await DecideAsync(3, NothingStored, [new(used, 3, true), new(ahead, 5, true), new(next, 4, true)], handled: handled);
+
+        plan.Decisions.Select(d => (d.Outcome, d.Code)).Should().Equal(
+            (UploadOutcome.Rejected, InboxRules.SequenceReused), (UploadOutcome.Accepted, null), (UploadOutcome.Accepted, null));
+        handled.Select(c => c.Id).Should().Equal([next, ahead], "the waiting command is handled right after the gap closes");
+        plan.LastSequence.Should().Be(5);
+        plan.Held.Should().BeEmpty("nothing is left waiting");
     }
 
     [Fact]
@@ -75,9 +91,81 @@ public sealed class InboxRulesTests
     {
         var id = Id();
 
-        var (decisions, _) = await DecideAsync(0, NothingStored, [new(id, 1, false), new(id, 1, true)]);
+        var plan = await DecideAsync(0, NothingStored, [new(id, 1, false), new(id, 1, true)]);
 
-        decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Rejected, UploadOutcome.Accepted);
+        plan.Decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Rejected, UploadOutcome.Accepted);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-SYNC-003")]
+    public async Task Commands_waiting_from_an_earlier_upload_are_handled_in_order_when_the_gap_closes()
+    {
+        var (second, third, first) = (Id(), Id(), Id());
+        var handled = new List<UploadCandidate>();
+
+        var plan = await DecideAsync(0, NothingStored, [new(first, 1, true)], waiting: [new(third, 3, true), new(second, 2, true)], handled: handled);
+
+        handled.Select(c => c.Id).Should().Equal(first, second, third);
+        plan.Decisions.Should().Equal(UploadDecision.Accepted(first));
+        plan.Promoted.Should().Equal(UploadDecision.Accepted(second), UploadDecision.Accepted(third));
+        plan.LastSequence.Should().Be(3);
+        plan.Held.Should().BeEmpty("they were kept by the earlier upload");
+    }
+
+    [Fact]
+    public async Task The_missing_numbers_are_listed_and_a_waiting_command_sent_again_still_waits()
+    {
+        var (four, seven) = (Id(), Id());
+
+        var plan = await DecideAsync(1, NothingStored, [new(seven, 7, true), new(four, 4, true)], waiting: [new(four, 4, true)]);
+
+        plan.Decisions.Select(d => d.Outcome).Should().Equal(UploadOutcome.Waiting, UploadOutcome.Waiting);
+        plan.MissingSequences.Should().Equal(2, 3, 5, 6);
+        plan.Held.Select(h => h.Id).Should().Equal(seven);
+    }
+
+    [Fact]
+    public async Task A_waiting_command_sent_again_before_the_gap_closes_gets_its_final_answer()
+    {
+        var (second, first) = (Id(), Id());
+
+        var plan = await DecideAsync(0, NothingStored, [new(second, 2, true), new(first, 1, true)], waiting: [new(second, 2, true)]);
+
+        plan.Decisions.Should().Equal(UploadDecision.Accepted(second), UploadDecision.Accepted(first));
+        plan.Promoted.Should().Equal(UploadDecision.Accepted(second));
+    }
+
+    [Fact]
+    public async Task Another_command_with_the_number_of_a_waiting_one_is_a_reused_number()
+    {
+        var plan = await DecideAsync(0, NothingStored, [new(Id(), 3, true)], waiting: [new(Id(), 3, true)]);
+
+        plan.Decisions.Single().Code.Should().Be(InboxRules.SequenceReused);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-SYNC-003")]
+    public async Task A_device_cannot_keep_more_than_500_commands_waiting()
+    {
+        UploadCandidate[] waiting = [.. Enumerable.Range(0, InboxRules.MaxWaiting).Select(n => new UploadCandidate(Id(), 10 + (2 * n), true))]; // every other number missing
+
+        var plan = await DecideAsync(0, NothingStored, [new(Id(), 5_000, true)], waiting: waiting);
+
+        plan.Decisions.Single().Should().BeEquivalentTo(new { Outcome = UploadOutcome.Rejected, Code = InboxRules.TooFarAhead, Retryable = true });
+        plan.MissingSequences.Should().HaveCount(InboxRules.MaxMissingListed, "an answer lists at most 100 numbers");
+    }
+
+    [Fact]
+    public async Task A_waiting_command_of_the_batch_that_its_handler_refuses_is_not_kept()
+    {
+        var (ahead, next) = (Id(), Id());
+
+        var plan = await InboxRules.DecideAsync(0, NothingStored, NothingWaiting, [new(ahead, 2, true), new(next, 1, true)],
+            c => Task.FromResult(c.Id == ahead ? UploadDecision.Rejected(c.Id, InboxRules.HandlerFailed, retryable: true) : UploadDecision.Accepted(c.Id)));
+
+        plan.Decisions.Select(d => d.Code).Should().Equal(InboxRules.HandlerFailed, null);
+        plan.Held.Should().BeEmpty("the tablet keeps it and sends it again");
+        plan.LastSequence.Should().Be(1);
     }
 
     [Theory]

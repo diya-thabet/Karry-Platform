@@ -27,8 +27,9 @@ public sealed record UploadBatch(IReadOnlyList<UploadedCommand>? Commands);
 
 /// <summary>
 /// What happened to one command: <c>accepted</c>, <c>conflict</c> (stored and flagged, <see cref="Flags"/>),
-/// <c>duplicate</c> or <c>rejected</c> (with <see cref="Code"/>; <see cref="Retryable"/> when sending it again later
-/// can succeed). Every status but <c>rejected</c> is final: the tablet marks the command sent.
+/// <c>duplicate</c>, <c>waiting</c> (kept until an earlier number comes) or <c>rejected</c> (with <see cref="Code"/>;
+/// <see cref="Retryable"/> when sending it again later can succeed). Every status but <c>rejected</c> means the server
+/// has the command: the tablet marks it sent.
 /// </summary>
 public sealed record CommandReceipt(Guid CommandId, string Status, string? Code, bool Retryable, IReadOnlyList<string> Flags);
 
@@ -36,7 +37,8 @@ public sealed record CommandReceipt(Guid CommandId, string Status, string? Code,
 /// The answer to a batch, in its order; <see cref="LastSequence"/> is the device's last stored sequence number and
 /// <see cref="ServerTime"/> the server's clock when it answered (the tablet measures its offset from it, ADR-0031 §6).
 /// </summary>
-public sealed record BatchReceipt(IReadOnlyList<CommandReceipt> Results, long LastSequence, DateTimeOffset ServerTime);
+/// <see cref="MissingSequences"/> lists the numbers to send again so that waiting commands can be handled (ADR-0031 §4).
+public sealed record BatchReceipt(IReadOnlyList<CommandReceipt> Results, long LastSequence, IReadOnlyList<long> MissingSequences, DateTimeOffset ServerTime);
 
 /// <summary>
 /// One upload of a tablet, in one database transaction (ADR-0031 §2). Opening it takes the tablet's lock, so crossing
@@ -53,6 +55,9 @@ public interface IInboxSession : IAsyncDisposable
     /// <summary>The highest sequence number among the device's received commands; 0 before its first.</summary>
     long LastSequence { get; }
 
+    /// <summary>The device's commands waiting for an earlier number (at most <see cref="InboxRules.MaxWaiting"/>).</summary>
+    IReadOnlyList<WaitingCommand> Waiting { get; }
+
     /// <summary>The transaction command handlers join.</summary>
     ISyncTransaction Transaction { get; }
 
@@ -68,6 +73,8 @@ public interface IInboxSession : IAsyncDisposable
     void Add(ProcessedCommand processed);
 
     void Add(UnhandledCommand unhandled);
+
+    void Add(WaitingCommand waiting);
 
     /// <summary>
     /// Writes what was added and commits, with the handlers' work; false (nothing kept) if a row was stored by an upload
@@ -171,12 +178,29 @@ public sealed partial class SyncUploads(
         var key = await devices.FindAsync(caller.DeviceId, cancellationToken).ConfigureAwait(false)
             ?? throw new InvalidOperationException("An authenticated device has a key.");
         var keptUnhandled = new HashSet<CommandId>(session.Unhandled);
-        var (decisions, lastSequence) = await InboxRules.DecideAsync(
-            session.LastSequence, session.Stored, commands.Select(c => new UploadCandidate(c.Id, c.Sequence, Verify(key, c))),
-            (_, i) => HandleAsync(session, caller, tenantId, commands[i], uploaded[i], now, keptUnhandled, cancellationToken)).ConfigureAwait(false);
+        var earlier = session.Waiting.ToDictionary(w => w.Id);
+        var plan = await InboxRules.DecideAsync(
+            session.LastSequence, session.Stored, [.. earlier.Values.Select(w => new UploadCandidate(w.Id, w.Sequence, SignatureValid: true))],
+            commands.Select(c => new UploadCandidate(c.Id, c.Sequence, Verify(key, c))),
+            c => c.Index >= 0
+                ? HandleAsync(session, caller, tenantId, commands[c.Index], uploaded[c.Index].Payload, now, keptUnhandled, cancellationToken)
+                : HandleAsync(session, caller, tenantId, earlier[c.Id].Command, PayloadOf(earlier[c.Id].Body), now, keptUnhandled, cancellationToken))
+            .ConfigureAwait(false);
+        foreach (var held in plan.Held)
+        {
+            session.Add(new WaitingCommand(tenantId, caller.DeviceId, commands[held.Index], now));
+        }
+
         if (!await session.CommitAsync(cancellationToken).ConfigureAwait(false))
         {
             return BatchConflict;
+        }
+
+        var decisions = plan.Decisions;
+        if (plan.Promoted.Count > 0)
+        {
+            var handled = plan.Promoted.Count(d => d.Stored);
+            LogPromoted(logger, caller.DeviceId, handled, plan.Promoted.Count);
         }
 
         var invalid = decisions.Count(d => d.Code == InboxRules.SignatureInvalid);
@@ -187,7 +211,7 @@ public sealed partial class SyncUploads(
 
         return new BatchReceipt(
             [.. decisions.Select(d => new CommandReceipt(d.Id.Value, d.Outcome.ToString().ToLowerInvariant(), d.Code, d.Retryable, d.Flags ?? []))],
-            lastSequence, clock.GetUtcNow());
+            plan.LastSequence, plan.MissingSequences, clock.GetUtcNow());
     }
 
     /// <summary>
@@ -195,7 +219,7 @@ public sealed partial class SyncUploads(
     /// throws or rejects, nothing of the command remains and the batch goes on (ADR-0031 §2–§3).
     /// </summary>
     private async Task<UploadDecision> HandleAsync(
-        IInboxSession session, DeviceCaller caller, TenantId tenantId, SignedCommand command, UploadedCommand uploaded, DateTimeOffset now,
+        IInboxSession session, DeviceCaller caller, TenantId tenantId, SignedCommand command, JsonElement payload, DateTimeOffset now,
         HashSet<CommandId> keptUnhandled, CancellationToken cancellationToken)
     {
         if (handlers.HandlerOf(command.Type) is not { } handlerType)
@@ -210,7 +234,7 @@ public sealed partial class SyncUploads(
         }
 
         var verified = new VerifiedCommand(command.Id.Value, caller.DeviceId, caller.SiteId, command.Sequence, command.Type,
-            uploaded.Payload.Clone(), command.DeviceTime, now, ClockOffsetMs: 0, command.Body);
+            payload.Clone(), command.DeviceTime, now, ClockOffsetMs: 0, command.Body);
         var savepoint = $"command_{command.Sequence}";
         await session.SavepointAsync(savepoint, cancellationToken).ConfigureAwait(false);
         HandlerOutcome outcome;
@@ -258,6 +282,13 @@ public sealed partial class SyncUploads(
         }
     }
 
+    /// <summary>The payload of a stored command, from the text the tablet signed.</summary>
+    private static JsonElement PayloadOf(string body)
+    {
+        using var document = JsonDocument.Parse(body);
+        return document.RootElement.GetProperty("payload").Clone();
+    }
+
     /// <summary>The command as stored; the validator has already checked every part.</summary>
     private static SignedCommand Signed(UploadedCommand command) =>
         InboxRules.TryParseCommandId(command.CommandId, out var id) && InboxRules.TryParseDeviceTime(command.DeviceTime, out var deviceTime)
@@ -282,6 +313,9 @@ public sealed partial class SyncUploads(
 
     [LoggerMessage(EventId = 7202, Level = LogLevel.Warning, Message = "Device {DeviceId} uploaded {Count} command(s) whose signature does not verify")]
     private static partial void LogBadSignatures(ILogger logger, Guid deviceId, int count);
+
+    [LoggerMessage(EventId = 7205, Level = LogLevel.Information, Message = "Device {DeviceId}: {Stored} of {Count} waiting command(s) handled after their gap closed")]
+    private static partial void LogPromoted(ILogger logger, Guid deviceId, int stored, int count);
 
     [LoggerMessage(EventId = 7203, Level = LogLevel.Warning, Message = "Device {DeviceId} sent a command of type {Type}, which no module handles; kept unhandled")]
     private static partial void LogTypeUnknown(ILogger logger, Guid deviceId, string type);

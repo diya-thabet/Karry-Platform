@@ -95,7 +95,7 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
         var reused = tablet.Command(2, new { n = 3 });
         var clash = await UploadAsync(tablet, [reused]);
 
-        early.Should().BeEquivalentTo(new { Results = new[] { Result(second, "rejected", "sync.sequence_gap") }, LastSequence = 0 });
+        early.Should().BeEquivalentTo(new { Results = new[] { Result(second, "waiting") }, LastSequence = 0, MissingSequences = FirstMissing });
         inOrder.LastSequence.Should().Be(2);
         clash.Should().BeEquivalentTo(new { Results = new[] { Result(reused, "rejected", "sync.sequence_reused") }, LastSequence = 2 });
         (await InboxAsync(tablet.Id)).Select(r => r.Sequence).Should().Equal(1, 2);
@@ -114,7 +114,7 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
         var receipt = await UploadAsync(tablet, [changed, foreign, next]);
 
         receipt.Results.Should().BeEquivalentTo(
-            [Result(changed, "rejected", "sync.signature_invalid"), Result(foreign, "rejected", "sync.signature_invalid"), Result(next, "rejected", "sync.sequence_gap")],
+            [Result(changed, "rejected", "sync.signature_invalid"), Result(foreign, "rejected", "sync.signature_invalid"), Result(next, "waiting")],
             options => options.WithStrictOrdering());
         (await InboxAsync(tablet.Id)).Should().BeEmpty();
     }
@@ -221,6 +221,29 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
     [Fact]
     [Trait("Story", "US-P2-OFF-03")]
+    [Trait("TestCase", "TC-P2-SYNC-003")]
+    public async Task Commands_ahead_of_a_gap_wait_and_are_handled_in_order_when_it_closes()
+    {
+        using var tablet = await host.TabletAsync(host.A);
+        var (first, second, third) = (tablet.Command(1, new { n = 1 }), tablet.Command(2, new { n = 2 }), tablet.Command(3, new { n = 3 }));
+
+        var ahead = await UploadAsync(tablet, [third, second]);
+
+        ahead.Should().BeEquivalentTo(new { Results = new[] { Result(third, "waiting"), Result(second, "waiting") }, LastSequence = 0, MissingSequences = FirstMissing });
+        (await RowsAsync("SELECT id FROM sync.waiting_commands WHERE device_id = $1 ORDER BY sequence", tablet.Id, r => r.GetGuid(0)))
+            .Should().Equal(Id(second), Id(third));
+        (await HandledAsync(tablet.Id)).Should().BeEmpty("nothing is handled before the gap closes");
+
+        var closing = await UploadAsync(tablet, [first]);
+
+        closing.Should().BeEquivalentTo(new { Results = new[] { Result(first, "accepted") }, LastSequence = 3, MissingSequences = Array.Empty<long>() });
+        (await HandledAsync(tablet.Id)).Select(h => h.Command).Should().Equal(Id(first), Id(second), Id(third));
+        (await ProcessedAsync(tablet.Id)).Should().HaveCount(3);
+        (await UploadAsync(tablet, [second, third])).Results.Should().OnlyContain(r => r.Status == "duplicate");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-OFF-03")]
     [Trait("TestCase", "TC-P2-SYNC-009")]
     public async Task A_failing_handler_leaves_nothing_of_its_command_and_the_batch_goes_on()
     {
@@ -233,7 +256,7 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
         receipt.Results.Should().BeEquivalentTo(new[]
         {
-            Result(first, "accepted"), Result(broken, "rejected", "sync.handler_failed"), Result(after, "rejected", "sync.sequence_gap"),
+            Result(first, "accepted"), Result(broken, "rejected", "sync.handler_failed"), Result(after, "waiting"),
         }, options => options.WithStrictOrdering());
         receipt.LastSequence.Should().Be(1);
         (await HandledAsync(tablet.Id)).Select(h => h.Command).Should().Equal(Id(first));
@@ -269,7 +292,7 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
         receipt.Results.Should().BeEquivalentTo(new[]
         {
-            Result(unknown, "rejected", "sync.type_unknown"), Result(after, "rejected", "sync.sequence_gap"),
+            Result(unknown, "rejected", "sync.type_unknown"), Result(after, "waiting"),
         }, options => options.WithStrictOrdering());
         again.Results.Should().BeEquivalentTo([Result(unknown, "rejected", "sync.type_unknown")]);
         (await UnhandledAsync(tablet.Id)).Should().Equal((Id(unknown), Unsigned(unknown), "sync.type_unknown"));
@@ -304,7 +327,9 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
         return rows;
     }
 
-    private sealed record Receipt(IReadOnlyList<CommandResult> Results, long LastSequence, DateTimeOffset ServerTime);
+    private static readonly long[] FirstMissing = [1];
+
+    private sealed record Receipt(IReadOnlyList<CommandResult> Results, long LastSequence, IReadOnlyList<long> MissingSequences, DateTimeOffset ServerTime);
 
     private sealed record CommandResult(Guid CommandId, string Status, string? Code, bool Retryable, IReadOnlyList<string> Flags);
 
@@ -312,7 +337,7 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
     /// <summary>The receipt of a command; a rejection is retryable when sending it again later can succeed.</summary>
     private static CommandResult Result(JsonObject command, string status, string? code = null) =>
-        new(Id(command), status, code, code is "sync.sequence_gap" or "sync.type_unknown" or "sync.handler_failed", []);
+        new(Id(command), status, code, code is "sync.too_far_ahead" or "sync.type_unknown" or "sync.handler_failed", []);
 
     private static Guid Id(JsonObject command) => Guid.Parse(command["commandId"]!.GetValue<string>());
 

@@ -280,6 +280,61 @@ namespace Karry.Modules.Sync.Infrastructure.Migrations
                     b.ToTable("unhandled_commands", "sync");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Sync.Domain.WaitingCommand", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("body");
+
+                    b.Property<DateTimeOffset>("DeviceTime")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("device_time");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<long>("Sequence")
+                        .HasColumnType("bigint")
+                        .HasColumnName("sequence");
+
+                    b.Property<string>("Signature")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("signature");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("type");
+
+                    b.HasKey("DeviceId", "Id")
+                        .HasName("pk_waiting_commands");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_waiting_commands_tenant_id");
+
+                    b.HasIndex("DeviceId", "Sequence")
+                        .HasDatabaseName("ix_waiting_commands_device_id_sequence");
+
+                    b.ToTable("waiting_commands", "sync");
+                });
+
             modelBuilder.Entity("Karry.Modules.Sync.Domain.ProcessedCommand", b =>
                 {
                     b.HasOne("Karry.Modules.Sync.Domain.InboxCommand", null)

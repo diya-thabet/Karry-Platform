@@ -1588,6 +1588,7 @@ export interface components {
             results: components["schemas"]["CommandReceipt"][];
             /** Format: int64 */
             lastSequence: number | string;
+            missingSequences: (number | string)[];
             /** Format: date-time */
             serverTime: string;
         };
@@ -1648,8 +1649,9 @@ export interface components {
         };
         /**
          * @description What happened to one command: `accepted`, `conflict` (stored and flagged, IReadOnlyList&lt;string&gt; CommandReceipt.Flags),
-         *     `duplicate` or `rejected` (with string? CommandReceipt.Code; bool CommandReceipt.Retryable when sending it again later
-         *     can succeed). Every status but `rejected` is final: the tablet marks the command sent.
+         *     `duplicate`, `waiting` (kept until an earlier number comes) or `rejected` (with string? CommandReceipt.Code;
+         *     bool CommandReceipt.Retryable when sending it again later can succeed). Every status but `rejected` means the server
+         *     has the command: the tablet marks it sent.
          */
         CommandReceipt: {
             /** Format: uuid */
