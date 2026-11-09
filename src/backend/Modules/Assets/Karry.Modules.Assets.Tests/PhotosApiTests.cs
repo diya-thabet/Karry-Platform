@@ -140,6 +140,41 @@ public sealed class PhotosApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/photo", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.NotFound, "the removal was saved");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Photos_sent_at_the_same_moment_leave_exactly_the_one_the_asset_shows()
+    {
+        // H-C1: each upload stores its object before saving the asset. The saves that lose the race are refused (409)
+        // and remove their own object, so nothing is left in storage that no asset points at.
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant, "nord"));
+        var photos = Enumerable.Range(0, 6).Select(n => (byte[])[.. Jpeg, (byte)n]).ToArray();
+
+        var puts = await Task.WhenAll(photos.Select(p => PutPhotoAsync(tenant, asset, p)));
+
+        puts.Should().OnlyContain(p => p.StatusCode == HttpStatusCode.OK || p.StatusCode == HttpStatusCode.Conflict);
+        var shown = (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}", Admin(tenant)))).GetProperty("photo").GetProperty("sha256").GetString();
+        host.Files.Objects.Keys.Where(k => k.Contains(asset.ToString(), StringComparison.Ordinal)).Should().ContainSingle()
+            .Which.Should().EndWith(shown!, "the losers removed their own upload, the winner replaced nothing");
+        (await LedgerCountAsync(tenant)).Should().Be(puts.Count(p => p.StatusCode == HttpStatusCode.OK));
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task The_same_photo_sent_twice_at_the_same_moment_stays_in_storage()
+    {
+        // Both uploads write the same key; the one refused must not remove the object the other one saved.
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant, "nord"));
+
+        var puts = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => PutPhotoAsync(tenant, asset, Jpeg)));
+
+        puts.Should().OnlyContain(p => p.StatusCode == HttpStatusCode.OK || p.StatusCode == HttpStatusCode.Conflict);
+        var served = await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/photo", Admin(tenant));
+        served.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await served.Content.ReadAsByteArrayAsync(Ct)).Should().Equal(Jpeg);
+    }
+
     private static string Admin(Guid tenant) => TestTokens.ForTenant(tenant, "admin-1");
 
     private async Task<HttpResponseMessage> PutPhotoAsync(Guid tenant, Guid asset, byte[] content, string contentType = "image/jpeg", string? token = null)

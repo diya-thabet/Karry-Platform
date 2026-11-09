@@ -5306,6 +5306,13 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
@@ -5520,6 +5527,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -5695,6 +5712,16 @@
           },
           "404": {
             "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
             "content": {
               "application/problem+json": {
                 "schema": {
@@ -7270,7 +7297,8 @@
           "sites",
           "createdAt",
           "changedAt",
-          "disposedAt"
+          "disposedAt",
+          "version"
         ],
         "type": "object",
         "properties": {
@@ -7367,6 +7395,9 @@
               "string"
             ],
             "format": "date-time"
+          },
+          "version": {
+            "type": "string"
           }
         },
         "description": "An asset; `Sites` lists its arrivals at sites, oldest first (each stay lasts until the next). `Label` is\nwhat its QR label encodes (`KRY1:` and a random token), for the field app to match a scan offline."

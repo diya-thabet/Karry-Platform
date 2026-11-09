@@ -61,7 +61,7 @@ internal sealed class AssetStore(AssetsDbContext db) : IAssetStore
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
             return true;
         }
-        catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             db.ChangeTracker.Clear();
             return false;

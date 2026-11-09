@@ -186,6 +186,73 @@ describe("machines (US-P1-AST-01, US-P1-AST-02, US-P1-AST-03)", () => {
     ]);
   });
 
+  it("never saves over a change made by someone else meanwhile, and keeps the person's entries (H-C1)", async () => {
+    const api = fakeApi({ permissions: manager, sites: [nord], assets: [pel] });
+    await renderAt(`/assets/${pel.id}`, api);
+    const model = await screen.findByRole("textbox", { name: "Model" });
+    api.changeAssetElsewhere(pel.id, { model: "336 GC" });
+
+    fireEvent.change(model, { target: { value: "336 NEXT" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the machine" }));
+
+    const notice = await screen.findByRole("alert");
+    expect(notice).toHaveTextContent("Someone else saved a change here while you were editing.");
+    expect(model).toHaveValue("336 NEXT");
+    expect(api.writes().at(-1)).toMatchObject({ method: "PUT", path: `/api/v1/assets/${pel.id}` });
+
+    fireEvent.click(within(notice).getByRole("button", { name: "Save my changes over theirs" }));
+    expect(await screen.findByText("Machine saved.")).toBeInTheDocument();
+    expect(api.writes().filter((w) => w.method === "PUT").at(-1)).toMatchObject({ body: { model: "336 NEXT" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("shows the other version when the person chooses it", async () => {
+    const api = fakeApi({ permissions: manager, sites: [nord], assets: [pel] });
+    await renderAt(`/assets/${pel.id}`, api);
+    const model = await screen.findByRole("textbox", { name: "Model" });
+    api.changeAssetElsewhere(pel.id, { model: "336 GC" });
+    fireEvent.change(model, { target: { value: "336 NEXT" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save the machine" }));
+
+    fireEvent.click(within(await screen.findByRole("alert")).getByRole("button", { name: "Show their version instead" }));
+
+    expect(await screen.findByDisplayValue("336 GC")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps what the person typed through their own move and status change on the same page (finding C-2)", async () => {
+    // Moving or setting the status saves the machine and refreshes it; before, the form was remounted and the typing lost.
+    const api = fakeApi({ permissions: manager, sites: [nord, sud], assets: [pel] });
+    await renderAt(`/assets/${pel.id}`, api);
+    const model = await screen.findByRole("textbox", { name: "Model" });
+    fireEvent.change(model, { target: { value: "336 NEXT" } });
+
+    await choose("Move to", "Carrière Sud");
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+    expect(await screen.findByText("Machine moved.")).toBeInTheDocument();
+    await choose("Status", "In repair");
+    expect(await screen.findByText("Status saved.")).toBeInTheDocument();
+
+    expect(screen.getByRole("textbox", { name: "Model" })).toHaveValue("336 NEXT");
+    fireEvent.click(screen.getByRole("button", { name: "Save the machine" }));
+    expect(await screen.findByText("Machine saved.")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps what the person typed when a refresh brings someone else's change, and refuses to save over it", async () => {
+    const api = fakeApi({ permissions: manager, sites: [nord, sud], assets: [pel] });
+    await renderAt(`/assets/${pel.id}`, api);
+    const model = await screen.findByRole("textbox", { name: "Model" });
+    fireEvent.change(model, { target: { value: "336 NEXT" } });
+    api.changeAssetElsewhere(pel.id, { model: "336 GC" });
+    await choose("Status", "In repair");
+    expect(await screen.findByText("Status saved.")).toBeInTheDocument();
+
+    expect(screen.getByRole("textbox", { name: "Model" })).toHaveValue("336 NEXT");
+    fireEvent.click(screen.getByRole("button", { name: "Save the machine" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Someone else saved a change here while you were editing.");
+  });
+
   it("prints the listed machines' labels, skipping labels already used on the sheet (AC2)", async () => {
     const api = fakeApi({ permissions: manager, sites: [nord, sud], assets: [pel, truck] });
     await renderAt("/assets", api);

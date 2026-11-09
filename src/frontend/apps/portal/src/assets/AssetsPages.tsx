@@ -5,6 +5,9 @@ import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "@karry/i18n";
 import { Button, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField, useToast, type Status } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant } from "../app/api";
+import { VersionConflict } from "../app/VersionConflict";
+import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
+import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { todayIn } from "../sites/api";
 import { LabelPrintDialog, LabelPanel, MetersPanel, PhotoPanel, PlacePanel } from "./AssetPanels";
@@ -163,7 +166,7 @@ export function AssetPage({ assetId }: { assetId?: string }) {
 
   return (
     <div className="flex max-w-4xl flex-col gap-8">
-      <AssetForm key={asset.data.changedAt} asset={asset.data} />
+      <AssetForm key={asset.data.id} asset={asset.data} />
       <PlacePanel asset={asset.data} />
       <div className="grid gap-8 lg:grid-cols-2">
         <PhotoPanel asset={asset.data} />
@@ -191,7 +194,8 @@ function draftOf(asset: Asset | null): Draft {
   return {
     code: asset?.code ?? "", name: asset?.name ?? "", type: asset?.type ?? "excavator", make: asset?.make ?? "", model: asset?.model ?? "",
     serialNumber: asset?.serialNumber ?? "", plate: asset?.plate ?? "", year: asset?.year == null ? "" : String(asset.year),
-    acquiredOn: asset?.acquiredOn ?? "", siteId: asset?.siteId ?? "",
+    // The site is chosen here only for a new asset; a move (Place panel) is not something this form edits.
+    acquiredOn: asset?.acquiredOn ?? "", siteId: "",
   };
 }
 
@@ -206,8 +210,11 @@ function AssetForm({ asset }: { asset: Asset | null }) {
   const types = useAssetTypes();
   const { sites } = useSiteNames();
   const editable = can(AssetsManagePermission) && asset?.status !== "disposed";
-  const [draft, setDraft] = useState<Draft>(() => draftOf(asset));
+  // The details and the version they were filled from: a save is applied to it only (If-Match, H-C1). A move, a status,
+  // a photo or a label on the same page makes a new version without touching what the person typed.
+  const { draft, setDraft, version, accept } = useRecordDraft(asset, draftOf);
   const [checked, setChecked] = useState(false);
+  const [conflict, setConflict] = useState(false);
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => { setDraft((current) => ({ ...current, [key]: value })); };
 
   const today = todayIn(tenant?.timeZone ?? "UTC");
@@ -220,14 +227,26 @@ function AssetForm({ asset }: { asset: Asset | null }) {
   });
 
   const save = useMutation({
-    mutationFn: async () => asset
-      ? (await api.PUT("/api/v1/assets/{assetId}", { params: { path: { assetId: asset.id } }, body: details() })).data
-      : (await api.POST("/api/v1/assets", { body: { ...details(), code: draft.code, siteId: draft.siteId } satisfies AssetInput })).data,
+    meta: handlesVersionConflict,
+    mutationFn: async (expected?: string) => {
+      if (!asset) {
+        return (await api.POST("/api/v1/assets", { body: { ...details(), code: draft.code, siteId: draft.siteId } satisfies AssetInput })).data;
+      }
+
+      const tag = expected ?? version;
+      return (await api.PUT("/api/v1/assets/{assetId}", {
+        params: { path: { assetId: asset.id }, header: tag ? { "If-Match": tag } : {} },
+        body: details(),
+      })).data;
+    },
+    onError: (error) => { setConflict(isVersionConflict(error)); },
     onSuccess: async (saved) => {
       if (!saved) {
         return;
       }
 
+      accept(saved);
+      setConflict(false);
       await queryClient.invalidateQueries({ queryKey: assetsKey });
       queryClient.setQueryData(assetKey(saved.id), saved);
       toast({ status: "ok", title: t("portal.assets.saved") });
@@ -240,7 +259,26 @@ function AssetForm({ asset }: { asset: Asset | null }) {
   const submit = () => {
     setChecked(true);
     if (year !== undefined && !siteMissing) {
-      save.mutate();
+      save.mutate(undefined);
+    }
+  };
+
+  const latest = async () => asset ? (await api.GET("/api/v1/assets/{assetId}", { params: { path: { assetId: asset.id } } })).data : undefined;
+  // The person chose to save their entries over the other change: from the current version, deliberately.
+  const keepMine = async () => {
+    const current = await latest();
+    if (current) {
+      save.mutate(current.version);
+    }
+  };
+  // The person chose the other change: the form shows it and their entries are dropped.
+  const showTheirs = async () => {
+    const current = await latest();
+    if (current) {
+      accept(current);
+      setConflict(false);
+      queryClient.setQueryData(assetKey(current.id), current);
+      await queryClient.invalidateQueries({ queryKey: assetsKey });
     }
   };
 
@@ -300,6 +338,8 @@ function AssetForm({ asset }: { asset: Asset | null }) {
           />
           <TextField label={t("portal.assets.acquiredOn")} type="date" max={today} value={draft.acquiredOn} onChange={(e) => { set("acquiredOn", e.target.value); }} />
         </fieldset>
+
+        {conflict && <VersionConflict busy={save.isPending} onKeepMine={() => void keepMine()} onShowTheirs={() => void showTheirs()} />}
 
         {editable && (
           <div>

@@ -98,8 +98,7 @@ public sealed class MeterOperations(IMeterStore store, AssetOperations assets, I
 
         var meter = Meter.Add(clock, Tenant, assetId, valid.Value.Kind, valid.Value.Initial, valid.Value.On, caller.Subject);
         store.Add(meter);
-        await store.TrySaveAsync(meter, cancellationToken).ConfigureAwait(false);
-        return meter;
+        return await store.TrySaveAsync(meter, cancellationToken).ConfigureAwait(false) ? meter : Changed;
     }
 
     public async Task<Result<Meter>> SetStatusAsync(AssetId assetId, MeterId meterId, string? status, CancellationToken cancellationToken)

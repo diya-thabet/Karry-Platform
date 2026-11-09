@@ -156,6 +156,9 @@ public sealed class Asset : AggregateRoot<AssetId>, ITenantOwned
 
     public DateTimeOffset? DisposedAt { get; private set; }
 
+    /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; a form sends it back as <c>If-Match</c> (H-C1).</summary>
+    public uint Version { get; private set; }
+
     public static Asset Register(TimeProvider clock, TenantId tenant, string code, AssetDetails details, Guid siteId, string? actor)
     {
         ArgumentNullException.ThrowIfNull(clock);

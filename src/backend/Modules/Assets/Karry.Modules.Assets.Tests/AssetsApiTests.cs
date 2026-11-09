@@ -247,6 +247,99 @@ public sealed class AssetsApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await UsageAsync(tenant)).Should().Be(2, "an asset in repair still counts");
     }
 
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task A_change_made_from_an_old_version_is_refused_and_the_newer_change_is_kept()
+    {
+        // Hardening plan H-C1: two people opened the same machine; the second to save must not overwrite the first.
+        var tenant = await ProvisionAsync();
+        var id = await RegisterAsync(tenant, "PEL-01", await SiteAsync(tenant, "nord"));
+        var opened = await SendAsync(HttpMethod.Get, $"/api/v1/assets/{id}", Admin(tenant));
+        var version = opened.Headers.ETag!.Tag;
+        (await Json(opened)).GetProperty("version").GetString().Should().Be(version, "body and header carry the same version");
+
+        var first = await SendAsync(HttpMethod.Put, $"/api/v1/assets/{id}", Admin(tenant), Change("336 GC"), ifMatch: version);
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        first.Headers.ETag!.Tag.Should().NotBe(version, "every saved change makes a new version");
+
+        var second = await SendAsync(HttpMethod.Put, $"/api/v1/assets/{id}", Admin(tenant), Change("336 NEXT"), ifMatch: version);
+        second.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await Json(second)).GetProperty("code").GetString().Should().Be("request.version_conflict");
+
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{id}", Admin(tenant)))).GetProperty("model").GetString().Should().Be("336 GC");
+        (await LedgerCountAsync(tenant, "assets.asset_changed.v1")).Should().Be(1, "the refused change left no trace");
+
+        var retried = await SendAsync(HttpMethod.Put, $"/api/v1/assets/{id}", Admin(tenant), Change("336 NEXT"), ifMatch: first.Headers.ETag.Tag);
+        retried.StatusCode.Should().Be(HttpStatusCode.OK, "from the current version, the same change goes through");
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Of_many_saves_from_one_version_at_the_same_moment_exactly_one_is_applied()
+    {
+        // The race between loading and saving: the check in the UPDATE (xmin), not only the comparison in the service.
+        var tenant = await ProvisionAsync();
+        var id = await RegisterAsync(tenant, "PEL-01", await SiteAsync(tenant, "nord"));
+        var version = (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{id}", Admin(tenant)))).GetProperty("version").GetString()!;
+
+        var saves = await Task.WhenAll(Enumerable.Range(1, 8).Select(n =>
+            SendAsync(HttpMethod.Put, $"/api/v1/assets/{id}", Admin(tenant), Change($"336-{n}"), ifMatch: version)));
+
+        saves.Count(s => s.StatusCode == HttpStatusCode.OK).Should().Be(1);
+        saves.Count(s => s.StatusCode == HttpStatusCode.Conflict).Should().Be(7, "every other save is a version conflict, never a 500");
+        (await LedgerCountAsync(tenant, "assets.asset_changed.v1")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "P1.18a")]
+    public async Task Status_changes_and_moves_at_the_same_moment_answer_200_only_for_what_was_saved()
+    {
+        // No If-Match on these, but two loads of the same version still race: the loser must hear 409, not 200 for a
+        // change that was never saved (the service used to ignore the failed save). Every request below changes the
+        // asset it loaded, so each 200 is one saved version, and each saved version is one ledger entry.
+        var tenant = await ProvisionAsync();
+        var sud = await SiteAsync(tenant, "sud");
+        var id = await RegisterAsync(tenant, "PEL-01", await SiteAsync(tenant, "nord"));
+        var registered = (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{id}", Admin(tenant)))).GetProperty("version").GetString();
+
+        var calls = await Task.WhenAll(Enumerable.Range(0, 8).Select(n => n switch
+        {
+            0 => SendAsync(HttpMethod.Post, $"/api/v1/assets/{id}/move", Admin(tenant), new { siteId = sud }),
+            _ => SendAsync(HttpMethod.Post, $"/api/v1/assets/{id}/status", Admin(tenant), new { status = n % 2 == 0 ? "idle" : "in-repair" }),
+        }));
+
+        calls.Should().OnlyContain(c => c.StatusCode == HttpStatusCode.OK || c.StatusCode == HttpStatusCode.Conflict);
+        var versions = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var call in calls.Where(c => c.StatusCode == HttpStatusCode.OK))
+        {
+            versions.Add((await Json(call)).GetProperty("version").GetString()!);
+        }
+
+        versions.Should().NotContain(registered, "a 200 always reports a saved change");
+        var ledgered = await LedgerCountAsync(tenant, "assets.asset_status_changed.v1") + await LedgerCountAsync(tenant, "assets.asset_moved.v1");
+        ledgered.Should().Be(versions.Count, "every version answered was saved and ledgered, and nothing else was");
+    }
+
+    [Theory]
+    [Trait("Story", "P1.18a")]
+    [InlineData("4711")]
+    [InlineData("\"abc\"")]
+    [InlineData("\"1\", \"2\"")]
+    public async Task A_malformed_if_match_is_refused_and_nothing_changes(string ifMatch)
+    {
+        var tenant = await ProvisionAsync();
+        var id = await RegisterAsync(tenant, "PEL-01", await SiteAsync(tenant, "nord"));
+
+        var response = await SendAsync(HttpMethod.Put, $"/api/v1/assets/{id}", Admin(tenant), Change("336 GC"), ifMatch: ifMatch);
+
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(response)).GetProperty("code").GetString().Should().Be("request.if_match_invalid");
+        (await Json(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{id}", Admin(tenant)))).GetProperty("model").GetString().Should().Be("336");
+    }
+
+    private static object Change(string model) =>
+        new { name = "Pelle 336", type = "excavator", make = "Caterpillar", model, serialNumber = (string?)null, plate = (string?)null, year = 2021, acquiredOn = "2021-03-15" };
+
     private static string Admin(Guid tenant) => TestTokens.ForTenant(tenant, "admin-1");
 
     private async Task<IReadOnlyList<string?>> Codes(Guid tenant, string query, string? token = null) =>
@@ -291,9 +384,14 @@ public sealed class AssetsApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         return await scope.ServiceProvider.GetServices<IUsageSource>().Single(s => s.Metric == Metrics.Assets).CountAsync(Ct);
     }
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null)
+    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, string token, object? body = null, string? ifMatch = null)
     {
         using var request = new HttpRequestMessage(method, path);
+        if (ifMatch is not null)
+        {
+            request.Headers.TryAddWithoutValidation("If-Match", ifMatch);
+        }
+
         if (body is not null)
         {
             request.Content = JsonContent.Create(body);

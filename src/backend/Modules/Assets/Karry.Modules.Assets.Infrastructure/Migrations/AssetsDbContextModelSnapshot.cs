@@ -204,6 +204,12 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                         .HasColumnType("character varying(30)")
                         .HasColumnName("type");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.Property<int?>("Year")
                         .HasColumnType("integer")
                         .HasColumnName("year");

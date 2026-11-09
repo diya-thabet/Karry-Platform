@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Entitlements;
+using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Domain;
@@ -81,7 +82,10 @@ public interface IAssetStore
     /// <summary>Up to <c>Take</c> assets matching the query, ordered by code.</summary>
     Task<IReadOnlyList<Asset>> SearchAsync(AssetQuery query, CancellationToken cancellationToken);
 
-    /// <summary>Saves with its events; false when the code is already used in the company (unique index).</summary>
+    /// <summary>
+    /// Saves with its events; false, with nothing saved, when the code is already used in the company (unique index) or
+    /// the asset changed since it was loaded (its <see cref="Asset.Version"/>).
+    /// </summary>
     Task<bool> TrySaveAsync(Asset asset, CancellationToken cancellationToken);
 
     /// <summary>The assets with these codes (tracked, for an import), disposed ones included.</summary>
@@ -199,13 +203,13 @@ public sealed partial class AssetOperations(
         }
 
         asset.Value.ReissueLabel(clock, caller.Subject);
-        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
-        return asset;
+        return await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false) ? asset : RecordVersions.Conflict;
     }
 
     /// <summary>
     /// Replaces the asset's photo: the new object is stored first, then the asset (ledgered); the old object is removed
-    /// last, so a failure never leaves the asset pointing at nothing.
+    /// last, so a failure never leaves the asset pointing at nothing. When someone else changed the asset meanwhile the save
+    /// is refused (H-C1) and the new object, which nothing points to, is removed again.
     /// </summary>
     public async Task<Result<Asset>> SetPhotoAsync(AssetId id, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
     {
@@ -233,8 +237,19 @@ public sealed partial class AssetOperations(
             return changed.IsSuccess ? asset : changed.Error;
         }
 
-        await files.PutAsync(PhotoKey(id, photo.Value), content.ToArray(), photo.Value.ContentType, cancellationToken).ConfigureAwait(false);
-        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
+        var key = PhotoKey(id, photo.Value);
+        await files.PutAsync(key, content.ToArray(), photo.Value.ContentType, cancellationToken).ConfigureAwait(false);
+        if (!await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false))
+        {
+            // The same picture saved by the other change has the same key: then it is theirs now and stays.
+            if ((await store.FindAsync(id, cancellationToken).ConfigureAwait(false))?.Photo is not { } current || PhotoKey(id, current) != key)
+            {
+                await RemoveReplacedAsync(key, cancellationToken).ConfigureAwait(false);
+            }
+
+            return RecordVersions.Conflict;
+        }
+
         if (old is not null)
         {
             await RemoveReplacedAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
@@ -262,7 +277,11 @@ public sealed partial class AssetOperations(
             return removed.Error;
         }
 
-        await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false);
+        if (!await store.TrySaveAsync(asset.Value, cancellationToken).ConfigureAwait(false))
+        {
+            return RecordVersions.Conflict; // the asset still points at the old object: it stays
+        }
+
         await RemoveReplacedAsync(PhotoKey(id, old), cancellationToken).ConfigureAwait(false);
         return asset;
     }
@@ -378,13 +397,22 @@ public sealed partial class AssetOperations(
         return await store.TrySaveAsync(asset, cancellationToken).ConfigureAwait(false) ? asset : CodeTaken;
     }
 
-    public async Task<Result<Asset>> ChangeAsync(AssetId id, AssetChangeInput input, CancellationToken cancellationToken)
+    /// <summary>
+    /// New details. With <paramref name="expectedVersion"/> (the form's <c>If-Match</c>), only the version the person
+    /// edited is changed; otherwise <see cref="RecordVersions.Conflict"/> and nothing is saved (H-C1).
+    /// </summary>
+    public async Task<Result<Asset>> ChangeAsync(AssetId id, AssetChangeInput input, CancellationToken cancellationToken, uint? expectedVersion = null)
     {
         ArgumentNullException.ThrowIfNull(input);
         var asset = await ManagedAsync(id, cancellationToken).ConfigureAwait(false);
         if (!asset.IsSuccess)
         {
             return asset;
+        }
+
+        if (!RecordVersions.Matches(asset.Value.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
         }
 
         var details = AssetRules.Details(
@@ -469,12 +497,8 @@ public sealed partial class AssetOperations(
             return changed.Error;
         }
 
-        if (changed.Value)
-        {
-            await store.TrySaveAsync(asset, cancellationToken).ConfigureAwait(false);
-        }
-
-        return asset;
+        // The code never changes here: only a change saved meanwhile refuses the save.
+        return !changed.Value || await store.TrySaveAsync(asset, cancellationToken).ConfigureAwait(false) ? asset : RecordVersions.Conflict;
     }
 
     private string PhotoKey(AssetId id, AssetPhoto photo) => ObjectKeys.ForTenant(Tenant.Value, "assets", AssetPhotos.Key(id, photo));
