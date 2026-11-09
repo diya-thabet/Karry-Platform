@@ -103,12 +103,12 @@ The handler stores every signed fact and returns `Conflict(flags)` when it needs
 
 | Flag | When |
 |---|---|
-| `RULE-FO-01` | The start differs from the last end of the same meter (or of the previous segment), with no meter event to explain it (meter events come in P2.7) |
+| `RULE-FO-01` | The start differs from the end it continues: in a handover, the previous segment's end (not compared while that segment is still open); otherwise the meter's last end at or before the start (by the end's time, among the entries already received). No meter event explains it yet (meter events come in P2.7) |
 | `RULE-FO-02` | Δ < 0, or for an hour meter Δ > the segment's real length + 0.5 h ([detection rules](../03-domain/catalogues/detection-rules.md)); an oversized Δkm waits for the tenant thresholds of P2.7 |
 | `SHIFT_OUTSIDE_PATTERN` | The start is in no shift of the site (§2) |
 | `ASSET_NOT_ON_SITE` | The machine is not (or no longer) assigned to the command's site, or the meter is not the machine's |
 | `END_BEFORE_START` | The end's time is not after the start's |
-| `OVERLAP` | The same operator has another open segment on another machine (TC-P2-FO-011; US-P2-FO-05 AC2 is enforced on the tablet, flagged on the server) |
+| `OVERLAP` | The same operator has another segment sharing time with this one, `[start, end)`, a segment without an end still running; checked at the start and again at the end (TC-P2-FO-011; US-P2-FO-05 AC2 is enforced on the tablet, flagged on the server) |
 
 Flags are stored on the version that raised them. P2.7 moves them into the `Integrity` module with explanations and
 severities, re-evaluates continuity in shift-time order and closes flags that no longer hold.
@@ -144,6 +144,13 @@ The portal reads entries by site, shift, machine and operator, and an entry with
   (`breakdown`, `weather`, `no_material`, `no_operator`, `other`). Tests: `ShiftEntryHandlersTests` (PostgreSQL, real
   envelope recorder; TC-P2-FO-005, TC-P2-FO-010, TC-P2-SIG-002 binding, append-only and RLS) and the directory in
   `MetersApiTests`. Continuity `RULE-FO-01` and `OVERLAP` come in slice 3.
+- **Slice 3, continuity and overlaps:** `ShiftEntryRules.StartFlags` (RULE-FO-01) and `ShiftEntryRules.Overlaps`
+  (pure); the store reads the meter's last end at or before a start and the operator's other segments (current
+  versions) that may share time. The start flags `RULE-FO-01` and `OVERLAP`, the end `OVERLAP` again over its
+  now-known length. Tests: handler cases for TC-P2-FO-003, 006, 007 and 011 in `ShiftEntryHandlersTests`; properties
+  over 10 000 random cases each in `ShiftEntryRulesTests` (Δ flagged exactly when negative or beyond the segment +
+  0.5 h on an hour meter, only when negative on a km meter; end-before-start; continuity; overlaps match a
+  minute-by-minute check; every stored meter value reads back from its wire text).
 
 ## Options considered
 
@@ -159,7 +166,8 @@ The portal reads entries by site, shift, machine and operator, and an entry with
 
 - **Positive:** late entries resolve correctly; nothing signed is ever overwritten; each person signs only what they
   state; the server never loses a fact over a business rule.
-- **Negative:** reading an entry means picking its highest version; continuity is checked in arrival order until P2.7
-  re-runs it in shift-time order; a start more than 60 minutes early is flagged even when it was legitimate.
+- **Negative:** reading an entry means picking its highest version; continuity and overlaps are checked against the
+  entries received so far (a late entry does not re-flag the ones before it) until P2.7 re-runs them in shift-time
+  order; a start more than 60 minutes early is flagged even when it was legitimate.
 - **Follow-ups:** P2.5 builds the tablet flows on the same rules (shared validation vectors); P2.6 adds corrections as
   versions; P2.7 adds meter events, Integrity flags and the Δkm threshold.

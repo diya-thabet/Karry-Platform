@@ -19,6 +19,15 @@ public interface IShiftEntryStore
     /// <summary>The highest version of an entry, or null when the entry is unknown in this company.</summary>
     Task<ShiftEntryVersion?> LatestAsync(Guid rootId, CancellationToken cancellationToken);
 
+    /// <summary>The latest closed version on <paramref name="meterId"/> that ended at or before <paramref name="before"/>, other entries only.</summary>
+    Task<ShiftEntryVersion?> LastEndOfMeterAsync(Guid meterId, Guid exceptRootId, DateTimeOffset before, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The current versions of the operator's other entries that may share time with <c>[from, to)</c> (no
+    /// <paramref name="to"/>: still running); the caller decides with <see cref="ShiftEntryRules.Overlaps"/>.
+    /// </summary>
+    Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfOperatorAsync(Guid operatorId, Guid exceptRootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
+
     void Add(ShiftEntryVersion version);
 
     Task SaveAsync(CancellationToken cancellationToken);
@@ -192,9 +201,11 @@ public sealed class StartShiftEntry(
         }
 
         var segmentNo = 1;
+        ShiftEntryVersion? previousEntry = null;
         if (previousRootId is { } previousId)
         {
-            if (await store.LatestAsync(previousId, cancellationToken).ConfigureAwait(false) is not { } previousEntry || previousEntry.AssetId != assetId)
+            previousEntry = await store.LatestAsync(previousId, cancellationToken).ConfigureAwait(false);
+            if (previousEntry is null || previousEntry.AssetId != assetId)
             {
                 return PreviousUnknown;
             }
@@ -211,7 +222,12 @@ public sealed class StartShiftEntry(
         }
 
         var shift = await shifts.ResolveAsync(command.SiteId, startedAt, cancellationToken).ConfigureAwait(false);
-        var flags = new List<string>();
+        var flags = new List<string>(ShiftEntryRules.StartFlags(await ContinuesFromAsync(previousEntry, meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false), startValue));
+        if (await OverlapsAsync(store, signed.Signer, rootId, startedAt, null, cancellationToken).ConfigureAwait(false))
+        {
+            flags.Add(ShiftEntryFlags.Overlap);
+        }
+
         if (meter.SiteAt(startedAt) != command.SiteId)
         {
             flags.Add(ShiftEntryFlags.AssetNotOnSite);
@@ -253,6 +269,25 @@ public sealed class StartShiftEntry(
         });
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
+    }
+
+    /// <summary>Whether the operator has another segment sharing time with <c>[from, to)</c> (OVERLAP, TC-P2-FO-011).</summary>
+    internal static async Task<bool> OverlapsAsync(IShiftEntryStore store, Guid operatorId, Guid rootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken) =>
+        (await store.SegmentsOfOperatorAsync(operatorId, rootId, from, to, cancellationToken).ConfigureAwait(false))
+            .Any(other => ShiftEntryRules.Overlaps(from, to, other.StartedAt, other.EndedAt));
+
+    /// <summary>
+    /// The end a start should continue (RULE-FO-01): the previous segment's end in a handover (none yet while that
+    /// segment is open: P2.7 re-evaluates), otherwise the meter's last end before the start.
+    /// </summary>
+    private async Task<decimal?> ContinuesFromAsync(ShiftEntryVersion? previous, Guid meterId, Guid rootId, DateTimeOffset startedAt, CancellationToken cancellationToken)
+    {
+        if (previous is not null && previous.MeterId == meterId)
+        {
+            return previous.EndValue;
+        }
+
+        return (await store.LastEndOfMeterAsync(meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false))?.EndValue;
     }
 }
 
@@ -315,7 +350,12 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
             return new HandlerOutcome.Rejected(refused.Code, Retryable: false);
         }
 
-        var flags = ShiftEntryRules.EndFlags(start.MeterKind, start.StartedAt, start.StartValue, endedAt, endValue);
+        var flags = new List<string>(ShiftEntryRules.EndFlags(start.MeterKind, start.StartedAt, start.StartValue, endedAt, endValue));
+        if (await StartShiftEntry.OverlapsAsync(store, start.OperatorId, rootId, start.StartedAt, endedAt, cancellationToken).ConfigureAwait(false))
+        {
+            flags.Add(ShiftEntryFlags.Overlap);
+        }
+
         store.Add(new ShiftEntryVersion
         {
             TenantId = tenantId,

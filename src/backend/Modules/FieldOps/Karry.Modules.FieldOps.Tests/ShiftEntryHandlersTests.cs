@@ -246,6 +246,60 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    [Trait("Story", "US-P2-FO-05")]
+    [Trait("TestCase", "TC-P2-FO-006")]
+    public async Task A_handover_start_that_is_not_the_previous_end_is_stored_and_flagged()
+    {
+        var (first, second) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(first, ShiftStart, "10.0"));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(first, 2, ShiftStart.AddHours(4), "14.0"));
+
+        var outcome = await HandleAsync(TenantA, StartShiftEntry.Name, Start(second, ShiftStart.AddHours(4), "14.5", previous: first, signer: NextOperator));
+
+        outcome.Should().BeEquivalentTo(new HandlerOutcome.Conflict(second, [ShiftEntryFlags.Continuity]));
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-003")]
+    [Trait("TestCase", "TC-P2-FO-007")]
+    public async Task A_start_that_is_not_the_meters_last_end_is_stored_and_flagged_and_one_that_is_passes()
+    {
+        var (day, night, nextDay, early) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "100.0"));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0"));
+
+        var continues = await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(8), "108.0", signer: NextOperator));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(night, 2, ShiftStart.AddHours(16), "116.0"));
+        var lower = await HandleAsync(TenantA, StartShiftEntry.Name, Start(nextDay, ShiftStart.AddDays(1), "115.0"));
+        var beforeAnyEnd = await HandleAsync(TenantA, StartShiftEntry.Name, Start(early, ShiftStart.AddDays(-1), "50.0", signer: Guid.CreateVersion7()));
+
+        continues.Should().Be(new HandlerOutcome.Accepted(night));
+        lower.Should().BeEquivalentTo(new HandlerOutcome.Conflict(nextDay, [ShiftEntryFlags.Continuity]), "the night shift ended at 116.0 (TC-P2-FO-007)");
+        beforeAnyEnd.Should().Be(new HandlerOutcome.Accepted(early), "no end of the meter comes before it: nothing to compare with");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-05")]
+    [Trait("TestCase", "TC-P2-FO-011")]
+    public async Task An_operator_with_a_segment_still_running_on_another_machine_is_flagged_and_one_after_an_end_is_not()
+    {
+        var otherMeter = Guid.CreateVersion7();
+        meters.All[otherMeter] = new MeterSummary(otherMeter, Guid.CreateVersion7(), "DUM-02", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
+        var (excavator, truck, later) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(excavator, ShiftStart, "10.0"));
+
+        var second = await HandleAsync(TenantA, StartShiftEntry.Name, Start(truck, ShiftStart.AddHours(1), "500.0", meter: otherMeter, asset: meters.All[otherMeter].AssetId));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(excavator, 2, ShiftStart.AddHours(2), "12.0"));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(truck, 2, ShiftStart.AddHours(3), "502.0"));
+        var afterBoth = await HandleAsync(TenantA, StartShiftEntry.Name, Start(later, ShiftStart.AddHours(3), "12.0"));
+
+        second.Should().BeEquivalentTo(new HandlerOutcome.Conflict(truck, [ShiftEntryFlags.Overlap]));
+        afterBoth.Should().Be(new HandlerOutcome.Accepted(later), "both earlier segments ended by then");
+        (await RowsAsync(TenantA, $"SELECT version || ':' || array_to_string(flags, ',') FROM fieldops.shift_entries WHERE root_id = '{truck}' ORDER BY version"))
+            .Should().Equal("1:OVERLAP", "2:OVERLAP");
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-SIG-007")]
     public async Task Entries_are_append_only_and_another_company_does_not_see_them()
     {
@@ -264,10 +318,12 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
 
+    /// <summary>One segment on a fresh meter by a fresh operator, so continuity and overlaps stay out of the way.</summary>
     private async Task<HandlerOutcome> StartAndEndAsync(DateTimeOffset startedAt, string startValue, DateTimeOffset endedAt, string endValue)
     {
-        var root = Guid.CreateVersion7();
-        await HandleAsync(TenantA, StartShiftEntry.Name, Start(root, startedAt, startValue));
+        var (root, meter) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(root, startedAt, startValue, meter: meter, signer: Guid.CreateVersion7()));
         return await HandleAsync(TenantA, EndShiftEntry.Name, End(root, 2, endedAt, endValue)) switch
         {
             HandlerOutcome.Conflict conflict => conflict with { RecordId = null },
@@ -275,11 +331,11 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         };
     }
 
-    private static JsonObject Record(Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null) => new()
+    private static JsonObject Record(Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? asset = null) => new()
     {
         ["rootId"] = root.ToString(),
         ["version"] = 1,
-        ["assetId"] = Asset.ToString(),
+        ["assetId"] = (asset ?? Asset).ToString(),
         ["meterId"] = (meter ?? HourMeter).ToString(),
         ["startedAt"] = startedAt.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture),
         ["startValue"] = startValue,
@@ -287,9 +343,10 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         ["startPhoto"] = Photo,
     };
 
-    private JsonObject Start(Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? previous = null, string? remarks = null, Guid? signer = null)
+    private JsonObject Start(
+        Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? previous = null, string? remarks = null, Guid? signer = null, Guid? asset = null)
     {
-        var record = Record(root, startedAt, startValue, meter);
+        var record = Record(root, startedAt, startValue, meter, asset);
         if (previous is { } id)
         {
             record["previousRootId"] = id.ToString();
