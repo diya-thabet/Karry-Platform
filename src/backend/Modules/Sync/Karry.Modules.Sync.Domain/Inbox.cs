@@ -100,10 +100,28 @@ public enum UploadOutcome
 
     /// <summary>Stored now and flagged for review (<see cref="UploadDecision.Flags"/>); final, the tablet marks it sent.</summary>
     Conflict,
+
+    /// <summary>
+    /// Kept, waiting for an earlier number (ADR-0031 §4): the server has it, so the tablet does not send it again, but
+    /// keeps its evidence until the final answer comes through the status pull.
+    /// </summary>
+    Waiting,
 }
 
-/// <summary>A command of a batch, as far as the decision needs it.</summary>
-public sealed record UploadCandidate(CommandId Id, long Sequence, bool SignatureValid);
+/// <summary>
+/// A command as far as the decision needs it. <see cref="Index"/> is its place in the batch, or -1 for a command that
+/// was already waiting from an earlier upload.
+/// </summary>
+public sealed record UploadCandidate(CommandId Id, long Sequence, bool SignatureValid, int Index = -1);
+
+/// <summary>
+/// The decisions of a batch, in its order, and what follows from them: the device's last sequence, the numbers the
+/// tablet must send again (<see cref="MissingSequences"/>), the batch's commands to keep as waiting
+/// (<see cref="Held"/>), and the outcomes of earlier waiting commands handled now (<see cref="Promoted"/>).
+/// </summary>
+public sealed record UploadPlan(
+    IReadOnlyList<UploadDecision> Decisions, long LastSequence, IReadOnlyList<long> MissingSequences, IReadOnlyList<UploadCandidate> Held,
+    IReadOnlyList<UploadDecision> Promoted);
 
 /// <summary>
 /// What happened to one command. A rejection is <see cref="Retryable"/> when sending the same command later can
@@ -131,7 +149,10 @@ public static partial class InboxRules
 
     public const string SignatureInvalid = "sync.signature_invalid";
 
-    /// <summary>A command whose sequence is past the next expected one: an earlier command is missing.</summary>
+    /// <summary>
+    /// A command whose sequence is past the next expected one, before P2.1 slice 2. Gaps are now held as waiting; the code
+    /// stays reserved so an old answer is never reused with another meaning.
+    /// </summary>
     public const string SequenceGap = "sync.sequence_gap";
 
     /// <summary>A new command with a sequence number another command already holds.</summary>
@@ -139,6 +160,15 @@ public static partial class InboxRules
 
     /// <summary>No handler for the command's type (an app newer than the server): kept, and handled when sent again after an update.</summary>
     public const string TypeUnknown = "sync.type_unknown";
+
+    /// <summary>More than <see cref="MaxWaiting"/> commands would wait for an earlier number: send the missing ones first (threat T-12).</summary>
+    public const string TooFarAhead = "sync.too_far_ahead";
+
+    /// <summary>The most commands of one device waiting for an earlier number.</summary>
+    public const int MaxWaiting = 500;
+
+    /// <summary>The most missing numbers listed in one answer; the tablet asks again after sending them.</summary>
+    public const int MaxMissingListed = 100;
 
     /// <summary>The handler failed; nothing of the command was kept, and sending it again is safe.</summary>
     public const string HandlerFailed = "sync.handler_failed";
@@ -168,51 +198,126 @@ public static partial class InboxRules
     }
 
     /// <summary>
-    /// Decides each command in batch order, given the device's last received sequence and the IDs already stored. A
-    /// known ID is a duplicate; else a valid signature and the next sequence number are required, and then
-    /// <paramref name="handle"/> decides (ADR-0031 §2; it gets the command's index in the batch). Only a stored command advances the sequence: after a rejected
-    /// one the commands are gaps, and the tablet sends them again once the earlier one is through.
+    /// Decides each command in batch order (ADR-0031 §2, §4), given the device's last received sequence, the IDs already
+    /// stored and the commands already waiting for an earlier number. A known ID is a duplicate (or still waiting); else
+    /// a valid signature is required. The next number goes to <paramref name="handle"/>; a number further on is held
+    /// as waiting (at most <see cref="MaxWaiting"/> per device), and handled as soon as the numbers before it are in,
+    /// in the same request. Only a stored command advances the sequence.
     /// </summary>
-    public static async Task<(IReadOnlyList<UploadDecision> Decisions, long LastSequence)> DecideAsync(
-        long lastSequence, IReadOnlySet<CommandId> stored, IEnumerable<UploadCandidate> commands, Func<UploadCandidate, int, Task<UploadDecision>> handle)
+    public static async Task<UploadPlan> DecideAsync(
+        long lastSequence, IReadOnlySet<CommandId> stored, IReadOnlyCollection<UploadCandidate> waiting, IEnumerable<UploadCandidate> commands,
+        Func<UploadCandidate, Task<UploadDecision>> handle)
     {
         ArgumentNullException.ThrowIfNull(stored);
+        ArgumentNullException.ThrowIfNull(waiting);
         ArgumentNullException.ThrowIfNull(commands);
         ArgumentNullException.ThrowIfNull(handle);
         var accepted = new HashSet<CommandId>();
-        var decisions = new List<UploadDecision>();
-        var index = -1;
-        foreach (var command in commands)
+        var held = new SortedDictionary<long, UploadCandidate>();
+        foreach (var command in waiting.Where(w => w.Sequence > lastSequence && !stored.Contains(w.Id)))
         {
-            index++;
+            held.TryAdd(command.Sequence, command);
+        }
+
+        var heldIds = held.Values.Select(h => h.Id).ToHashSet();
+        var decisions = new List<UploadDecision>();
+        var promoted = new List<UploadDecision>();
+        var finals = new Dictionary<CommandId, UploadDecision>();
+        var index = -1;
+        foreach (var listed in commands)
+        {
+            var command = listed with { Index = ++index };
             if (stored.Contains(command.Id) || accepted.Contains(command.Id))
             {
                 decisions.Add(new UploadDecision(command.Id, UploadOutcome.Duplicate, null));
+            }
+            else if (heldIds.Contains(command.Id))
+            {
+                decisions.Add(new UploadDecision(command.Id, UploadOutcome.Waiting, null));
             }
             else if (!command.SignatureValid)
             {
                 decisions.Add(UploadDecision.Rejected(command.Id, SignatureInvalid, retryable: false));
             }
-            else if (command.Sequence != lastSequence + 1)
+            else if (command.Sequence <= lastSequence || held.ContainsKey(command.Sequence))
             {
-                decisions.Add(command.Sequence <= lastSequence
-                    ? UploadDecision.Rejected(command.Id, SequenceReused, retryable: false)
-                    : UploadDecision.Rejected(command.Id, SequenceGap, retryable: true));
+                decisions.Add(UploadDecision.Rejected(command.Id, SequenceReused, retryable: false));
+            }
+            else if (command.Sequence > lastSequence + 1)
+            {
+                if (held.Count >= MaxWaiting)
+                {
+                    decisions.Add(UploadDecision.Rejected(command.Id, TooFarAhead, retryable: true));
+                }
+                else
+                {
+                    held.Add(command.Sequence, command);
+                    heldIds.Add(command.Id);
+                    decisions.Add(new UploadDecision(command.Id, UploadOutcome.Waiting, null));
+                }
             }
             else
             {
-                var decision = await handle(command, index).ConfigureAwait(false);
+                var decision = await handle(command).ConfigureAwait(false);
+                decisions.Add(decision);
                 if (decision.Stored)
                 {
                     lastSequence = command.Sequence;
                     accepted.Add(command.Id);
+                    await DrainAsync().ConfigureAwait(false);
                 }
-
-                decisions.Add(decision);
             }
         }
 
-        return (decisions, lastSequence);
+        var missing = new List<long>();
+        if (held.Count > 0)
+        {
+            for (var n = lastSequence + 1; n < held.Keys.Max() && missing.Count < MaxMissingListed; n++)
+            {
+                if (!held.ContainsKey(n))
+                {
+                    missing.Add(n);
+                }
+            }
+        }
+
+        // A command answered "waiting" earlier in the batch may have been handled since: answer what became of it.
+        var answered = decisions.Select(d => d.Outcome == UploadOutcome.Waiting && finals.TryGetValue(d.Id, out var final) ? final : d).ToList();
+        return new UploadPlan(answered, lastSequence, missing, [.. held.Values.Where(h => h.Index >= 0)], promoted);
+
+        // The commands held for the numbers just reached, in order; one that is not stored stops the run.
+        async Task DrainAsync()
+        {
+            while (held.TryGetValue(lastSequence + 1, out var next))
+            {
+                var decision = await handle(next).ConfigureAwait(false);
+                finals[next.Id] = decision;
+                if (next.Index >= 0)
+                {
+                    decisions[next.Index] = decision;
+                }
+                else
+                {
+                    promoted.Add(decision);
+                }
+
+                if (!decision.Stored)
+                {
+                    if (next.Index >= 0)
+                    {
+                        // Sent in this batch and answered rejected: not kept as waiting, the tablet sends it again.
+                        held.Remove(next.Sequence);
+                        heldIds.Remove(next.Id);
+                    }
+
+                    return;
+                }
+
+                held.Remove(next.Sequence);
+                lastSequence = next.Sequence;
+                accepted.Add(next.Id);
+            }
+        }
     }
 
     [GeneratedRegex("^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+\\.v[1-9][0-9]*$")]
@@ -316,4 +421,51 @@ public sealed class UnhandledCommand : ITenantOwned
     public string Reason { get; private set; } = null!;
 
     public DateTimeOffset ReceivedAt { get; private set; }
+}
+
+/// <summary>
+/// A command that came before an earlier number of its device (ADR-0031 §4): kept as the tablet signed it, outside the
+/// sequence, and handled as soon as the numbers before it are in. A row whose command is in the inbox has been handled.
+/// Append-only.
+/// </summary>
+public sealed class WaitingCommand : ITenantOwned
+{
+    public WaitingCommand(TenantId tenantId, Guid deviceId, SignedCommand command, DateTimeOffset receivedAt)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        TenantId = tenantId;
+        DeviceId = deviceId;
+        Id = command.Id;
+        Sequence = command.Sequence;
+        Type = command.Type;
+        DeviceTime = command.DeviceTime;
+        Body = command.Body;
+        Signature = command.Signature;
+        ReceivedAt = receivedAt;
+    }
+
+    // EF Core
+    private WaitingCommand()
+    {
+    }
+
+    public CommandId Id { get; private set; }
+
+    public TenantId TenantId { get; private set; }
+
+    public Guid DeviceId { get; private set; }
+
+    public long Sequence { get; private set; }
+
+    public string Type { get; private set; } = null!;
+
+    public DateTimeOffset DeviceTime { get; private set; }
+
+    public string Body { get; private set; } = null!;
+
+    public string Signature { get; private set; } = null!;
+
+    public DateTimeOffset ReceivedAt { get; private set; }
+
+    public SignedCommand Command => new(Id, Sequence, Type, DeviceTime, Body, Signature);
 }

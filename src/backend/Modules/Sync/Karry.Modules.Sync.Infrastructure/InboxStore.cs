@@ -23,7 +23,11 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
             var unhandled = (await db.Unhandled.Where(c => c.DeviceId == deviceId && ids.Contains(c.Id)).Select(c => c.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
             var last = await db.Inbox.Where(c => c.DeviceId == deviceId && c.Status == InboxStatus.Received)
                 .MaxAsync(c => (long?)c.Sequence, cancellationToken).ConfigureAwait(false) ?? 0;
-            return new Session(db, transaction, stored, unhandled, last);
+            // Waiting rows whose command reached the inbox were handled: only the others still wait (bounded by MaxWaiting).
+            var waiting = await db.Waiting.Where(w => w.DeviceId == deviceId && w.Sequence > last
+                    && !db.Inbox.Any(i => i.DeviceId == w.DeviceId && i.Id == w.Id))
+                .OrderBy(w => w.Sequence).Take(InboxRules.MaxWaiting).ToListAsync(cancellationToken).ConfigureAwait(false);
+            return new Session(db, transaction, stored, unhandled, last, waiting);
         }
         catch
         {
@@ -32,7 +36,9 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
         }
     }
 
-    private sealed class Session(SyncDbContext db, IDbContextTransaction transaction, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last)
+    private sealed class Session(
+        SyncDbContext db, IDbContextTransaction transaction, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last,
+        IReadOnlyList<WaitingCommand> waiting)
         : IInboxSession, ISyncTransaction
     {
         public IReadOnlySet<CommandId> Stored => stored;
@@ -40,6 +46,8 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
         public IReadOnlySet<CommandId> Unhandled => unhandled;
 
         public long LastSequence => last;
+
+        public IReadOnlyList<WaitingCommand> Waiting => waiting;
 
         public ISyncTransaction Transaction => this;
 
@@ -58,6 +66,8 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
         public void Add(ProcessedCommand processed) => db.Processed.Add(processed);
 
         public void Add(UnhandledCommand unhandled) => db.Unhandled.Add(unhandled);
+
+        public void Add(WaitingCommand waiting) => db.Waiting.Add(waiting);
 
         public async Task<bool> CommitAsync(CancellationToken cancellationToken)
         {

@@ -7768,6 +7768,7 @@
         "required": [
           "results",
           "lastSequence",
+          "missingSequences",
           "serverTime"
         ],
         "type": "object",
@@ -7785,6 +7786,17 @@
               "string"
             ],
             "format": "int64"
+          },
+          "missingSequences": {
+            "type": "array",
+            "items": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int64"
+            }
           },
           "serverTime": {
             "type": "string",
@@ -8039,7 +8051,7 @@
             }
           }
         },
-        "description": "What happened to one command: `accepted`, `conflict` (stored and flagged, IReadOnlyList&lt;string&gt; CommandReceipt.Flags),\n`duplicate` or `rejected` (with string? CommandReceipt.Code; bool CommandReceipt.Retryable when sending it again later\ncan succeed). Every status but `rejected` is final: the tablet marks the command sent."
+        "description": "What happened to one command: `accepted`, `conflict` (stored and flagged, IReadOnlyList&lt;string&gt; CommandReceipt.Flags),\n`duplicate`, `waiting` (kept until an earlier number comes) or `rejected` (with string? CommandReceipt.Code;\nbool CommandReceipt.Retryable when sending it again later can succeed). Every status but `rejected` means the server\nhas the command: the tablet marks it sent."
       },
       "ConversionFactorResponse": {
         "required": [
