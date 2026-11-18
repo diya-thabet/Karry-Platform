@@ -3,8 +3,10 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Karry.BuildingBlocks.Devices;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Trust.Contracts;
+using Karry.Modules.Trust.Domain;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,6 +70,8 @@ public sealed class EnvelopeRecorderTests(LedgerDatabase postgres) : IClassFixtu
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.signature_envelopes")).Should().Be(1);
         var ledger = await ScalarAsync<string>(database.Admin, $"SELECT payload::text FROM audit.ledger_entries WHERE event_type = '{EnvelopeLedger.ReceivedEvent}'");
         JsonNode.Parse(ledger)!["envelopeHash"]!.GetValue<string>().Should().Be(hash);
+        // A typed event: the audit viewer turns it back into the event and finds the envelope to verify.
+        (new EventSerializer([typeof(EnvelopeReceived).Assembly]).Deserialize(EnvelopeLedger.ReceivedEvent, ledger) as EnvelopeReceived)!.EnvelopeHash.Should().Be(hash);
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries")).Should().Be(1);
     }
 

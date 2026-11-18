@@ -219,6 +219,10 @@ signed part, as in ADR-0007.
   at its own level (browser signing against shared vectors, the pad in Chromium, recording, countersigning with a
   rotation, verification). Wiring the pad and the badge into signed records comes with the records.
 
+- **Fixed in P2.5 (found by the browser E2E):** the ledger entry `trust.envelope_received.v1` was written as an untyped
+  payload, so the audit API returned no event for it and the portal's "Verified" badge never appeared on a real
+  signature (its tests used a fake API). It is now the typed event `EnvelopeReceived` (Trust domain), written with the
+  event serializer; `EnvelopeRecorderTests` reads it back. Entries written before stay without the badge.
 ### 7. Security review (P2.3 close-out, 2026-11-09)
 
 | Threat | Question | Answer, and the test that proves it |

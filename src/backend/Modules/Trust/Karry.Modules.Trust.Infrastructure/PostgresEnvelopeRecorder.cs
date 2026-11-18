@@ -1,10 +1,11 @@
 using System.Data.Common;
 using System.Text;
-using System.Text.Json;
 using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Ledger;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Trust.Contracts;
+using Karry.Modules.Trust.Domain;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.Extensions.Logging;
 using Npgsql;
@@ -80,16 +81,13 @@ internal sealed partial class PostgresEnvelopeRecorder(IDeviceDirectory devices,
             ("signature", submission.DeviceSignature), ("command", submission.CommandId), ("received_at", submission.ReceivedAt),
             ("ledger_event_id", ledgerEventId)).ConfigureAwait(false);
 
-        var received = JsonSerializer.Serialize(new
+        // Written as the typed event, so the audit viewer reads it back (and shows the envelope's verification).
+        var received = EventSerializer.Serialize(new EnvelopeReceived(
+            envelopeId, hash, envelope.GetProperty("recordType").GetString()!, envelope.GetProperty("recordId").GetString()!,
+            envelope.GetProperty("recordVersion").GetInt32(), submission.DeviceId, submission.CommandId, submission.ReceivedAt)
         {
-            envelopeId,
-            envelopeHash = hash,
-            recordType = envelope.GetProperty("recordType").GetString(),
-            recordId = envelope.GetProperty("recordId").GetString(),
-            recordVersion = envelope.GetProperty("recordVersion").GetInt32(),
-            deviceId = submission.DeviceId,
-            commandId = submission.CommandId,
-            receivedAt = submission.ReceivedAt,
+            EventId = ledgerEventId,
+            OccurredAt = submission.ReceivedAt,
         });
         await ledger.AppendAsync(connection, transaction, tenant,
             [new LedgerRecord(tenant, ledgerEventId, EnvelopeLedger.ReceivedEvent, received, submission.ReceivedAt)], cancellationToken).ConfigureAwait(false);
