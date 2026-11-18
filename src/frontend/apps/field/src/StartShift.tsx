@@ -163,6 +163,9 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   const blockedBefore = assessment?.block === "machineInUse" || assessment?.block === "alreadyRunning";
   const reasonMissing = assessment?.needsReason === true && remarks.trim() === "";
   const ready = meter !== null && photo !== null && assessment?.block === null && !reasonMissing;
+  // A segment ended during this shift is handed over (US-P2-FO-05 AC1): the start names it, and the server checks
+  // continuity against that end.
+  const handoverFrom = shift && state.lastEnd && Date.parse(state.lastEnd.at) >= shift.startsAt ? state.lastEnd.entryId : null;
 
   const sign = async (signature: { strokesJson: string; png: Uint8Array }) => {
     if (!meter || !photo) {
@@ -175,6 +178,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
       await signStart(db, { userId: session.userId, appVersion: environment.appVersion, now, position: environment.position }, {
         assetId: machine.id, meterId: meter.id, startedAt: now(), startValue: value.trim(), fuelStartPercent: fuel, photo, signature,
         ...(remarks.trim() === "" ? {} : { remarks: remarks.trim() }),
+        ...(handoverFrom === null ? {} : { previousRootId: handoverFrom }),
       });
       await close();
       onDone();

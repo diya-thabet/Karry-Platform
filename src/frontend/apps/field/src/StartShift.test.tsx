@@ -20,6 +20,7 @@ vi.mock("./SignStep", () => ({
 const site = "0192f0c1-0000-7000-8000-000000005001";
 const asset = "0192f0c1-0000-7000-8000-000000000a01";
 const meter = "0192f0c1-0000-7000-8000-000000000b01";
+const previousEntry = "0192f0c1-0000-7000-8000-0000000e0000";
 const operator = { userId: "0192f0c1-0000-7000-8000-000000000501", name: "Karim", employeeId: "OP-1", checkedBy: "tablet" as const };
 
 async function tablet(): Promise<{ db: KarryOfflineDb; device: DeviceRecord }> {
@@ -43,7 +44,7 @@ async function tablet(): Promise<{ db: KarryOfflineDb; device: DeviceRecord }> {
     words: ["pe", "01", "pelle"],
   });
   await db.meters.put({ id: meter, assetId: asset, kind: "hours", unit: "h", status: "ok" });
-  await db.meterStates.put({ id: meter, lastEnd: { entryId: "e0", value: "1200.0", at: "2026-11-09T21:00:00Z" }, open: null });
+  await db.meterStates.put({ id: meter, lastEnd: { entryId: previousEntry, value: "1200.0", at: "2026-11-09T21:00:00Z" }, open: null });
   return { db, device };
 }
 
@@ -97,6 +98,8 @@ describe("starting a shift on the tablet (US-P2-FO-01, P2.5)", () => {
     expect(command?.type).toBe(startCommand);
     expect((command?.payload as { record: unknown }).record).toMatchObject({
       assetId: asset, meterId: meter, startValue: "1200.5", fuelStartPercent: 50, startedAt: "2026-11-10T02:02:00.000Z", startPhoto: `sha256:${"a".repeat(64)}`,
+      // The previous segment ended when this night shift began: a handover within the shift (US-P2-FO-05 AC1).
+      previousRootId: previousEntry,
     });
     await db.delete();
   });

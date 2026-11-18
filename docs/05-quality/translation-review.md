@@ -98,6 +98,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-09 | `portal.signature.*` (17 keys: the verification badge, its checks and results) | ar, emk, nqo | P2.3 portal "Verified" badge |
 | 2026-11-09 | `field.camera.*` (10 keys: viewfinder, focus help, take, retake, keep, preview, cancel, failures) | ar, emk, nqo | P2.5 in-app camera for meter photos |
 | 2026-11-18 | `field.start.*` (33 keys: the start-of-shift screen, its blocks, summary and restored draft), `field.machines.choose`; `field.action.meter` removed | ar, emk, nqo | P2.5 start of shift: "below the previous end" and "machine in use" are the messages operators will read most |
+| 2026-11-18 | `field.end.*` (25 keys: end of shift, Δ, stoppage reasons, blocks), `field.active.label` | ar, emk, nqo | P2.5 end of shift: the stoppage reasons are a fixed list until the owner confirms the codes |
 
 ## 6. Not translated yet
 
