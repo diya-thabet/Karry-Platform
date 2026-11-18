@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download, Droplets, Gauge, HardDriveDownload, Lock, Mountain, ScanLine, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, Download, Droplets, HardDriveDownload, Lock, Mountain, Play, ScanLine, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
 import { Enroll } from "./Enroll";
 import { MachineFinder } from "./MachineFinder";
+import type { Camera, Photo } from "./camera";
 import { findMachine, type QrScanner } from "./machines";
 import { OutboxStatus } from "./OutboxStatus";
 import { ReferenceStatus } from "./ReferenceStatus";
+import type { Position } from "./signShiftEntry";
+import { StartShift } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useAutoLock } from "./autoLock";
@@ -15,9 +18,8 @@ import { Unlock } from "./UnlockScreen";
 import type { Session, UnlockFailure } from "./unlock";
 import { useUpdateAvailable, type AppUpdates } from "./updates";
 
-const actions: { key: "field.action.fuel" | "field.action.meter" | "field.action.production" | "field.action.issue"; icon: LucideIcon }[] = [
+const actions: { key: "field.action.fuel" | "field.action.production" | "field.action.issue"; icon: LucideIcon }[] = [
   { key: "field.action.fuel", icon: Droplets },
-  { key: "field.action.meter", icon: Gauge },
   { key: "field.action.production", icon: Mountain },
   { key: "field.action.issue", icon: TriangleAlert },
 ];
@@ -39,6 +41,13 @@ export interface FieldEnvironment {
   unlock: (employeeId: string, pin: string) => Promise<Session | UnlockFailure>;
   /** The camera's QR reader, null where the browser or the tablet has none (typed codes only). */
   scanner: QrScanner | null;
+  /** The back camera for evidence photos (P2.5), null where the browser has none. */
+  camera: Camera | null;
+  /** Takes the photo of the camera's frame with this tablet's capture record. */
+  take: (video: HTMLVideoElement, deviceId: string) => Promise<Photo>;
+  /** The position for a signature envelope, null when the browser gives none in time. */
+  position: () => Promise<Position | null>;
+  appVersion: string;
 }
 
 /** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
@@ -86,10 +95,24 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
 }) {
   const { t } = useTranslation();
   const [finding, setFinding] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [started, setStarted] = useState(false);
   const find = useCallback((text: string) => findMachine(environment.db, text), [environment.db]);
   useAutoLock(autoLockMinutes, lock);
   if (finding) {
     return <MachineFinder find={find} scanner={environment.scanner} onBack={() => { setFinding(false); }} />;
+  }
+
+  if (starting) {
+    return (
+      <StartShift
+        environment={{
+          db: environment.db, device, session, scanner: environment.scanner, camera: environment.camera, appVersion: environment.appVersion,
+          take: (video) => environment.take(video, device.deviceId), position: environment.position,
+        }}
+        onDone={() => { setStarting(false); setStarted(true); }}
+        onCancel={() => { setStarting(false); }} />
+    );
   }
 
   return (
@@ -111,7 +134,17 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
       <StorageWarning persisted={environment.persisted} />
       <ReferenceStatus db={environment.db} device={device} pull={environment.pull} />
       <OutboxStatus db={environment.db} />
-      <Button block onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
+      {started && (
+        <p role="status" className="flex items-center gap-2 rounded-xl bg-success-soft p-4 font-medium">
+          <CircleCheck aria-hidden className="size-6 text-success" />
+          {t("field.start.saved")}
+        </p>
+      )}
+      <Button block onClick={() => { setStarted(false); setStarting(true); }} className="min-h-20 text-xl">
+        <Play aria-hidden className="size-8" />
+        {t("field.start.open")}
+      </Button>
+      <Button block variant="secondary" onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
         <ScanLine aria-hidden className="size-8" />
         {t("field.machines.open")}
       </Button>

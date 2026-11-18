@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "description": "Design system: tokens, light/dark/outdoor themes, accessible components (US-P1-OFF-05).",
   "type": "module",
+  "sideEffects": ["*.css"],
   "exports": {
     ".": "./src/index.ts",
     "./styles.css": "./src/styles.css"

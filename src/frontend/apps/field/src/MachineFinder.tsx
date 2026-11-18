@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowLeft, ScanLine, X } from "lucide-react";
+import { ArrowLeft, Check, ScanLine, X } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import type { StoredAsset } from "@karry/offline";
 import { Button, TextField } from "@karry/ui";
@@ -21,11 +21,15 @@ function MachineCard({ machine }: { machine: StoredAsset }) {
  * "Find a machine" (P1.15, ADR-0028 §5): scan its QR label with the back camera, or type its code, name or label; the
  * answer comes from the tablet's reference data, with or without network. Phase 2 forms open this to pick a machine.
  */
-export function MachineFinder({ find, scanner, onBack }: {
+export function MachineFinder({ find, scanner, onBack, onChoose, title }: {
   /** Looks a scan or typed text up in the tablet's reference data (`findMachine`). */
   find: (text: string) => Promise<MachineLookup>;
   scanner: QrScanner | null;
   onBack: () => void;
+  /** Given, a form uses the finder to pick its machine: the selected machine gets a "use this machine" button. */
+  onChoose?: (machine: StoredAsset) => void;
+  /** The heading, when a form opens the finder. */
+  title?: string;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -84,7 +88,7 @@ export function MachineFinder({ find, scanner, onBack }: {
         <Button variant="secondary" onClick={onBack} aria-label={t("field.machines.back")}>
           <ArrowLeft aria-hidden className="size-6 rtl:-scale-x-100" />
         </Button>
-        <h1 className="text-3xl font-bold">{t("field.machines.title")}</h1>
+        <h1 className="text-3xl font-bold">{title ?? t("field.machines.title")}</h1>
       </header>
       {scanner && !scanning && (
         <Button block onClick={() => { setCameraFailed(false); setScanning(true); }} className="min-h-20 text-xl">
@@ -106,6 +110,12 @@ export function MachineFinder({ find, scanner, onBack }: {
         value={text} onChange={(e) => { setText(e.target.value); void look(e.target.value); }}
         autoCapitalize="characters" autoComplete="off" spellCheck={false} />
       {selected && <MachineCard machine={selected} />}
+      {selected && onChoose && (
+        <Button block onClick={() => { onChoose(selected); }} className="min-h-16 text-xl">
+          <Check aria-hidden className="size-6" />
+          {t("field.machines.choose")}
+        </Button>
+      )}
       {lookup?.kind === "unknown-label" && <p role="alert" className="font-medium text-danger">{t("field.machines.unknownLabel")}</p>}
       {lookup?.kind === "search" && text.trim() !== "" && !selected && (
         lookup.machines.length === 0

@@ -6,7 +6,9 @@ import { initErrorTracking } from "@karry/observability";
 import { openOfflineDb } from "@karry/offline";
 import { savedLanguage } from "@karry/ui";
 import { App } from "./App";
+import { browserCamera, takePhoto } from "./camera";
 import { browserScanner } from "./machines";
+import { browserPosition } from "./signShiftEntry";
 import { codeOf, companyOf, deviceInfo, enrollTablet } from "./tablet";
 import { unlock } from "./unlock";
 import { syncTablet } from "./uploads";
@@ -52,6 +54,10 @@ createRoot(root).render(
       pull: () => syncTablet(db),
       unlock: (employeeId, pin) => unlock(db, employeeId, pin),
       scanner: await browserScanner(),
+      camera: browserCamera(),
+      take: (video, deviceId) => takePhoto(video, { deviceId, appVersion: release }),
+      position: browserPosition(),
+      appVersion: release,
     }} />
   </StrictMode>,
 );
