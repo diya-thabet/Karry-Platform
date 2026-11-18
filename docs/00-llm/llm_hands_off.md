@@ -181,7 +181,9 @@ Do **not** implement these as written in the codex. Use the corrected version.
 
 ## 5. Traps, Gotchas & Environment Notes
 
-- **Owner's environment:** Fedora Linux (kernel 7.x), bash, repo at `~/Desktop/Karry-Platform`. Git user `diya-thabet`.
+- **Owner's environment since 2026-11-18: Windows 11**, repo at `E:\Karry-Platform`, PowerShell 5.1 (and Git Bash), 15 GB RAM. Git user `diya-thabet`. The Linux notes below (Fedora, `~/.dotnet`, `sg docker`, zram) are history. Toolchain installed per user, no admin, checksums verified: .NET SDK 10.0.402 in `%LOCALAPPDATA%\Microsoft\dotnet` (`dotnet-install.ps1`, Microsoft-signed), Node 24.22.3 in `%LOCALAPPDATA%\Programs\node-v24.22.3-win-x64` (zip from nodejs.org; winget has no Node 24, its LTS is 26, outside `engines`), pnpm 12.15.0 through corepack, `gh` 2.103.3 in `%LOCALAPPDATA%\Programs\gh\bin` (2.105.0 was hours old: 7-day rule). All on the user `Path`; a shell started before needs `$env:Path` set by hand. Docker Desktop (WSL 2) is started only for test runs and stopped after (the VM takes up to 8 GB). Python 3.14 is `python` (`python3` is the Store alias stub).
+- **Windows traps:** set `git config core.fileMode false` (the checkout otherwise shows every `.sh` as changed: mode bits) and `git config core.autocrlf input` (Git for Windows defaults to `true`, which checks files out with CRLF; `.editorconfig` and CI want LF). Never write repository files with PowerShell 5.1 `Set-Content`/`Out-File`: they add a UTF-8 BOM (and `Set-Content` uses the ANSI code page); use the editor tools or `[IO.File]::WriteAllText($p, $t, (New-Object Text.UTF8Encoding($false)))`. `Karry.Host` builds the contract from XML comments, which carry `\r\n` on Windows: `OpenApiLineEnds` writes every description with `\n`, so `openapi/v1.json` is the same on Windows and in CI. `Invoke-WebRequest` needs `-UseBasicParsing` in a non-interactive shell. The npm registry answered at 30–50 KB/s on 2026-11-18: a cold `pnpm install` took about half an hour; run it in the background with `--reporter=append-only` to a log. The first Testcontainers run pulls the TimescaleDB image (about 4 min).
+- **Owner's environment until 2026-11-17:** Fedora Linux (kernel 7.x), bash, repo at `~/Desktop/Karry-Platform`.
 - **Language of the owner:** writes in English (informal); product is bilingual FR/EN. Domain words are often French (*carrière, pontier, magasin général, tapis roulant / sebta, panne compteur, courbes et graphiques*). Keep the glossary in [Glossary (EN / FR) §27](../03-domain/glossary.md) up to date.
 - **Owner preference:** wants very detailed, "very pro", enterprise-grade outputs and firm architect opinions with reasoning, not neutral option lists.
 - **Git push works** (since 2026-10-22): owner ran `gh auth login` + `gh auth setup-git`; `gh` (`/usr/bin/gh`) is logged in as `diya-thabet` with `repo` + `workflow` scopes. Use `gh run list/watch/view --log-failed` to check CI after every push. Never force-push without the owner's explicit approval.
@@ -272,7 +274,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.4 ✅** (#147–#174), P2.5 next: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P2 Field operations | **P2.0–P2.4 ✅** (#147–#174), **P2.5 in progress** (slices 1–2 #175–#176, plan #177, slice 3a meter states; [slice plan](../04-phases/phase-02-field-operations/p2.5-capture-flows-plan.md)): see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
 | P3–P11 | Not started |
 
 ---
@@ -345,6 +347,14 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-18 — Windows machine; P2.5 slice 3a meter states (agent)
+- **Goal:** owner moved to Windows: install the toolchain, keep building phase after phase, cloud items still deferred, low RAM, push to GitHub.
+- **Done:** toolchain installed per user (§5 "Owner's environment since 2026-11-18"). P2.5 slice 3a on `feat/p2.5-meter-states`: `MeterStatesSync` (FieldOps `ISyncSource`, collection `meterStates`), `@karry/offline` schema v3 (`meterStates` table, `MeterStateRow`), `apps/field/src/meterState.ts` (pulled row + the tablet's own shift commands). Plan split slice 3 into 3a/3b; drafts moved to slice 5 (schema v4).
+- **Verification:** `dotnet test --project src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Tests` → 121/121 on Windows with Docker Desktop.
+- **Mistakes / lessons:** EF `FromSqlRaw` onto `ShiftEntryVersion` fails (`column k.EndPosition_AccuracyM does not exist`): raw SQL cannot be mapped onto an entity with optional complex properties; return IDs with `Database.SqlQueryRaw<Guid>` (`AS "Value"`) and load through LINQ. An entry's `site_id` is the sending tablet's site, not the asset's. PowerShell `Set-Content` added a BOM to a test file (fixed; §5 Windows traps).
+- **Found for 3b:** the server's shift resolution skips non-working days, which the tablet does not pull yet (plan slice 3b).
+- **Next:** P2.5 slice 3b: shift resolution on the tablet (`shift-resolution.json` vectors both sides, non-working days in the pull).
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).

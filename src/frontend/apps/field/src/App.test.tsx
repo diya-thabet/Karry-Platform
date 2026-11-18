@@ -195,7 +195,7 @@ describe("finding a machine (P1.15, ADR-0028 §5)", () => {
       full: true, cursor: "c1", serverTime: "2026-10-28T10:00:00Z",
       changes: {
         sites: { upserts: [], removes: [] }, shiftPatterns: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
-        materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] },
+        materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] },
         assets: { upserts: [machine("a1", "PE-01", "Pelle 1", label), machine("a2", "PE-02", "Pelle 2", null), machine("t1", "TO-01", "Tombereau", null)], removes: [] },
       },
     });
@@ -322,6 +322,7 @@ describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
           meters: { upserts: [], removes: [] },
           materials: { upserts: [], removes: [] },
           users: { upserts: [{ id: "u1", employeeId: "OP-1", name: "Karim", pin: null }, { id: "u2", employeeId: "OP-2", name: "Sami", pin: null }], removes: [] },
+          meterStates: { upserts: [], removes: [] },
         },
       });
       return "ok" as const;
