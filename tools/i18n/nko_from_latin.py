@@ -217,7 +217,8 @@ def main(argv: list[str]) -> int:
 
     existing = json.loads(target.read_text(encoding="utf-8")) if args.missing and target.exists() else {}
     nko = merge(latin, existing)
-    target.write_text(json.dumps(nko, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    # newline="\n": the catalogs keep LF line ends on Windows too.
+    target.write_text(json.dumps(nko, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     added = [key for key in nko if key not in existing]
     print(f"nqo.json: {len(added)} of {len(nko)} messages spelled from emk.json (draft: tones to be added by a native reader)")
     for key in added if args.missing else []:

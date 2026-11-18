@@ -23,7 +23,7 @@ function environment(overrides: Partial<FieldEnvironment> = {}): FieldEnvironmen
   return {
     db: openOfflineDb(`field-${crypto.randomUUID()}`), updates: createUpdates(), persisted: Promise.resolve(true),
     company: "demo-carriere-a", code: null, enroll: vi.fn(device), pull: vi.fn(() => Promise.resolve("ok" as const)),
-    unlock: vi.fn(() => Promise.resolve(operator)), scanner: null, ...overrides,
+    unlock: vi.fn(() => Promise.resolve(operator)), scanner: null, camera: null, take: vi.fn(), position: () => Promise.resolve(null), appVersion: "test", ...overrides,
   } as FieldEnvironment & { updates: ReturnType<typeof createUpdates> };
 }
 
@@ -270,12 +270,13 @@ describe("finding a machine (P1.15, ADR-0028 §5)", () => {
 });
 
 describe("field home (US-P1-OFF-01/05/06, TC-P1-PLT-015)", () => {
-  it("shows the four field actions as large buttons, not usable before their phase (UX-16), in the outdoor theme and field density", async () => {
+  it("offers to start a shift, and shows the field actions of later phases as large buttons not usable yet (UX-16), in the outdoor theme and field density", async () => {
     await renderHome(await enrolled());
 
+    expect(await screen.findByRole("button", { name: "Commencer mon poste" })).toBeEnabled();
     const nav = await screen.findByRole("navigation", { name: "Actions terrain" });
     const actions = within(nav).getAllByRole("button");
-    expect(actions.map((b) => b.textContent)).toEqual(["CarburantBientôt disponible", "Compteur horaireBientôt disponible", "ProductionBientôt disponible", "Signaler un problèmeBientôt disponible"]);
+    expect(actions.map((b) => b.textContent)).toEqual(["CarburantBientôt disponible", "ProductionBientôt disponible", "Signaler un problèmeBientôt disponible"]);
     for (const action of actions) {
       expect(action).toBeDisabled();
     }
