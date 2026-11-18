@@ -14,7 +14,7 @@ const user = (n: number, employeeId = `OP-${String(n)}`) => ({ id: `0192f0c1-000
 const allCollections = (overrides: Partial<ChangeSet["changes"]> = {}): ChangeSet["changes"] => ({
   sites: { upserts: [{ id: site, code: "CAR-NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
   shiftPatterns: { upserts: [], removes: [] }, assets: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
-  materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] },
+  materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
   ...overrides,
 });
 
@@ -107,8 +107,8 @@ describe("reference data (US-P1-OFF-03 AC1/AC2)", () => {
   });
 });
 
-describe("schema upgrade (P2.5, schema v3)", () => {
-  it("opens a v2 database with its outbox and blobs intact and an empty meter state table", async () => {
+describe("schema upgrade (P2.5, schemas v3 and v4)", () => {
+  it("opens a v2 database with its outbox and blobs intact and the new tables empty", async () => {
     const name = `upgrade-${String(++n)}`;
     const v2 = new Dexie(name);
     v2.version(1).stores({ device: "id", settings: "id", sites: "id, code", shiftPatterns: "id, siteId", assets: "id, code, labelCode, siteId, *words", meters: "id, assetId", materials: "id, code", users: "id, &employeeId", syncState: "collection", unlocks: "userId", outbox: "commandId, &sequence, status" });
@@ -122,7 +122,8 @@ describe("schema upgrade (P2.5, schema v3)", () => {
     expect(await upgraded.outbox.count()).toBe(1);
     expect(await upgraded.blobs.count()).toBe(1);
     expect(await upgraded.meterStates.count()).toBe(0);
-    expect(upgraded.verno).toBe(3);
+    expect(await upgraded.nonWorkingDays.count()).toBe(0);
+    expect(upgraded.verno).toBe(4);
     await upgraded.delete();
   });
 });

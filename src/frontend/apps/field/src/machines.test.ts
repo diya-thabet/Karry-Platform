@@ -15,7 +15,7 @@ async function tablet(): Promise<KarryOfflineDb> {
     full: true, cursor: "c1", serverTime: "2026-10-28T10:00:00Z",
     changes: {
       sites: { upserts: [], removes: [] }, shiftPatterns: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
-      materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] },
+      materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
       assets: { upserts: [machine("a1", "PE-01", "Pelle", `KRY1:${token}`), machine("a2", "PE-02", "Pelle", null), machine("t1", "TO-01", "Tombereau", `KRY1:${other}`)], removes: [] },
     },
   });

@@ -1,0 +1,94 @@
+{
+  "description": "Which shift an instant belongs to (ADR-0024, ADR-0034 §2), hand-written: the shift running at that instant, else the one starting within 60 minutes after it, else none. Shifts are wall-clock times on the site's clock; an end not after the start ends the next day, equal times mean 24 hours; no shift starts on a non-working day. A start or end inside a spring-forward gap moves forward by the gap; one inside a fall-back overlap takes the earlier offset; a shift the clock change makes empty does not happen. Read by ShiftCalendarVectorsTests (server, NodaTime) and shifts.test.ts (field app, Intl), so the tablet preselects the shift the server will store (P2.5, TC-P2-FO-001). Times: 'at', 'startsAt', 'endsAt' are UTC instants; 'date' is the site's local date the shift starts on.",
+  "patterns": {
+    "threeEights": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "M", "name": "Matin", "start": "06:00", "end": "14:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        { "code": "A", "name": "Après-midi", "start": "14:00", "end": "22:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        { "code": "N", "name": "Nuit", "start": "22:00", "end": "06:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ],
+    "dayOnly": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "D", "name": "Jour", "start": "07:00", "end": "15:00", "days": ["mon", "tue", "wed", "thu", "fri"] }
+      ] }
+    ],
+    "versionSwitch": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "M", "name": "Matin", "start": "06:00", "end": "14:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        { "code": "A", "name": "Après-midi", "start": "14:00", "end": "22:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        { "code": "N", "name": "Nuit", "start": "22:00", "end": "06:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] },
+      { "effectiveFrom": "2026-11-10", "shifts": [
+        { "code": "J", "name": "Jour", "start": "07:00", "end": "19:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] },
+        { "code": "NL", "name": "Nuit longue", "start": "19:00", "end": "07:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ],
+    "allDay": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "X", "name": "Continu", "start": "00:00", "end": "00:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ],
+    "night": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "N", "name": "Nuit", "start": "22:00", "end": "06:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ],
+    "early": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "E", "name": "Tôt", "start": "02:30", "end": "05:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ],
+    "inTheGap": [
+      { "effectiveFrom": "2026-01-01", "shifts": [
+        { "code": "G", "name": "Courte", "start": "02:30", "end": "03:00", "days": ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] }
+      ] }
+    ]
+  },
+  "cases": [
+    { "name": "a morning shift running", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": [], "at": "2026-11-09T07:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "M", "startsAt": "2026-11-09T05:00:00Z", "endsAt": "2026-11-09T13:00:00Z" } },
+    { "name": "an end is exclusive: the next shift has started", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": [], "at": "2026-11-09T13:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "A", "startsAt": "2026-11-09T13:00:00Z", "endsAt": "2026-11-09T21:00:00Z" } },
+    { "name": "a night shift before midnight", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": [], "at": "2026-11-09T22:30:00Z",
+      "shift": { "date": "2026-11-09", "code": "N", "startsAt": "2026-11-09T21:00:00Z", "endsAt": "2026-11-10T05:00:00Z" } },
+    { "name": "a night shift after midnight belongs to the day it started", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": [], "at": "2026-11-10T02:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "N", "startsAt": "2026-11-09T21:00:00Z", "endsAt": "2026-11-10T05:00:00Z" } },
+    { "name": "up to 60 minutes early belongs to the coming shift", "timeZone": "Africa/Tunis", "pattern": "dayOnly", "nonWorkingDays": [], "at": "2026-11-09T05:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "D", "startsAt": "2026-11-09T06:00:00Z", "endsAt": "2026-11-09T14:00:00Z" } },
+    { "name": "more than 60 minutes early belongs to no shift", "timeZone": "Africa/Tunis", "pattern": "dayOnly", "nonWorkingDays": [], "at": "2026-11-09T04:59:00Z",
+      "shift": null },
+    { "name": "after the last shift of the day", "timeZone": "Africa/Tunis", "pattern": "dayOnly", "nonWorkingDays": [], "at": "2026-11-09T14:00:00Z",
+      "shift": null },
+    { "name": "a day the shift does not run (Saturday)", "timeZone": "Africa/Tunis", "pattern": "dayOnly", "nonWorkingDays": [], "at": "2026-11-14T08:00:00Z",
+      "shift": null },
+    { "name": "no shift starts on a non-working day", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": ["2026-11-11"], "at": "2026-11-11T09:00:00Z",
+      "shift": null },
+    { "name": "the night of the day before runs into a non-working day", "timeZone": "Africa/Tunis", "pattern": "threeEights", "nonWorkingDays": ["2026-11-11"], "at": "2026-11-11T03:00:00Z",
+      "shift": { "date": "2026-11-10", "code": "N", "startsAt": "2026-11-10T21:00:00Z", "endsAt": "2026-11-11T05:00:00Z" } },
+    { "name": "a non-working day leaves no early start for its first shift", "timeZone": "Africa/Tunis", "pattern": "dayOnly", "nonWorkingDays": ["2026-11-09"], "at": "2026-11-09T05:30:00Z",
+      "shift": null },
+    { "name": "a new pattern version applies from its effective date", "timeZone": "Africa/Tunis", "pattern": "versionSwitch", "nonWorkingDays": [], "at": "2026-11-10T07:00:00Z",
+      "shift": { "date": "2026-11-10", "code": "J", "startsAt": "2026-11-10T06:00:00Z", "endsAt": "2026-11-10T18:00:00Z" } },
+    { "name": "the old version's night runs into the switch day", "timeZone": "Africa/Tunis", "pattern": "versionSwitch", "nonWorkingDays": [], "at": "2026-11-10T04:30:00Z",
+      "shift": { "date": "2026-11-09", "code": "N", "startsAt": "2026-11-09T21:00:00Z", "endsAt": "2026-11-10T05:00:00Z" } },
+    { "name": "after the old night, the new version's first shift starts early", "timeZone": "Africa/Tunis", "pattern": "versionSwitch", "nonWorkingDays": [], "at": "2026-11-10T05:30:00Z",
+      "shift": { "date": "2026-11-10", "code": "J", "startsAt": "2026-11-10T06:00:00Z", "endsAt": "2026-11-10T18:00:00Z" } },
+    { "name": "equal start and end times make a 24-hour shift", "timeZone": "Africa/Tunis", "pattern": "allDay", "nonWorkingDays": [], "at": "2026-11-09T12:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "X", "startsAt": "2026-11-08T23:00:00Z", "endsAt": "2026-11-09T23:00:00Z" } },
+    { "name": "a 24-hour shift hands over to the next day's at local midnight", "timeZone": "Africa/Tunis", "pattern": "allDay", "nonWorkingDays": [], "at": "2026-11-09T23:00:00Z",
+      "shift": { "date": "2026-11-10", "code": "X", "startsAt": "2026-11-09T23:00:00Z", "endsAt": "2026-11-10T23:00:00Z" } },
+    { "name": "a night across the spring-forward change is an hour shorter", "timeZone": "Europe/Paris", "pattern": "night", "nonWorkingDays": [], "at": "2026-03-29T03:00:00Z",
+      "shift": { "date": "2026-03-28", "code": "N", "startsAt": "2026-03-28T21:00:00Z", "endsAt": "2026-03-29T04:00:00Z" } },
+    { "name": "a start inside the spring-forward gap moves forward by the gap", "timeZone": "Europe/Paris", "pattern": "early", "nonWorkingDays": [], "at": "2026-03-29T02:00:00Z",
+      "shift": { "date": "2026-03-29", "code": "E", "startsAt": "2026-03-29T01:30:00Z", "endsAt": "2026-03-29T03:00:00Z" } },
+    { "name": "a shift the spring-forward change makes empty does not happen", "timeZone": "Europe/Paris", "pattern": "inTheGap", "nonWorkingDays": [], "at": "2026-03-29T01:15:00Z",
+      "shift": null },
+    { "name": "a night across the fall-back change is an hour longer", "timeZone": "Europe/Paris", "pattern": "night", "nonWorkingDays": [], "at": "2026-10-25T01:30:00Z",
+      "shift": { "date": "2026-10-24", "code": "N", "startsAt": "2026-10-24T20:00:00Z", "endsAt": "2026-10-25T05:00:00Z" } },
+    { "name": "a start inside the fall-back overlap takes the earlier offset", "timeZone": "Europe/Paris", "pattern": "early", "nonWorkingDays": [], "at": "2026-10-25T00:45:00Z",
+      "shift": { "date": "2026-10-25", "code": "E", "startsAt": "2026-10-25T00:30:00Z", "endsAt": "2026-10-25T04:00:00Z" } },
+    { "name": "a site west of UTC: the local date is the day before", "timeZone": "America/Lima", "pattern": "threeEights", "nonWorkingDays": [], "at": "2026-11-10T04:00:00Z",
+      "shift": { "date": "2026-11-09", "code": "N", "startsAt": "2026-11-10T03:00:00Z", "endsAt": "2026-11-10T11:00:00Z" } }
+  ]
+}
