@@ -1,9 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera as CameraIcon, CircleCheck, RotateCcw } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, MeterRow, StoredAsset } from "@karry/offline";
 import { Button, TextField } from "@karry/ui";
 import type { Camera, Photo } from "./camera";
+import { discardDraft, readDraft, saveDraft } from "./drafts";
 import { MachineFinder } from "./MachineFinder";
 import { findMachine, type QrScanner } from "./machines";
 import { readMeterState, type MeterState } from "./meterState";
@@ -31,6 +32,17 @@ export interface FormEnvironment {
   position: () => Promise<Position | null>;
   now?: () => Date;
 }
+
+/** What the start form keeps as a draft: everything but the signature. */
+interface StartDraft extends Record<string, unknown> {
+  machineId: string | null;
+  value: string;
+  fuel: number;
+  remarks: string;
+  photo: Photo | null;
+}
+
+const form = "start";
 
 interface Context {
   machine: StoredAsset;
@@ -61,6 +73,17 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   const [reviewing, setReviewing] = useState(false);
   const [signing, setSigning] = useState(false);
   const [failed, setFailed] = useState(false);
+  // The draft is read once before anything is written back, so an empty form never overwrites it.
+  const [restored, setRestored] = useState(false);
+  const [fromDraft, setFromDraft] = useState(false);
+  // Draft writes run one after the other, and none once the form is signed or left: a save still on its way must
+  // never bring back a draft that was just dropped.
+  const writes = useRef<Promise<void>>(Promise.resolve());
+  const closed = useRef(false);
+  const write = (step: () => Promise<void>) => {
+    writes.current = writes.current.then(step).catch(() => undefined);
+    return writes.current;
+  };
   const find = useCallback((text: string) => findMachine(db, text), [db]);
 
   useEffect(() => { void loadCamera(); void loadPad(); }, []);
@@ -78,8 +101,58 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
     setContext({ machine, meter, state, shift, runningElsewhere: await hasRunningSegment(db, session.userId), inUseBy });
   };
 
+  // An operator who was locked out mid-form (auto-lock, closed app) finds it as they left it (US-P2-FO-01 AC6, T-01).
+  useEffect(() => {
+    let active = true;
+    void readDraft<StartDraft>(db, session.userId, form, now()).then(async (draft) => {
+      const machine = draft?.machineId ? await db.assets.get(draft.machineId) : undefined;
+      if (!active) {
+        return;
+      }
+
+      if (draft) {
+        if (machine) {
+          await choose(machine);
+        }
+
+        setValue(draft.value);
+        setFuel(draft.fuel);
+        setRemarks(draft.remarks);
+        setPhoto(draft.photo);
+        setFromDraft(true);
+      }
+
+      setRestored(true);
+    });
+    return () => { active = false; };
+    // Read once, when the form opens for this operator.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [db, session.userId]);
+
+  const machineId = context?.machine.id ?? null;
+  useEffect(() => {
+    // Nothing chosen or typed yet: nothing to keep (an opened form is not a draft).
+    if (restored && (machineId !== null || value !== "" || remarks !== "" || photo !== null)) {
+      const values: StartDraft = { machineId, value, fuel, remarks, photo };
+      const at = now();
+      void write(() => (closed.current ? Promise.resolve() : saveDraft(db, session.userId, form, values, at)));
+    }
+    // Saved at every change of the form; the clock is not a reason to save.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [restored, db, session.userId, machineId, value, fuel, remarks, photo]);
+
+  /** Leaving on purpose drops the draft; a lock does not (the form is simply unmounted). */
+  const close = () => {
+    closed.current = true;
+    return write(() => discardDraft(db, session.userId, form));
+  };
+
+  const leave = () => {
+    void close().then(onCancel);
+  };
+
   if (context === null) {
-    return <MachineFinder find={find} scanner={environment.scanner} onBack={onCancel} onChoose={(m) => { void choose(m); }} title={t("field.start.title")} />;
+    return <MachineFinder find={find} scanner={environment.scanner} onBack={leave} onChoose={(m) => { void choose(m); }} title={t("field.start.title")} />;
   }
 
   const { machine, meter, state, shift } = context;
@@ -103,6 +176,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
         assetId: machine.id, meterId: meter.id, startedAt: now(), startValue: value.trim(), fuelStartPercent: fuel, photo, signature,
         ...(remarks.trim() === "" ? {} : { remarks: remarks.trim() }),
       });
+      await close();
       onDone();
     } catch {
       // A record refused by the shared rules cannot reach here (the button waits for them); anything else (storage
@@ -115,12 +189,14 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-5 p-4">
       <header className="flex flex-wrap items-center gap-3">
-        <Button variant="secondary" onClick={onCancel} aria-label={t("field.start.cancel")}>
+        <Button variant="secondary" onClick={leave} aria-label={t("field.start.cancel")}>
           <ArrowLeft aria-hidden className="size-6 rtl:-scale-x-100" />
         </Button>
         <h1 className="flex-1 text-3xl font-bold">{t("field.start.title")}</h1>
         <p className="font-semibold">{t("field.unlock.user", { name: session.name, employeeId: session.employeeId })}</p>
       </header>
+
+      {fromDraft && <p role="status" className="rounded-xl bg-surface-muted p-3 font-medium">{t("field.start.draftRestored")}</p>}
 
       <section aria-label={t("field.start.machine")} className="flex flex-col gap-1 rounded-xl border-[length:var(--karry-border-width)] border-divider bg-surface p-4">
         <p className="font-mono text-2xl font-bold">{machine.code}</p>

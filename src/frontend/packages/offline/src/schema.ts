@@ -115,6 +115,20 @@ export interface BlobRecord {
   purgeAfter: string | null;
 }
 
+/**
+ * A form an operator has begun and not signed (P2.5, US-P2-FO-01 AC6): one per operator and form, written at every
+ * step, never sent. It survives an auto-lock and a closed app; only the same operator reopens it (T-01). `values`
+ * belong to the form (the start screen's machine, value, fuel, remarks and photo).
+ */
+export interface DraftRecord {
+  /** `{operatorId}:{form}`. */
+  id: string;
+  operatorId: string;
+  form: string;
+  updatedAt: string;
+  values: Record<string, unknown>;
+}
+
 export type KarryOfflineDb = Dexie & {
   device: EntityTable<DeviceRecord, "id">;
   settings: EntityTable<SettingsRecord, "id">;
@@ -126,6 +140,7 @@ export type KarryOfflineDb = Dexie & {
   users: EntityTable<FieldUserRow, "id">;
   meterStates: EntityTable<MeterStateRow, "id">;
   nonWorkingDays: EntityTable<NonWorkingDayRow, "id">;
+  drafts: EntityTable<DraftRecord, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
   outbox: EntityTable<OutboxRecord, "commandId">;
@@ -133,7 +148,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v4 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states and v4 the non-working days of P2.5). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v5 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -163,6 +178,10 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   // v4 (P2.5): the site's non-working days, so the tablet resolves the shift as the server does.
   db.version(4).stores({
     nonWorkingDays: "id, siteId",
+  });
+  // v5 (P2.5): forms begun and not signed, per operator.
+  db.version(5).stores({
+    drafts: "id, operatorId",
   });
   return db;
 }

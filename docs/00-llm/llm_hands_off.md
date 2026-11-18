@@ -358,7 +358,9 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.5 slice 4 (PR from `feat/p2.5-sign-entry-v2`):** `apps/field/src/signShiftEntry.ts` (`signStart`, `signEnd`, `browserPosition`, `RecordRefused`); `signShiftEntry.test.ts` 5/5, field app 246/246. The planned cross-language fixture was replaced by the slice 8 browser E2E (plan, slice 4 decision).
 - **P2.5 slice 5a (PR from `feat/p2.5-start-flow`):** start-shift screen `StartShift.tsx` + `startRules.ts` + lazy `SignStep.tsx`; `MachineFinder` gets `onChoose`/`title`; `FieldEnvironment` gains `camera`, `take`, `position`, `appVersion`; 33 strings in five languages; `@karry/ui` `"sideEffects": ["*.css"]` (without it the lazy pad chunk was empty and the pad stayed in the initial bundle). `nko_from_latin.py` writes LF (it wrote CRLF on Windows). Field app 256/256, i18n 25/25, initial JS 213.7 KB gzip.
 - **Trap (Windows):** file names differ only by case are one file on Windows (`startShift.ts` next to `StartShift.tsx` broke `tsc` with TS1261) but two on Linux CI: never name two modules alike.
-- **Next:** P2.5 slice 5b: drafts (Dexie v5), then slice 6 (active shift, end, handover).
+- **P2.5 slice 5b (PR from `feat/p2.5-drafts`):** Dexie v5 `drafts`, `drafts.ts`, the start form restores/saves/drops its draft; `field.start.draftRestored` in five languages. Field app 259/259.
+- **Lesson:** a form that saves on every change needs its writes chained and stopped on close: the first version recreated a just-dropped draft (an earlier save landed after the delete) and saved an empty draft for anyone who only opened the form. Run a new UI test several times alone (`vitest run <file>` ×5): the race showed in 2 runs of 4.
+- **Next:** P2.5 slice 6: "My active shift", the end-shift flow and handover.
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).

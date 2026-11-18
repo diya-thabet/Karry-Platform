@@ -302,6 +302,7 @@
   "field.start.failed": "Le début de poste n’a pas pu être enregistré. Réessayez.",
   "field.start.back": "Modifier les valeurs",
   "field.start.saved": "Poste commencé. Il sera envoyé à la prochaine synchronisation.",
+  "field.start.draftRestored": "Vous reprenez le début de poste laissé en cours.",
   "field.camera.viewfinder": "Caméra : cadrez ce qu’il faut photographier",
   "field.camera.focusHelp": "Touchez l’image pour faire la mise au point.",
   "field.camera.take": "Prendre la photo",
