@@ -274,7 +274,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.4 ✅** (#147–#174), P2.5 next: see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P2 Field operations | **P2.0–P2.4 ✅** (#147–#174), **P2.5 in progress** (slices 1–2 #175–#176, plan #177, slice 3a meter states; [slice plan](../04-phases/phase-02-field-operations/p2.5-capture-flows-plan.md)): see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
 | P3–P11 | Not started |
 
 ---
@@ -347,6 +347,14 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-18 — Windows machine; P2.5 slice 3a meter states (agent)
+- **Goal:** owner moved to Windows: install the toolchain, keep building phase after phase, cloud items still deferred, low RAM, push to GitHub.
+- **Done:** toolchain installed per user (§5 "Owner's environment since 2026-11-18"). P2.5 slice 3a on `feat/p2.5-meter-states`: `MeterStatesSync` (FieldOps `ISyncSource`, collection `meterStates`), `@karry/offline` schema v3 (`meterStates` table, `MeterStateRow`), `apps/field/src/meterState.ts` (pulled row + the tablet's own shift commands). Plan split slice 3 into 3a/3b; drafts moved to slice 5 (schema v4).
+- **Verification:** `dotnet test --project src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Tests` → 121/121 on Windows with Docker Desktop.
+- **Mistakes / lessons:** EF `FromSqlRaw` onto `ShiftEntryVersion` fails (`column k.EndPosition_AccuracyM does not exist`): raw SQL cannot be mapped onto an entity with optional complex properties; return IDs with `Database.SqlQueryRaw<Guid>` (`AS "Value"`) and load through LINQ. An entry's `site_id` is the sending tablet's site, not the asset's. PowerShell `Set-Content` added a BOM to a test file (fixed; §5 Windows traps).
+- **Found for 3b:** the server's shift resolution skips non-working days, which the tablet does not pull yet (plan slice 3b).
+- **Next:** P2.5 slice 3b: shift resolution on the tablet (`shift-resolution.json` vectors both sides, non-working days in the pull).
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).

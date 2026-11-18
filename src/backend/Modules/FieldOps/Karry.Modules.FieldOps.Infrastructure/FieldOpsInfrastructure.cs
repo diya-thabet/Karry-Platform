@@ -8,7 +8,7 @@ namespace Karry.Modules.FieldOps.Infrastructure;
 
 public static class FieldOpsInfrastructure
 {
-    /// <summary>Shift entry storage and the handlers of the tablets' shift commands (ADR-0034).</summary>
+    /// <summary>Shift entry storage, the handlers of the tablets' shift commands (ADR-0034) and the meter states they pull (P2.5).</summary>
     public static IServiceCollection AddFieldOpsInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -16,6 +16,7 @@ public static class FieldOpsInfrastructure
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
         services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
         services.AddScoped<EntryReading>();
+        services.AddScoped<ISyncSource, MeterStatesSync>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);
         services.AddSyncCommandHandler<EndShiftEntry>(EndShiftEntry.Name);
         return services;

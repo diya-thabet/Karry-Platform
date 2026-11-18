@@ -1,4 +1,5 @@
 import "fake-indexeddb/auto";
+import { Dexie } from "dexie";
 import { generateDeviceKey, importPinKey, publicJwk, sign, verify } from "@karry/crypto";
 import { applyChanges, assetByLabel, lastRefresh, openOfflineDb, searchAssets, userByEmployeeId, words, type AssetRow, type ChangeSet, type KarryOfflineDb } from "./index";
 
@@ -13,7 +14,7 @@ const user = (n: number, employeeId = `OP-${String(n)}`) => ({ id: `0192f0c1-000
 const allCollections = (overrides: Partial<ChangeSet["changes"]> = {}): ChangeSet["changes"] => ({
   sites: { upserts: [{ id: site, code: "CAR-NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
   shiftPatterns: { upserts: [], removes: [] }, assets: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
-  materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] },
+  materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] },
   ...overrides,
 });
 
@@ -89,6 +90,40 @@ describe("reference data (US-P1-OFF-03 AC1/AC2)", () => {
 
     expect((await db.assets.toArray()).map((a) => a.code)).toEqual(["PEL-01"]);
     expect((await db.syncState.get("assets"))?.cursor).toBe("c1");
+  });
+
+  it("keeps where each meter stands, and drops a meter whose machine left the site (P2.5)", async () => {
+    const meter = (n: number) => `0192f0c1-0000-7000-8000-${String(700000 + n).padStart(12, "0")}`;
+    const ended = { id: meter(1), lastEnd: { entryId: "e1", value: "104.0", at: "2026-11-09T10:00:00Z" }, open: null };
+    const running = {
+      id: meter(2), lastEnd: null,
+      open: { entryId: "e2", version: 1, operatorId: "u1", startedAt: "2026-11-09T06:00:00Z", startValue: "7.0", shiftDate: "2026-11-09", shiftCode: "M" },
+    };
+    await applyChanges(db, { full: true, cursor: "c1", serverTime: "2026-11-09T10:00:00Z", changes: allCollections({ meterStates: { upserts: [ended, running], removes: [] } }) });
+
+    await applyChanges(db, { full: false, cursor: "c2", serverTime: "2026-11-09T10:05:00Z", changes: { meterStates: { upserts: [], removes: [meter(2)] } } });
+
+    expect(await db.meterStates.toArray()).toEqual([ended]);
+  });
+});
+
+describe("schema upgrade (P2.5, schema v3)", () => {
+  it("opens a v2 database with its outbox and blobs intact and an empty meter state table", async () => {
+    const name = `upgrade-${String(++n)}`;
+    const v2 = new Dexie(name);
+    v2.version(1).stores({ device: "id", settings: "id", sites: "id, code", shiftPatterns: "id, siteId", assets: "id, code, labelCode, siteId, *words", meters: "id, assetId", materials: "id, code", users: "id, &employeeId", syncState: "collection", unlocks: "userId", outbox: "commandId, &sequence, status" });
+    v2.version(2).stores({ outbox: "commandId, &sequence, status", blobs: "sha256, purgeAfter" });
+    await v2.table("outbox").put({ commandId: "c1", sequence: 1, status: "pending" });
+    await v2.table("blobs").put({ sha256: "ab", purgeAfter: null });
+    v2.close();
+
+    const upgraded = openOfflineDb(name);
+
+    expect(await upgraded.outbox.count()).toBe(1);
+    expect(await upgraded.blobs.count()).toBe(1);
+    expect(await upgraded.meterStates.count()).toBe(0);
+    expect(upgraded.verno).toBe(3);
+    await upgraded.delete();
   });
 });
 

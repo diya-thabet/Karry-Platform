@@ -377,6 +377,65 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         (await RowsAsync(TenantA, "SELECT start_value::text FROM fieldops.shift_entries")).Should().Equal("10.0");
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-FO-04")]
+    public async Task The_tablet_pulls_each_meters_last_end_and_its_running_segment_of_its_own_site_only()
+    {
+        var (first, second, elsewhere, otherCompany) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (siteMeter, awayMeter) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[siteMeter] = meters.All[HourMeter] with { MeterId = siteMeter };
+        meters.All[awayMeter] = meters.All[HourMeter] with { MeterId = awayMeter, Sites = [new AssetSiteAssignment(OtherSite, ShiftStart.AddDays(-30))] };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(first, ShiftStart, "100.0", meter: siteMeter));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(first, 2, ShiftStart.AddHours(4), "104.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(second, ShiftStart.AddHours(4), "104.0", meter: siteMeter, previous: first, signer: NextOperator));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(elsewhere, ShiftStart, "7.0", meter: awayMeter, signer: Guid.CreateVersion7()), site: OtherSite);
+        await HandleAsync(TenantB, StartShiftEntry.Name, Start(otherCompany, ShiftStart, "1.0", meter: siteMeter, signer: Guid.CreateVersion7()));
+
+        var delta = await MeterStatesAsync(TenantA, since: null);
+
+        delta.Name.Should().Be("meterStates");
+        delta.Removes.Should().BeEmpty();
+        delta.Upserts.Should().BeEquivalentTo([new MeterStateSyncRow(
+            siteMeter,
+            new MeterEndRow(first, "104.0", ShiftStart.AddHours(4)),
+            new OpenSegmentRow(second, 1, NextOperator, ShiftStart.AddHours(4), "104.0", DayShift.Date, DayShift.Code))]);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-04")]
+    public async Task A_segment_never_ended_is_not_running_once_a_later_one_started_and_a_delta_sends_only_meters_that_changed()
+    {
+        var (forgotten, later, quiet) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (meter, quietMeter) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        meters.All[quietMeter] = meters.All[HourMeter] with { MeterId = quietMeter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(quiet, ShiftStart, "50.0", meter: quietMeter, signer: Guid.CreateVersion7()));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(forgotten, ShiftStart, "10.0", meter: meter));
+        var cursor = DateTimeOffset.UtcNow;
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(later, ShiftStart.AddHours(8), "18.0", meter: meter, signer: NextOperator));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(later, 2, ShiftStart.AddHours(16), "26.0"));
+
+        var delta = await MeterStatesAsync(TenantA, since: cursor);
+
+        delta.Upserts.Should().BeEquivalentTo([new MeterStateSyncRow(meter, new MeterEndRow(later, "26.0", ShiftStart.AddHours(16)), null)],
+            "the latest started segment ended; the forgotten one does not count as running any more, and the quiet meter did not change");
+        (await MeterStatesAsync(TenantA, since: DateTimeOffset.UtcNow.AddMinutes(1))).Upserts.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task A_meter_whose_new_entries_are_on_another_site_is_removed_from_the_tablet()
+    {
+        var movedMeter = Guid.CreateVersion7();
+        meters.All[movedMeter] = meters.All[HourMeter] with { MeterId = movedMeter, Sites = [new AssetSiteAssignment(OtherSite, ShiftStart.AddDays(-30))] };
+        var cursor = DateTimeOffset.UtcNow;
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(Guid.CreateVersion7(), ShiftStart, "70.0", meter: movedMeter, signer: Guid.CreateVersion7()), site: OtherSite);
+
+        var delta = await MeterStatesAsync(TenantA, since: cursor);
+
+        delta.Upserts.Should().BeEmpty();
+        delta.Removes.Should().Equal(movedMeter);
+    }
+
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
 
     private static JsonObject Geo(double lat, double lon, double accuracy) => new() { ["lat"] = lat, ["lon"] = lon, ["acc"] = accuracy };
@@ -466,7 +525,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     /// <summary>Runs a handler as the Sync module does: in the tenant, joined to the upload's transaction, rolled back when rejected.</summary>
-    private async Task<HandlerOutcome> HandleAsync(Guid tenant, string type, JsonObject payload, Guid? device = null)
+    private async Task<HandlerOutcome> HandleAsync(Guid tenant, string type, JsonObject payload, Guid? device = null, Guid? site = null)
     {
         // The signature covers the envelope as built; a test that changes it afterwards gets a bad signature.
         using var document = JsonDocument.Parse(payload.ToJsonString());
@@ -478,7 +537,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         var handlerType = scope.ServiceProvider.GetRequiredService<SyncCommandTypes>().HandlerOf(type)!;
         var handler = (ISyncCommandHandler)scope.ServiceProvider.GetRequiredService(handlerType);
         var now = DateTimeOffset.UtcNow;
-        var command = new VerifiedCommand(Guid.CreateVersion7(), device ?? Device, Site, 1, type, document.RootElement.Clone(), now, now, 0, payload.ToJsonString());
+        var command = new VerifiedCommand(Guid.CreateVersion7(), device ?? Device, site ?? Site, 1, type, document.RootElement.Clone(), now, now, 0, payload.ToJsonString());
 
         var outcome = await handler.HandleAsync(command, new Joined(connection, transaction), Ct);
         if (outcome is HandlerOutcome.Rejected)
@@ -491,6 +550,15 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         }
 
         return outcome;
+    }
+
+    /// <summary>The <c>meterStates</c> part of a pull by this site's tablet, as the Sync module asks for it (in the tenant).</summary>
+    private async Task<SyncDelta> MeterStatesAsync(Guid tenant, DateTimeOffset? since)
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var source = scope.ServiceProvider.GetServices<ISyncSource>().Single();
+        return (await source.ChangesAsync(new SyncScope(Device, Site), since, Ct)).Single();
     }
 
     private async Task NothingWrittenAsync() =>

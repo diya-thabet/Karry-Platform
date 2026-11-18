@@ -1,4 +1,4 @@
-import { collections, type AssetRow, type Collection, type FieldUserRow, type KarryOfflineDb, type MaterialRow, type MeterRow, type ShiftPatternRow, type SiteRow, type StoredAsset } from "./schema";
+import { collections, type AssetRow, type Collection, type FieldUserRow, type KarryOfflineDb, type MaterialRow, type MeterRow, type MeterStateRow, type ShiftPatternRow, type SiteRow, type StoredAsset } from "./schema";
 
 interface Rows {
   sites: SiteRow;
@@ -7,6 +7,7 @@ interface Rows {
   meters: MeterRow;
   materials: MaterialRow;
   users: FieldUserRow;
+  meterStates: MeterStateRow;
 }
 
 /** One answer of `GET /api/v1/sync/changes` (ADR-0028 §5): rows to keep, IDs to drop, and where to continue. */

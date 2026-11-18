@@ -37,11 +37,20 @@ export interface AssetRow {
 export interface MeterRow { id: string; assetId: string; kind: string; unit: string; status: string }
 export interface MaterialRow { id: string; code: string; name: string; kind: string }
 export interface FieldUserRow { id: string; employeeId: string; name: string; pin: PinVerifier | null }
+/**
+ * Where a meter stands (P2.5, FieldOps `meterStates`): the end of its last ended segment, the reference a start is
+ * checked against, and its last segment while that one still runs. Values as the records write them ("12482.5").
+ */
+export interface MeterStateRow {
+  id: string;
+  lastEnd: { entryId: string; value: string; at: string } | null;
+  open: { entryId: string; version: number; operatorId: string; startedAt: string; startValue: string; shiftDate: string | null; shiftCode: string | null } | null;
+}
 
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
 export type StoredAsset = AssetRow & { words: string[] };
 
-export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users"] as const;
+export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates"] as const;
 export type Collection = (typeof collections)[number];
 
 export interface SyncStateRecord {
@@ -113,6 +122,7 @@ export type KarryOfflineDb = Dexie & {
   meters: EntityTable<MeterRow, "id">;
   materials: EntityTable<MaterialRow, "id">;
   users: EntityTable<FieldUserRow, "id">;
+  meterStates: EntityTable<MeterStateRow, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
   outbox: EntityTable<OutboxRecord, "commandId">;
@@ -120,7 +130,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v2 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v3 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states of P2.5). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -142,6 +152,10 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   db.version(2).stores({
     outbox: "commandId, &sequence, status",
     blobs: "sha256, purgeAfter",
+  });
+  // v3 (P2.5): where each meter stands, for the start and end screens; filled by the next pull.
+  db.version(3).stores({
+    meterStates: "id",
   });
   return db;
 }

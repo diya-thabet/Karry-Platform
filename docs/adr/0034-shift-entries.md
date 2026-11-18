@@ -180,6 +180,12 @@ The portal reads entries by site, shift, machine and operator, and an entry with
 - **After P2.4, shared rules (P2.5 slice 1, TC-P2-FO-012):** the record readers are pure (`StartShiftEntry.ReadRecord`,
   `EndShiftEntry.ReadRecord`) and Δ is compared exactly (tenths of an hour against ticks, no floating point). The field
   app's `shiftRules.ts` implements the same rules, and both test suites read `tests/vectors/shift-entry-rules.json`.
+- **Meter states for the tablet (P2.5 slice 3a):** `MeterStatesSync` adds the `meterStates` collection to the tablet's
+  pull: per meter with an entry on the tablet's site, the last ended segment's end (`lastEnd`) and the last segment
+  while it runs (`open`), read with the start handler's rule (the latest started current version). Values travel as
+  the records write them. The field app's `meterState.ts` corrects that row with its own unsent commands, so the
+  start screen checks against the right reference offline. Read under the tablet's tenant (RLS); only the site's
+  meters; tested in `ShiftEntryHandlersTests`.
 
 ## 9. Security review (P2.4 close-out, 2026-11-09)
 
