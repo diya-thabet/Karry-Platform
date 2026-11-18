@@ -39,6 +39,8 @@ export default function PhotoCapture({ camera, take, label, onPhoto, onCancel }:
 
   // The stream runs only while the live picture shows: it is released for the preview, on leaving and on failure.
   const live = stage === "live" || stage === "taking";
+  // The camera shows its first frame some time after it starts: a photo before it would be empty (1 × 1 pixel).
+  const [framed, setFramed] = useState(false);
   useEffect(() => {
     const element = video.current;
     if (!live || !camera || !element) {
@@ -89,14 +91,14 @@ export default function PhotoCapture({ camera, take, label, onPhoto, onCancel }:
       <h2 className="text-2xl font-bold">{label}</h2>
       {live && (
         <>
-          <video ref={video} muted playsInline aria-label={t("field.camera.viewfinder")} className="aspect-[4/3] w-full rounded-xl bg-black object-cover"
+          <video ref={video} muted playsInline aria-label={t("field.camera.viewfinder")} onLoadedData={() => { setFramed(true); }} className="aspect-[4/3] w-full rounded-xl bg-black object-cover"
             onClick={(e) => {
               const box = e.currentTarget.getBoundingClientRect();
               void session.current?.focus((e.clientX - box.left) / box.width, (e.clientY - box.top) / box.height);
             }} />
           <p className="text-text-muted">{t("field.camera.focusHelp")}</p>
           {encodeFailed && <p role="alert" className="font-medium text-danger">{t("field.camera.encodeFailed")}</p>}
-          <Button block disabled={stage === "taking"} onClick={() => { void shoot(); }} className="min-h-20 text-xl">
+          <Button block disabled={stage === "taking" || !framed} onClick={() => { void shoot(); }} className="min-h-20 text-xl">
             <CameraIcon aria-hidden className="size-8" />
             {t("field.camera.take")}
           </Button>
@@ -106,7 +108,7 @@ export default function PhotoCapture({ camera, take, label, onPhoto, onCancel }:
         <>
           {preview && <img src={preview} alt={t("field.camera.preview")} className="w-full rounded-xl" />}
           <div className="grid grid-cols-2 gap-3">
-            <Button variant="secondary" onClick={() => { setPhoto(null); setStage("live"); }} className="min-h-16">
+            <Button variant="secondary" onClick={() => { setPhoto(null); setFramed(false); setStage("live"); }} className="min-h-16">
               <RotateCcw aria-hidden className="size-6" />
               {t("field.camera.retake")}
             </Button>
