@@ -186,6 +186,7 @@ The portal reads entries by site, shift, machine and operator, and an entry with
   the records write them. The field app's `meterState.ts` corrects that row with its own unsent commands, so the
   start screen checks against the right reference offline. Read under the tablet's tenant (RLS); only the site's
   meters; tested in `ShiftEntryHandlersTests`.
+- **Signing on the tablet (P2.5 slice 4):** `signShiftEntry.ts` signs only records that pass the shared rules; the envelope's `evidence` names the meter photo and `handwritten` the signature strokes and PNG, all three uploaded as blobs; the photo's capture record travels in the signed command payload (`captures`), which the handlers ignore. Signer: the unlocked operator, role `operator`.
 
 ## 9. Security review (P2.4 close-out, 2026-11-09)
 
