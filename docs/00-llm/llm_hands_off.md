@@ -362,7 +362,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Lesson:** a form that saves on every change needs its writes chained and stopped on close: the first version recreated a just-dropped draft (an earlier save landed after the delete) and saved an empty draft for anyone who only opened the form. Run a new UI test several times alone (`vitest run <file>` ×5): the race showed in 2 runs of 4.
 - **P2.5 slice 6 (PR from `feat/p2.5-end-flow`):** `endRules.ts`, `EndShift.tsx`, home "My active shift"/"End my shift", handover via `previousRootId` when the last end is inside the current shift; 26 strings in five languages. Field app 265/265.
 - **P2.5 slice 7 (PR from `feat/p2.5-history`):** `historyRows.ts`, `History.tsx`, `refusals.ts`; 20 strings in five languages. Field app 271/271. Hit the case trap again (`history.ts` next to `History.tsx`): renamed `historyRows.ts`.
-- **Next:** P2.5 slice 8: browser E2E (Playwright, fake camera) on the local stack.
+- **P2.5 slice 8a (PR from `feat/p2.5-e2e`):** `e2e/tests/field-shift.spec.ts`, Playwright launches Chromium with a fake camera. Runs in CI only so far (not run locally: images and Chromium not downloaded on this machine).
+- **Next:** P2.5 slice 8b: TC-P2-SYNC-002/007/011/014, key rotation, 20 entries offline; then slice 9 close-out.
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).

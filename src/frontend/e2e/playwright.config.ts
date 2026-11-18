@@ -11,5 +11,9 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]] : "list",
   // A French-speaking user (the default market); the English test chooses English in the app.
-  use: { ...devices["Desktop Chrome"], locale: "fr-FR", trace: "retain-on-failure", screenshot: "only-on-failure" },
+  // Chromium's fake camera (a moving test pattern) stands in for the tablet's back camera; no prompt asks for it.
+  use: {
+    ...devices["Desktop Chrome"], locale: "fr-FR", trace: "retain-on-failure", screenshot: "only-on-failure",
+    launchOptions: { args: ["--use-fake-device-for-media-stream", "--use-fake-ui-for-media-stream"] },
+  },
 });
