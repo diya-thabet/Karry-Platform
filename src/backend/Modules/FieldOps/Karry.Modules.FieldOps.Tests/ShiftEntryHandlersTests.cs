@@ -378,6 +378,23 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    public async Task A_command_may_carry_its_evidence_list_and_capture_records_and_nothing_else()
+    {
+        // As the field app sends it (signShiftEntry.ts): the sync module's evidence list and the photos' capture records.
+        var withEvidence = Start(Guid.CreateVersion7(), ShiftStart, "10.0", meter: Guid.CreateVersion7(), signer: Guid.CreateVersion7());
+        meters.All[Guid.Parse(withEvidence["record"]!["meterId"]!.GetValue<string>())] = meters.All[HourMeter] with { MeterId = Guid.Parse(withEvidence["record"]!["meterId"]!.GetValue<string>()) };
+        withEvidence["evidence"] = JsonNode.Parse($$"""[{"sha256":"{{new string('a', 64)}}","size":10,"contentType":"image/webp"}]""");
+        withEvidence["captures"] = JsonNode.Parse($$"""[{"sha256":"{{new string('a', 64)}}","capturedAt":"2026-11-09T06:00:00Z","deviceId":"d","appVersion":"1","width":1600,"height":1200}]""");
+        var unknown = Start(Guid.CreateVersion7(), ShiftStart, "10.0", signer: Guid.CreateVersion7());
+        unknown["note"] = "not read by anyone";
+        var badCaptures = Start(Guid.CreateVersion7(), ShiftStart, "10.0", signer: Guid.CreateVersion7());
+        badCaptures["captures"] = "one";
+
+        (await HandleAsync(TenantA, StartShiftEntry.Name, withEvidence)).Should().BeOfType<HandlerOutcome.Accepted>();
+        (await HandleAsync(TenantA, StartShiftEntry.Name, unknown)).Should().Be(SignedRecord.Invalid);
+        (await HandleAsync(TenantA, StartShiftEntry.Name, badCaptures)).Should().Be(SignedRecord.Invalid);
+    }
+    [Fact]
     [Trait("Story", "US-P2-FO-04")]
     public async Task The_tablet_pulls_each_meters_last_end_and_its_running_segment_of_its_own_site_only()
     {
