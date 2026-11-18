@@ -170,6 +170,15 @@ public class SyncHost : IAsyncLifetime
             INSERT INTO organization.shift_patterns (id, tenant_id, site_id, effective_from, shifts, created_at, changed_at)
             VALUES ($1, $2, $3, '2099-01-01', '[{"Code":"J","Name":"Jour","Start":"06:00","End":"18:00","Days":["mon","tue"]}]', now(), now())
             """, company.Pattern, id, company.North);
+        foreach (var (site, date, name) in new[] { (company.North, "2099-05-01", "Fête du travail"), (company.North, "2020-01-01", "Passé"), (company.South, "2099-05-02", "Sud") })
+        {
+            await ExecuteAsync(
+                """
+                INSERT INTO organization.non_working_days (id, tenant_id, site_id, date, kind, name, changed_at)
+                VALUES (gen_random_uuid(), $1, $2, $3::date, 'PublicHoliday', $4, now())
+                """, id, site, date, name);
+        }
+
         foreach (var (asset, site, code) in new[] { (company.Excavator, company.North, "PEL-01"), (company.Loader, company.North, "CHG-01"), (company.Truck, company.South, "DMP-01") })
         {
             await ExecuteAsync(
@@ -265,6 +274,11 @@ public sealed class SyncChangesTests(SyncHost host) : IClassFixture<SyncHost>
         var pattern = changes.GetProperty("shiftPatterns").GetProperty("upserts")[0];
         pattern.GetProperty("effectiveFrom").GetString().Should().Be("2099-01-01");
         pattern.GetProperty("shifts")[0].GetRawText().Should().Be("""{"code":"J","name":"Jour","start":"06:00","end":"18:00","days":["mon","tue"]}""");
+        // The site's coming non-working days (P2.5: no shift starts on them), not the past ones nor another site's.
+        changes.GetProperty("nonWorkingDays").GetProperty("replace").GetBoolean().Should().BeTrue();
+        changes.GetProperty("nonWorkingDays").GetProperty("upserts").EnumerateArray().Select(d => $"{d.GetProperty("date").GetString()} {d.GetProperty("name").GetString()}")
+            .Should().Equal("2099-05-01 Fête du travail");
+        changes.GetProperty("meterStates").GetProperty("upserts").GetArrayLength().Should().Be(0, "no entry was made yet");
         Ids(changes, "assets").Should().BeEquivalentTo([a.Excavator, a.Loader]);
         var excavator = changes.GetProperty("assets").GetProperty("upserts").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == a.Excavator);
         excavator.GetProperty("labelCode").GetString().Should().StartWith("KRY1:");

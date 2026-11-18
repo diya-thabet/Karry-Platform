@@ -13,11 +13,15 @@ public sealed record ShiftSyncRow(string Code, string Name, string Start, string
 /// <summary>One version of the site's shift pattern (<c>ShiftPatternRow</c>).</summary>
 public sealed record ShiftPatternSyncRow(Guid Id, Guid SiteId, string EffectiveFrom, IReadOnlyList<ShiftSyncRow> Shifts);
 
+/// <summary>A day the site does not work (<c>NonWorkingDayRow</c>): no shift starts on it, so none is preselected (P2.5).</summary>
+public sealed record NonWorkingDaySyncRow(Guid Id, Guid SiteId, string Date, string Name);
+
 /// <summary>
-/// The tablet's site and its shift pattern versions (ADR-0028 §5). Both are tiny and a future version can be deleted,
-/// so they are always sent whole and replace what the tablet holds; an archived site is sent as none.
+/// The tablet's site, its shift pattern versions (ADR-0028 §5) and its non-working days from two days ago (P2.5: the
+/// tablet resolves the shift as the server does). All are small and can be deleted, so they are always sent whole and
+/// replace what the tablet holds; an archived site is sent as none.
 /// </summary>
-internal sealed class OrganizationSync(OrganizationDbContext db) : ISyncSource
+internal sealed class OrganizationSync(OrganizationDbContext db, TimeProvider clock) : ISyncSource
 {
     public async Task<IReadOnlyList<SyncDelta>> ChangesAsync(SyncScope scope, DateTimeOffset? since, CancellationToken cancellationToken)
     {
@@ -31,11 +35,18 @@ internal sealed class OrganizationSync(OrganizationDbContext db) : ISyncSource
             ? []
             : await db.ShiftPatterns.AsNoTracking().Where(p => p.SiteId == siteId).OrderBy(p => p.EffectiveFrom).ToListAsync(cancellationToken).ConfigureAwait(false);
 
+        // A night shift of the day before may still run: two days back covers every time zone.
+        var from = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime).AddDays(-2);
+        var days = site is null
+            ? []
+            : await db.NonWorkingDays.AsNoTracking().Where(d => d.SiteId == siteId && d.Date >= from).OrderBy(d => d.Date).ToListAsync(cancellationToken).ConfigureAwait(false);
+
         object[] sites = site is null ? [] : [new SiteSyncRow(site.Id.Value, site.Code, site.Name, SiteRules.TypeCode(site.Type), site.TimeZone)];
         return
         [
             new SyncDelta("sites", sites, [], Replace: true),
             new SyncDelta("shiftPatterns", [.. patterns.Select(Row)], [], Replace: true),
+            new SyncDelta("nonWorkingDays", [.. days.Select(d => new NonWorkingDaySyncRow(d.Id.Value, d.SiteId.Value, d.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), d.Name))], [], Replace: true),
         ];
     }
 
