@@ -28,6 +28,8 @@ export interface SiteRow { id: string; code: string; name: string; type: string;
 /** A shift of a pattern version: wall-clock times "HH:mm" (an end before the start ends the next day), days "mon".."sun". */
 export interface ShiftRow { code: string; name: string; start: string; end: string; days: string[] }
 export interface ShiftPatternRow { id: string; siteId: string; effectiveFrom: string; shifts: ShiftRow[] }
+/** A day the site does not work (P2.5): no shift starts on it. `date` is the site's local date "YYYY-MM-DD". */
+export interface NonWorkingDayRow { id: string; siteId: string; date: string; name: string }
 export interface AssetRow {
   id: string; code: string; name: string; type: string; siteId: string; status: string;
   make: string | null; model: string | null; serialNumber: string | null; plate: string | null;
@@ -50,7 +52,7 @@ export interface MeterStateRow {
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
 export type StoredAsset = AssetRow & { words: string[] };
 
-export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates"] as const;
+export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays"] as const;
 export type Collection = (typeof collections)[number];
 
 export interface SyncStateRecord {
@@ -123,6 +125,7 @@ export type KarryOfflineDb = Dexie & {
   materials: EntityTable<MaterialRow, "id">;
   users: EntityTable<FieldUserRow, "id">;
   meterStates: EntityTable<MeterStateRow, "id">;
+  nonWorkingDays: EntityTable<NonWorkingDayRow, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
   outbox: EntityTable<OutboxRecord, "commandId">;
@@ -130,7 +133,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v3 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states of P2.5). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v4 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states and v4 the non-working days of P2.5). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -156,6 +159,10 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   // v3 (P2.5): where each meter stands, for the start and end screens; filled by the next pull.
   db.version(3).stores({
     meterStates: "id",
+  });
+  // v4 (P2.5): the site's non-working days, so the tablet resolves the shift as the server does.
+  db.version(4).stores({
+    nonWorkingDays: "id, siteId",
   });
   return db;
 }
