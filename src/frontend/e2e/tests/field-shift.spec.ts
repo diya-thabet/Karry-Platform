@@ -13,7 +13,7 @@ async function signIn(page: Page, username: string) {
   await page.locator("#kc-login").click();
 }
 
-/** A finger on the pad: two strokes across it, long enough for the pad's minimums (TC-P2-SIG-008). */
+/** A finger on the pad: two strokes of 31 points across it, above the pad's minimums (40 points in all, TC-P2-SIG-008). */
 async function sign(tablet: Page) {
   const pad = tablet.getByLabel("Zone de signature");
   const box = await pad.boundingBox();
@@ -21,8 +21,8 @@ async function sign(tablet: Page) {
   for (const y of [0.35, 0.65]) {
     await tablet.mouse.move(box.x + box.width * 0.15, box.y + box.height * y);
     await tablet.mouse.down();
-    for (let step = 1; step <= 12; step++) {
-      await tablet.mouse.move(box.x + box.width * (0.15 + step * 0.06), box.y + box.height * (y + (step % 2 === 0 ? 0.08 : -0.08)));
+    for (let step = 1; step <= 30; step++) {
+      await tablet.mouse.move(box.x + box.width * (0.15 + step * 0.023), box.y + box.height * (y + (step % 2 === 0 ? 0.08 : -0.08)));
     }
     await tablet.mouse.up();
   }

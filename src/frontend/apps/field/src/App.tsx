@@ -18,6 +18,7 @@ import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useAutoLock } from "./autoLock";
 import { purgeDrafts } from "./drafts";
+import { preloadParts } from "./lazyParts";
 import { Unlock } from "./UnlockScreen";
 import type { Session, UnlockFailure } from "./unlock";
 import { useUpdateAvailable, type AppUpdates } from "./updates";
@@ -106,6 +107,8 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   const find = useCallback((text: string) => findMachine(environment.db, text), [environment.db]);
   useAutoLock(autoLockMinutes, lock);
   const who = t("field.unlock.user", { name: session.name, employeeId: session.employeeId });
+  // The camera and the pad are fetched while the tablet is (likely) online, before any form needs them offline.
+  useEffect(() => { preloadParts(); }, []);
   useEffect(() => {
     if (form === null) {
       void findActiveShift(environment.db, session.userId).then(setActive);
