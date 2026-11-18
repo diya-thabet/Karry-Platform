@@ -113,6 +113,13 @@ public sealed class RoleAdministration(
         }
 
         var role = (await store.CustomRolesAsync(cancellationToken).ConfigureAwait(false)).Single(r => r.Code == code);
+        // The role list may be cached: the stored row decides. A change that alters nothing never reaches the save's
+        // own check, so a request made against an older version would otherwise be answered 200 instead of 409.
+        if (!RecordVersions.Matches(role.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
+        }
+
         var changed = role.Change(clock, command.Name, command.Description, permissions, levels.Value, caller.Subject);
         if (!changed.IsSuccess)
         {
@@ -162,6 +169,12 @@ public sealed class RoleAdministration(
         if (current.IsDefault)
         {
             var settings = (await store.DefaultRoleSettingsAsync(cancellationToken).ConfigureAwait(false)).SingleOrDefault(s => s.Role == code);
+            // As for a custom role: the stored settings decide (none yet is version 0), not the cached list.
+            if (!RecordVersions.Matches(settings?.Version ?? 0, expectedVersion))
+            {
+                return RecordVersions.Conflict;
+            }
+
             if (settings is null)
             {
                 settings = DefaultRoleSettings.For(clock, Tenant, code);
@@ -175,6 +188,11 @@ public sealed class RoleAdministration(
         else
         {
             var role = (await store.CustomRolesAsync(cancellationToken).ConfigureAwait(false)).Single(r => r.Code == code);
+            if (!RecordVersions.Matches(role.Version, expectedVersion))
+            {
+                return RecordVersions.Conflict;
+            }
+
             var result = role.Change(clock, role.Name, role.Description, role.Permissions, levels.Value, caller.Subject);
             if (!result.IsSuccess)
             {

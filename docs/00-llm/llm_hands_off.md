@@ -348,6 +348,10 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-18 — Role version race (agent)
+- **Found:** `RoleTests.A_default_role_s_field_levels_have_a_version_from_their_first_change` failed in CI on #183 (2 of 6 concurrent first changes answered 200, expected 1), a change unrelated to roles. Cause: `RoleAdministration` checked If-Match against the role list, which may be cached; a request that loaded it before another request's first change committed then found the stored settings with the same values, changed nothing, skipped the save (and with it the `xmin` check) and answered 200.
+- **Fixed (#184):** `ChangeAsync` and `ChangeFieldLevelsAsync` also check the stored row's version (the default role's settings, none = 0; the custom role) before changing. RoleTests 34/34; the concurrency test 6/6 runs locally. No deterministic test: reproducing it needs a stale role cache between two requests, which the test host cannot hold; the concurrent test stays the evidence.
+
 ### 2026-11-18 — Windows machine; P2.5 slice 3a meter states (agent)
 - **Goal:** owner moved to Windows: install the toolchain, keep building phase after phase, cloud items still deferred, low RAM, push to GitHub.
 - **Done:** toolchain installed per user (§5 "Owner's environment since 2026-11-18"). P2.5 slice 3a on `feat/p2.5-meter-states`: `MeterStatesSync` (FieldOps `ISyncSource`, collection `meterStates`), `@karry/offline` schema v3 (`meterStates` table, `MeterStateRow`), `apps/field/src/meterState.ts` (pulled row + the tablet's own shift commands). Plan split slice 3 into 3a/3b; drafts moved to slice 5 (schema v4).
