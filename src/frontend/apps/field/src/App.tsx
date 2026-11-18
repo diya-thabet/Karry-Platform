@@ -17,6 +17,7 @@ import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useAutoLock } from "./autoLock";
+import { purgeDrafts } from "./drafts";
 import { preloadParts } from "./lazyParts";
 import { Unlock } from "./UnlockScreen";
 import type { Session, UnlockFailure } from "./unlock";
@@ -105,6 +106,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   const [active, setActive] = useState<ActiveShift | null>(null);
   const find = useCallback((text: string) => findMachine(environment.db, text), [environment.db]);
   useAutoLock(autoLockMinutes, lock);
+  const who = t("field.unlock.user", { name: session.name, employeeId: session.employeeId });
   // The camera and the pad are fetched while the tablet is (likely) online, before any form needs them offline.
   useEffect(() => { preloadParts(); }, []);
   useEffect(() => {
@@ -114,7 +116,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   }, [environment.db, session.userId, form]);
 
   if (finding) {
-    return <MachineFinder find={find} scanner={environment.scanner} onBack={() => { setFinding(false); }} />;
+    return <MachineFinder find={find} scanner={environment.scanner} onBack={() => { setFinding(false); }} who={who} />;
   }
 
   const forms: FormEnvironment = {
@@ -239,7 +241,7 @@ function Tablet({ environment }: { environment: FieldEnvironment }) {
   }
 
   if (session === null) {
-    return <Unlock unlock={environment.unlock} onUnlocked={setSession} />;
+    return <Unlock unlock={environment.unlock} onUnlocked={(unlocked) => { void purgeDrafts(environment.db, new Date()); setSession(unlocked); }} />;
   }
 
   return <Home environment={environment} device={device} session={session} autoLockMinutes={settings?.autoLockMinutes ?? 5} lock={lock} />;

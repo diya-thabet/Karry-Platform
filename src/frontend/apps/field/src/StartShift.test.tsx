@@ -84,6 +84,7 @@ describe("starting a shift on the tablet (US-P2-FO-01, P2.5)", () => {
     const { db, device } = await tablet();
     const { onDone } = await open(db, device);
 
+    expect(screen.getByText("Karim (OP-1)"), "who is unlocked shows from the first step (T-01)").toBeInTheDocument();
     await chooseMachine();
     expect(screen.getByText(/^Poste : Nuit/)).toBeInTheDocument();
     expect(screen.getByText(/^Fin précédente : 1200\.0 h/)).toBeInTheDocument();

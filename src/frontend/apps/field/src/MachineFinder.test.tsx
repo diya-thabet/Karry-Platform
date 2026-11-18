@@ -12,7 +12,7 @@ describe("the machine finder's search", () => {
   it("shows the answer to the latest text even when an earlier lookup answers last", async () => {
     const pending = new Map<string, (lookup: MachineLookup) => void>();
     const find = vi.fn((text: string) => new Promise<MachineLookup>((resolve) => { pending.set(text, resolve); }));
-    render(<I18nProvider i18n={await createI18n({ language: "fr" })}><MachineFinder find={find} scanner={null} onBack={vi.fn()} /></I18nProvider>);
+    render(<I18nProvider i18n={await createI18n({ language: "fr" })}><MachineFinder find={find} scanner={null} onBack={vi.fn()} who="Karim (OP-1)" /></I18nProvider>);
     const field = screen.getByLabelText(/Code, nom ou étiquette/);
 
     fireEvent.change(field, { target: { value: "p" } });

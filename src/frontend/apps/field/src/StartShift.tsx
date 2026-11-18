@@ -148,7 +148,8 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   };
 
   if (context === null) {
-    return <MachineFinder find={find} scanner={environment.scanner} onBack={leave} onChoose={(m) => { void choose(m); }} title={t("field.start.title")} />;
+    return <MachineFinder find={find} scanner={environment.scanner} onBack={leave} onChoose={(m) => { void choose(m); }} title={t("field.start.title")}
+      who={t("field.unlock.user", { name: session.name, employeeId: session.employeeId })} />;
   }
 
   const { machine, meter, state, shift } = context;

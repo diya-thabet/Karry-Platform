@@ -21,7 +21,7 @@ function MachineCard({ machine }: { machine: StoredAsset }) {
  * "Find a machine" (P1.15, ADR-0028 §5): scan its QR label with the back camera, or type its code, name or label; the
  * answer comes from the tablet's reference data, with or without network. Phase 2 forms open this to pick a machine.
  */
-export function MachineFinder({ find, scanner, onBack, onChoose, title }: {
+export function MachineFinder({ find, scanner, onBack, onChoose, title, who }: {
   /** Looks a scan or typed text up in the tablet's reference data (`findMachine`). */
   find: (text: string) => Promise<MachineLookup>;
   scanner: QrScanner | null;
@@ -30,6 +30,8 @@ export function MachineFinder({ find, scanner, onBack, onChoose, title }: {
   onChoose?: (machine: StoredAsset) => void;
   /** The heading, when a form opens the finder. */
   title?: string;
+  /** Who is unlocked, shown on every screen of the tablet (T-01). */
+  who: string;
 }) {
   const { t } = useTranslation();
   const [text, setText] = useState("");
@@ -88,7 +90,8 @@ export function MachineFinder({ find, scanner, onBack, onChoose, title }: {
         <Button variant="secondary" onClick={onBack} aria-label={t("field.machines.back")}>
           <ArrowLeft aria-hidden className="size-6 rtl:-scale-x-100" />
         </Button>
-        <h1 className="text-3xl font-bold">{title ?? t("field.machines.title")}</h1>
+        <h1 className="flex-1 text-3xl font-bold">{title ?? t("field.machines.title")}</h1>
+        <p className="font-semibold">{who}</p>
       </header>
       {scanner && !scanning && (
         <Button block onClick={() => { setCameraFailed(false); setScanning(true); }} className="min-h-20 text-xl">
