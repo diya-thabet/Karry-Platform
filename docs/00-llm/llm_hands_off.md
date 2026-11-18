@@ -355,7 +355,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Mistakes / lessons:** EF `FromSqlRaw` onto `ShiftEntryVersion` fails (`column k.EndPosition_AccuracyM does not exist`): raw SQL cannot be mapped onto an entity with optional complex properties; return IDs with `Database.SqlQueryRaw<Guid>` (`AS "Value"`) and load through LINQ. An entry's `site_id` is the sending tablet's site, not the asset's. PowerShell `Set-Content` added a BOM to a test file (fixed; §5 Windows traps).
 - **Found for 3b:** the server's shift resolution skips non-working days, which the tablet does not pull yet (plan slice 3b).
 - **P2.5 slice 3b (PR from `feat/p2.5-shift-resolution`, stacked on 3a):** `apps/field/src/shifts.ts` (`shiftAt`, `instantOf` with `Intl`: earlier offset in an overlap, offset before the change in a gap, as NodaTime), `tests/vectors/shift-resolution.json` (22 cases) read by `ShiftCalendarVectorsTests` (22/22) and `shifts.test.ts` (23/23); Organization sync adds `nonWorkingDays` (replace-whole, from two days ago), Dexie v4. `SyncChangesTests` + `ShiftEntriesSyncTests` 7/7.
-- **Next:** P2.5 slice 4: `signShiftEntry` (record, evidence, envelope, position, `captures`) with a server round trip.
+- **P2.5 slice 4 (PR from `feat/p2.5-sign-entry`, stacked on 3b):** `apps/field/src/signShiftEntry.ts` (`signStart`, `signEnd`, `browserPosition`, `RecordRefused`); `signShiftEntry.test.ts` 5/5, field app 246/246. The planned cross-language fixture was replaced by the slice 8 browser E2E (plan, slice 4 decision).
+- **Next:** P2.5 slice 5: the start-shift flow (UI), with drafts (Dexie v5).
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).
