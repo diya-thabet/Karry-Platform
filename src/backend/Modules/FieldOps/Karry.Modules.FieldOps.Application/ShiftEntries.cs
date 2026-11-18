@@ -43,13 +43,24 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
 
     public static readonly HandlerOutcome.Rejected EnvelopeMismatch = new("fieldops.envelope_mismatch", Retryable: false);
 
+    /// <summary>The photos' capture records the tablet signs with the command (ADR-0032 §5); kept with the command as received.</summary>
+    public const string CapturesMember = "captures";
+
+    /// <summary>
+    /// The members a shift command's payload may have: the record, its envelope and the device signature, plus the
+    /// evidence list the sync module checks before the handler (ADR-0032 §7) and the capture records. Anything else is
+    /// refused, so nothing unread travels in a signed command.
+    /// </summary>
+    private static readonly HashSet<string> PayloadMembers = new(["record", "envelope", "deviceSignature", "evidence", CapturesMember], StringComparer.Ordinal);
+
     /// <summary>The signed record, or a final rejection when the payload or the envelope's binding to the record is wrong.</summary>
     public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version)
     {
         if (payload.ValueKind != JsonValueKind.Object
             || !payload.TryGetProperty("record", out var record) || !payload.TryGetProperty("envelope", out var envelope)
             || !payload.TryGetProperty("deviceSignature", out var signature) || signature.ValueKind != JsonValueKind.String
-            || payload.EnumerateObject().Count() != 3 || envelope.ValueKind != JsonValueKind.Object)
+            || !payload.EnumerateObject().All(m => PayloadMembers.Contains(m.Name)) || envelope.ValueKind != JsonValueKind.Object
+            || (payload.TryGetProperty(CapturesMember, out var captures) && captures.ValueKind != JsonValueKind.Array))
         {
             return (null, Invalid);
         }

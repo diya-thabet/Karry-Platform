@@ -1,8 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera as CameraIcon, CircleCheck, RotateCcw } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, MeterRow, StoredAsset } from "@karry/offline";
 import { Button, TextField } from "@karry/ui";
+import { PhotoCapture, preloadParts, SignStep } from "./lazyParts";
+import { PartBoundary } from "./PartBoundary";
 import type { Camera, Photo } from "./camera";
 import { discardDraft, readDraft, saveDraft } from "./drafts";
 import { MachineFinder } from "./MachineFinder";
@@ -12,12 +14,6 @@ import { shiftAt, type ResolvedShift } from "./shifts";
 import { signStart, type Position } from "./signShiftEntry";
 import { assessStart, entryMeter, hasRunningSegment, unusualJumpHours } from "./startRules";
 import type { Session } from "./unlock";
-
-// The camera and the signature pad come in their own chunks, preloaded when the form opens (P2.5 decision 8).
-const loadCamera = () => import("./PhotoCapture");
-const loadPad = () => import("./SignStep");
-const PhotoCapture = lazy(loadCamera);
-const SignStep = lazy(loadPad);
 
 /** What a form needs from the app around it: the tablet, who unlocked it, and the browser's camera and position. */
 export interface FormEnvironment {
@@ -86,7 +82,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   };
   const find = useCallback((text: string) => findMachine(db, text), [db]);
 
-  useEffect(() => { void loadCamera(); void loadPad(); }, []);
+  useEffect(() => { preloadParts(); }, []);
 
   const choose = async (machine: StoredAsset) => {
     const meter = entryMeter(await db.meters.where("assetId").equals(machine.id).toArray());
@@ -223,10 +219,12 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
         <>
           {capturing
             ? (
+                <PartBoundary fallback={<p role="alert" className="font-medium text-danger">{t("field.start.partMissing")}</p>}>
                 <Suspense fallback={<p>{t("field.start.loading")}</p>}>
                   <PhotoCapture camera={environment.camera} take={environment.take} label={t("field.start.photo")}
                     onPhoto={(taken) => { setPhoto(taken); setCapturing(false); }} onCancel={() => { setCapturing(false); }} />
                 </Suspense>
+                </PartBoundary>
               )
             : (
                 <Button block variant={photo ? "secondary" : "primary"} onClick={() => { setCapturing(true); }} className="min-h-16 text-xl">
@@ -261,6 +259,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
       )}
 
       {reviewing && (
+        <PartBoundary fallback={<p role="alert" className="font-medium text-danger">{t("field.start.partMissing")}</p>}>
         <Suspense fallback={<p>{t("field.start.loading")}</p>}>
           <SignStep disabled={signing} onConfirm={sign}
             signer={t("field.start.signer", { name: session.name, at: now() })}
@@ -274,6 +273,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
           {failed && <p role="alert" className="font-medium text-danger">{t("field.start.failed")}</p>}
           <Button variant="secondary" disabled={signing} onClick={() => { setReviewing(false); }}>{t("field.start.back")}</Button>
         </Suspense>
+        </PartBoundary>
       )}
     </div>
   );

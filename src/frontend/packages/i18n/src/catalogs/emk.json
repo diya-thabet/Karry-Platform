@@ -285,6 +285,7 @@
   "field.start.block.value": "Konteri nimɔrɔ sɛbɛn, tɛlɛn kelen dɔrɔn a kɔfɛ walima a tɛ.",
   "field.start.block.belowPrevious": "Nimɔrɔ ka dɔgɔ ni laban tɛmɛnen ye ({value} {unit}). Konteri lajɛ; ni a falenna walima a segintɔla zero ma, i kuntigi lakali.",
   "field.start.loading": "A bɛ na…",
+  "field.start.partMissing": "Aplikasiyɔn yɔrɔ nin ma se tabileti kan fɔlɔ. A sɛrɛ ɛntɛrinɛti la siɲɛ kelen, ka sɔrɔ ka a kɛ kokura: i ka nimɔrɔlu marala.",
   "field.start.photo": "Konteri ja",
   "field.start.takePhoto": "Konteri ja ta",
   "field.start.retakePhoto": "Ja ta kokura",

@@ -285,6 +285,7 @@
   "field.start.block.value": "Écrivez la valeur affichée par le compteur, avec au plus une décimale.",
   "field.start.block.belowPrevious": "La valeur est inférieure à la fin précédente ({value} {unit}). Vérifiez le compteur ; s’il a été changé ou remis à zéro, prévenez votre responsable.",
   "field.start.loading": "Chargement…",
+  "field.start.partMissing": "Cette partie de l’application n’est pas encore sur la tablette. Connectez-la une fois au réseau, puis réessayez : vos valeurs sont gardées.",
   "field.start.photo": "Photo du compteur",
   "field.start.takePhoto": "Photographier le compteur",
   "field.start.retakePhoto": "Reprendre la photo",

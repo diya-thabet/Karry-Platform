@@ -1,17 +1,14 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { ArrowLeft, Camera as CameraIcon, CircleCheck, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { Button, TextField } from "@karry/ui";
+import { PhotoCapture, preloadParts, SignStep } from "./lazyParts";
+import { PartBoundary } from "./PartBoundary";
 import type { Photo } from "./camera";
 import { assessEnd, type ActiveShift } from "./endRules";
 import { meterText, stoppageReasons, type Stoppage, type StoppageReason } from "./shiftRules";
 import { signEnd } from "./signShiftEntry";
 import type { FormEnvironment } from "./StartShift";
-
-const loadCamera = () => import("./PhotoCapture");
-const loadPad = () => import("./SignStep");
-const PhotoCapture = lazy(loadCamera);
-const SignStep = lazy(loadPad);
 
 interface StoppageDraft {
   reason: StoppageReason | null;
@@ -42,7 +39,7 @@ export function EndShift({ environment, active, onDone, onCancel }: {
   const [reviewing, setReviewing] = useState(false);
   const [signing, setSigning] = useState(false);
   const [failed, setFailed] = useState(false);
-  useEffect(() => { void loadCamera(); void loadPad(); }, []);
+  useEffect(() => { preloadParts(); }, []);
 
   const { machine, open, unit } = active;
   const assessment = assessEnd({ value: value.trim(), meterKind: active.meterKind, startedAt: open.startedAt, startValue: open.startValue, endedAt: now() });
@@ -94,10 +91,12 @@ export function EndShift({ environment, active, onDone, onCancel }: {
         <>
           {capturing
             ? (
+                <PartBoundary fallback={<p role="alert" className="font-medium text-danger">{t("field.start.partMissing")}</p>}>
                 <Suspense fallback={<p>{t("field.start.loading")}</p>}>
                   <PhotoCapture camera={environment.camera} take={environment.take} label={t("field.start.photo")}
                     onPhoto={(taken) => { setPhoto(taken); setCapturing(false); }} onCancel={() => { setCapturing(false); }} />
                 </Suspense>
+                </PartBoundary>
               )
             : (
                 <Button block variant={photo ? "secondary" : "primary"} onClick={() => { setCapturing(true); }} className="min-h-16 text-xl">
@@ -155,6 +154,7 @@ export function EndShift({ environment, active, onDone, onCancel }: {
       )}
 
       {reviewing && (
+        <PartBoundary fallback={<p role="alert" className="font-medium text-danger">{t("field.start.partMissing")}</p>}>
         <Suspense fallback={<p>{t("field.start.loading")}</p>}>
           <SignStep disabled={signing} onConfirm={sign}
             signer={t("field.start.signer", { name: session.name, at: now() })}
@@ -170,6 +170,7 @@ export function EndShift({ environment, active, onDone, onCancel }: {
           {failed && <p role="alert" className="font-medium text-danger">{t("field.end.failed")}</p>}
           <Button variant="secondary" disabled={signing} onClick={() => { setReviewing(false); }}>{t("field.start.back")}</Button>
         </Suspense>
+        </PartBoundary>
       )}
     </div>
   );

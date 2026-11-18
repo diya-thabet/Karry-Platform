@@ -285,6 +285,7 @@
   "field.start.block.value": "اكتب القيمة الظاهرة على العداد، بمنزلة عشرية واحدة على الأكثر.",
   "field.start.block.belowPrevious": "القيمة أقل من النهاية السابقة ({value} {unit}). تحقق من العداد؛ إن استُبدل أو أُعيد إلى الصفر فأبلغ مسؤولك.",
   "field.start.loading": "جارٍ التحميل…",
+  "field.start.partMissing": "هذا الجزء من التطبيق غير موجود على الجهاز اللوحي بعد. وصّله بالشبكة مرة واحدة ثم حاول مرة أخرى: قيمك محفوظة.",
   "field.start.photo": "صورة العداد",
   "field.start.takePhoto": "تصوير العداد",
   "field.start.retakePhoto": "إعادة التصوير",

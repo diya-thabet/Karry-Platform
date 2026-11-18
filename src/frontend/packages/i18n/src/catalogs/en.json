@@ -285,6 +285,7 @@
   "field.start.block.value": "Write the value shown on the meter, with at most one decimal.",
   "field.start.block.belowPrevious": "The value is below the previous end ({value} {unit}). Check the meter; if it was replaced or reset, tell your manager.",
   "field.start.loading": "Loading…",
+  "field.start.partMissing": "This part of the app is not on the tablet yet. Connect it to the network once, then try again: your values are kept.",
   "field.start.photo": "Meter photo",
   "field.start.takePhoto": "Photograph the meter",
   "field.start.retakePhoto": "Take the photo again",
