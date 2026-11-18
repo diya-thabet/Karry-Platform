@@ -367,6 +367,7 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.5 slice 6 (PR from `feat/p2.5-end-flow`):** `endRules.ts`, `EndShift.tsx`, home "My active shift"/"End my shift", handover via `previousRootId` when the last end is inside the current shift; 26 strings in five languages. Field app 265/265.
 - **P2.5 slice 7 (PR from `feat/p2.5-history`):** `historyRows.ts`, `History.tsx`, `refusals.ts`; 20 strings in five languages. Field app 271/271. Hit the case trap again (`history.ts` next to `History.tsx`): renamed `historyRows.ts`.
 - **P2.5 slice 8a (PR from `feat/p2.5-e2e`):** `e2e/tests/field-shift.spec.ts`, Playwright launches Chromium with a fake camera. Runs in CI only so far (not run locally: images and Chromium not downloaded on this machine).
+- **Found by the 8a E2E in CI (fixed in #187):** offline, the camera and pad chunks failed to load ("Failed to fetch dynamically imported module") and the app went blank: the first service worker did not control the page until a reload. Fix: `clientsClaim: true` (updates still wait, "prompt"), `preloadParts()` on the home screen, `PartBoundary` shows `field.start.partMissing` instead of a blank page.
 - **Next:** P2.5 slice 8b: TC-P2-SYNC-002/007/011/014, key rotation, 20 entries offline; then slice 9 close-out.
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
