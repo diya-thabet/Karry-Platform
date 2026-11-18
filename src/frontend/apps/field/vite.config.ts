@@ -43,6 +43,10 @@ export default defineConfig(({ mode }) => ({
       includeAssets: ["icon.svg", "icon-maskable.svg"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2,webmanifest}"],
+        // The first install takes control of the page already open: without it, a tablet that goes offline before
+        // its first reload cannot load a lazy chunk (the camera, the signature pad) and the form fails. Updates still
+        // wait for the operator ("prompt": no skipWaiting).
+        clientsClaim: true,
         navigateFallback: "/index.html",
         // The API is never cached by the service worker: reference data lives in IndexedDB (ADR-0028 §5).
         navigateFallbackDenylist: [/^\/api\//],

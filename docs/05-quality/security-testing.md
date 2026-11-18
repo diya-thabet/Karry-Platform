@@ -37,12 +37,12 @@ never a page, so it allows nothing:
 |---|---|---|
 | `script-src` | `'self'` | `'self'` |
 | `style-src` | `'self' 'unsafe-inline'` (finding W-2) | same |
-| `connect-src` | `'self'`, Keycloak, the map's style host, error tracking | `'self'`, error tracking |
+| `connect-src` | `'self'`, Keycloak, the map's style host, error tracking | `'self'`, the evidence store (`VITE_EVIDENCE_ORIGIN`: photos and signatures go up by pre-signed `PUT`, ADR-0032), error tracking |
 | `img-src` | `'self' data: blob:`, the map's host | `'self' data: blob:` |
 | `worker-src` | `'self' blob:` (MapLibre) | `'self'` (service worker) |
 | `frame-src` | Keycloak (silent renew fallback) | `'none'` |
 | `frame-ancestors`, `object-src`, `base-uri` | `'none'`, `'none'`, `'self'` | same |
-| `Permissions-Policy` | nothing | `camera=(self)` (meter photos) only |
+| `Permissions-Policy` | nothing | `camera=(self)` (meter photos) and `geolocation=(self)` (where an entry is signed, never required) only |
 
 The origins come from the same `VITE_` settings the build uses, so the policy follows the environment.
 

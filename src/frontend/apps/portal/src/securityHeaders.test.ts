@@ -15,6 +15,7 @@ describe("page security policy", () => {
     VITE_AUTH_AUTHORITY: "https://auth.karry.app/realms/karry",
     VITE_MAP_STYLE_URL: "https://tiles.example.org/style.json",
     VITE_ERROR_TRACKING_DSN: "https://public-key@o1.ingest.example.io/42",
+    VITE_EVIDENCE_ORIGIN: "https://evidence.karry.app",
   };
 
   it("never allows inline or remote scripts, plugins, a foreign base or being framed", () => {
@@ -37,22 +38,25 @@ describe("page security policy", () => {
     expect(policy.get("worker-src")).toEqual(["'self'", "blob:"]);
   });
 
-  it("keeps the field app to its own origin: no Keycloak, no frames", () => {
+  it("keeps the field app to its own origin and the evidence store (its uploads): no Keycloak, no frames", () => {
     const policy = directives(contentSecurityPolicy("field", production));
-    expect(policy.get("connect-src")).toEqual(["'self'", "https://o1.ingest.example.io"]);
+    expect(policy.get("connect-src")).toEqual(["'self'", "https://evidence.karry.app", "https://o1.ingest.example.io"]);
     expect(policy.get("frame-src")).toEqual(["'none'"]);
   });
 
   it("adds nothing for settings that are missing or not addresses", () => {
     expect(originOf(undefined)).toBeUndefined();
     expect(originOf("not an address")).toBeUndefined();
-    expect(directives(contentSecurityPolicy("field", {})).get("connect-src")).toEqual(["'self'"]);
+    expect(directives(contentSecurityPolicy("field", {})).get("connect-src")).toEqual(["'self'", "http://127.0.0.1:8333"]);
+    expect(directives(contentSecurityPolicy("field", { VITE_EVIDENCE_ORIGIN: "not an address" })).get("connect-src")).toEqual(["'self'"]);
     expect(directives(contentSecurityPolicy("portal", {})).get("connect-src")).toEqual(["'self'", "http://localhost:8080", "https://demotiles.maplibre.org"]);
   });
 
-  it("only the field app may use the camera", () => {
+  it("only the field app may use the camera and the position", () => {
     expect(securityHeaders("field", {})["Permissions-Policy"]).toContain("camera=(self)");
+    expect(securityHeaders("field", {})["Permissions-Policy"]).toContain("geolocation=(self)");
     expect(securityHeaders("portal", {})["Permissions-Policy"]).toContain("camera=()");
+    expect(securityHeaders("portal", {})["Permissions-Policy"]).toContain("geolocation=()");
     expect(securityHeaders("portal", {})["X-Frame-Options"]).toBe("DENY");
   });
 });
