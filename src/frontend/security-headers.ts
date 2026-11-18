@@ -10,10 +10,14 @@ export interface PolicyEnvironment {
   VITE_AUTH_AUTHORITY?: string | undefined;
   VITE_MAP_STYLE_URL?: string | undefined;
   VITE_ERROR_TRACKING_DSN?: string | undefined;
+  /** Where the field app uploads evidence (pre-signed PUT straight to the object store, ADR-0032). */
+  VITE_EVIDENCE_ORIGIN?: string | undefined;
 }
 
 const defaultAuthority = "http://localhost:8080/realms/karry";
 const defaultMapStyle = "https://demotiles.maplibre.org/style.json";
+// The local stack's object store (deploy/docker/compose.yaml, SeaweedFS S3 on 8333).
+const defaultEvidenceOrigin = "http://127.0.0.1:8333";
 
 /** The origin of an address, or nothing when it is missing or not an address (a DSN carries a key before the host). */
 export function originOf(address: string | undefined): string | undefined {
@@ -51,7 +55,9 @@ export function contentSecurityPolicy(app: App, environment: PolicyEnvironment):
         })()
       : {
           "img-src": sources("'self'", "data:", "blob:"),
-          "connect-src": sources("'self'", errors),
+          // Photos and signatures go up with a pre-signed PUT straight to the evidence store (ADR-0032 §2): without its
+          // origin here the browser blocks every upload (found by the P2.5 browser E2E).
+          "connect-src": sources("'self'", originOf(environment.VITE_EVIDENCE_ORIGIN ?? defaultEvidenceOrigin), errors),
           // The service worker that keeps the app usable offline (ADR-0028 §7).
           "worker-src": "'self'",
           "frame-src": "'none'",
@@ -84,10 +90,11 @@ export function securityHeaders(app: App, environment: PolicyEnvironment): Recor
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "same-origin",
     "Cross-Origin-Opener-Policy": "same-origin",
-    // The field app photographs meters (camera); nothing else is ever asked of the device.
+    // The field app photographs meters (camera) and records where a signature was made (geolocation, ADR-0033
+    // `context.geo`, never required); nothing else is ever asked of the device.
     "Permissions-Policy":
       app === "field"
-        ? "camera=(self), microphone=(), geolocation=(), payment=(), usb=()"
+        ? "camera=(self), microphone=(), geolocation=(self), payment=(), usb=()"
         : "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   };
 }
