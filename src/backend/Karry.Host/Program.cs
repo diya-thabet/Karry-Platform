@@ -29,7 +29,7 @@ builder.Services.AddKarryApiConventions();
 builder.Services.AddKarryTenancy(builder.Configuration);
 builder.Services.AddKarryRateLimits(builder.Configuration, builder.Environment);
 builder.Services.AddKarryReverseProxy(builder.Configuration);
-builder.Services.AddOpenApi("v1", options => options.AddSensitiveFieldMarks());
+builder.Services.AddOpenApi("v1", options => options.AddSensitiveFieldMarks().AddPortableLineEnds());
 builder.Services.AddModules(builder.Configuration, ModuleCatalog.All);
 
 var app = builder.Build();
