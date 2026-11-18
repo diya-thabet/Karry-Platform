@@ -302,6 +302,7 @@
   "field.start.failed": "تعذّر حفظ بداية النوبة. حاول مرة أخرى.",
   "field.start.back": "تعديل القيم",
   "field.start.saved": "بدأت النوبة. ستُرسل عند المزامنة التالية.",
+  "field.start.draftRestored": "تواصل بداية النوبة التي تركتها دون إكمال.",
   "field.camera.viewfinder": "الكاميرا: ضع ما تريد تصويره في الإطار",
   "field.camera.focusHelp": "المس الصورة لضبط التركيز.",
   "field.camera.take": "التقاط الصورة",

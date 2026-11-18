@@ -52,15 +52,16 @@ const photo: Photo = {
   capture: { sha256: "a".repeat(64), capturedAt: "2026-11-10T02:01:00.000Z", deviceId: "d1", appVersion: "1.4.0", width: 1600, height: 1200 },
 };
 
-async function open(db: KarryOfflineDb, device: DeviceRecord) {
+async function open(db: KarryOfflineDb, device: DeviceRecord, session = operator) {
   const camera: Camera = { start: () => Promise.resolve({ stop: () => undefined, focus: () => Promise.resolve() }) };
   const environment: FormEnvironment = {
-    db, device, session: operator, scanner: null, camera, take: () => Promise.resolve(photo), appVersion: "1.4.0",
+    db, device, session, scanner: null, camera, take: () => Promise.resolve(photo), appVersion: "1.4.0",
     position: () => Promise.resolve(null), now: () => new Date("2026-11-10T02:02:00Z"),
   };
   const onDone = vi.fn();
-  render(<I18nProvider i18n={await createI18n({ language: "fr" })}><StartShift environment={environment} onDone={onDone} onCancel={vi.fn()} /></I18nProvider>);
-  return { onDone };
+  const onCancel = vi.fn();
+  const view = render(<I18nProvider i18n={await createI18n({ language: "fr" })}><StartShift environment={environment} onDone={onDone} onCancel={onCancel} /></I18nProvider>);
+  return { onDone, onCancel, unmount: view.unmount };
 }
 
 async function chooseMachine() {
@@ -91,6 +92,7 @@ describe("starting a shift on the tablet (US-P2-FO-01, P2.5)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "signer" }));
 
     await waitFor(() => { expect(onDone).toHaveBeenCalled(); });
+    expect(await db.drafts.count(), "a signed form leaves no draft").toBe(0);
     const [command] = await db.outbox.toArray();
     expect(command?.type).toBe(startCommand);
     expect((command?.payload as { record: unknown }).record).toMatchObject({
@@ -140,6 +142,30 @@ describe("starting a shift on the tablet (US-P2-FO-01, P2.5)", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(/^Sami a un poste en cours sur cette machine/);
     expect(screen.queryByRole("button", { name: "Photographier le compteur" })).not.toBeInTheDocument();
+    await db.delete();
+  });
+
+  it("keeps a form left by an auto-lock for the same operator, never for another one, and drops it when left on purpose (US-P2-FO-01 AC6, T-01)", async () => {
+    const { db, device } = await tablet();
+    const first = await open(db, device);
+    await chooseMachine();
+    await takeThePhoto();
+    fireEvent.change(screen.getByLabelText("Valeur de début (h)"), { target: { value: "1201.0" } });
+    await waitFor(async () => { expect((await db.drafts.toArray())[0]?.values).toMatchObject({ machineId: asset, value: "1201.0", fuel: 50 }); });
+    first.unmount();
+
+    const other = await open(db, device, { ...operator, userId: "0192f0c1-0000-7000-8000-000000000502", name: "Sami", employeeId: "OP-2" });
+    expect(await screen.findByLabelText("Code, nom ou étiquette")).toHaveValue("");
+    expect(await db.drafts.count(), "opening a form is not a draft").toBe(1);
+    other.unmount();
+
+    const again = await open(db, device);
+    expect(await screen.findByRole("status")).toHaveTextContent("Vous reprenez le début de poste laissé en cours.");
+    expect(screen.getByLabelText("Valeur de début (h)")).toHaveValue("1201.0");
+    expect(screen.getByText("Photo du compteur prise")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Annuler le début de poste" }));
+    await waitFor(() => { expect(again.onCancel).toHaveBeenCalled(); });
+    expect(await db.drafts.count()).toBe(0);
     await db.delete();
   });
 });

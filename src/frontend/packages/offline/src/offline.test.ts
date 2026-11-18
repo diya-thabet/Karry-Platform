@@ -107,7 +107,7 @@ describe("reference data (US-P1-OFF-03 AC1/AC2)", () => {
   });
 });
 
-describe("schema upgrade (P2.5, schemas v3 and v4)", () => {
+describe("schema upgrade (P2.5, schemas v3 to v5)", () => {
   it("opens a v2 database with its outbox and blobs intact and the new tables empty", async () => {
     const name = `upgrade-${String(++n)}`;
     const v2 = new Dexie(name);
@@ -123,7 +123,8 @@ describe("schema upgrade (P2.5, schemas v3 and v4)", () => {
     expect(await upgraded.blobs.count()).toBe(1);
     expect(await upgraded.meterStates.count()).toBe(0);
     expect(await upgraded.nonWorkingDays.count()).toBe(0);
-    expect(upgraded.verno).toBe(4);
+    expect(await upgraded.drafts.count()).toBe(0);
+    expect(upgraded.verno).toBe(5);
     await upgraded.delete();
   });
 });

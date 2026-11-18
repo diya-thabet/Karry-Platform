@@ -302,6 +302,7 @@
   "field.start.failed": "The start of shift could not be saved. Try again.",
   "field.start.back": "Change the values",
   "field.start.saved": "Shift started. It will be sent with the next synchronisation.",
+  "field.start.draftRestored": "You are continuing the start of shift you left unfinished.",
   "field.camera.viewfinder": "Camera: frame what to photograph",
   "field.camera.focusHelp": "Tap the picture to focus.",
   "field.camera.take": "Take the photo",
