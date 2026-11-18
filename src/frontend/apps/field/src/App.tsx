@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheck, Download, Droplets, HardDriveDownload, Lock, Mountain, Play, ScanLine, Square, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, Download, Droplets, HardDriveDownload, History as HistoryIcon, Lock, Mountain, Play, ScanLine, Square, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
@@ -12,6 +12,7 @@ import { ReferenceStatus } from "./ReferenceStatus";
 import type { Position } from "./signShiftEntry";
 import { findActiveShift, type ActiveShift } from "./endRules";
 import { EndShift } from "./EndShift";
+import { History } from "./History";
 import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
@@ -97,7 +98,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
 }) {
   const { t } = useTranslation();
   const [finding, setFinding] = useState(false);
-  const [form, setForm] = useState<"start" | "end" | null>(null);
+  const [form, setForm] = useState<"start" | "end" | "history" | null>(null);
   const [saved, setSaved] = useState<"started" | "ended" | null>(null);
   // The operator's running segment, looked up again whenever a form closes (US-P2-FO-04 AC1 "My active shift").
   const [active, setActive] = useState<ActiveShift | null>(null);
@@ -119,6 +120,10 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   };
   if (form === "start") {
     return <StartShift environment={forms} onDone={() => { setForm(null); setSaved("started"); }} onCancel={() => { setForm(null); }} />;
+  }
+
+  if (form === "history") {
+    return <History db={environment.db} session={session} now={() => new Date()} onBack={() => { setForm(null); }} onStart={() => { setForm("start"); }} />;
   }
 
   if (form === "end" && active) {
@@ -168,6 +173,10 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
               {t("field.start.open")}
             </Button>
           )}
+      <Button block variant="secondary" onClick={() => { setSaved(null); setForm("history"); }} className="min-h-16 text-xl">
+        <HistoryIcon aria-hidden className="size-7" />
+        {t("field.history.open")}
+      </Button>
       <Button block variant="secondary" onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
         <ScanLine aria-hidden className="size-8" />
         {t("field.machines.open")}

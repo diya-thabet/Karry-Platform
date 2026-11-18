@@ -361,7 +361,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.5 slice 5b (PR from `feat/p2.5-drafts`):** Dexie v5 `drafts`, `drafts.ts`, the start form restores/saves/drops its draft; `field.start.draftRestored` in five languages. Field app 259/259.
 - **Lesson:** a form that saves on every change needs its writes chained and stopped on close: the first version recreated a just-dropped draft (an earlier save landed after the delete) and saved an empty draft for anyone who only opened the form. Run a new UI test several times alone (`vitest run <file>` ×5): the race showed in 2 runs of 4.
 - **P2.5 slice 6 (PR from `feat/p2.5-end-flow`):** `endRules.ts`, `EndShift.tsx`, home "My active shift"/"End my shift", handover via `previousRootId` when the last end is inside the current shift; 26 strings in five languages. Field app 265/265.
-- **Next:** P2.5 slice 7: "My history" (14 days, statuses).
+- **P2.5 slice 7 (PR from `feat/p2.5-history`):** `historyRows.ts`, `History.tsx`, `refusals.ts`; 20 strings in five languages. Field app 271/271. Hit the case trap again (`history.ts` next to `History.tsx`): renamed `historyRows.ts`.
+- **Next:** P2.5 slice 8: browser E2E (Playwright, fake camera) on the local stack.
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).
