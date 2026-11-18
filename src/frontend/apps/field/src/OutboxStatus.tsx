@@ -2,14 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "@karry/i18n";
 import { watchOutbox, type KarryOfflineDb, type OutboxSummary } from "@karry/offline";
 import { StatusChip } from "@karry/ui";
-
-/** Codes the operator gets an explanation for; any other is shown with its code. */
-const reasons: Record<string, string> = {
-  "sync.blob_mismatch": "field.outbox.reason.blobMismatch",
-  "sync.evidence_invalid": "field.outbox.reason.evidenceInvalid",
-  "sync.signature_invalid": "field.outbox.reason.signatureInvalid",
-  "sync.sequence_reused": "field.outbox.reason.sequenceReused",
-};
+import { refusalReasons } from "./refusals";
 
 /**
  * What the tablet still has to send (US-P2-OFF-02, sync centre): "everything is sent", or how many entries wait to be
@@ -40,7 +33,7 @@ export function OutboxStatus({ db }: { db: KarryOfflineDb }) {
             {summary.rejected.map((command) => (
               <li key={command.commandId}>
                 <p className="text-text-muted">{t("field.outbox.recordedAt", { at: new Date(command.deviceTime) })}</p>
-                <p>{command.code && command.code in reasons ? t(reasons[command.code] ?? "") : t("field.outbox.reason.other", { code: command.code ?? "?" })}</p>
+                <p>{command.code && command.code in refusalReasons ? t(refusalReasons[command.code] ?? "") : t("field.outbox.reason.other", { code: command.code ?? "?" })}</p>
               </li>
             ))}
           </ul>
