@@ -32,3 +32,12 @@ export async function saveDraft(db: KarryOfflineDb, operatorId: string, form: st
 export async function discardDraft(db: KarryOfflineDb, operatorId: string, form: string): Promise<void> {
   await db.drafts.delete(key(operatorId, form));
 }
+
+/**
+ * Drops every draft older than {@link draftLifetimeMs}, whoever left it (T-17: a lost tablet keeps no old meter
+ * photos or values). Run at each unlock, so a draft nobody reopens does not stay.
+ */
+export async function purgeDrafts(db: KarryOfflineDb, now: Date): Promise<number> {
+  const cutoff = new Date(now.getTime() - draftLifetimeMs).toISOString();
+  return db.drafts.filter((d) => d.updatedAt < cutoff).delete();
+}

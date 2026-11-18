@@ -198,6 +198,15 @@ The portal reads entries by site, shift, machine and operator, and an entry with
 | T-09/T-11 isolation | RLS on `fieldops.shift_entries`; the read API under the tenant and the caller's sites; seeded entry attacked by the isolation suite (`entryId`) | `EntriesApiTests`, `TenantIsolationSuite` |
 | T-10 disclosure | No field is masked: an entry holds no price, cost, margin or wage. Costs per machine hour arrive with Finance (Phase 7) and are masked there | review |
 
+## 10. Security review (P2.5, tablet flows, 2026-11-18)
+
+| Threat | What P2.5 does | Evidence |
+|---|---|---|
+| T-01 operator identity | Who is unlocked is shown on every screen of the flows (the machine step too, fixed in this review); the auto-lock runs inside the forms (the home screen's hook stays mounted); the signer of a start or an end is the unlocked session, never a value the operator types; drafts are keyed by operator, so another person unlocking the tablet never sees or continues them | `StartShift.test.tsx` (name on the first step; draft of another operator not shown), `drafts.test.ts` |
+| T-01 residual | Unchanged: R-13 (the server does not yet check the signer against Identity), P2.7 | threat model R-13 |
+| T-01 / T-03 meter photo | The meter photo comes only from the app's camera (no file input, no gallery: TC-P2-FO-002); its hash is in the signed record and the envelope, its capture record in the signed command; EXIF dropped by the re-encode | `PhotoCapture.test.tsx`, `signShiftEntry.test.ts`, `field-shift.spec.ts` |
+| T-17 lost tablet | Drafts (values and a meter photo) are dropped 24 h after their last change at every unlock (fixed in this review: before, a draft nobody reopened stayed); signed entries and their photos follow the outbox rules (bytes freed 7 days after confirmation, thumbnails kept, P2.2); the history shows only the unlocked operator's entries | `drafts.test.ts` (`purgeDrafts`), `historyRows.test.ts` |
+| T-17 residual | A revoked tablet keeps its local data until the browser's site data is cleared (the server refuses its uploads); remote wipe is not possible for a PWA. The procedure is the [lost tablet runbook](../06-operations/runbooks/karry-lost-tablet.md): revoke, recover what was not sent, change the PINs, clear the site data if it is found | runbook |
 ## Options considered
 
 1. **Resolve against the rules, append-only versions, each operator signs their own segment (chosen).**

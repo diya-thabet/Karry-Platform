@@ -367,7 +367,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **P2.5 slice 6 (PR from `feat/p2.5-end-flow`):** `endRules.ts`, `EndShift.tsx`, home "My active shift"/"End my shift", handover via `previousRootId` when the last end is inside the current shift; 26 strings in five languages. Field app 265/265.
 - **P2.5 slice 7 (PR from `feat/p2.5-history`):** `historyRows.ts`, `History.tsx`, `refusals.ts`; 20 strings in five languages. Field app 271/271. Hit the case trap again (`history.ts` next to `History.tsx`): renamed `historyRows.ts`.
 - **P2.5 slice 8a (PR from `feat/p2.5-e2e`):** `e2e/tests/field-shift.spec.ts`, Playwright launches Chromium with a fake camera. Runs in CI only so far (not run locally: images and Chromium not downloaded on this machine).
-- **Next:** P2.5 slice 8b: TC-P2-SYNC-002/007/011/014, key rotation, 20 entries offline; then slice 9 close-out.
+- **P2.5 slice 9a (PR from `feat/p2.5-close-out`):** security review ADR-0034 §10 + threat model (T-01, T-03, T-17); fixes: `MachineFinder` shows the unlocked operator (`who`), `purgeDrafts` at every unlock; runbook `karry-lost-tablet`. Field app 272/272.
+- **Next:** P2.5 slice 8b (TC-P2-SYNC-002/007/011/014, key rotation, 20 entries offline: browser E2E, CI only from this machine) and 9b (usability test: owner; demo steps 1–2).
 
 ### 2026-11-09 — Phase 1 exit review merged; sync snapshot fix; P2.0 done (agent)
 - **Merged:** #145 (Phase 1 exit review draft, nightly `load` fix: runs wait 65 s for a fresh rate-limit window; the manual nightly 42615207915 had `load` green again).
