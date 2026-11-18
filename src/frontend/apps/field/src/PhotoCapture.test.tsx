@@ -48,7 +48,8 @@ describe("the camera screen (P2.5, ADR-0032 §5)", () => {
 
     expect(await screen.findByRole("img", { name: "Photo prise" })).toHaveAttribute("src", "data:image/webp;base64,AQID");
     expect(take).toHaveBeenCalledWith(expect.any(HTMLVideoElement));
-    expect(stop).toHaveBeenCalled();
+    // Released when the preview shows, or as soon as a start still under way finishes.
+    await waitFor(() => { expect(stop).toHaveBeenCalled(); });
     fireEvent.click(screen.getByRole("button", { name: "Garder cette photo" }));
     expect(onPhoto).toHaveBeenCalledWith(photo);
   });

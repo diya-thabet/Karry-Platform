@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheck, Download, Droplets, HardDriveDownload, Lock, Mountain, Play, ScanLine, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, Download, Droplets, HardDriveDownload, Lock, Mountain, Play, ScanLine, Square, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
@@ -10,7 +10,9 @@ import { findMachine, type QrScanner } from "./machines";
 import { OutboxStatus } from "./OutboxStatus";
 import { ReferenceStatus } from "./ReferenceStatus";
 import type { Position } from "./signShiftEntry";
-import { StartShift } from "./StartShift";
+import { findActiveShift, type ActiveShift } from "./endRules";
+import { EndShift } from "./EndShift";
+import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useAutoLock } from "./autoLock";
@@ -95,24 +97,32 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
 }) {
   const { t } = useTranslation();
   const [finding, setFinding] = useState(false);
-  const [starting, setStarting] = useState(false);
-  const [started, setStarted] = useState(false);
+  const [form, setForm] = useState<"start" | "end" | null>(null);
+  const [saved, setSaved] = useState<"started" | "ended" | null>(null);
+  // The operator's running segment, looked up again whenever a form closes (US-P2-FO-04 AC1 "My active shift").
+  const [active, setActive] = useState<ActiveShift | null>(null);
   const find = useCallback((text: string) => findMachine(environment.db, text), [environment.db]);
   useAutoLock(autoLockMinutes, lock);
+  useEffect(() => {
+    if (form === null) {
+      void findActiveShift(environment.db, session.userId).then(setActive);
+    }
+  }, [environment.db, session.userId, form]);
+
   if (finding) {
     return <MachineFinder find={find} scanner={environment.scanner} onBack={() => { setFinding(false); }} />;
   }
 
-  if (starting) {
-    return (
-      <StartShift
-        environment={{
-          db: environment.db, device, session, scanner: environment.scanner, camera: environment.camera, appVersion: environment.appVersion,
-          take: (video) => environment.take(video, device.deviceId), position: environment.position,
-        }}
-        onDone={() => { setStarting(false); setStarted(true); }}
-        onCancel={() => { setStarting(false); }} />
-    );
+  const forms: FormEnvironment = {
+    db: environment.db, device, session, scanner: environment.scanner, camera: environment.camera, appVersion: environment.appVersion,
+    take: (video) => environment.take(video, device.deviceId), position: environment.position,
+  };
+  if (form === "start") {
+    return <StartShift environment={forms} onDone={() => { setForm(null); setSaved("started"); }} onCancel={() => { setForm(null); }} />;
+  }
+
+  if (form === "end" && active) {
+    return <EndShift environment={forms} active={active} onDone={() => { setForm(null); setSaved("ended"); }} onCancel={() => { setForm(null); }} />;
   }
 
   return (
@@ -134,16 +144,30 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
       <StorageWarning persisted={environment.persisted} />
       <ReferenceStatus db={environment.db} device={device} pull={environment.pull} />
       <OutboxStatus db={environment.db} />
-      {started && (
+      {saved && (
         <p role="status" className="flex items-center gap-2 rounded-xl bg-success-soft p-4 font-medium">
           <CircleCheck aria-hidden className="size-6 text-success" />
-          {t("field.start.saved")}
+          {t(saved === "started" ? "field.start.saved" : "field.end.saved")}
         </p>
       )}
-      <Button block onClick={() => { setStarted(false); setStarting(true); }} className="min-h-20 text-xl">
-        <Play aria-hidden className="size-8" />
-        {t("field.start.open")}
-      </Button>
+      {active
+        ? (
+            <section aria-label={t("field.active.label")} className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-primary bg-surface p-4">
+              <h2 className="text-xl font-semibold">{t("field.active.label")}</h2>
+              <p><span className="font-mono font-bold">{active.machine.code}</span> {active.machine.name}</p>
+              <p>{t("field.end.started", { value: active.open.startValue, unit: active.unit, at: new Date(active.open.startedAt) })}</p>
+              <Button block onClick={() => { setSaved(null); setForm("end"); }} className="min-h-20 text-xl">
+                <Square aria-hidden className="size-8" />
+                {t("field.end.open")}
+              </Button>
+            </section>
+          )
+        : (
+            <Button block onClick={() => { setSaved(null); setForm("start"); }} className="min-h-20 text-xl">
+              <Play aria-hidden className="size-8" />
+              {t("field.start.open")}
+            </Button>
+          )}
       <Button block variant="secondary" onClick={() => { setFinding(true); }} className="min-h-20 text-xl">
         <ScanLine aria-hidden className="size-8" />
         {t("field.machines.open")}
