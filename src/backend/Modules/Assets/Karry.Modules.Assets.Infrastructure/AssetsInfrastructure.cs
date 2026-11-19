@@ -27,6 +27,8 @@ public static class AssetsInfrastructure
         services.AddScoped<MeterOperations>();
         services.AddScoped<IMeterDirectory, MeterDirectory>();
         services.AddScoped<IAssetDirectory, AssetDirectory>();
+        services.AddScoped<IMeterEvents, MeterEvents>();
+        services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<Domain.MeterEventRecorded>, MeterEventFanOut>();
         services.AddScoped<DemoAssetsSeeder>();
         services.AddScoped<IUsageSource, CountedAssets>();
 

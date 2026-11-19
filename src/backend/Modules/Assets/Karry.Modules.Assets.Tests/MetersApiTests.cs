@@ -231,6 +231,121 @@ public sealed class MetersApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await mine.ServiceProvider.GetRequiredService<IMeterDirectory>().FindAsync(Guid.CreateVersion7(), Ct)).Should().BeNull();
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-AST-01")]
+    [Trait("TestCase", "TC-P2-FO-009")]
+    public async Task A_replacement_keeps_usage_continuous_by_an_offset_and_is_ledgered_with_its_reason_and_photos()
+    {
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant), "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+        await Record(tenant, asset, meter, 250m, DateTimeOffset.UtcNow.AddHours(-3));
+        var at = DateTimeOffset.UtcNow.AddHours(-2);
+
+        var response = await RecordEvent(tenant, asset, meter, new { kind = "replaced", occurredAt = at, valueBefore = 260.5m, valueAfter = 3m, reason = "Counter broken, new one fitted", photos = Photos(2) });
+
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        var recorded = await Json(response);
+        (recorded.GetProperty("kind").GetString(), recorded.GetProperty("valueBefore").GetDecimal(), recorded.GetProperty("valueAfter").GetDecimal()).Should().Be(("replaced", 260.5m, 3m));
+        recorded.GetProperty("recordedBy").GetString().Should().Be("admin-1");
+        var state = (await Items(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters", Admin(tenant))))[0];
+        (state.GetProperty("offset").GetDecimal(), state.GetProperty("lastValue").GetDecimal(), state.GetProperty("status").GetString()).Should().Be((257.5m, 3m, "ok"));
+        (await Record(tenant, asset, meter, 4m, DateTimeOffset.UtcNow)).StatusCode.Should().Be(HttpStatusCode.Created, "the new meter counts from its initial value");
+        (await Items(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(tenant)))).Should().ContainSingle()
+            .Which.GetProperty("photos").EnumerateArray().Select(p => p.GetString()).Should().Equal(Photos(2));
+        (await ScalarAsync<string>($"SELECT payload::jsonb->>'reason' FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'assets.meter_event_recorded.v1'"))
+            .Should().Be("Counter broken, new one fitted");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-AST-02")]
+    public async Task A_failed_meter_takes_no_reading_until_a_repair_reading_and_a_reset_needs_both_values()
+    {
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant), "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+        await Record(tenant, asset, meter, 100m, DateTimeOffset.UtcNow.AddHours(-5));
+
+        (await RecordEvent(tenant, asset, meter, Event("failed", -4, before: 101m))).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Error(await Record(tenant, asset, meter, 102m, DateTimeOffset.UtcNow))).Should().Be("assets.meter_not_counting");
+        (await Error(await RecordEvent(tenant, asset, meter, Event("failed", -3)))).Should().Be("assets.meter_not_counting");
+        (await Error(await RecordEvent(tenant, asset, meter, Event("repaired", -3)))).Should().Be("assets.meter_event_values");
+        (await RecordEvent(tenant, asset, meter, Event("repaired", -3, after: 140m))).StatusCode.Should().Be(HttpStatusCode.Created);
+        (await Error(await RecordEvent(tenant, asset, meter, Event("repaired", -2, after: 141m)))).Should().Be("assets.meter_not_failed");
+        (await Error(await RecordEvent(tenant, asset, meter, Event("reset", -2, before: 150m)))).Should().Be("assets.meter_event_values");
+        (await Error(await RecordEvent(tenant, asset, meter, Event("reset", -2, before: 139m, after: 0m)))).Should().Be("assets.reading_decreased");
+
+        (await Items(await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(tenant))))
+            .Select(e => (e.GetProperty("kind").GetString(), e.GetProperty("valueBefore").ValueKind == JsonValueKind.Null ? (decimal?)null : e.GetProperty("valueBefore").GetDecimal(),
+                e.GetProperty("valueAfter").ValueKind == JsonValueKind.Null ? (decimal?)null : e.GetProperty("valueAfter").GetDecimal()))
+            .Should().Equal(("failed", 101m, null), ("repaired", null, 140m));
+        (await LedgerCountAsync(tenant, "assets.meter_event_recorded.v1")).Should().Be(2);
+    }
+
+    [Theory]
+    [InlineData("kind", "\"moved\"", "assets.meter_event_invalid")]
+    [InlineData("reason", "\"short\"", "assets.meter_event_reason")]
+    [InlineData("photos", "[]", "assets.meter_event_photos")]
+    [InlineData("photos", "[\"sha256:abc\"]", "assets.meter_event_photos")]
+    [InlineData("occurredAt", "null", "assets.meter_event_time")]
+    [InlineData("occurredAt", "\"2999-01-01T00:00:00Z\"", "assets.reading_in_future")]
+    [InlineData("occurredAt", "\"2020-01-01T00:00:00Z\"", "assets.reading_before_last")]
+    [InlineData("valueAfter", "1.25", "assets.reading_invalid")]
+    public async Task A_meter_event_out_of_its_rules_is_refused_and_nothing_is_saved(string field, string json, string error)
+    {
+        var tenant = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant), "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+        var body = System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(Event("reset", -1, before: 10m, after: 0m)))!.AsObject();
+        body[field] = System.Text.Json.Nodes.JsonNode.Parse(json);
+
+        (await Error(await RecordEvent(tenant, asset, meter, body))).Should().Be(error);
+        (await ScalarAsync<long>($"SELECT count(*) FROM assets.meter_events WHERE tenant_id = '{tenant}'")).Should().Be(0);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-AST-01")]
+    public async Task Meter_events_cannot_be_changed_and_other_modules_read_them_only_in_their_company()
+    {
+        var tenant = await ProvisionAsync();
+        var other = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant), "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+        var at = new DateTimeOffset(DateTimeOffset.UtcNow.AddMinutes(-30).Ticks / TimeSpan.TicksPerSecond * TimeSpan.TicksPerSecond, TimeSpan.Zero);
+        var id = (await Json(await RecordEvent(tenant, asset, meter, new { kind = "reset", occurredAt = at, valueBefore = 9_999_999.9m, valueAfter = 0m, reason = "Rollover of the counter", photos = Photos(1) })))
+            .GetProperty("id").GetGuid();
+
+        foreach (var sql in new[] { $"UPDATE assets.meter_events SET reason = 'changed afterwards' WHERE id = '{id}'", $"DELETE FROM assets.meter_events WHERE id = '{id}'" })
+        {
+            var asApp = () => InTenantAsync(host.Database.App, tenant, sql);
+            (await asApp.Should().ThrowAsync<PostgresException>()).Which.SqlState.Should().Be(PostgresErrorCodes.InsufficientPrivilege);
+            var asOwner = () => InTenantAsync(host.Database.Owner, tenant, sql);
+            (await asOwner.Should().ThrowAsync<PostgresException>()).Which.MessageText.Should().Contain("append-only");
+        }
+
+        await using var mine = Scope(tenant);
+        await using var theirs = Scope(other);
+        (await mine.ServiceProvider.GetRequiredService<IMeterEvents>().OfMeterAsync(meter, Ct)).Should().ContainSingle()
+            .Which.Should().Be(new MeterEventSummary(id, meter, "reset", at, 9_999_999.9m, 0m));
+        (await theirs.ServiceProvider.GetRequiredService<IMeterEvents>().OfMeterAsync(meter, Ct)).Should().BeEmpty("another company's events are invisible");
+        (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(other))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    private static string[] Photos(int count) => [.. Enumerable.Range(0, count).Select(i => "sha256:" + new string((char)('a' + i), 64))];
+
+    private static object Event(string kind, int hours, decimal? before = null, decimal? after = null) => new
+    {
+        kind,
+        occurredAt = DateTimeOffset.UtcNow.AddHours(hours),
+        valueBefore = before,
+        valueAfter = after,
+        reason = "Seen on the machine this morning",
+        photos = Photos(1),
+    };
+
+    private Task<HttpResponseMessage> RecordEvent(Guid tenant, Guid asset, Guid meter, object body) =>
+        SendAsync(HttpMethod.Post, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(tenant), body);
+
     private AsyncServiceScope Scope(Guid tenant)
     {
         var scope = host.Services.CreateAsyncScope();

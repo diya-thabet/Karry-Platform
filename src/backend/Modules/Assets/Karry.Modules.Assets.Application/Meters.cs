@@ -13,6 +13,9 @@ public sealed record MeterInput(string? Kind, decimal? InitialReading, DateOnly?
 public sealed record ReadingInput(decimal? Value, DateTimeOffset? ReadAt);
 
 /// <summary>A page of readings, newest first; the next page starts after <c>NextCursor</c> (a reading ID).</summary>
+public sealed record MeterEventInput(
+    string? Kind, DateTimeOffset? OccurredAt, decimal? ValueBefore, decimal? ValueAfter, string? Reason, IReadOnlyList<string>? Photos);
+
 public sealed record ReadingPage(IReadOnlyList<MeterReading> Items, Guid? NextCursor);
 
 /// <summary>Persistence port of meters and their readings (the caller's unit of work, RLS).</summary>
@@ -33,6 +36,9 @@ public interface IMeterStore
 
     /// <summary>Tracks the new readings of a meter, saved with the next save of the unit of work.</summary>
     void Stage(Meter meter);
+
+    /// <summary>The meter's events, oldest first (by when they happened).</summary>
+    Task<IReadOnlyList<MeterEvent>> EventsAsync(MeterId meter, CancellationToken cancellationToken);
 
     /// <summary>Up to <paramref name="take"/> readings, newest first (by reading time), after the reading <paramref name="after"/>.</summary>
     Task<IReadOnlyList<MeterReading>> ReadingsAsync(MeterId meter, Guid? after, int take, CancellationToken cancellationToken);
@@ -145,6 +151,56 @@ public sealed class MeterOperations(IMeterStore store, AssetOperations assets, I
         }
 
         return await store.TrySaveAsync(meter.Value, cancellationToken).ConfigureAwait(false) ? reading : Changed;
+    }
+
+    /// <summary>
+    /// Records a meter event (US-P2-AST-01, 02; ADR-0036 §5) by a person who manages the machine, ledgered under their
+    /// name; the continuity of the meter's entries is re-evaluated when the event is dispatched (FieldOps).
+    /// </summary>
+    public async Task<Result<MeterEvent>> RecordEventAsync(AssetId assetId, MeterId meterId, MeterEventInput input, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(input);
+        var meter = await ManagedMeterAsync(assetId, meterId, cancellationToken).ConfigureAwait(false);
+        if (!meter.IsSuccess)
+        {
+            return meter.Error;
+        }
+
+        var kind = MeterRules.EventKind(input.Kind);
+        if (!kind.IsSuccess)
+        {
+            return kind.Error;
+        }
+
+        if (input.OccurredAt is not { } occurredAt)
+        {
+            return MeterRules.EventOccurredAtMissing;
+        }
+
+        var recorded = meter.Value.RecordEvent(clock, kind.Value, occurredAt, input.ValueBefore, input.ValueAfter, input.Reason, input.Photos, caller.Subject);
+        if (!recorded.IsSuccess)
+        {
+            return recorded;
+        }
+
+        return await store.TrySaveAsync(meter.Value, cancellationToken).ConfigureAwait(false) ? recorded : Changed;
+    }
+
+    /// <summary>The events of a meter of an asset the caller sees, oldest first.</summary>
+    public async Task<Result<IReadOnlyList<MeterEvent>>> EventsAsync(AssetId assetId, MeterId meterId, CancellationToken cancellationToken)
+    {
+        var asset = await assets.GetAsync(assetId, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess)
+        {
+            return asset.Error;
+        }
+
+        if (await store.FindAsync(meterId, cancellationToken).ConfigureAwait(false) is not { } meter || meter.AssetId != assetId)
+        {
+            return NotFound;
+        }
+
+        return Result.Success(await store.EventsAsync(meterId, cancellationToken).ConfigureAwait(false));
     }
 
     public async Task<Result<ReadingPage>> ReadingsAsync(AssetId assetId, MeterId meterId, Guid? cursor, int? limit, CancellationToken cancellationToken)

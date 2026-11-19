@@ -317,7 +317,83 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
 
                     b.ToTable("meters", "assets", t =>
                         {
-                            t.HasCheckConstraint("ck_meters_values", "initial_reading >= 0 AND last_value >= initial_reading");
+                            t.HasCheckConstraint("ck_meters_values", "initial_reading >= 0 AND last_value >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.MeterEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AssetId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("asset_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("kind");
+
+                    b.Property<Guid>("MeterId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("meter_id");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("occurred_at");
+
+                    b.Property<string[]>("Photos")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("photos");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<string>("RecordedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("recorded_by");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal?>("ValueAfter")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("value_after");
+
+                    b.Property<decimal?>("ValueBefore")
+                        .HasPrecision(9, 1)
+                        .HasColumnType("numeric(9,1)")
+                        .HasColumnName("value_before");
+
+                    b.HasKey("Id")
+                        .HasName("pk_meter_events");
+
+                    b.HasIndex("MeterId")
+                        .HasDatabaseName("ix_meter_events_meter_id");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_meter_events_tenant_id");
+
+                    b.HasIndex("TenantId", "MeterId", "OccurredAt")
+                        .HasDatabaseName("ix_meter_events_tenant_id_meter_id_occurred_at");
+
+                    b.ToTable("meter_events", "assets", t =>
+                        {
+                            t.HasCheckConstraint("ck_meter_events_values", "(kind IN ('Replaced', 'Reset') AND value_before IS NOT NULL AND value_after IS NOT NULL) OR (kind = 'Failed' AND value_after IS NULL) OR (kind = 'Repaired' AND value_before IS NULL AND value_after IS NOT NULL)");
                         });
                 });
 
@@ -453,6 +529,16 @@ namespace Karry.Modules.Assets.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_meters_assets_asset_id");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Assets.Domain.MeterEvent", b =>
+                {
+                    b.HasOne("Karry.Modules.Assets.Domain.Meter", null)
+                        .WithMany()
+                        .HasForeignKey("MeterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_meter_events_meters_meter_id");
                 });
 
             modelBuilder.Entity("Karry.Modules.Assets.Domain.MeterReading", b =>

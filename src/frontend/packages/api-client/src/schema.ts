@@ -1284,6 +1284,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/assets/{assetId}/meters/{meterId}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListMeterEvents"];
+        put?: never;
+        post: operations["RecordMeterEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/imports/templates/{kind}": {
         parameters: {
             query?: never;
@@ -2305,6 +2321,38 @@ export interface components {
             archivedAt: null | string;
             version: string;
         };
+        /** @description A page of readings, newest first; the next page starts after `NextCursor` (a reading ID). */
+        MeterEventInput: {
+            kind: null | string;
+            /** Format: date-time */
+            occurredAt: null | string;
+            /** Format: double */
+            valueBefore: null | number | string;
+            /** Format: double */
+            valueAfter: null | number | string;
+            reason: null | string;
+            photos: null | string[];
+        };
+        MeterEventListResponse: {
+            items: components["schemas"]["MeterEventResponse"][];
+        };
+        /** @description A reading: the value shown at `ReadAt`, received at `RecordedAt` from `RecordedBy` (a user subject). */
+        MeterEventResponse: {
+            /** Format: uuid */
+            id: string;
+            kind: string;
+            /** Format: date-time */
+            occurredAt: string;
+            /** Format: double */
+            valueBefore: null | number | string;
+            /** Format: double */
+            valueAfter: null | number | string;
+            reason: string;
+            photos: string[];
+            /** Format: date-time */
+            recordedAt: string;
+            recordedBy: null | string;
+        };
         /** @description A new meter: `Kind` hours or km, the value shown when installed (default 0) and the date (default the company's today). */
         MeterInput: {
             kind: null | string;
@@ -2520,7 +2568,6 @@ export interface components {
             /** Format: uuid */
             nextCursor: null | string;
         };
-        /** @description A reading: the value shown at `ReadAt`, received at `RecordedAt` from `RecordedBy` (a user subject). */
         ReadingResponse: {
             /** Format: uuid */
             id: string;
@@ -8028,6 +8075,101 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReadingResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMeterEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+                meterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeterEventListResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordMeterEvent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetId: string;
+                meterId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeterEventInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeterEventResponse"];
                 };
             };
             /** @description Bad Request */

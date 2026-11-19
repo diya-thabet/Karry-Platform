@@ -54,6 +54,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     private static readonly string Photo = "sha256:" + new string('a', 64);
 
     private readonly Meters meters = new();
+    private readonly KnownMeterEvents meterEvents = new();
     private readonly Shifts shifts = new();
     private readonly Devices devices = new();
     private KarryDatabase database = null!;
@@ -71,7 +72,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
-            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IShiftCalendar>(shifts)
+            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts)
             .BuildServiceProvider(validateScopes: true);
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
         shifts.Shift = DayShift;
@@ -375,7 +376,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         (await FlagsAsync(TenantA)).Should().Equal(
             $"RULE-FO-01|high|meter|{meter}|{day}>{night}|{Site}|open|[{{\"id\": \"{day}\", \"type\": \"shift_entry\"}}, {{\"id\": \"{night}\", \"type\": \"shift_entry\"}}]"
-            + $"|[\"{Photo}\", \"{Photo}\"]|{{\"endValue\": \"108.0\", \"meterKind\": \"hours\", \"difference\": \"2.5\", \"startValue\": \"110.5\"}}");
+            + $"|[\"{Photo}\", \"{Photo}\"]|{{\"meterKind\": \"hours\", \"difference\": \"2.5\", \"foundValue\": \"110.5\", \"expectedValue\": \"108.0\"}}");
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_opened.v1'")).Should().Be(1);
         (await RowsAsync(TenantB, "SELECT key FROM integrity.flags")).Should().BeEmpty();
     }
@@ -400,6 +401,29 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         (await FlagsAsync(TenantA, brief: true)).Should().Equal($"{monday}>{wednesday}|re-evaluated", $"{tuesday}>{wednesday}|open");
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_closed.v1'")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-AST-01")]
+    [Trait("TestCase", "TC-P2-FO-009")]
+    public async Task A_meter_replacement_recorded_after_the_entries_closes_the_gap_it_explains()
+    {
+        var (meter, day, night) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "12480.0", meter: meter));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "12488.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(12), "3.0", meter: meter, signer: NextOperator));
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal($"{day}>{night}|open");
+
+        // The manager records the replacement in Assets; its outbox hands it to FieldOps in the dispatcher's transaction.
+        var replaced = new MeterEventSummary(Guid.CreateVersion7(), meter, "replaced", ShiftStart.AddHours(10), 12488.0m, 3.0m);
+        meterEvents.All[meter] = [replaced];
+        await InTransactionAsync(TenantA, (scope, connection, transaction) =>
+            scope.GetServices<IMeterEventSubscriber>().Single().HandleAsync(replaced, connection, transaction, Ct));
+        await InTransactionAsync(TenantA, (scope, connection, transaction) =>
+            scope.GetServices<IMeterEventSubscriber>().Single().HandleAsync(replaced, connection, transaction, Ct));
+
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal([$"{day}>{night}|re-evaluated"], "the replacement explains the jump; handing it on twice changes nothing");
     }
 
     [Fact]
@@ -637,6 +661,23 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         }
 
         return deltas.Single(d => d.Name == "meterStates");
+    }
+
+    /// <summary>Runs work as the outbox dispatcher does: in the tenant, in a transaction committed at the end.</summary>
+    private async Task InTransactionAsync(Guid tenant, Func<IServiceProvider, NpgsqlConnection, NpgsqlTransaction, Task> work)
+    {
+        await using var connection = new NpgsqlConnection(database.App);
+        await connection.OpenAsync(Ct);
+        await using var transaction = await connection.BeginTransactionAsync(Ct);
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        await using (var set = new NpgsqlCommand($"SELECT set_config('app.tenant_id', '{tenant}', true)", connection, transaction))
+        {
+            await set.ExecuteNonQueryAsync(Ct);
+        }
+
+        await work(scope.ServiceProvider, connection, transaction);
+        await transaction.CommitAsync(Ct);
     }
 
     /// <summary>The company's integrity flags, oldest first: in full, or as key and state (open, or the reason it closed).</summary>

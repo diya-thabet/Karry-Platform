@@ -58,6 +58,7 @@ public sealed class FieldOpsHost : IAsyncLifetime
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         // The Assets module is not composed here: machines are unknown (no code) unless a test adds them.
         builder.Services.AddSingleton<IAssetDirectory>(Assets);
+        builder.Services.AddSingleton<IMeterEvents>(new KnownMeterEvents());
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -81,6 +82,15 @@ public sealed class FieldOpsHost : IAsyncLifetime
             await server.DisposeAsync();
         }
     }
+}
+
+/// <summary>Meter events for the FieldOps tests, in place of the Assets module (none unless a test adds them).</summary>
+public sealed class KnownMeterEvents : IMeterEvents
+{
+    public ConcurrentDictionary<Guid, List<MeterEventSummary>> All { get; } = new();
+
+    public Task<IReadOnlyList<MeterEventSummary>> OfMeterAsync(Guid meterId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<MeterEventSummary>>(All.TryGetValue(meterId, out var events) ? [.. events.OrderBy(e => e.OccurredAt)] : []);
 }
 
 /// <summary>Machines for the FieldOps host, in place of the Assets module.</summary>
