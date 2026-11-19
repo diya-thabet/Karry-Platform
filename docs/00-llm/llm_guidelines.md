@@ -318,6 +318,7 @@ pnpm --filter @karry/api-client generate          # after the API contract chang
 pnpm --filter @karry/crypto test && pnpm --filter @karry/offline test   # RFC 8785 + PIN verifier vectors (tests/vectors), device keys, Dexie schema v1 (ADR-0028)
 python3 tests/vectors/generate-pin-verifier-vectors.py > tests/vectors/pin-verifier.json   # regenerate the PIN verifier vectors (independent Python implementation)
 pnpm --filter @karry/field exec vitest run src/shiftRules.test.ts   # shift entry rules vs tests/vectors/shift-entry-rules.json (hand-curated; the server's ShiftEntryVectorsTests read it too, TC-P2-FO-012): change a rule on both sides and add its case there
+dotnet test --project src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Tests --filter-class "*ChecklistVectorsTests"   # checklist answers vs tests/vectors/checklist-answers.json (hand-curated; the field app reads it too from P2.6 slice 5): change a rule on both sides
 tools/e2e/run.sh                 # browser E2E (src/frontend/e2e, Playwright) against the running, seeded local stack (CI: local-stack job); refuses to start while 5000, 5173 or 5174 is taken
 # Database migrations (EF Core, per module; generated code, review the SQL with `dotnet ef migrations script`)
 dotnet tool restore

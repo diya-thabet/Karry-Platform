@@ -1,0 +1,25 @@
+{
+  "description": "Pre-start checklist answers (ADR-0035 §3): what fits a template version and which critical items answered Not OK open a hold. Read by the server (ChecklistVectorsTests) and the field app (slice 5), so both sides agree. `critical` is null when the answers do not fit.",
+  "template": [
+    { "code": "brakes", "critical": true, "photoOnNotOk": true },
+    { "code": "lights", "critical": false, "photoOnNotOk": false },
+    { "code": "horn", "critical": false, "photoOnNotOk": true }
+  ],
+  "photo": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "cases": [
+    { "name": "every item OK", "answers": [["brakes", "ok", false], ["lights", "ok", false], ["horn", "ok", false]], "critical": [] },
+    { "name": "not applicable counts as an answer", "answers": [["brakes", "ok", false], ["lights", "na", false], ["horn", "na", false]], "critical": [] },
+    { "name": "a critical Not OK with its photo opens a hold", "answers": [["brakes", "not_ok", true], ["lights", "ok", false], ["horn", "ok", false]], "critical": ["brakes"] },
+    { "name": "a Not OK that is not critical opens no hold", "answers": [["brakes", "ok", false], ["lights", "not_ok", false], ["horn", "ok", false]], "critical": [] },
+    { "name": "a photo may go with any Not OK", "answers": [["brakes", "ok", false], ["lights", "not_ok", true], ["horn", "ok", false]], "critical": [] },
+    { "name": "the order of the answers does not matter", "answers": [["horn", "ok", false], ["brakes", "not_ok", true], ["lights", "ok", false]], "critical": ["brakes"] },
+    { "name": "a critical Not OK without its photo does not fit", "answers": [["brakes", "not_ok", false], ["lights", "ok", false], ["horn", "ok", false]], "critical": null },
+    { "name": "a Not OK asking for a photo needs it, critical or not", "answers": [["brakes", "ok", false], ["lights", "ok", false], ["horn", "not_ok", false]], "critical": null },
+    { "name": "a photo with an OK does not fit", "answers": [["brakes", "ok", true], ["lights", "ok", false], ["horn", "ok", false]], "critical": null },
+    { "name": "a missing item does not fit", "answers": [["brakes", "ok", false], ["lights", "ok", false]], "critical": null },
+    { "name": "an item answered twice does not fit", "answers": [["brakes", "ok", false], ["lights", "ok", false], ["lights", "ok", false]], "critical": null },
+    { "name": "an item of another checklist does not fit", "answers": [["brakes", "ok", false], ["lights", "ok", false], ["mirrors", "ok", false]], "critical": null },
+    { "name": "an unknown answer does not fit", "answers": [["brakes", "ok", false], ["lights", "maybe", false], ["horn", "ok", false]], "critical": null },
+    { "name": "answers are lower case", "answers": [["brakes", "OK", false], ["lights", "ok", false], ["horn", "ok", false]], "critical": null }
+  ]
+}

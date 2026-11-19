@@ -124,6 +124,29 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
     }
 
     [Fact]
+    public async Task A_pull_carries_the_newest_checklist_per_type_and_the_open_holds_until_released()
+    {
+        var v1 = await PublishAsync(required: true);
+        await PublishAsync(required: false, extra: "horn");
+        await HandleAsync(Submit(Guid.CreateVersion7(), v1, Answers(("brakes", "not_ok", Photo), ("lights", "ok", null)), submittedAt: Morning));
+
+        var held = await PullAsync();
+        await ExecuteAsync("INSERT INTO fieldops.safety_hold_releases (id, tenant_id, asset_id, released_at, released_by, reason) "
+            + "SELECT id, tenant_id, asset_id, now(), 'manager-1', 'Brakes adjusted and tested' FROM fieldops.safety_holds");
+        var released = await PullAsync();
+
+        var templates = held.Single(d => d.Name == "checklistTemplates");
+        templates.Replace.Should().BeTrue();
+        templates.Upserts.Cast<ChecklistTemplateSyncRow>().Select(t => $"{t.AssetType} v{t.Version} {t.Required} {string.Join(",", t.Items.Select(i => i.Code))}")
+            .Should().Equal("excavator v2 False brakes,lights,horn");
+        var holds = held.Single(d => d.Name == "safetyHolds");
+        holds.Replace.Should().BeTrue();
+        holds.Upserts.Cast<SafetyHoldSyncRow>().Select(h => $"{h.AssetId} {string.Join(",", h.Items)} {h.OpenedAt:O}")
+            .Should().Equal($"{Asset} brakes {Morning:O}");
+        released.Single(d => d.Name == "safetyHolds").Upserts.Should().BeEmpty("a released hold leaves every tablet at the next pull");
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-FO-013")]
     public async Task A_submission_keeps_the_older_version_it_answered()
     {
@@ -252,6 +275,20 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         }
 
         return rows;
+    }
+
+    /// <summary>The pull's collections from this module, as the Sync module asks for them (in the tenant, a snapshot).</summary>
+    private async Task<List<SyncDelta>> PullAsync()
+    {
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantA));
+        var deltas = new List<SyncDelta>();
+        foreach (var source in scope.ServiceProvider.GetServices<ISyncSource>())
+        {
+            deltas.AddRange(await source.ChangesAsync(new SyncScope(Device, Site), null, Ct));
+        }
+
+        return deltas;
     }
 
     private async Task ExecuteAsync(string sql)
