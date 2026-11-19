@@ -28,7 +28,8 @@ async function verifiedEnvelopes(page: Page, count: number): Promise<number> {
   let verified = 0;
   for (let index = 0; index < count; index++) {
     await page.getByRole("button", { name: /^Détails de l’entrée n° / }).nth(index).click();
-    if (await page.getByText("Vérifiée", { exact: true }).isVisible()) {
+    // The verdict loads after the details open: wait for it a little, then count it.
+    if (await page.getByText("Vérifiée", { exact: true }).waitFor({ timeout: 5_000 }).then(() => true, () => false)) {
       verified++;
     }
 
