@@ -1,6 +1,7 @@
 import { createRootRouteWithContext, createRoute, createRouter, redirect, type RouterHistory } from "@tanstack/react-router";
 import { AssetPage, AssetsPage } from "./assets/AssetsPages";
 import { AuditPage } from "./audit/AuditPage";
+import { ChecklistPage, ChecklistsPage } from "./checklists/ChecklistsPages";
 import { PlanPage } from "./billing/PlanPage";
 import { HomePage } from "./home/HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
@@ -94,6 +95,16 @@ const material = createRoute({
     return <MaterialPage key={materialId} materialId={materialId} />;
   },
 });
+const checklists = createRoute({ getParentRoute: () => company, path: "/settings/checklists", component: ChecklistsPage });
+const newChecklist = createRoute({ getParentRoute: () => company, path: "/settings/checklists/new", component: () => <ChecklistPage /> });
+const checklist = createRoute({
+  getParentRoute: () => company,
+  path: "/settings/checklists/$assetType",
+  component: function Checklist() {
+    const { assetType } = checklist.useParams();
+    return <ChecklistPage key={assetType} assetType={assetType} />;
+  },
+});
 const sites = createRoute({ getParentRoute: () => company, path: "/sites", component: SitesPage });
 const newSite = createRoute({ getParentRoute: () => company, path: "/sites/new", component: () => <SitePage /> });
 const site = createRoute({
@@ -120,7 +131,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, sites, newSite, site, assets, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),
