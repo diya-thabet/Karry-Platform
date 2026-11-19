@@ -46,12 +46,19 @@ hold now for a subject (a meter for continuity, an entry for the others); Integr
 the open ones no longer found. Called in the caller's unit of work, so a fact and its flags commit together. Settings
 are read through the same contract; a switched-off rule raises nothing (its open flags stay open until resolved).
 
+As built (slice 1): the Integrity module has its own schema; `IIntegrityFlags.SyncAsync(connection, transaction, …)`
+joins the caller's transaction (as the envelope recorder does), so the flags and their ledger entries
+(`integrity.flag_opened.v1`, `integrity.flag_closed.v1`) commit with the fact. One open flag per subject, rule and key
+(a partial unique index); a trigger lets a row change only from open to closed and refuses deletes. Settings are the
+catalogue's defaults until slice 6. `GET /api/v1/integrity/flags` (`integrity.flags.read`, site scope) pages newest
+first by the flags' UUIDv7.
+
 ### 4. Continuity is evaluated in shift-time order
 
 A pure function takes a meter's current segment versions and meter events ordered by start time and returns every
 unexplained discontinuity (the end of one segment against the start of the next, an event's offset in between). It
 runs for the meter on every start, end, late arrival and meter event, so a late entry moves the comparison to its real
-neighbours (TC-P2-FO-008). It is property-tested (FsCheck): random readings and events give a flag exactly where an
+neighbours (TC-P2-FO-008). It is property-tested (CsCheck): random readings and events give a flag exactly where an
 unexplained discontinuity is.
 
 ### 5. Meter events are manager decisions

@@ -98,6 +98,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-19 | `permissions.fieldops.checklists.read`, `permissions.fieldops.checklists.manage` | ar, emk, nqo | P2.6 checklist permissions ("check-lists de démarrage" in French) |
 | 2026-11-19 | `portal.checklists.*`, `portal.settings.checklistsHint` | ar, emk, nqo | P2.6 checklist builder in the portal ("check-list de démarrage", "point", "critique" in French) |
 | 2026-11-19 | `permissions.fieldops.holds.release` | ar, emk, nqo | P2.6 release of a safety hold ("lever l’immobilisation" in French) |
+| 2026-11-19 | `permissions.integrity.flags.read` | ar, emk, nqo | P2.7 read permission of integrity flags ("alertes d’intégrité" in French) |
 | 2026-11-19 | `portal.holds.*` (25 keys) | ar, emk, nqo | P2.6 portal list of held machines and the release dialog ("lever l’immobilisation" in French) |
 | 2026-11-19 | `field.checklist.*` (15 keys), `field.start.block.unsafe`, `field.history.flag.unsafe` | ar, emk, nqo | P2.6 checklist step on the tablet: "held as unsafe" and "Not OK" are what operators read before a start |
 | 2026-11-09 | `portal.signature.*` (17 keys: the verification badge, its checks and results) | ar, emk, nqo | P2.3 portal "Verified" badge |

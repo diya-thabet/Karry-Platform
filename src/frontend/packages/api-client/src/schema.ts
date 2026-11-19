@@ -1540,6 +1540,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrity/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SearchIntegrityFlags"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2047,6 +2063,12 @@ export interface components {
         };
         FlagCatalogResponse: {
             items: components["schemas"]["FlagResponse"][];
+        };
+        /** @description A page of flags, newest first; `nextCursor` when more follow. */
+        FlagListResponse: {
+            items: components["schemas"]["FlagResponse"][];
+            /** Format: uuid */
+            nextCursor: null | string;
         };
         /**
          * @description A declared flag: its default, this environment's configured value and the platform-wide value (null when not set).
@@ -8816,6 +8838,43 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SearchIntegrityFlags: {
+        parameters: {
+            query?: {
+                siteId?: string;
+                rule?: string;
+                status?: string;
+                subjectType?: string;
+                subjectId?: string;
+                cursor?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
