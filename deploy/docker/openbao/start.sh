@@ -34,6 +34,13 @@ bao operator unseal "$(sed -n 's/^Unseal Key 1: //p' "$keys")" > /dev/null
 BAO_TOKEN=$(sed -n 's/^Initial Root Token: //p' "$keys")
 export BAO_TOKEN
 
+# Unsealed is not yet active: raft elects its one node a moment later, and a write before that fails ("local node not
+# active"). /v1/sys/health answers 200 only once the node is unsealed and active.
+until wget -q -O /dev/null "$BAO_ADDR/v1/sys/health" 2> /dev/null; do
+  kill -0 "$server" 2> /dev/null || { echo "openbao: the server stopped" >&2; exit 1; }
+  sleep 1
+done
+
 bao secrets list | grep -q '^transit/' || bao secrets enable transit
 bao read transit/keys/karry-server > /dev/null 2>&1 || bao write -f transit/keys/karry-server type=ecdsa-p256 exportable=false > /dev/null
 bao policy write karry-signer - > /dev/null <<'POLICY'
