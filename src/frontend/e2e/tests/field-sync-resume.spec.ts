@@ -1,6 +1,6 @@
 import { type Page } from "@playwright/test";
 import { expect, test } from "./guard";
-import { enrolledTablet, enrollmentCode, field, startAndEnd, unlock } from "./fieldTablet";
+import { enrolledTablet, enrollmentCode, field, meterNow, startAndEnd, unlock } from "./fieldTablet";
 
 interface BlobState {
   sha256: string;
@@ -34,7 +34,7 @@ test.describe("an upload cut off, and evidence kept until confirmed (P2.5, ADR-0
     const tablet = await enrolledTablet(context, await enrollmentCode(page));
 
     await context.setOffline(true);
-    await startAndEnd(tablet, `${String(Math.floor(Date.now() / 3_600_000) + 2)}.0`);
+    await startAndEnd(tablet, meterNow());
 
     // TC-P2-SYNC-011: the photos, strokes and signature images (identical bytes are stored once), all kept, none due.
     const signed = await blobs(tablet);

@@ -7,6 +7,15 @@ export const pin = process.env.KARRY_DEMO_PIN ?? "804613";
 export const portal = (slug: string) => `http://${slug}.localhost:5173`;
 export const field = (slug: string) => `http://${slug}.localhost:${process.env.KARRY_E2E_FIELD_PORT ?? "5174"}`;
 
+/**
+ * A meter value for a test's shifts: tenths of an hour since 1970, so each test (and each run on the same database)
+ * starts at or above where the earlier ones ended on the shared machine PEL-01 (a start below the last end is refused).
+ */
+export function meterNow(): string {
+  const tenths = Math.floor(Date.now() / 360_000);
+  return `${String(Math.floor(tenths / 10))}.${String(tenths % 10)}`;
+}
+
 export async function signIn(page: Page, username: string) {
   await page.locator("#username").fill(username);
   await page.locator("#password").fill(password);
