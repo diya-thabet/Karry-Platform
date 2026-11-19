@@ -1604,6 +1604,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/integrity/rules": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListIntegrityRules"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/integrity/rules/{rule}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["SetIntegrityRule"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2658,6 +2690,32 @@ export interface components {
             };
             version: string;
         };
+        /** @description The rules of the catalogue, in its order. */
+        RuleListResponse: {
+            items: components["schemas"]["RuleResponse"][];
+        };
+        /**
+         * @description A rule as the company runs it (ADR-0036 §1): `security` rules are always on; `changedAt` null while the
+         *     company runs the catalogue's defaults; `version` for `If-Match`.
+         */
+        RuleResponse: {
+            rule: string;
+            severity: string;
+            security: boolean;
+            enabled: boolean;
+            thresholds: components["schemas"]["ThresholdResponse"][];
+            /** Format: date-time */
+            changedAt: null | string;
+            changedBy: null | string;
+            version: string;
+        };
+        /** @description What a person sets on a rule: switched on, and the thresholds to change (one not named keeps its value). */
+        RuleSettingsInput: {
+            enabled: boolean;
+            thresholds: null | {
+                [key: string]: number | string;
+            };
+        };
         SensitiveFieldResponse: {
             code: string;
             module: string;
@@ -2943,6 +3001,21 @@ export interface components {
             /** Format: date-time */
             settingsChangedAt: null | string;
             version: string;
+        };
+        /** @description A threshold of a rule: the company's value, the catalogue's default, the range it may take and its unit. */
+        ThresholdResponse: {
+            name: string;
+            /** Format: double */
+            value: number | string;
+            /** Format: double */
+            default: number | string;
+            /** Format: double */
+            min: number | string;
+            /** Format: double */
+            max: number | string;
+            /** Format: int32 */
+            decimals: number | string;
+            unit: string;
         };
         UnlockOnTablet: {
             employeeId: null | string;
@@ -9149,6 +9222,81 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListIntegrityRules: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleListResponse"];
+                };
+            };
+        };
+    };
+    SetIntegrityRule: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                rule: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RuleSettingsInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RuleResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

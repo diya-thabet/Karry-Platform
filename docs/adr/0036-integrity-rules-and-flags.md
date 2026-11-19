@@ -130,6 +130,21 @@ is flagged, with the distance, the position's accuracy and the margin. Without a
 boundary nothing is judged. Both rules read their thresholds from `IIntegrityFlags.SettingsAsync` (slice 6 makes them
 company settings).
 
+As built (slice 6): `integrity.rule_settings` holds a company's settings of a rule (one row per rule, RLS, ledgered
+`integrity.rule_settings_changed.v1` under the person's name, never deleted: going back to a default is a change). A
+rule without a row runs with the catalogue's defaults. Each threshold has a range, a number of decimals and a unit in
+the catalogue: RULE-FO-02 `toleranceHours` 0 to 4 h (tenths), RULE-FO-03 `maxSkewMinutes` 1 to 1440 min, RULE-FO-04
+`marginMetres` 0 to 5000 m. RULE-FO-05, 06 and 07 cannot be switched off: the API refuses it
+(`integrity.rule_locked`), a check constraint refuses the row, and `SettingsAsync` runs a security rule whatever is
+stored. `GET /api/v1/integrity/rules` is open to everyone who reads flags; `PUT /api/v1/integrity/rules/{rule}` needs
+`integrity.rules.manage` (Tenant Admin, privileged) and a recent sign-in, since it decides what gets flagged; `If-Match`
+carries the rule's version (`"0"` while the company runs the defaults). A switched-off rule raises nothing new and its
+open flags stay open until resolved (§3). `SettingsAsync` reads the settings in the caller's transaction once per unit
+of work (`SyncAsync` joins the transaction before reading them). RULE-FO-02's Integrity flag now uses the company's
+tolerance; the entry's own flag (what the tablet shows offline, shared vectors) keeps the catalogue's 0.5 h, so the two
+may differ for a company that changed it. The portal page (Settings › Integrity rules) explains each rule in the five
+languages; the flag list of slice 7 reuses those texts.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

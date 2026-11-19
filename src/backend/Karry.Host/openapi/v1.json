@@ -7943,6 +7943,103 @@
           }
         }
       }
+    },
+    "/api/v1/integrity/rules": {
+      "get": {
+        "tags": [
+          "IntegrityModule"
+        ],
+        "operationId": "ListIntegrityRules",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/integrity/rules/{rule}": {
+      "put": {
+        "tags": [
+          "IntegrityModule"
+        ],
+        "operationId": "SetIntegrityRule",
+        "parameters": [
+          {
+            "name": "rule",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RuleResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -12055,6 +12152,98 @@
         },
         "description": "A role: default (name translated by the apps from the code) or custom; field levels of every declared field."
       },
+      "RuleListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RuleResponse"
+            }
+          }
+        },
+        "description": "The rules of the catalogue, in its order."
+      },
+      "RuleResponse": {
+        "required": [
+          "rule",
+          "severity",
+          "security",
+          "enabled",
+          "thresholds",
+          "changedAt",
+          "changedBy",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "rule": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "security": {
+            "type": "boolean"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "thresholds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThresholdResponse"
+            }
+          },
+          "changedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "changedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "description": "A rule as the company runs it (ADR-0036 §1): `security` rules are always on; `changedAt` null while the\ncompany runs the catalogue's defaults; `version` for `If-Match`."
+      },
+      "RuleSettingsInput": {
+        "required": [
+          "enabled",
+          "thresholds"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "thresholds": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+              "type": [
+                "number",
+                "string"
+              ],
+              "format": "double"
+            }
+          }
+        },
+        "description": "What a person sets on a rule: switched on, and the thresholds to change (one not named keeps its value)."
+      },
       "SensitiveFieldResponse": {
         "required": [
           "code",
@@ -13193,6 +13382,67 @@
           }
         },
         "description": "The caller's company with its settings (US-P1-TEN-04); `LogoUrl` is null without a logo."
+      },
+      "ThresholdResponse": {
+        "required": [
+          "name",
+          "value",
+          "default",
+          "min",
+          "max",
+          "decimals",
+          "unit"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "value": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "default": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "min": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "max": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "decimals": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "unit": {
+            "type": "string"
+          }
+        },
+        "description": "A threshold of a rule: the company's value, the catalogue's default, the range it may take and its unit."
       },
       "UnlockOnTablet": {
         "required": [

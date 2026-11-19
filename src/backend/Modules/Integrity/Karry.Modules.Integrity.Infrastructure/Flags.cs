@@ -5,22 +5,36 @@ using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Integrity.Application;
 using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Integrity.Domain;
+using Karry.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Npgsql;
 
 namespace Karry.Modules.Integrity.Infrastructure;
 
 /// <summary>
 /// Raises and closes flags for the other modules (ADR-0036 §3), joined to their transaction: the fact, its flags and the
-/// flags' ledger entries commit together. Settings are the catalogue's defaults until P2.7 slice 6 lets a company tune them.
+/// flags' ledger entries commit together. A rule runs with the company's settings (P2.7 slice 6), else the catalogue's
+/// defaults; a security rule always runs.
 /// </summary>
 internal sealed class FlagWriter(IntegrityDbContext db, ITenantContext tenant, TimeProvider clock) : IIntegrityFlags
 {
-    public Task<RuleSettings> SettingsAsync(string rule, CancellationToken cancellationToken)
+    // Read once per unit of work and company: an upload asks the same rules for each of its facts.
+    private readonly Dictionary<(TenantId?, string), RuleSettings> settings = [];
+
+    public async Task<RuleSettings> SettingsAsync(string rule, CancellationToken cancellationToken)
     {
         var definition = RuleCatalog.Find(rule) ?? throw new ArgumentException($"Unknown rule {rule}.", nameof(rule));
-        return Task.FromResult(new RuleSettings(definition.Code, Enabled: true, definition.Thresholds));
+        var key = (tenant.Current, rule);
+        if (!settings.TryGetValue(key, out var found))
+        {
+            var stored = await db.RuleSettings.AsNoTracking().SingleOrDefaultAsync(s => s.Rule == rule, cancellationToken).ConfigureAwait(false);
+            found = new RuleSettings(definition.Code, RuleSettingRules.Runs(definition, stored), RuleSettingRules.Effective(definition, stored?.Thresholds));
+            settings[key] = found;
+        }
+
+        return found;
     }
 
     public async Task SyncAsync(
@@ -29,13 +43,13 @@ internal sealed class FlagWriter(IntegrityDbContext db, ITenantContext tenant, T
         ArgumentNullException.ThrowIfNull(subject);
         ArgumentNullException.ThrowIfNull(findings);
         var definition = RuleCatalog.Find(rule) ?? throw new ArgumentException($"Unknown rule {rule}.", nameof(rule));
-        if (!(await SettingsAsync(rule, cancellationToken).ConfigureAwait(false)).Enabled)
-        {
-            return;
-        }
-
         var company = tenant.Current ?? throw new InvalidOperationException("Flags are raised in a tenant.");
         await db.JoinAsync(new Joined(connection, transaction), cancellationToken).ConfigureAwait(false);
+        if (!(await SettingsAsync(rule, cancellationToken).ConfigureAwait(false)).Enabled)
+        {
+            return; // switched off: nothing new is raised, open flags stay open until resolved (ADR-0036 §3)
+        }
+
         var open = await db.Flags
             .Where(f => f.SubjectType == subject.Type && f.SubjectId == subject.Id && f.Rule == rule && f.ClosedAt == null)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
@@ -56,6 +70,34 @@ internal sealed class FlagWriter(IntegrityDbContext db, ITenantContext tenant, T
     }
 
     private sealed record Joined(DbConnection Connection, DbTransaction Transaction) : ISyncTransaction;
+}
+
+internal sealed class RuleSettingStore(IntegrityDbContext db) : IRuleSettingStore
+{
+    public async Task<IReadOnlyList<RuleSetting>> ListAsync(CancellationToken cancellationToken) =>
+        await db.RuleSettings.ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<RuleSetting?> FindAsync(string rule, CancellationToken cancellationToken) =>
+        db.RuleSettings.SingleOrDefaultAsync(s => s.Rule == rule, cancellationToken);
+
+    public async Task<bool> TrySaveAsync(RuleSetting setting, CancellationToken cancellationToken)
+    {
+        if (db.Entry(setting).State == EntityState.Detached)
+        {
+            db.RuleSettings.Add(setting);
+        }
+
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
 }
 
 internal sealed class FlagReader(IntegrityDbContext db) : IFlagReader
@@ -107,7 +149,7 @@ internal sealed class FlagReader(IntegrityDbContext db) : IFlagReader
 
 public static class IntegrityInfrastructure
 {
-    /// <summary>Flags (ADR-0036): their storage, the contract other modules raise them through, and the portal's reading.</summary>
+    /// <summary>Flags (ADR-0036): their storage, the contract other modules raise them through, the portal's reading and the rule settings.</summary>
     public static IServiceCollection AddIntegrityInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -115,6 +157,8 @@ public static class IntegrityInfrastructure
         services.AddScoped<IIntegrityFlags, FlagWriter>();
         services.AddScoped<IFlagReader, FlagReader>();
         services.AddScoped<FlagReading>();
+        services.AddScoped<IRuleSettingStore, RuleSettingStore>();
+        services.AddScoped<RuleSettingOperations>();
         return services;
     }
 }

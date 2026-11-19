@@ -44,6 +44,48 @@ public sealed class IntegrityModule : IModule
             .RequirePermission(IntegrityPermissions.FlagsRead)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName("SearchIntegrityFlags");
+
+        // Everyone who reads flags may see the thresholds that raised them.
+        endpoints.MapGet("/rules", ListRulesAsync)
+            .RequirePermission(IntegrityPermissions.FlagsRead)
+            .WithName("ListIntegrityRules");
+
+        endpoints.MapPut("/rules/{rule}", SetRuleAsync)
+            .RequirePermission(IntegrityPermissions.RulesManage)
+            .RequireRecentSignIn()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("SetIntegrityRule");
+    }
+
+    /// <summary>Every rule of the catalogue as the company runs it: switched on, thresholds with their range and unit.</summary>
+    private static async Task<Ok<RuleListResponse>> ListRulesAsync([FromServices] RuleSettingOperations rules, CancellationToken cancellationToken) =>
+        TypedResults.Ok(new RuleListResponse([.. (await rules.ListAsync(cancellationToken).ConfigureAwait(false)).Select(RuleResponse.From)]));
+
+    /// <summary>
+    /// Switches a rule on or off and sets its thresholds (a threshold not named keeps its value). A security rule cannot
+    /// be switched off. <c>If-Match</c>: the rule's <c>version</c> the form was filled from (<c>"0"</c>: the defaults); a
+    /// newer one is a 409 (H-C1).
+    /// </summary>
+    private static async Task<Results<Ok<RuleResponse>, ProblemHttpResult>> SetRuleAsync(
+        string rule, RuleSettingsInput request, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response,
+        [FromServices] RuleSettingOperations rules, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await rules.SetAsync(rule, request, expected.Value, cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        response.SetETag(result.Value.Version);
+        return TypedResults.Ok(RuleResponse.From(result.Value));
     }
 
     /// <summary>
@@ -58,6 +100,30 @@ public sealed class IntegrityModule : IModule
         return result.IsSuccess
             ? TypedResults.Ok(new FlagListResponse([.. result.Value.Items.Select(FlagResponse.From)], result.Value.NextCursor))
             : result.Error.ToProblem();
+    }
+}
+
+/// <summary>The rules of the catalogue, in its order.</summary>
+public sealed record RuleListResponse(IReadOnlyList<RuleResponse> Items);
+
+/// <summary>A threshold of a rule: the company's value, the catalogue's default, the range it may take and its unit.</summary>
+public sealed record ThresholdResponse(string Name, decimal Value, decimal Default, decimal Min, decimal Max, int Decimals, string Unit);
+
+/// <summary>
+/// A rule as the company runs it (ADR-0036 §1): <c>security</c> rules are always on; <c>changedAt</c> null while the
+/// company runs the catalogue's defaults; <c>version</c> for <c>If-Match</c>.
+/// </summary>
+public sealed record RuleResponse(
+    string Rule, string Severity, bool Security, bool Enabled, IReadOnlyList<ThresholdResponse> Thresholds, DateTimeOffset? ChangedAt, string? ChangedBy, string Version)
+{
+    public static RuleResponse From(EffectiveRule rule)
+    {
+        ArgumentNullException.ThrowIfNull(rule);
+        var values = rule.Thresholds;
+        return new(
+            rule.Definition.Code, rule.Definition.Severity, rule.Definition.Security, rule.Enabled,
+            [.. rule.Definition.Thresholds.Select(t => new ThresholdResponse(t.Name, values[t.Name], t.Default, t.Min, t.Max, t.Decimals, t.Unit))],
+            rule.Setting?.ChangedAt, rule.Setting?.ChangedBy, RecordVersionHttp.ETag(rule.Version));
     }
 }
 
