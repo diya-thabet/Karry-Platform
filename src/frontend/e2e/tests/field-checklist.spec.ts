@@ -16,6 +16,8 @@ test.describe("a pre-start checklist from the tablet to the portal (P2.6, ADR-00
     await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^TOMB-01/ }).click();
     await tablet.getByRole("button", { name: "Choisir cette machine" }).click();
     const checklist = tablet.getByRole("region", { name: "Check-list de démarrage" });
+    // The demo truck checklist has four points; `all()` does not wait, so wait for them first.
+    await expect(checklist.getByRole("group")).toHaveCount(4);
     await expect(checklist.getByRole("button", { name: "Passer la check-list" })).toHaveCount(0);
     for (const group of await checklist.getByRole("group").all()) {
       const brakes = (await group.getAttribute("aria-label"))?.startsWith("Freins") === true;
