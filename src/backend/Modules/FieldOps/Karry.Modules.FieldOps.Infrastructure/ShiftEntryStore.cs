@@ -33,6 +33,12 @@ internal sealed class ShiftEntryStore(FieldOpsDbContext db) : IShiftEntryStore
         return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<Guid>> EntriesWithPhotoAsync(string photo, Guid exceptRootId, CancellationToken cancellationToken) =>
+        await db.ShiftEntries.AsNoTracking()
+            .Where(e => e.RootId != exceptRootId && (e.StartPhoto == photo || e.EndPhoto == photo))
+            .Select(e => e.RootId).Distinct().OrderBy(r => r).Take(20)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public async Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfMeterAsync(Guid meterId, CancellationToken cancellationToken) =>
         await db.ShiftEntries.AsNoTracking()
             .Where(e => e.MeterId == meterId)

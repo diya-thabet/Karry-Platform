@@ -2,9 +2,11 @@ using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Modules;
 using Karry.Modules.Assets.Api;
 using Karry.Modules.Billing.Api;
+using Karry.Modules.FieldOps.Api;
 using Karry.Modules.Flags.Api;
 using Karry.Modules.Identity.Api;
 using Karry.Modules.Imports.Api;
+using Karry.Modules.Integrity.Api;
 using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Tenancy.Api;
@@ -30,6 +32,8 @@ internal static class WorkerModules
         new MaterialsModule(),
         new AssetsModule(),
         new ImportsModule(),
+        new FieldOpsModule(),
+        new IntegrityModule(),
     ];
 
     public static AuthorizationCatalog Catalog { get; } = AuthorizationCatalog.From(All);

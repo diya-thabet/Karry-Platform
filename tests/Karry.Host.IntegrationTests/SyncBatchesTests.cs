@@ -133,6 +133,23 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
 
         (await InboxAsync(tablet.Id)).Select(r => (r.Sequence, r.Status)).Should().Equal((1, "Received"), (2, "Quarantined"), (9, "Quarantined"));
         await ExpectProblemAsync(await tablet.SendAsync(HttpMethod.Get, "/api/v1/sync/changes"), HttpStatusCode.Unauthorized, "devices.revoked");
+
+        // RULE-FO-07 (TC-P2-INT-007): one critical flag per quarantined command, linked to the tablet, once each.
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var flags = new NpgsqlCommand(
+            $"SELECT subject_type || '|' || severity || '|' || (related->0->>'id') || '|' || (closed_at IS NULL) FROM integrity.flags WHERE rule = 'RULE-FO-07' AND related->0->>'id' = '{tablet.Id}'",
+            connection);
+        var rows = new List<string>();
+        await using (var reader = await flags.ExecuteReaderAsync(TestContext.Current.CancellationToken))
+        {
+            while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+            {
+                rows.Add(reader.GetString(0));
+            }
+        }
+
+        rows.Should().Equal(Enumerable.Repeat($"sync_command|critical|{tablet.Id}|true", 2), "the two commands after the revocation, each flagged once though uploaded twice");
     }
 
     [Fact]

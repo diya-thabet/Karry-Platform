@@ -105,6 +105,16 @@ it. The signed record keeps its shape (the shared vectors are unchanged); the se
 because the meter was failed at the start, Δ is checked as for any entry, and continuity does not compare estimated
 segments. A REPAIRED event makes the meter count again, and the next start asks a reading.
 
+As built (slice 5a): the photo rules judge each signed start and end on its own (subject `signature_envelope`, its
+envelope ID, linked to the entry), so an end never closes its start's flag: RULE-FO-05 when the command carries no
+capture record for its photo, RULE-FO-06 when the photo is on another entry (indexed by fingerprint) or is both the
+start and end photo of one entry; the later use is flagged. RULE-FO-07 is raised by Sync on each command a revoked
+tablet uploads (subject `sync_command`, linked to the `device`), in the transaction that quarantines it. Correction to
+slice 3a: the Assets outbox is dispatched in `Karry.Workers`, which did not load FieldOps and Integrity, so a meter
+event never re-evaluated continuity outside the tests; Workers now loads both (checked by running `anchor-now`).
+RULE-FO-03 needs a measured skew: the tablet corrects its requests with its known offset, so the server cannot
+tell a wrong clock from an offline delay; slice 5b has the tablet report its offset in the envelope's context.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

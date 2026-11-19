@@ -3,11 +3,13 @@ using Karry.BuildingBlocks.Outbox;
 using Karry.Modules.Assets.Infrastructure;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Billing.Infrastructure;
+using Karry.Modules.FieldOps.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Identity.Infrastructure;
 using Karry.Modules.Imports.Application;
 using Karry.Modules.Imports.Infrastructure;
+using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
@@ -47,6 +49,11 @@ builder.Services.AddAssetsInfrastructure(connectionString, builder.Configuration
 
 // Sync: measures the sequence gaps of tablets (5-minute job, alert KarrySyncGapOpen).
 builder.Services.AddSyncInfrastructure(connectionString);
+
+// FieldOps and Integrity: a meter event dispatched by the Assets outbox re-evaluates the meter's continuity here
+// (IMeterEventSubscriber, ADR-0036 §4), raising and closing integrity flags in the dispatcher's transaction.
+builder.Services.AddFieldOpsInfrastructure(connectionString);
+builder.Services.AddIntegrityInfrastructure(connectionString);
 
 // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
 // The runner rebuilds the requester's access, so this host knows every module's permissions.

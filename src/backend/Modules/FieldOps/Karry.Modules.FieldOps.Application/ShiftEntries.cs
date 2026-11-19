@@ -29,6 +29,9 @@ public interface IShiftEntryStore
     /// </summary>
     Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfOperatorAsync(Guid operatorId, Guid exceptRootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
 
+    /// <summary>The other entries (any version) whose start or end photo is <paramref name="photo"/> (RULE-FO-06).</summary>
+    Task<IReadOnlyList<Guid>> EntriesWithPhotoAsync(string photo, Guid exceptRootId, CancellationToken cancellationToken);
+
     /// <summary>The current versions of every entry on <paramref name="meterId"/> (the continuity check, ADR-0036 §4).</summary>
     Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfMeterAsync(Guid meterId, CancellationToken cancellationToken);
 
@@ -333,6 +336,8 @@ public sealed class StartShiftEntry(
         });
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, meterId, meter.Kind, command.SiteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "start", photo, null, command.SiteId, cancellationToken)
+            .ConfigureAwait(false);
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
 
@@ -477,6 +482,8 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
         store.Add(ended);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, start.MeterId, start.MeterKind, start.SiteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "end", photo, start.StartPhoto, start.SiteId, cancellationToken)
+            .ConfigureAwait(false);
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
             IntegrityFindings.Delta(ended, raised.Contains(ShiftEntryFlags.Delta)), cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);

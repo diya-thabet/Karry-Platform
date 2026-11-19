@@ -9,6 +9,7 @@ using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Sync.Domain;
 using Karry.SharedKernel.Canonical;
 using Karry.SharedKernel.Results;
@@ -153,9 +154,12 @@ public sealed class UploadBatchValidator : AbstractValidator<UploadBatch>
 /// </summary>
 public sealed partial class SyncUploads(
     IInboxStore store, IDeviceDirectory devices, SyncCommandTypes handlers, IServiceScopeFactory scopes, ITenantContext tenant,
-    IEvidenceStore evidenceStore, SyncBlobMetrics blobMetrics, TimeProvider clock, ILogger<SyncUploads> logger)
+    IEvidenceStore evidenceStore, SyncBlobMetrics blobMetrics, IIntegrityFlags integrity, TimeProvider clock, ILogger<SyncUploads> logger)
 {
     public static readonly Error Revoked = Error.Forbidden(PermissionMiddleware.RevokedDeviceCode, "This tablet has been revoked.");
+
+    /// <summary>The subject of a revoked tablet's flag: the command it uploaded, kept quarantined.</summary>
+    public const string QuarantinedCommand = "sync_command";
 
     public static readonly Error BatchConflict = Error.Conflict("sync.batch_conflict", "Another upload of this tablet was stored at the same time; send the batch again.");
 
@@ -172,6 +176,21 @@ public sealed partial class SyncUploads(
         {
             var kept = commands.Where(c => !session.Stored.Contains(c.Id)).DistinctBy(c => c.Id).ToList();
             kept.ForEach(c => session.Add(InboxCommand.Quarantine(tenantId, caller.DeviceId, c, now)));
+
+            // RULE-FO-07 (a security rule, never switched off): each new command of a revoked tablet is a flag, in the
+            // same transaction as its quarantine, linked to the tablet.
+            foreach (var command in kept)
+            {
+                await integrity.SyncAsync(session.Transaction.Connection, session.Transaction.Transaction, new FlagSubject(QuarantinedCommand, command.Id.Value),
+                    IntegrityRules.RevokedDevice, caller.SiteId,
+                    [new Finding("revoked", [new FlagSubject("device", caller.DeviceId)], [], new Dictionary<string, string>(StringComparer.Ordinal)
+                    {
+                        ["type"] = command.Type,
+                        ["deviceTime"] = command.DeviceTime.ToString("O", System.Globalization.CultureInfo.InvariantCulture),
+                    })],
+                    cancellationToken).ConfigureAwait(false);
+            }
+
             if (!await session.CommitAsync(cancellationToken).ConfigureAwait(false))
             {
                 return BatchConflict;
