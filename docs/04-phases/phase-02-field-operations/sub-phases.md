@@ -524,6 +524,8 @@ machine until a manager decides.
 
 ### P2.7 — Meter events, continuity & integrity flags v1
 
+> Slice plan: [P2.7 integrity](p2.7-integrity-plan.md), design [ADR-0036](../../adr/0036-integrity-rules-and-flags.md).
+
 **In plain words:** the system checks that each shift starts where the last one ended, explains the gaps it can
 (meter replaced, reset, broken), and raises a flag for the ones it cannot.
 
