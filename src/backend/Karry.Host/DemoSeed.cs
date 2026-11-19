@@ -1,6 +1,7 @@
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Application;
 using Karry.Modules.Billing.Application;
+using Karry.Modules.FieldOps.Application;
 using Karry.Modules.Identity.Application;
 using Karry.Modules.Materials.Application;
 using Karry.Modules.Organization.Application;
@@ -231,6 +232,12 @@ internal static class DemoSeed
                 var seeded = await fleet.ServiceProvider.GetRequiredService<DemoAssetsSeeder>()
                     .SeedAsync(new TenantId(result.Value.Id), Assets[tenant.Slug], cancellationToken).ConfigureAwait(false);
                 Console.WriteLine($"{tenant.Slug}: {seeded} demo machine(s) created");
+            }
+
+            await using (var checks = services.CreateAsyncScope())
+            {
+                var seeded = await checks.ServiceProvider.GetRequiredService<DemoChecklistsSeeder>().SeedAsync(new TenantId(result.Value.Id), cancellationToken).ConfigureAwait(false);
+                Console.WriteLine($"{tenant.Slug}: {seeded} demo pre-start checklist(s) published");
             }
 
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();

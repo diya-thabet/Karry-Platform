@@ -3,13 +3,16 @@ title: "ADR-0035: Pre-start checklists and safety holds"
 area: adr
 tags: [adr, phase-2, p2-6, fieldops, checklists, safety, offline, signatures, sync]
 source: "P2.6 planning (sub-phases.md §P2.6), US-P2-FO-02, US-P2-FO-03, ADR-0031, ADR-0033, ADR-0034"
-status: proposed
+status: accepted
 last_updated: 2026-11-19
 ---
 
 # ADR-0035: Pre-start checklists and safety holds
 
 > [Docs index](../README.md) › [ADRs](README.md) · [P2.6 slice plan](../04-phases/phase-02-field-operations/p2.6-checklists-plan.md)
+
+- **Status:** Accepted (2026-11-19, P2.6 close-out; security review in §7)
+- **Date:** 2026-11-19
 
 ## Context
 
@@ -106,6 +109,19 @@ As built (slice 4): `checklistTemplates` carries the newest version of every ass
 company-wide and few) and `safetyHolds` every open hold of the company, so a machine moved to another site keeps its
 hold there; both whole at every pull. The tablet keeps them in Dexie v6 (`checklistTemplates` by `assetType`,
 `safetyHolds` by `assetId`). The answer rules are shared with the tablet through `tests/vectors/checklist-answers.json`.
+
+## 7. Security review (P2.6 close-out, 2026-11-19)
+
+| Threat | What P2.6 does | Evidence |
+|---|---|---|
+| T-01 operator identity | A checklist's signer is the envelope's `signer.userId`, the person unlocked on the tablet, signed by the enrolled tablet's key and verified like a shift entry; no record field names the operator | `ChecklistSubmissionHandlersTests`, `StartShift.test.tsx` |
+| T-01 residual | Unchanged: R-13 (the server does not yet check the signer against Identity), P2.7 | threat model R-13 |
+| T-03 evidence | A Not OK photo comes only from the app's camera; its hash is in the signed record and in the envelope's evidence, its capture record in the signed command | `StartShift.test.tsx` (TC-P2-FO-004) |
+| T-06 tampering | Template versions, submissions, holds and releases are append-only (triggers, `UPDATE`/`DELETE`/`TRUNCATE` revoked from `karry_app`); a release carries the hold's ID, so a hold is released once; no API edits or deletes a hold | `ChecklistsApiTests`, `HoldsApiTests` (owner refused) |
+| Safety | Only a person with `fieldops.holds.release` on the hold's site ends it, with a reason of 10–500 characters, ledgered with their name (`fieldops.safety_hold_released.v1`); the tablet refuses a start on a held machine; the server flags `ASSET_UNSAFE` on a start signed while held (it never refuses an offline fact) | `HoldsApiTests` (TC-P2-FO-014), `ChecklistSubmissionHandlersTests` (TC-P2-FO-004), browser E2E `field-checklist.spec.ts` |
+| Safety residual | A tablet learns of another tablet's hold only at its next pull, and a required checklist is enforced by the tablet only; a start made in that gap, or without a checklist from a tampered app, reaches the server and is flagged `ASSET_UNSAFE` or not flagged at all. Recorded as **R-14**: P2.7 adds a rule flagging a start without a recent checklist where one is required, and P2.10 notifies the site's managers when a hold opens | threat model R-14 |
+| T-09/T-11 isolation | RLS on the four tables; the APIs under the tenant (and the caller's sites for holds); the isolation suite attacks `assetType` and `holdId` and looks for A's checklist text and hold ID | `TenantIsolationSuite` (453/453) |
+| T-10 disclosure | No field is masked: a checklist or a hold holds no price, cost or wage | review |
 
 ## Options considered
 
