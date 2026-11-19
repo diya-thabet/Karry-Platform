@@ -1,5 +1,5 @@
 import { type Locator, type Page } from "@playwright/test";
-import { meterNow } from "./fieldTablet";
+import { meterNow, skipChecklist } from "./fieldTablet";
 import { expect, test } from "./guard";
 
 // Demo data of `Karry.Host seed-demo` (local stack only), as in field-enrollment.spec.ts.
@@ -75,6 +75,7 @@ test.describe("a shift entry from the tablet to the portal (P2.5, ADR-0033, ADR-
     await tablet.getByLabel(/Code, nom ou étiquette/).fill("pel");
     await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^PEL-01/ }).click();
     await tablet.getByRole("button", { name: "Choisir cette machine" }).click();
+    await skipChecklist(tablet);
     await expect(tablet.getByText(/^Poste : |^Aucun poste du site/)).toBeVisible();
     await photograph(tablet);
     await tablet.getByLabel(/Valeur de début/).fill(value);

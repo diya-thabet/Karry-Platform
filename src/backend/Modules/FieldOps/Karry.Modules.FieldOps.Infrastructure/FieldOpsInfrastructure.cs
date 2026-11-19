@@ -21,6 +21,7 @@ public static class FieldOpsInfrastructure
         services.AddScoped<IChecklistSubmissionStore, ChecklistSubmissionStore>();
         services.AddScoped<ISafetyHoldStore, SafetyHoldStore>();
         services.AddScoped<SafetyHolds>();
+        services.AddScoped<DemoChecklistsSeeder>();
         services.AddScoped<ISyncSource, MeterStatesSync>();
         services.AddScoped<ISyncSource, ChecklistsSync>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);
