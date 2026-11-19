@@ -60,6 +60,7 @@ async function open(db: KarryOfflineDb, device: DeviceRecord) {
 
 async function takeThePhoto() {
   fireEvent.click(screen.getByRole("button", { name: "Photographier le compteur" }));
+  fireEvent.loadedData(await screen.findByLabelText("Caméra : cadrez ce qu’il faut photographier"));
   fireEvent.click(await screen.findByRole("button", { name: "Prendre la photo" }));
   fireEvent.click(await screen.findByRole("button", { name: "Garder cette photo" }));
   await screen.findByText("Photo du compteur prise");

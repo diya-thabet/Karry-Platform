@@ -38,12 +38,23 @@ describe("the camera screen (P2.5, ADR-0032 §5)", () => {
     expect(screen.getByLabelText("Caméra : cadrez ce qu’il faut photographier").tagName).toBe("VIDEO");
   });
 
+  it("offers no photo before the camera shows its first frame (it would be empty)", async () => {
+    const { camera } = fakeCamera();
+    await open(camera);
+    await waitFor(() => { expect(camera.start).toHaveBeenCalled(); });
+
+    expect(screen.getByRole("button", { name: "Prendre la photo" })).toBeDisabled();
+    fireEvent.loadedData(screen.getByLabelText("Caméra : cadrez ce qu’il faut photographier"));
+    expect(screen.getByRole("button", { name: "Prendre la photo" })).toBeEnabled();
+  });
+
   it("takes the photo, releases the camera for the preview and hands the kept photo over", async () => {
     const { camera, stop } = fakeCamera();
     const take = vi.fn(() => Promise.resolve(photo));
     const { onPhoto } = await open(camera, take);
     await waitFor(() => { expect(camera.start).toHaveBeenCalledTimes(1); });
 
+    fireEvent.loadedData(screen.getByLabelText("Caméra : cadrez ce qu’il faut photographier"));
     fireEvent.click(screen.getByRole("button", { name: "Prendre la photo" }));
 
     expect(await screen.findByRole("img", { name: "Photo prise" })).toHaveAttribute("src", "data:image/webp;base64,AQID");
@@ -58,6 +69,7 @@ describe("the camera screen (P2.5, ADR-0032 §5)", () => {
     const { camera } = fakeCamera();
     await open(camera);
     await waitFor(() => { expect(camera.start).toHaveBeenCalledTimes(1); });
+    fireEvent.loadedData(screen.getByLabelText("Caméra : cadrez ce qu’il faut photographier"));
     fireEvent.click(screen.getByRole("button", { name: "Prendre la photo" }));
 
     fireEvent.click(await screen.findByRole("button", { name: "Reprendre" }));
@@ -80,6 +92,7 @@ describe("the camera screen (P2.5, ADR-0032 §5)", () => {
     await open(camera, () => Promise.reject(new Error("too large")));
     await waitFor(() => { expect(camera.start).toHaveBeenCalled(); });
 
+    fireEvent.loadedData(screen.getByLabelText("Caméra : cadrez ce qu’il faut photographier"));
     fireEvent.click(screen.getByRole("button", { name: "Prendre la photo" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("La photo n’a pas pu être enregistrée. Reprenez-la.");

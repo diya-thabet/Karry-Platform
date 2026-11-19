@@ -76,6 +76,14 @@ describe("taking a photo", () => {
   });
 });
 
+describe("a photo before the first frame", () => {
+  it("is refused: it would be an empty pixel", async () => {
+    const video = { videoWidth: 0, videoHeight: 0 } as HTMLVideoElement;
+
+    await expect(takePhoto(video, { deviceId: "d1", appVersion: "1.4.0", encode: encoder(() => 100) })).rejects.toThrow();
+  });
+});
+
 describe("the browser's camera", () => {
   it("is absent without a camera API", () => {
     expect(browserCamera({ navigator: {} } as unknown as typeof globalThis)).toBeNull();

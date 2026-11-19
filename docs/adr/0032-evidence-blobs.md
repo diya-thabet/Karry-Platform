@@ -185,7 +185,7 @@ A blob stays in the tablet's store until **the command that references it** is a
   JPEG where the browser writes no WebP, qualities 0.82 → 0.5 until ≤ 200 KB (else the smallest that fits one blob),
   with a 160 px thumbnail; it returns the capture record `{sha256, capturedAt, deviceId, appVersion, width, height}`
   of the exact bytes kept. The screen has no file input, no `accept`/`capture` attribute and no gallery path
-  (TC-P2-FO-002); the stream is released for the preview, on leaving and on failure. The forms load it in its own
+  (TC-P2-FO-002); the stream is released for the preview, on leaving and on failure. "Take the photo" waits for the camera's first frame and `takePhoto` refuses a video without one: before it, the photo was an empty 1 × 1 pixel (seen as a blank thumbnail in the P2.5 browser E2E, 2026-11-19). The forms load it in its own
   chunk and put the capture records in the signed command payload next to `evidence` (`captures`, the handler's
   member; slice 3).
 - **Moved to P2.5:** the browser E2E tests TC-P2-SYNC-002/007/011/014 (they also prove the CORS rule from a real

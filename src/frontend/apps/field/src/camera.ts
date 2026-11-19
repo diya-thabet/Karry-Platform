@@ -83,6 +83,11 @@ export async function encodeFrame(source: CanvasImageSource, width: number, heig
 
 /** Takes the photo of what the video shows now: encoded, hashed, with its thumbnail and its capture record. */
 export async function takePhoto(video: HTMLVideoElement, context: { deviceId: string; appVersion: string; now?: () => Date; encode?: FrameEncoder }): Promise<Photo> {
+  if (video.videoWidth === 0 || video.videoHeight === 0) {
+    // No frame yet: the photo would be an empty pixel, worthless as evidence.
+    throw new Error("The camera has not shown a picture yet.");
+  }
+
   const encode = context.encode ?? canvasEncoder;
   const { width, height } = fitWithin(video.videoWidth, video.videoHeight);
   const capturedAt = (context.now ?? (() => new Date()))().toISOString();
