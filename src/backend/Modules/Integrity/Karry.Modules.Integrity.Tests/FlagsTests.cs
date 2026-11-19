@@ -36,10 +36,11 @@ public sealed class FlagsTests(IntegrityHost host) : IClassFixture<IntegrityHost
         await SyncAsync(tenant, subject, site, [Gap("b>c", b, c)]);
         await SyncAsync(tenant, subject, site, [Gap("a>b", a, b), Gap("b>c", b, c)]);
 
+        // Flags opened in the same millisecond have UUIDv7 IDs in no particular order: compare as a set.
         var all = await ListAsync(tenant, "?status=all");
         all.Select(f => $"{f.GetProperty("key").GetString()} {(f.GetProperty("closedAt").ValueKind == JsonValueKind.Null ? "open" : f.GetProperty("closeReason").GetString())}")
-            .Should().Equal("a>b open", "b>c open", "a>b re-evaluated");
-        var newest = all[0];
+            .Should().BeEquivalentTo("a>b open", "b>c open", "a>b re-evaluated");
+        var newest = all.Single(f => f.GetProperty("key").GetString() == "a>b" && f.GetProperty("closedAt").ValueKind == JsonValueKind.Null);
         (newest.GetProperty("rule").GetString(), newest.GetProperty("severity").GetString(), newest.GetProperty("subject").GetProperty("id").GetGuid()).Should().Be(("RULE-FO-01", "high", meter));
         newest.GetProperty("related").EnumerateArray().Select(r => r.GetProperty("id").GetGuid()).Should().Equal(a, b);
         newest.GetProperty("details").GetProperty("start").GetString().Should().Be("104.0");
@@ -74,8 +75,10 @@ public sealed class FlagsTests(IntegrityHost host) : IClassFixture<IntegrityHost
         var cursor = first.GetProperty("nextCursor").GetGuid();
         var second = await JsonAsync(tenant, $"?limit=2&cursor={cursor}");
 
-        first.GetProperty("items").EnumerateArray().Select(f => f.GetProperty("key").GetString()).Should().Equal("k2", "k1");
-        second.GetProperty("items").EnumerateArray().Select(f => f.GetProperty("key").GetString()).Should().Equal("k0");
+        // Pages follow the IDs (UUIDv7: creation order across milliseconds): two pages hold the three flags once each.
+        var pages = first.GetProperty("items").EnumerateArray().Concat(second.GetProperty("items").EnumerateArray()).Select(f => f.GetProperty("key").GetString()).ToList();
+        first.GetProperty("items").GetArrayLength().Should().Be(2);
+        pages.Should().BeEquivalentTo(["k0", "k1", "k2"]);
         second.GetProperty("nextCursor").ValueKind.Should().Be(JsonValueKind.Null);
         (await ListAsync(tenant, "?rule=RULE-FO-02")).Should().BeEmpty();
         (await GetAsync(tenant, "?rule=RULE-XX-99")).StatusCode.Should().Be(HttpStatusCode.BadRequest);
