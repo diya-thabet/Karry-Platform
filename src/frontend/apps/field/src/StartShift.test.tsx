@@ -1,9 +1,10 @@
 import "fake-indexeddb/auto";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { generateDeviceKey, importPinKey, publicJwk } from "@karry/crypto";
 import { createI18n, I18nProvider } from "@karry/i18n";
 import { openOfflineDb, type DeviceRecord, type KarryOfflineDb } from "@karry/offline";
 import type { Camera, Photo } from "./camera";
+import { checklistCommand } from "./checklistRules";
 import { startCommand } from "./meterState";
 import { StartShift, type FormEnvironment } from "./StartShift";
 
@@ -171,6 +172,102 @@ describe("starting a shift on the tablet (US-P2-FO-01, P2.5)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Annuler le début de poste" }));
     await waitFor(() => { expect(again.onCancel).toHaveBeenCalled(); });
     expect(await db.drafts.count()).toBe(0);
+    await db.delete();
+  });
+});
+
+describe("the pre-start checklist on the tablet (US-P2-FO-02, P2.6)", () => {
+  const checklist = (required: boolean) => ({
+    id: "0192f0c1-0000-7000-8000-000000008001", assetType: "excavator", version: 3, required,
+    items: [
+      { code: "brakes", texts: { fr: "Freins", en: "Brakes" }, critical: true, photoOnNotOk: true },
+      { code: "lights", texts: { fr: "Feux" }, critical: false, photoOnNotOk: false },
+    ],
+  });
+
+  const answer = async (item: string, value: string) => {
+    fireEvent.click(within(await screen.findByRole("group", { name: item })).getByRole("button", { name: value }));
+  };
+
+  it("a required checklist comes first, is signed with the version it answered, and the start follows", async () => {
+    const { db, device } = await tablet();
+    await db.checklistTemplates.put(checklist(true));
+    const { onDone } = await open(db, device);
+    await chooseMachine();
+
+    expect(screen.queryByRole("button", { name: "Photographier le compteur" }), "the start waits for the checklist").not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Passer la check-list" }), "a required checklist cannot be skipped").not.toBeInTheDocument();
+    await answer("Freins", "Conforme");
+    await answer("Feux", "S.O.");
+    fireEvent.click(screen.getByRole("button", { name: "Signer la check-list" }));
+
+    await screen.findByRole("button", { name: "Photographier le compteur" });
+    await takeThePhoto();
+    fireEvent.change(screen.getByLabelText("Valeur de début (h)"), { target: { value: "1200.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier et signer" }));
+    fireEvent.click(await screen.findByRole("button", { name: "signer" }));
+    await waitFor(() => { expect(onDone).toHaveBeenCalled(); });
+
+    const [signed, started] = await db.outbox.orderBy("sequence").toArray();
+    expect(signed?.type).toBe(checklistCommand);
+    expect(started?.type).toBe(startCommand);
+    const payload = signed?.payload as { record: unknown; envelope: { recordType: string; evidence?: unknown; handwritten?: unknown }; captures?: unknown };
+    expect(payload.record).toMatchObject({
+      templateId: "0192f0c1-0000-7000-8000-000000008001", templateVersion: 3, assetId: asset, submittedAt: "2026-11-10T02:02:00.000Z",
+      answers: [{ item: "brakes", answer: "ok" }, { item: "lights", answer: "na" }],
+    });
+    expect(payload.envelope.recordType).toBe("fieldops.checklist");
+    expect([payload.envelope.evidence, payload.envelope.handwritten, payload.captures], "no photo, no handwriting: the device key signs for the operator").toEqual([undefined, undefined, undefined]);
+    await db.delete();
+  });
+
+  it("TC-P2-FO-004: a critical Not OK needs its photo, then holds the machine and the start is refused with the reason", async () => {
+    const { db, device } = await tablet();
+    await db.checklistTemplates.put(checklist(true));
+    await open(db, device);
+    await chooseMachine();
+
+    await answer("Freins", "Non conforme");
+    await answer("Feux", "Conforme");
+    expect(screen.getByRole("button", { name: "Signer la check-list" }), "the Not OK of a critical item waits for its photo").toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Photographier le problème" }));
+    fireEvent.loadedData(await screen.findByLabelText("Caméra : cadrez ce qu’il faut photographier"));
+    fireEvent.click(await screen.findByRole("button", { name: "Prendre la photo" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Garder cette photo" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Signer la check-list" }));
+
+    expect(await screen.findByText(/^Cet engin est immobilisé comme dangereux depuis .* \(Freins\)/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Photographier le compteur" })).not.toBeInTheDocument();
+    const [signed] = await db.outbox.toArray();
+    const payload = signed?.payload as { record: { answers: unknown }; envelope: { evidence: string[] }; captures: unknown[] };
+    expect(payload.record.answers).toEqual([{ item: "brakes", answer: "not_ok", photo: `sha256:${"a".repeat(64)}` }, { item: "lights", answer: "ok" }]);
+    expect(payload.envelope.evidence).toEqual([`sha256:${"a".repeat(64)}`]);
+    expect(payload.captures).toHaveLength(1);
+    expect(await db.blobs.count(), "the photo stays on the tablet until it is uploaded").toBe(1);
+    await db.delete();
+  });
+
+  it("a machine held by the last pull cannot be started, even without a checklist", async () => {
+    const { db, device } = await tablet();
+    await db.safetyHolds.put({ id: "h1", assetId: asset, items: ["brakes"], openedAt: "2026-11-10T01:00:00Z" });
+    await open(db, device);
+    await chooseMachine();
+
+    expect(await screen.findByText(/^Cet engin est immobilisé comme dangereux/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Photographier le compteur" })).not.toBeInTheDocument();
+    await db.delete();
+  });
+
+  it("an optional checklist may be skipped, and nothing is signed for it", async () => {
+    const { db, device } = await tablet();
+    await db.checklistTemplates.put(checklist(false));
+    await open(db, device);
+    await chooseMachine();
+
+    fireEvent.click(await screen.findByRole("button", { name: "Passer la check-list" }));
+
+    expect(await screen.findByRole("button", { name: "Photographier le compteur" })).toBeInTheDocument();
+    expect(await db.outbox.count()).toBe(0);
     await db.delete();
   });
 });

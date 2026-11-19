@@ -1,11 +1,13 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, Camera as CameraIcon, CircleCheck, RotateCcw } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
-import type { DeviceRecord, KarryOfflineDb, MeterRow, StoredAsset } from "@karry/offline";
+import type { ChecklistTemplateRow, DeviceRecord, KarryOfflineDb, MeterRow, StoredAsset } from "@karry/offline";
 import { Button, TextField } from "@karry/ui";
 import { PhotoCapture, preloadParts, SignStep } from "./lazyParts";
 import { PartBoundary } from "./PartBoundary";
 import type { Camera, Photo } from "./camera";
+import { ChecklistStep } from "./ChecklistStep";
+import { checkedRecently, checklistFor, holdOn, itemText, type Hold } from "./checklistRules";
 import { discardDraft, readDraft, saveDraft } from "./drafts";
 import { MachineFinder } from "./MachineFinder";
 import { findMachine, type QrScanner } from "./machines";
@@ -48,6 +50,12 @@ interface Context {
   runningElsewhere: boolean;
   /** The name of the operator whose segment runs on this machine, if one does. */
   inUseBy: string | null;
+  /** The checklist of the machine's type (P2.6), if the company has one. */
+  checklist: ChecklistTemplateRow | null;
+  /** The machine is held as unsafe (P2.6): nobody starts it until a manager releases it. */
+  hold: Hold | null;
+  /** The checklist was signed or skipped, or this operator signed it for this machine a moment ago. */
+  checked: boolean;
 }
 
 /**
@@ -57,7 +65,7 @@ interface Context {
  * end, a machine in use, a shift already running); the server still checks and flags everything that arrives.
  */
 export function StartShift({ environment, onDone, onCancel }: { environment: FormEnvironment; onDone: () => void; onCancel: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { db, device, session } = environment;
   const now = environment.now ?? (() => new Date());
   const [context, setContext] = useState<Context | null>(null);
@@ -94,7 +102,11 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
     const inUseBy = state.open && state.open.operatorId !== session.userId
       ? ((await db.users.get(state.open.operatorId))?.name ?? t("field.start.someone"))
       : null;
-    setContext({ machine, meter, state, shift, runningElsewhere: await hasRunningSegment(db, session.userId), inUseBy });
+    const checklist = await checklistFor(db, machine.type);
+    setContext({
+      machine, meter, state, shift, runningElsewhere: await hasRunningSegment(db, session.userId), inUseBy, checklist,
+      hold: await holdOn(db, machine), checked: checklist === null || await checkedRecently(db, session.userId, machine.id, now()),
+    });
   };
 
   // An operator who was locked out mid-form (auto-lock, closed app) finds it as they left it (US-P2-FO-01 AC6, T-01).
@@ -153,6 +165,11 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
   }
 
   const { machine, meter, state, shift } = context;
+  const checked = (critical: string[]) => {
+    setContext((current) => current && {
+      ...current, checked: true, hold: critical.length > 0 ? { items: critical, since: now().toISOString() } : current.hold,
+    });
+  };
   const unit = meter?.unit ?? "";
   const assessment = meter
     ? assessStart({ value: value.trim(), meterKind: meter.kind, state, operatorId: session.userId, runningElsewhere: context.runningElsewhere })
@@ -210,13 +227,26 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
           : t("field.start.noPrevious")}</p>}
       </section>
 
+      {context.hold && (
+        <p role="alert" className="rounded-xl border-[length:var(--karry-border-width)] border-danger p-4 text-lg font-medium text-danger">
+          {t("field.start.block.unsafe", { at: new Date(context.hold.since), items: context.hold.items.map((code) => {
+            const item = context.checklist?.items.find((i) => i.code === code);
+            return item ? itemText(item, i18n.language, null) : code;
+          }).join(", ") })}
+        </p>
+      )}
+      {!context.hold && !context.checked && context.checklist && meter !== null && !blockedBefore && (
+        <ChecklistStep environment={environment} template={context.checklist} machine={machine} onSigned={checked}
+          onSkip={context.checklist.required ? null : () => { checked([]); }} />
+      )}
+
       {meter === null && <p role="alert" className="font-medium text-danger">{t("field.start.noMeter")}</p>}
       {assessment?.block === "machineInUse" && (
         <p role="alert" className="font-medium text-danger">{t("field.start.block.machineInUse", { name: context.inUseBy ?? "", at: new Date(state.open?.startedAt ?? 0) })}</p>
       )}
       {assessment?.block === "alreadyRunning" && <p role="alert" className="font-medium text-danger">{t("field.start.block.alreadyRunning")}</p>}
 
-      {meter !== null && !blockedBefore && !reviewing && (
+      {meter !== null && !blockedBefore && !reviewing && context.checked && !context.hold && (
         <>
           {capturing
             ? (

@@ -1,7 +1,8 @@
 import { handwrittenHashes, payloadHash, signEnvelope, utf8, type SignatureEnvelopeV1 } from "@karry/crypto";
-import { enqueue, uuidv7, type KarryOfflineDb, type OutboxRecord } from "@karry/offline";
+import { enqueue, uuidv7, type ChecklistTemplateRow, type KarryOfflineDb, type OutboxRecord } from "@karry/offline";
 import type { Photo } from "./camera";
 import { photoReference } from "./camera";
+import { checklistCommand, checklistRecordType, criticalNotOk, type Answer, type AnswerRecord, type ChecklistRecord } from "./checklistRules";
 import { endCommand, startCommand } from "./meterState";
 import { endRecordProblem, recordType, startRecordProblem, type EndRecord, type StartRecord, type Stoppage } from "./shiftRules";
 
@@ -151,4 +152,59 @@ async function signAndEnqueue(
       { content: png, contentType: "image/png" },
     ],
   });
+}
+
+export interface ChecklistInput {
+  rootId?: string;
+  template: ChecklistTemplateRow;
+  assetId: string;
+  submittedAt: Date;
+  answers: { item: string; answer: Answer; photo?: Photo }[];
+}
+
+/**
+ * Signs a pre-start checklist (P2.6, ADR-0035 §3) and puts it in the outbox: the record, checked with the server's
+ * answer rules, and an envelope naming it with the photos of the Not OK answers as evidence, signed with the device key
+ * for the unlocked operator (no handwritten signature: the operator signs the shift itself right after). Returns the
+ * critical items answered Not OK: the machine is held from now on (ADR-0035 §4).
+ */
+export async function signChecklist(db: KarryOfflineDb, context: SigningContext, input: ChecklistInput): Promise<{ command: OutboxRecord; critical: string[] }> {
+  const photos = input.answers.flatMap((a) => (a.photo ? [a.photo] : []));
+  const record: ChecklistRecord = {
+    rootId: input.rootId ?? uuidv7(), version: 1, templateId: input.template.id, templateVersion: input.template.version, assetId: input.assetId,
+    submittedAt: input.submittedAt.toISOString(),
+    answers: input.answers.map((a): AnswerRecord => (a.photo ? { item: a.item, answer: a.answer, photo: photoReference(a.photo.capture.sha256) } : { item: a.item, answer: a.answer })),
+  };
+  const critical = criticalNotOk(input.template.items, record.answers);
+  if (critical === null) {
+    throw new RecordRefused("answers");
+  }
+
+  const device = await db.device.get("this");
+  if (!device) {
+    throw new Error("The tablet is not enrolled.");
+  }
+
+  const geo = await (context.position ?? (() => Promise.resolve(null)))();
+  const envelope: SignatureEnvelopeV1 = {
+    v: 1,
+    envelopeId: uuidv7(),
+    recordType: checklistRecordType,
+    recordId: record.rootId,
+    recordVersion: 1,
+    payloadHash: await payloadHash(record),
+    ...(photos.length === 0 ? {} : { evidence: photos.map((photo) => photoReference(photo.capture.sha256) as `sha256:${string}`) }),
+    signer: { userId: context.userId, role: "operator", deviceId: device.deviceId },
+    context: { deviceTime: (context.now ?? (() => new Date()))().toISOString(), appVersion: context.appVersion, ...(geo === null ? {} : { geo }) },
+  };
+  const signed = await signEnvelope(device.privateKey, envelope);
+  const command = await enqueue(db, {
+    type: checklistCommand,
+    payload: {
+      record, envelope: signed.envelope, deviceSignature: signed.deviceSignature,
+      ...(photos.length === 0 ? {} : { captures: photos.map((photo) => photo.capture) }),
+    },
+    evidence: photos.map((photo) => ({ content: photo.content, contentType: photo.contentType, thumbnail: photo.thumbnail })),
+  });
+  return { command, critical };
 }

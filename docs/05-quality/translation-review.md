@@ -98,6 +98,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-19 | `permissions.fieldops.checklists.read`, `permissions.fieldops.checklists.manage` | ar, emk, nqo | P2.6 checklist permissions ("check-lists de démarrage" in French) |
 | 2026-11-19 | `portal.checklists.*`, `portal.settings.checklistsHint` | ar, emk, nqo | P2.6 checklist builder in the portal ("check-list de démarrage", "point", "critique" in French) |
 | 2026-11-19 | `permissions.fieldops.holds.release` | ar, emk, nqo | P2.6 release of a safety hold ("lever l’immobilisation" in French) |
+| 2026-11-19 | `field.checklist.*` (15 keys), `field.start.block.unsafe`, `field.history.flag.unsafe` | ar, emk, nqo | P2.6 checklist step on the tablet: "held as unsafe" and "Not OK" are what operators read before a start |
 | 2026-11-09 | `portal.signature.*` (17 keys: the verification badge, its checks and results) | ar, emk, nqo | P2.3 portal "Verified" badge |
 | 2026-11-09 | `field.camera.*` (10 keys: viewfinder, focus help, take, retake, keep, preview, cancel, failures) | ar, emk, nqo | P2.5 in-app camera for meter photos |
 | 2026-11-18 | `field.start.*` (33 keys: the start-of-shift screen, its blocks, summary and restored draft), `field.machines.choose`; `field.action.meter` removed | ar, emk, nqo | P2.5 start of shift: "below the previous end" and "machine in use" are the messages operators will read most |
