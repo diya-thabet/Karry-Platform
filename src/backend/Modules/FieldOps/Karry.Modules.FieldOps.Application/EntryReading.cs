@@ -15,10 +15,19 @@ public static class FieldOpsPermissions
     /// <summary>Read the shift entries of the caller's sites, with every version (ADR-0034 §7).</summary>
     public const string EntriesRead = "fieldops.entries.read";
 
+    /// <summary>Read the company's pre-start checklists and their versions (ADR-0035 §2).</summary>
+    public const string ChecklistsRead = "fieldops.checklists.read";
+
+    /// <summary>Publish a new version of an asset type's checklist (US-P2-FO-03).</summary>
+    public const string ChecklistsManage = "fieldops.checklists.manage";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(EntriesRead, ScopeKind.Site, privileged: false,
             Roles.TenantAdmin, Roles.Executive, Roles.Finance, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner),
+        // Company-wide: a checklist belongs to an asset type, used on every site.
+        new(ChecklistsRead, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner),
+        new(ChecklistsManage, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.SiteManager, Roles.MaintenancePlanner),
     ];
 }
 

@@ -49,6 +49,40 @@ public sealed class FieldOpsModule : IModule
             .RequirePermission(FieldOpsPermissions.EntriesRead)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetShiftEntry");
+
+        endpoints.MapGet("/checklists", ListChecklistsAsync)
+            .RequirePermission(FieldOpsPermissions.ChecklistsRead)
+            .WithName("ListChecklists");
+
+        endpoints.MapGet("/checklists/{assetType}/versions", ListChecklistVersionsAsync)
+            .RequirePermission(FieldOpsPermissions.ChecklistsRead)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListChecklistVersions");
+
+        endpoints.MapPost("/checklists/{assetType}/versions", PublishChecklistAsync)
+            .RequirePermission(FieldOpsPermissions.ChecklistsManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("PublishChecklist");
+    }
+
+    private static async Task<Ok<ChecklistListResponse>> ListChecklistsAsync([FromServices] ChecklistTemplates checklists, CancellationToken cancellationToken) =>
+        TypedResults.Ok(new ChecklistListResponse([.. (await checklists.LatestAsync(cancellationToken).ConfigureAwait(false)).Select(ChecklistResponse.From)]));
+
+    private static async Task<Results<Ok<ChecklistListResponse>, ProblemHttpResult>> ListChecklistVersionsAsync(
+        string assetType, [FromServices] ChecklistTemplates checklists, CancellationToken cancellationToken)
+    {
+        var result = await checklists.VersionsAsync(assetType, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new ChecklistListResponse([.. result.Value.Select(ChecklistResponse.From)])) : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Created<ChecklistResponse>, ProblemHttpResult>> PublishChecklistAsync(
+        string assetType, PublishChecklist body, [FromServices] ChecklistTemplates checklists, CancellationToken cancellationToken)
+    {
+        var result = await checklists.PublishAsync(assetType, body, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Created($"/api/v1/fieldops/checklists/{result.Value.AssetType}/versions", ChecklistResponse.From(result.Value))
+            : result.Error.ToProblem();
     }
 
     private static async Task<Results<Ok<ShiftEntryListResponse>, ProblemHttpResult>> SearchEntriesAsync(
@@ -114,5 +148,22 @@ public sealed record ShiftEntryResponse(
             LocationResponse.From(e.EndPosition),
             [.. e.Stoppages.Select(s => new StoppageResponse(s.Reason, s.Minutes))], e.Remarks, e.Estimated, e.Flags, e.EnvelopeId, e.DeviceId,
             e.ReceivedAt);
+    }
+}
+
+/// <summary>Checklists: the newest version per asset type (list), or every version of one type, newest first.</summary>
+public sealed record ChecklistListResponse(IReadOnlyList<ChecklistResponse> Items);
+
+/// <summary>An item: its text per language (<c>fr</c>, <c>en</c>, <c>ar</c>, <c>emk</c>, <c>nqo</c>), critical, photo on Not OK.</summary>
+public sealed record ChecklistItemResponse(string Code, IReadOnlyDictionary<string, string> Texts, bool Critical, bool PhotoOnNotOk);
+
+/// <summary>A published version of an asset type's checklist (ADR-0035 §2); <c>required</c>: answered before every start.</summary>
+public sealed record ChecklistResponse(
+    Guid Id, string AssetType, int Version, bool Required, IReadOnlyList<ChecklistItemResponse> Items, DateTimeOffset PublishedAt)
+{
+    public static ChecklistResponse From(ChecklistTemplate c)
+    {
+        ArgumentNullException.ThrowIfNull(c);
+        return new(c.Id.Value, c.AssetType, c.Version, c.Required, [.. c.Items.Select(i => new ChecklistItemResponse(i.Code, i.Texts, i.Critical, i.PhotoOnNotOk))], c.PublishedAt);
     }
 }

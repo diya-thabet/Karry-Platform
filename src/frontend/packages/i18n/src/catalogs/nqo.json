@@ -1096,6 +1096,8 @@
   "permissions.assets.registry.read": "ߡߊߛߌ߲ߟߎ ߊߣߌ ߎ ߞߊ ߖߊߕߋߓߊߜ߭ߊߟߎ ߦߋ",
   "permissions.assets.registry.manage": "ߡߊߛߌ߲ߟߎ ߛߍߓߍ߲߸ ߞߊ ߎ ߕߊ߯ ߊߣߌ ߞߊ ߎ ߦߍߟߍߡߊ߸ ߖߊߕߋߓߊߜ߭ߊ ߞߊߟߊ߲ߣߌߟߎ ߛߍߓߍ߲",
   "permissions.fieldops.entries.read": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߛߍߓߍ߲ߟߎ ߊߣߌ ߎ ߦߍߟߍߡߊߟߎ ߟߊߖߍ",
+  "permissions.fieldops.checklists.read": "ߓߊ߯ߙߊ ߘߊߡߌߣߍ ߟߊߖߍߟߌ ߛߍߓߍ߲ߟߎ ߊߣߌ ߎ ߦߍߟߍߡߊߟߎ ߟߊߖߍ",
+  "permissions.fieldops.checklists.manage": "ߓߊ߯ߙߊ ߘߊߡߌߣߍ ߟߊߖߍߟߌ ߛߍߓߍ߲ߟߎ ߓߐ",
   "permissions.imports.files.manage": "ߞߎ߲ߣߊߝߏߣߌߟߎ ߘߏ߲ ߞߊ ߓߐ Excel ߟߊ",
   "permissions.tenancy.settings.manage": "ߛߏߛߌߦߋߕߋ ߟߊߓߍ߲ߟߎ ߦߍߟߍߡߊ",
   "modules.organization": "ߓߊ߯ߙߊߦߐߙߐߟߎ ߊߣߌ ߞߊߙߕߟߎ",

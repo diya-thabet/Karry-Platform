@@ -63,6 +63,8 @@ The matrix above is the target for the whole product. In code it is the union of
 | `assets.registry.read` | site | no | all 12 default roles | The asset register on the caller's sites, the type catalogue (US-P1-AST-01, US-P1-AST-02) |
 | `assets.registry.manage` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Register, change, move and set the status of assets on the caller's sites |
 | `fieldops.entries.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager, Maintenance Planner | Shift entries of the caller's sites with every version (ADR-0034 §7; P2.4). Field roles see their own history on the tablet (P2.5) |
+| `fieldops.checklists.read` | tenant | no | Tenant Admin, Controller, Site Manager, Maintenance Planner | Pre-start checklist templates and every published version (ADR-0035 §2; P2.6). Tablets get the newest version through sync |
+| `fieldops.checklists.manage` | tenant | no | Tenant Admin, Site Manager, Maintenance Planner | Publish the next version of an asset type's checklist; company-wide, so a site assignment alone does not grant it (ADR-0035 §2; P2.6) |
 | `imports.files.manage` | tenant | yes | Tenant Admin | Excel import (US-P1-ORG-03, ADR-0027): templates, uploads, reports, commit and discard; each kind also needs the permission of the data it writes |
 | `tenancy.settings.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): company settings and logo (P1.11; every member reads them) |
 | `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |

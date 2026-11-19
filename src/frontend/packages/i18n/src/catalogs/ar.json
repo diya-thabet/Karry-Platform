@@ -1096,6 +1096,8 @@
   "permissions.assets.registry.read": "عرض الآلات وعداداتها",
   "permissions.assets.registry.manage": "تسجيل الآلات ونقلها وتغييرها، وتسجيل قراءات العدادات",
   "permissions.fieldops.entries.read": "عرض سجلات النوبات وإصداراتها",
+  "permissions.fieldops.checklists.read": "عرض قوائم الفحص قبل التشغيل وإصداراتها",
+  "permissions.fieldops.checklists.manage": "نشر قوائم الفحص قبل التشغيل",
   "permissions.imports.files.manage": "استيراد البيانات من Excel",
   "permissions.tenancy.settings.manage": "تغيير إعدادات الشركة",
   "modules.organization": "المواقع والورديات",
