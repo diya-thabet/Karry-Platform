@@ -370,14 +370,16 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         var (meter, day, night) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
         meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
         await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "100.0", meter: meter));
-        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0"));
+        var (dayEnd, nightStart) = ("sha256:" + new string('1', 64), "sha256:" + new string('2', 64));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0", photo: dayEnd));
 
-        await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(12), "110.5", meter: meter, signer: NextOperator));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(12), "110.5", meter: meter, signer: NextOperator, photo: nightStart));
 
         (await FlagsAsync(TenantA)).Should().Equal(
             $"RULE-FO-01|high|meter|{meter}|{day}>{night}|{Site}|open|[{{\"id\": \"{day}\", \"type\": \"shift_entry\"}}, {{\"id\": \"{night}\", \"type\": \"shift_entry\"}}]"
-            + $"|[\"{Photo}\", \"{Photo}\"]|{{\"meterKind\": \"hours\", \"difference\": \"2.5\", \"foundValue\": \"110.5\", \"expectedValue\": \"108.0\"}}");
-        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_opened.v1'")).Should().Be(1);
+            + $"|[\"{dayEnd}\", \"{nightStart}\"]|{{\"meterKind\": \"hours\", \"difference\": \"2.5\", \"foundValue\": \"110.5\", \"expectedValue\": \"108.0\"}}");
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_opened.v1'")).Should().Be(1,
+            "the continuity flag only: every photo here has its capture record and is used once");
         (await RowsAsync(TenantB, "SELECT key FROM integrity.flags")).Should().BeEmpty();
     }
 
@@ -424,6 +426,40 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             scope.GetServices<IMeterEventSubscriber>().Single().HandleAsync(replaced, connection, transaction, Ct));
 
         (await FlagsAsync(TenantA, brief: true)).Should().Equal([$"{day}>{night}|re-evaluated"], "the replacement explains the jump; handing it on twice changes nothing");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-005")]
+    public async Task A_photo_without_its_capture_record_is_flagged_on_its_signed_fact_and_one_with_it_is_not()
+    {
+        var (bare, captured) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(bare, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), captured: false));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(captured, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+
+        (await RowsAsync(TenantA, "SELECT f.subject_type || '|' || e.root_id || '|' || f.key || '|' || f.severity FROM integrity.flags f "
+            + "JOIN fieldops.shift_entries e ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-05'"))
+            .Should().Equal($"signature_envelope|{bare}|start|high");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-006")]
+    public async Task A_photo_used_by_another_entry_or_for_both_ends_of_one_is_flagged_on_the_later_use()
+    {
+        var (first, second, same) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var shared = "sha256:" + new string('e', 64);
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(first, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), photo: shared));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(second, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), photo: shared));
+        var own = "sha256:" + new string('f', 64);
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(same, ShiftStart, "20.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), photo: own));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(same, 2, ShiftStart.AddHours(8), "28.0", photo: own));
+
+        (await RowsAsync(TenantA, "SELECT e.root_id || '|' || f.key || '|' || f.related::text || '|' || (f.details->>'sameAsStart') FROM integrity.flags f "
+            + "JOIN fieldops.shift_entries e ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-06' ORDER BY f.opened_at"))
+            .Should().Equal(
+                $"{second}|start|[{{\"id\": \"{second}\", \"type\": \"shift_entry\"}}, {{\"id\": \"{first}\", \"type\": \"shift_entry\"}}]|false",
+                $"{same}|end|[{{\"id\": \"{same}\", \"type\": \"shift_entry\"}}]|true");
     }
 
     [Fact]
@@ -537,6 +573,13 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private static JsonObject Geo(double lat, double lon, double accuracy) => new() { ["lat"] = lat, ["lon"] = lon, ["acc"] = accuracy };
 
+    private Guid FreshMeter()
+    {
+        var meter = Guid.CreateVersion7();
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        return meter;
+    }
+
     /// <summary>One segment on a fresh meter by a fresh operator, so continuity and overlaps stay out of the way.</summary>
     private async Task<HandlerOutcome> StartAndEndAsync(DateTimeOffset startedAt, string startValue, DateTimeOffset endedAt, string endValue)
     {
@@ -563,9 +606,11 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     };
 
     private JsonObject Start(
-        Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? previous = null, string? remarks = null, Guid? signer = null, Guid? asset = null)
+        Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? previous = null, string? remarks = null, Guid? signer = null, Guid? asset = null,
+        string? photo = null, bool captured = true)
     {
         var record = Record(root, startedAt, startValue, meter, asset);
+        record["startPhoto"] = photo ?? NextPhoto();
         if (previous is { } id)
         {
             record["previousRootId"] = id.ToString();
@@ -576,11 +621,36 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             record["remarks"] = remarks;
         }
 
-        return Signed(record, 1, signer);
+        return Captured(Signed(record, 1, signer), record["startPhoto"]!.GetValue<string>(), captured);
     }
 
-    private JsonObject End(Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null, JsonObject? geo = null)
+    private static int photos;
+
+    /// <summary>A photo no other entry of the test uses (the photo rules, RULE-FO-05/06, stay out of the way).</summary>
+    private static string NextPhoto() => "sha256:" + Interlocked.Increment(ref photos).ToString("x64", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>The capture record of the command's photo, as the tablet sends it beside the signed record (ADR-0032 §5).</summary>
+    private static JsonObject Captured(JsonObject payload, string photo, bool captured)
     {
+        if (captured)
+        {
+            payload["captures"] = new JsonArray(new JsonObject
+            {
+                ["sha256"] = photo["sha256:".Length..],
+                ["capturedAt"] = "2026-11-09T06:00:00Z",
+                ["deviceId"] = "d",
+                ["appVersion"] = "1",
+                ["width"] = 1600,
+                ["height"] = 1200,
+            });
+        }
+
+        return payload;
+    }
+
+    private JsonObject End(Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null, JsonObject? geo = null, string? photo = null, bool captured = true)
+    {
+        var endPhoto = photo ?? NextPhoto();
         var record = new JsonObject
         {
             ["rootId"] = root.ToString(),
@@ -588,14 +658,14 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             ["endedAt"] = endedAt.ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture),
             ["endValue"] = endValue,
             ["fuelEndPercent"] = 40,
-            ["endPhoto"] = Photo,
+            ["endPhoto"] = endPhoto,
         };
         if (stoppages is not null)
         {
             record["stoppages"] = JsonNode.Parse(stoppages);
         }
 
-        return Signed(record, version, geo: geo);
+        return Captured(Signed(record, version, geo: geo), endPhoto, captured);
     }
 
     /// <summary>The command payload: the record, an envelope naming it, and the tablet's signature over the envelope.</summary>
@@ -682,9 +752,9 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     /// <summary>The company's integrity flags, oldest first: in full, or as key and state (open, or the reason it closed).</summary>
     private Task<List<string>> FlagsAsync(Guid tenant, bool brief = false) => RowsAsync(tenant, brief
-        ? "SELECT key || '|' || coalesce(close_reason, 'open') FROM integrity.flags ORDER BY opened_at, key"
+        ? "SELECT key || '|' || coalesce(close_reason, 'open') FROM integrity.flags WHERE rule = 'RULE-FO-01' ORDER BY opened_at, key"
         : "SELECT rule || '|' || severity || '|' || subject_type || '|' || subject_id || '|' || key || '|' || site_id || '|' || coalesce(close_reason, 'open') || '|' "
-            + "|| related::text || '|' || evidence::text || '|' || details::text FROM integrity.flags ORDER BY opened_at, key");
+            + "|| related::text || '|' || evidence::text || '|' || details::text FROM integrity.flags WHERE rule = 'RULE-FO-01' ORDER BY opened_at, key");
 
     private async Task NothingWrittenAsync() =>
         (await ScalarAsync<long>(database.Admin, "SELECT (SELECT count(*) FROM fieldops.shift_entries) + (SELECT count(*) FROM audit.signature_envelopes) + (SELECT count(*) FROM audit.ledger_entries)"))

@@ -1,5 +1,6 @@
 using System.Data.Common;
 using System.Globalization;
+using System.Text.Json;
 using Karry.BuildingBlocks.Sync;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
@@ -17,6 +18,59 @@ public static class IntegrityFindings
     public const string ShiftEntry = "shift_entry";
 
     public const string Meter = "meter";
+
+    /// <summary>A signed fact (its signature envelope): the photo rules judge each start and end on its own.</summary>
+    public const string SignedFact = "signature_envelope";
+
+    /// <summary>
+    /// The photo rules of one signed start or end (ADR-0036 §1, security rules): RULE-FO-05 when the command carries no
+    /// capture record for its photo (the photo did not come from the app's camera), RULE-FO-06 when the same photo is
+    /// on another entry, or is both the start and the end photo of this one. The subject is the signed fact, linked to
+    /// the entry.
+    /// </summary>
+    public static async Task SyncPhotoAsync(
+        IShiftEntryStore store, IIntegrityFlags integrity, ISyncTransaction transaction, JsonElement payload, Guid envelopeId, Guid rootId, string part, string photo,
+        string? startPhoto, Guid siteId, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(integrity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        var subject = new FlagSubject(SignedFact, envelopeId);
+        FlagSubject[] entry = [new FlagSubject(ShiftEntry, rootId)];
+        var captured = HasCapture(payload, photo);
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, subject, IntegrityRules.PhotoWithoutCapture, siteId,
+            captured ? [] : [new Finding(part, entry, [photo], new Dictionary<string, string>(StringComparer.Ordinal) { ["part"] = part })], cancellationToken).ConfigureAwait(false);
+
+        // Other entries with this photo, and this entry itself when its end photo is its start photo.
+        var others = await store.EntriesWithPhotoAsync(photo, rootId, cancellationToken).ConfigureAwait(false);
+        var sameAsStart = startPhoto == photo;
+        var reused = others.Count > 0 || sameAsStart;
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, subject, IntegrityRules.PhotoReused, siteId,
+            !reused ? [] :
+            [
+                new Finding(part, [.. entry, .. others.Select(o => new FlagSubject(ShiftEntry, o))], [photo], new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["part"] = part,
+                    ["otherEntries"] = others.Count.ToString(CultureInfo.InvariantCulture),
+                    ["sameAsStart"] = sameAsStart ? "true" : "false",
+                }),
+            ],
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Whether the command's capture records name the photo (<c>sha256:</c> reference against the records' bare hex).</summary>
+    public static bool HasCapture(JsonElement payload, string photo)
+    {
+        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(SignedRecord.CapturesMember, out var captures) || captures.ValueKind != JsonValueKind.Array
+            || !photo.StartsWith("sha256:", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var hex = photo["sha256:".Length..];
+        return captures.EnumerateArray().Any(c => c.ValueKind == JsonValueKind.Object && c.TryGetProperty("sha256", out var sha)
+            && sha.ValueKind == JsonValueKind.String && string.Equals(sha.GetString(), hex, StringComparison.Ordinal));
+    }
 
     /// <summary>
     /// Re-evaluates the meter's continuity over all its segments and events and hands Integrity what holds now: a late

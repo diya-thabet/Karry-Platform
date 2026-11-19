@@ -52,6 +52,9 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
             entry.HasIndex(e => new { e.TenantId, e.OperatorId, e.StartedAt });
             entry.HasIndex(e => new { e.TenantId, e.SiteId, e.ShiftDate });
             entry.HasIndex(e => e.CommandId).IsUnique();
+            // A photo used twice (RULE-FO-06) is looked up by its fingerprint.
+            entry.HasIndex(e => new { e.TenantId, e.StartPhoto });
+            entry.HasIndex(e => new { e.TenantId, e.EndPhoto });
             entry.Property(e => e.Status).HasConversion<string>().HasMaxLength(10);
             entry.Property(e => e.MeterKind).HasMaxLength(10);
             entry.Property(e => e.ShiftCode).HasMaxLength(20);

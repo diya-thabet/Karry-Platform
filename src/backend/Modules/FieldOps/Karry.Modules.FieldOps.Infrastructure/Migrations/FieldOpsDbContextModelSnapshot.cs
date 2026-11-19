@@ -531,6 +531,12 @@ namespace Karry.Modules.FieldOps.Infrastructure.Migrations
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_shift_entries_tenant_id");
 
+                    b.HasIndex("TenantId", "EndPhoto")
+                        .HasDatabaseName("ix_shift_entries_tenant_id_end_photo");
+
+                    b.HasIndex("TenantId", "StartPhoto")
+                        .HasDatabaseName("ix_shift_entries_tenant_id_start_photo");
+
                     b.HasIndex("TenantId", "MeterId", "StartedAt")
                         .HasDatabaseName("ix_shift_entries_tenant_id_meter_id_started_at");
 
