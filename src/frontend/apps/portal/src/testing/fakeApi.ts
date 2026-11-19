@@ -28,6 +28,8 @@ type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 type Verification = components["schemas"]["LatestVerificationResponse"];
 type Subscription = components["schemas"]["SubscriptionResponse"];
 type Invoice = components["schemas"]["InvoiceResponse"];
+type Checklist = components["schemas"]["ChecklistResponse"];
+type PublishChecklist = components["schemas"]["PublishChecklist"];
 
 export interface Sent {
   method: string;
@@ -86,6 +88,8 @@ export function fakeApi(options: {
   instances?: ShiftInstance[];
   /** Materials of `GET /materials` (default: none). */
   materials?: Material[];
+  /** Every published checklist version, any machine type (default: none). */
+  checklists?: Checklist[];
   /** Machines of `GET /assets` (default: none). */
   assets?: Asset[];
   /** Meters by asset ID. */
@@ -131,6 +135,7 @@ export function fakeApi(options: {
   const days: Record<string, NonWorkingDay[]> = { ...options.days };
   const materials: Material[] = [...(options.materials ?? [])];
   const assets: Asset[] = [...(options.assets ?? [])];
+  const checklists: Checklist[] = [...(options.checklists ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
   const imports: ImportJob[] = [];
@@ -312,6 +317,11 @@ export function fakeApi(options: {
     const material = materialsRoute(request.method, url, body, request.headers.get("If-Match"));
     if (material) {
       return material;
+    }
+
+    const checklisted = checklistsRoute(request.method, url, body);
+    if (checklisted) {
+      return checklisted;
     }
 
     const imported = importsRoute(request.method, url);
@@ -732,6 +742,35 @@ export function fakeApi(options: {
     }
   }
 
+  // Checklist templates: the newest per machine type, every version of one type, publish the next (ADR-0035 §2).
+  function checklistsRoute(method: string, url: URL, body: unknown): Response | null {
+    const match = /^\/api\/v1\/fieldops\/checklists(?:\/([^/]+)\/versions)?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const type = match[1];
+    const newestFirst = [...checklists].sort((a, b) => Number(b.version) - Number(a.version));
+    if (!type) {
+      const latest = newestFirst.filter((c, index) => newestFirst.findIndex((n) => n.assetType === c.assetType) === index);
+      return json(200, { items: latest.sort((a, b) => a.assetType.localeCompare(b.assetType)) });
+    }
+
+    const versions = newestFirst.filter((c) => c.assetType === type);
+    if (method === "GET") {
+      return versions.length === 0 ? problem(404, "fieldops.checklist_not_found") : json(200, { items: versions });
+    }
+
+    const input = body as PublishChecklist;
+    const published: Checklist = {
+      id: `0192f0c1-0000-7000-8000-${String(9000 + checklists.length).padStart(12, "0")}`, assetType: type, version: Number(versions[0]?.version ?? 0) + 1,
+      required: input.required, publishedAt: "2026-11-19T09:00:00Z",
+      items: (input.items ?? []).map((item) => ({ code: item.code ?? "", texts: item.texts ?? {}, critical: item.critical, photoOnNotOk: item.photoOnNotOk })),
+    };
+    checklists.push(published);
+    return json(201, published);
+  }
+
   function assetsRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
     const match = /^\/api\/v1\/assets(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
     if (!match) {
@@ -907,6 +946,18 @@ export function fakeApi(options: {
     },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
+  };
+}
+
+/** Version 1 of the excavator checklist: brakes (critical) and lights. */
+export function checklist(overrides: Partial<Checklist> = {}): Checklist {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000008001", assetType: "excavator", version: 1, required: true, publishedAt: "2026-11-18T07:30:00Z",
+    items: [
+      { code: "brakes", texts: { fr: "Freins", en: "Brakes" }, critical: true, photoOnNotOk: true },
+      { code: "lights", texts: { fr: "Feux", en: "Lights" }, critical: false, photoOnNotOk: false },
+    ],
+    ...overrides,
   };
 }
 

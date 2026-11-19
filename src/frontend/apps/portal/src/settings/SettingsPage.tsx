@@ -1,8 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, CreditCard, FileSpreadsheet, Layers, LifeBuoy, ShieldCheck, Tablet, Users } from "lucide-react";
+import { Building2, ClipboardCheck, CreditCard, FileSpreadsheet, Layers, LifeBuoy, ShieldCheck, Tablet, Users } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { PageHeader } from "@karry/ui";
 import { BillingReadPermission, DevicesManagePermission, SupportManagePermission, useAccess } from "../app/api";
+import { ChecklistsReadPermission } from "../checklists/api";
 import { ImportsPermission } from "../imports/api";
 import { MaterialsReadPermission } from "../materials/api";
 
@@ -16,6 +17,7 @@ export function SettingsPage() {
     { to: "/settings/users", icon: Users, label: t("portal.users.title"), hint: t("portal.settings.usersHint"), permission: "identity.users.read" },
     { to: "/settings/tablets", icon: Tablet, label: t("portal.tablets.title"), hint: t("portal.settings.tabletsHint"), permission: DevicesManagePermission },
     { to: "/settings/materials", icon: Layers, label: t("portal.materials.title"), hint: t("portal.settings.materialsHint"), permission: MaterialsReadPermission },
+    { to: "/settings/checklists", icon: ClipboardCheck, label: t("portal.checklists.title"), hint: t("portal.settings.checklistsHint"), permission: ChecklistsReadPermission },
     { to: "/settings/imports", icon: FileSpreadsheet, label: t("portal.imports.title"), hint: t("portal.settings.importsHint"), permission: ImportsPermission },
     { to: "/settings/support", icon: LifeBuoy, label: t("portal.support.title"), hint: t("portal.settings.supportHint"), permission: SupportManagePermission },
     { to: "/settings/plan", icon: CreditCard, label: t("portal.plan.title"), hint: t("portal.settings.planHint"), permission: BillingReadPermission },
