@@ -1180,6 +1180,7 @@
   "permissions.fieldops.checklists.read": "ߓߊ߯ߙߊ ߘߊߡߌߣߍ ߟߊߖߍߟߌ ߛߍߓߍ߲ߟߎ ߊߣߌ ߎ ߦߍߟߍߡߊߟߎ ߟߊߖߍ",
   "permissions.fieldops.checklists.manage": "ߓߊ߯ߙߊ ߘߊߡߌߣߍ ߟߊߖߍߟߌ ߛߍߓߍ߲ߟߎ ߓߐ",
   "permissions.fieldops.holds.release": "ߡߊߛߌ߲ min ߖߐߙߊ ߊ ߡߊ߲ ߢߌ ߞߏ ߟߊ߸ ߏ ߓߌߟߊ",
+  "permissions.integrity.flags.read": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߕߌߢߍߣߌ ߟߊߛߐߡߌߣߌ ߟߊߖߍ",
   "permissions.imports.files.manage": "ߞߎ߲ߣߊߝߏߣߌߟߎ ߘߏ߲ ߞߊ ߓߐ Excel ߟߊ",
   "permissions.tenancy.settings.manage": "ߛߏߛߌߦߋߕߋ ߟߊߓߍ߲ߟߎ ߦߍߟߍߡߊ",
   "modules.organization": "ߓߊ߯ߙߊߦߐߙߐߟߎ ߊߣߌ ߞߊߙߕߟߎ",

@@ -1180,6 +1180,7 @@
   "permissions.fieldops.checklists.read": "عرض قوائم الفحص قبل التشغيل وإصداراتها",
   "permissions.fieldops.checklists.manage": "نشر قوائم الفحص قبل التشغيل",
   "permissions.fieldops.holds.release": "رفع إيقاف آلة غير آمنة",
+  "permissions.integrity.flags.read": "عرض تنبيهات النزاهة لمواقعك",
   "permissions.imports.files.manage": "استيراد البيانات من Excel",
   "permissions.tenancy.settings.manage": "تغيير إعدادات الشركة",
   "modules.organization": "المواقع والورديات",

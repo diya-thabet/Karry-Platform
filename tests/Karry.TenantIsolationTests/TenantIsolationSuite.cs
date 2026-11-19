@@ -70,6 +70,8 @@ public sealed class IsolationHost : IAsyncLifetime
         await SeedChecklistAsync(A.Id);
         // Safety holds (P2.6): an open hold on A's machine, which B must never release.
         AHold = await SeedHoldAsync(A.Id, ASite, AAsset);
+        // Integrity flags (P2.7): an open flag of A on its site, whose key (Alphaflag) B must never read.
+        await SeedFlagAsync(A.Id, ASite);
     }
 
     /// <summary>ID of an open safety hold on tenant A's machine.</summary>
@@ -263,6 +265,20 @@ public sealed class IsolationHost : IAsyncLifetime
             """, connection);
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(AChecklistType);
+        await insert.ExecuteNonQueryAsync();
+    }
+
+    private async Task SeedFlagAsync(Guid tenant, Guid site)
+    {
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO integrity.flags (id, tenant_id, rule, severity, subject_type, subject_id, key, site_id, related, evidence, details, opened_at)
+            VALUES (gen_random_uuid(), $1, 'RULE-FO-01', 'high', 'meter', gen_random_uuid(), 'Alphaflag', $2, '[]', '[]', '{}', now())
+            """, connection);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(site);
         await insert.ExecuteNonQueryAsync();
     }
 
@@ -515,7 +531,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString()],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
