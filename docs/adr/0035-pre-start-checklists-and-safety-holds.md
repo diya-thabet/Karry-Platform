@@ -32,9 +32,11 @@ FieldOps (API and sync). The event `fieldops.asset_marked_unsafe.v1` (P2.10 noti
 ### 2. Templates are versioned per asset type
 
 A template belongs to one asset type (`excavator`, …), has a `required` switch (US-P2-FO-02 AC1: required or optional
-before a start) and items `{code, texts: {language: text}, critical, photoOnNotOk}`. Editing makes a draft;
-**publishing** freezes it as the next version (1, 2, …), never changed afterwards; the newest published version is the
-one tablets use. Texts are kept in the company's languages (fr, en, ar, emk, nqo as chosen); the tablet shows the
+before a start) and items `{code, texts: {language: text}, critical, photoOnNotOk}`. There is no server-side draft: the portal edits
+locally and **each publish** sends the full content, saved as the next version (1, 2, …), never changed afterwards
+(append-only table, `UPDATE`/`DELETE` refused); the newest published version is the one tablets use. Two publishes at
+once: one wins, the other gets 409 `fieldops.checklist_version_conflict`. A critical item always asks for a photo on
+Not OK. Reading needs `fieldops.checklists.read`, publishing `fieldops.checklists.manage` (company-wide permissions). Texts are kept in the company's languages (fr, en, ar, emk, nqo as chosen); the tablet shows the
 operator's language, else the first one.
 
 ### 3. A submission is a signed record of its own

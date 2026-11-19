@@ -16,6 +16,8 @@ public static class FieldOpsInfrastructure
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
         services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
         services.AddScoped<EntryReading>();
+        services.AddScoped<IChecklistTemplateStore, ChecklistTemplateStore>();
+        services.AddScoped<ChecklistTemplates>();
         services.AddScoped<ISyncSource, MeterStatesSync>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);
         services.AddSyncCommandHandler<EndShiftEntry>(EndShiftEntry.Name);

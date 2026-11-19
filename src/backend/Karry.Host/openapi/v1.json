@@ -7329,6 +7329,124 @@
           }
         }
       }
+    },
+    "/api/v1/fieldops/checklists": {
+      "get": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "ListChecklists",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/fieldops/checklists/{assetType}/versions": {
+      "get": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "ListChecklistVersions",
+        "parameters": [
+          {
+            "name": "assetType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistListResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "PublishChecklist",
+        "parameters": [
+          {
+            "name": "assetType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishChecklist"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -8312,6 +8430,123 @@
             }
           }
         }
+      },
+      "ChecklistItemInput": {
+        "required": [
+          "code",
+          "texts",
+          "critical",
+          "photoOnNotOk"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "texts": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "photoOnNotOk": {
+            "type": "boolean"
+          }
+        },
+        "description": "An item as the portal sends it."
+      },
+      "ChecklistItemResponse": {
+        "required": [
+          "code",
+          "texts",
+          "critical",
+          "photoOnNotOk"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "texts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "critical": {
+            "type": "boolean"
+          },
+          "photoOnNotOk": {
+            "type": "boolean"
+          }
+        },
+        "description": "An item: its text per language (`fr`, `en`, `ar`, `emk`, `nqo`), critical, photo on Not OK."
+      },
+      "ChecklistListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistResponse"
+            }
+          }
+        },
+        "description": "Checklists: the newest version per asset type (list), or every version of one type, newest first."
+      },
+      "ChecklistResponse": {
+        "required": [
+          "id",
+          "assetType",
+          "version",
+          "required",
+          "items",
+          "publishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetType": {
+            "type": "string"
+          },
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItemResponse"
+            }
+          },
+          "publishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "A published version of an asset type's checklist (ADR-0035 §2); `required`: answered before every start."
       },
       "CollectionChanges": {
         "required": [
@@ -10652,6 +10887,28 @@
           }
         },
         "description": "The provisioned tenant; `AdminInvitation` is the outcome of the first administrator invitation when one was requested."
+      },
+      "PublishChecklist": {
+        "required": [
+          "required",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "required": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ChecklistItemInput"
+            }
+          }
+        },
+        "description": "The next version of an asset type's checklist: the full content, nothing carried over implicitly."
       },
       "PublishPlan": {
         "required": [

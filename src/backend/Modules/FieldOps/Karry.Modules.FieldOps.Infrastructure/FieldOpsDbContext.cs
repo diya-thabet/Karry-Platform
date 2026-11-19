@@ -21,6 +21,8 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
 
     public DbSet<ShiftEntryVersion> ShiftEntries => Set<ShiftEntryVersion>();
 
+    public DbSet<ChecklistTemplate> ChecklistTemplates => Set<ChecklistTemplate>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -57,6 +59,19 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
             entry.Property(e => e.Flags).HasColumnType("text[]").HasConversion(
                 new ValueConverter<IReadOnlyList<string>, string[]>(flags => flags.ToArray(), array => array),
                 new ValueComparer<IReadOnlyList<string>>((a, b) => a!.SequenceEqual(b!), flags => string.Join(',', flags).GetHashCode(StringComparison.Ordinal), flags => flags.ToArray()));
+        });
+
+        // Pre-start checklists (ADR-0035 §2): one row per published version, never changed; one number per asset type.
+        modelBuilder.Entity<ChecklistTemplate>(template =>
+        {
+            template.ToTable("checklist_templates", t => t.HasCheckConstraint("ck_checklist_templates_version", "version >= 1"));
+            template.HasKey(c => c.Id);
+            template.Ignore(c => c.DomainEvents);
+            template.Property(c => c.Id).HasConversion(id => id.Value, value => new ChecklistTemplateId(value)).ValueGeneratedNever();
+            template.HasIndex(c => new { c.TenantId, c.AssetType, c.Version }).IsUnique();
+            template.Property(c => c.AssetType).HasMaxLength(40);
+            template.Property(c => c.PublishedBy).HasMaxLength(200);
+            template.Property(c => c.Items).HasColumnType("jsonb").HasConversion(Json<ChecklistItem>.Converter, Json<ChecklistItem>.Comparer);
         });
     }
 

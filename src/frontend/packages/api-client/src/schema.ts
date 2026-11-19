@@ -1476,6 +1476,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fieldops/checklists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListChecklists"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/fieldops/checklists/{assetType}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListChecklistVersions"];
+        put?: never;
+        post: operations["PublishChecklist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1719,6 +1751,40 @@ export interface components {
         };
         ChangeUserRoles: {
             roles: null | components["schemas"]["RoleAssignment"][];
+        };
+        /** @description An item as the portal sends it. */
+        ChecklistItemInput: {
+            code: null | string;
+            texts: null | {
+                [key: string]: string;
+            };
+            critical: boolean;
+            photoOnNotOk: boolean;
+        };
+        /** @description An item: its text per language (`fr`, `en`, `ar`, `emk`, `nqo`), critical, photo on Not OK. */
+        ChecklistItemResponse: {
+            code: string;
+            texts: {
+                [key: string]: string;
+            };
+            critical: boolean;
+            photoOnNotOk: boolean;
+        };
+        /** @description Checklists: the newest version per asset type (list), or every version of one type, newest first. */
+        ChecklistListResponse: {
+            items: components["schemas"]["ChecklistResponse"][];
+        };
+        /** @description A published version of an asset type's checklist (ADR-0035 §2); `required`: answered before every start. */
+        ChecklistResponse: {
+            /** Format: uuid */
+            id: string;
+            assetType: string;
+            /** Format: int32 */
+            version: number | string;
+            required: boolean;
+            items: components["schemas"]["ChecklistItemResponse"][];
+            /** Format: date-time */
+            publishedAt: string;
         };
         /** @description One collection of a change set: rows to keep, IDs to drop; bool CollectionChanges.Replace: the rows are the whole collection. */
         CollectionChanges: {
@@ -2321,6 +2387,11 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             adminInvitation: null | components["schemas"]["AdminInvitationResponse"];
+        };
+        /** @description The next version of an asset type's checklist: the full content, nothing carried over implicitly. */
+        PublishChecklist: {
+            required: boolean;
+            items: null | components["schemas"]["ChecklistItemInput"][];
         };
         /** @description A new version of a plan (or its first): the full content, nothing carried over implicitly. */
         PublishPlan: {
@@ -8493,6 +8564,101 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListChecklists: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistListResponse"];
+                };
+            };
+        };
+    };
+    ListChecklistVersions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetType: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistListResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PublishChecklist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assetType: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishChecklist"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChecklistResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

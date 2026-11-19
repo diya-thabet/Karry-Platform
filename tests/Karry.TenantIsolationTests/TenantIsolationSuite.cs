@@ -66,7 +66,12 @@ public sealed class IsolationHost : IAsyncLifetime
         AEnvelope = await SeedEnvelopeAsync(A.Id, ADevice);
         // Shift entries (P2.4): a closed entry of A on its machine, whose list and versions B must not read.
         AEntry = await SeedShiftEntryAsync(A.Id, ASite, AAsset, AMeter, AEnvelope, ADevice);
+        // Pre-start checklists (P2.6): A's excavator checklist, whose item text B must never read.
+        await SeedChecklistAsync(A.Id);
     }
+
+    /// <summary>The asset type of tenant A's checklist (B asks for the same type: it must get its own, never A's).</summary>
+    public const string AChecklistType = "excavator";
 
     /// <summary>ID of a shift entry of tenant A (its remarks, <c>Alphaentry</c>, and end value, 4250.5, are markers too).</summary>
     public Guid AEntry { get; private set; }
@@ -239,6 +244,21 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(device);
         await insert.ExecuteNonQueryAsync();
         return id;
+    }
+
+    private async Task SeedChecklistAsync(Guid tenant)
+    {
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO fieldops.checklist_templates (id, tenant_id, asset_type, version, required, items, published_at)
+            VALUES (gen_random_uuid(), $1, $2, 1, true,
+                '[{"code":"brakes","texts":{"fr":"Alphachecklist"},"critical":true,"photoOnNotOk":true}]', now())
+            """, connection);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(AChecklistType);
+        await insert.ExecuteNonQueryAsync();
     }
 
     private async Task<Guid> SeedShiftEntryAsync(Guid tenant, Guid site, Guid asset, Guid meter, Guid envelope, Guid device)
@@ -472,7 +492,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5"],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -547,7 +567,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
     /// Parameters that name a catalogue entry shared by every tenant (an import kind), not a resource of A: B gets its own
     /// answer (200), and the body check below still proves none of A's values are in it.
     /// </summary>
-    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind" };
+    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind", "assetType" };
 
     /// <summary>The body as text; a workbook (a zip) is unpacked so the marker check sees its cells and lists.</summary>
     private static async Task<string> ReadBodyAsync(HttpResponseMessage response)
@@ -582,6 +602,8 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "importId" => host.AImport.ToString(),
         "envelopeId" => host.AEnvelope.ToString(),
         "entryId" => host.AEntry.ToString(),
+        // A catalogue value, as an import kind: B gets its own checklist of that type, never A's.
+        "assetType" => IsolationHost.AChecklistType,
         "label" => "KRY1:" + IsolationHost.ALabelToken,
         // A template lists the caller's own values (e.g. site codes): B gets its own, never A's (see CatalogueParameters).
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
