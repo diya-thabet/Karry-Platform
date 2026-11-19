@@ -10,7 +10,7 @@
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
 | Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0–P2.4 ✅, next P2.5 (field capture flows on the tablet) ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
-| Last updated | 2026-11-09 |
+| Last updated | 2026-11-19 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
 ---
@@ -274,7 +274,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.4 ✅** (#147–#174), **P2.5 in progress** (slices 1–9a merged: #175–#179, #182, #183, #185–#190; left: 8b browser E2E for sync robustness, 9b usability test and demo; [slice plan](../04-phases/phase-02-field-operations/p2.5-capture-flows-plan.md)): see [Phase 2 tracker](../04-phases/phase-02-field-operations/tracker.md) |
+| P2 Field operations | **P2.0–P2.5 ✅** (#147–#197; P2.5 9b, the usability test and demo, is the owner's), **P2.6 pre-start checklists in progress**: slices 1–5 merged (#198–#203), slice 6 portal holds in review (#204), slice 7 close-out next ([slice plan](../04-phases/phase-02-field-operations/p2.6-checklists-plan.md), [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) proposed) |
 | P3–P11 | Not started |
 
 ---
@@ -347,6 +347,14 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-19 — P2.6 pre-start checklists, slices 1–6 (agent)
+- **Goal:** continue phase after phase (owner: keep going, merge green PRs, remove merged branches, docs every time, no cloud).
+- **Done:** plan and ADR-0035 (#198). Slice 1 (#199): versioned checklist templates per asset type (append-only, RLS), `fieldops.checklists.read`/`.manage`, ledgered `fieldops.checklist_published.v1`. Slice 2 (#200): portal builder (Settings → Pre-start checklists). Slice 3 (#201): sync command `fieldops.checklist.submit.v1` checked against the version it names; a critical Not OK opens a safety hold in the same transaction (`fieldops.asset_marked_unsafe.v1`); a start signed while held is flagged `ASSET_UNSAFE`; `POST /fieldops/holds/{id}/release` (`fieldops.holds.release`, reason 10–500, ledgered); `IAssetDirectory` in Assets contracts. Slice 4 (#202): `checklistTemplates` and `safetyHolds` pull collections (replace-whole; holds company-wide), Dexie v6, `tests/vectors/checklist-answers.json`. Slice 5 (#203): tablet checklist step before a start (required/optional, photo on Not OK, device-signed without handwriting, 60-minute reuse), start blocked on a held machine. Slice 6 (#204, in review): `GET /fieldops/holds` (needs `fieldops.entries.read`) and the portal page Machines → "Machines held as unsafe" with a release dialog.
+- **Verification:** FieldOps 153/153, tenant isolation 453/453, authorization 6/6, portal 218/218, field app 299/299, offline 23/23, i18n 25/25, `dotnet format` clean, links 0 broken; every PR green in CI before merge.
+- **Mistakes / lessons:** (1) a release checked the reason before the hold, so another company got 400 instead of 404 (isolation suite caught it): look the resource up first. (2) Adding pull collections changes the field app's sync fixtures (a tablet resumes from its cursor only when every collection has one): run the whole field suite, not only the offline package, when touching `collections`. (3) A branch made from an unsquashed slice commit conflicts everywhere with main after the squash merge: cherry-pick the slice's own commit onto `origin/main` instead of merging main. (4) `ShiftEntryHandlersTests` and `HoldsApiTests` can time out on the 15 s database connect when the whole solution's suites run at once on this machine; they pass alone (not seen in CI).
+- **Pending owner item:** the other tool's (opencode) uncommitted hand-off edit (LOC counts) is kept in `git stash` ("opencode-handoff"), never committed; say whether to keep it.
+- **Next:** P2.6 slice 7 close-out: demo excavator checklist in the seed, browser E2E (offline checklist with a critical Not OK, hold, release in the portal, start allowed again), security review, ADR-0035 accepted, five languages checked.
 
 ### 2026-11-18 — Role version race (agent)
 - **Found:** `RoleTests.A_default_role_s_field_levels_have_a_version_from_their_first_change` failed in CI on #183 (2 of 6 concurrent first changes answered 200, expected 1), a change unrelated to roles. Cause: `RoleAdministration` checked If-Match against the role list, which may be cached; a request that loaded it before another request's first change committed then found the stored settings with the same values, changed nothing, skipped the save (and with it the `xmin` check) and answered 200.
