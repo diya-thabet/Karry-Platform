@@ -37,6 +37,9 @@ public sealed class FieldOpsHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    /// <summary>The host's services, for what a test runs outside a request (the demo seed).</summary>
+    public IServiceProvider Services => app!.Services;
+
     /// <summary>The machines the host knows, by ID.</summary>
     public KnownAssets Assets { get; } = new();
 

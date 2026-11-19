@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Karry.Modules.FieldOps.Tests;
@@ -98,6 +99,27 @@ public sealed class ChecklistsApiTests(FieldOpsHost host) : IClassFixture<FieldO
         (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'fieldops.checklist_published.v1'")).Should().Be(1);
         await FluentActions.Awaiting(() => ScalarAsync<long>("UPDATE fieldops.checklist_templates SET required = false RETURNING 1"))
             .Should().ThrowAsync<PostgresException>("a published version is append-only, even for the owner");
+    }
+
+    [Fact]
+    public async Task The_demo_seed_publishes_an_optional_excavator_and_a_required_truck_checklist_once()
+    {
+        var tenant = await ProvisionAsync();
+
+        var first = await SeedAsync(tenant);
+        var again = await SeedAsync(tenant);
+
+        (first, again).Should().Be((2, 0));
+        var latest = await Json(await GetAsync("/api/v1/fieldops/checklists", Admin(tenant)));
+        latest.GetProperty("items").EnumerateArray().Select(c => $"{c.GetProperty("assetType").GetString()} v{c.GetProperty("version").GetInt32()} {c.GetProperty("required").GetBoolean()}")
+            .Should().Equal("excavator v1 False", "haul-truck v1 True");
+        (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'fieldops.checklist_published.v1'")).Should().Be(2);
+    }
+
+    private async Task<int> SeedAsync(Guid tenant)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<Application.DemoChecklistsSeeder>().SeedAsync(new SharedKernel.Tenancy.TenantId(tenant), Ct);
     }
 
     private static string Admin(Guid tenant) => TestTokens.ForTenant(tenant, "admin-1");

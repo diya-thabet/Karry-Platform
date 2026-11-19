@@ -78,12 +78,18 @@ export async function photograph(tablet: Page) {
   await expect(tablet.getByText("Photo du compteur prise")).toBeVisible();
 }
 
+/** PEL-01's pre-start checklist is optional in the demo seed (P2.6): skipped, nothing is signed for it. */
+export async function skipChecklist(tablet: Page) {
+  await tablet.getByRole("region", { name: "Check-list de démarrage" }).getByRole("button", { name: "Passer la check-list" }).click();
+}
+
 /** Starts and ends a shift on PEL-01 at `value` (Δ 0), each step photographed and signed. */
 export async function startAndEnd(tablet: Page, value: string) {
   await tablet.getByRole("button", { name: "Commencer mon poste" }).click();
   await tablet.getByLabel(/Code, nom ou étiquette/).fill("pel");
   await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^PEL-01/ }).click();
   await tablet.getByRole("button", { name: "Choisir cette machine" }).click();
+  await skipChecklist(tablet);
   await photograph(tablet);
   await tablet.getByLabel(/Valeur de début/).fill(value);
   await tablet.getByLabel(/Raison de l’écart|Remarques/).fill("Essai de bout en bout");
