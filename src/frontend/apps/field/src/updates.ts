@@ -31,3 +31,13 @@ export function createUpdates(): AppUpdates & { offer: (apply: () => Promise<voi
 export function useUpdateAvailable(updates: AppUpdates): boolean {
   return useSyncExternalStore(updates.subscribe, updates.available);
 }
+
+/**
+ * Applies a waiting version and reloads once it controls the page. The plugin's own reload only happens when the page
+ * was already controlled when it loaded: a tablet that kept the app open since its first install (enrollment) would
+ * press "Update" and see nothing happen (found by the P2.5 browser E2E, TC-P2-SYNC-007).
+ */
+export async function applyAndReload(skipWaiting: () => Promise<void>, container: Pick<ServiceWorkerContainer, "addEventListener"> | undefined, reload: () => void): Promise<void> {
+  container?.addEventListener("controllerchange", () => { reload(); }, { once: true });
+  await skipWaiting();
+}

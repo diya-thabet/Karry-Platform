@@ -12,7 +12,7 @@ import { browserPosition } from "./signShiftEntry";
 import { codeOf, companyOf, deviceInfo, enrollTablet } from "./tablet";
 import { unlock } from "./unlock";
 import { syncTablet } from "./uploads";
-import { createUpdates } from "./updates";
+import { applyAndReload, createUpdates } from "./updates";
 import "./index.css";
 
 const release = (import.meta.env.VITE_RELEASE as string | undefined) ?? "dev";
@@ -35,7 +35,11 @@ if (code !== null) {
 }
 
 const updates = createUpdates();
-const updateServiceWorker = registerSW({ onNeedRefresh: () => { updates.offer(() => updateServiceWorker(true)); } });
+const updateServiceWorker = registerSW({
+  onNeedRefresh: () => {
+    updates.offer(() => applyAndReload(() => updateServiceWorker(true), navigator.serviceWorker, () => { location.reload(); }));
+  },
+});
 
 const root = document.getElementById("root");
 if (!root) {
