@@ -331,6 +331,36 @@ public sealed class MetersApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(other))).StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-AST-01")]
+    public async Task A_meter_event_photo_is_uploaded_first_read_back_by_its_fingerprint_and_an_event_cannot_name_one_that_is_not_there()
+    {
+        var tenant = await ProvisionAsync();
+        var other = await ProvisionAsync();
+        var asset = await RegisterAsync(tenant, await SiteAsync(tenant), "PEL-01", "excavator");
+        var meter = await MeterAsync(tenant, asset);
+
+        var upload = await UploadAsync(tenant, asset, meter, Png, "image/png");
+        upload.StatusCode.Should().Be(HttpStatusCode.OK);
+        var photo = (await Json(upload)).GetProperty("photo").GetString()!;
+        photo.Should().Be("sha256:" + Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(Png)));
+        var read = await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/evidence/{photo["sha256:".Length..]}", Admin(tenant));
+        read.StatusCode.Should().Be(HttpStatusCode.OK);
+        (await read.Content.ReadAsByteArrayAsync(Ct)).Should().Equal(Png);
+        read.Content.Headers.ContentType!.MediaType.Should().Be("image/png");
+        (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/evidence/{photo["sha256:".Length..]}", Admin(other))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/evidence/{new string('b', 64)}", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+        (await SendAsync(HttpMethod.Get, $"/api/v1/assets/{asset}/meters/{meter}/evidence/not-a-hash", Admin(tenant))).StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        (await Error(await UploadAsync(tenant, asset, meter, "%PDF-1.7"u8.ToArray(), "image/png"))).Should().Be("assets.photo_type_unsupported");
+        (await UploadAsync(other, asset, meter, Png, "image/png")).StatusCode.Should().Be(HttpStatusCode.NotFound, "another company's meter is unknown");
+
+        var named = Event("failed", -1);
+        (await Error(await RecordEvent(tenant, asset, meter, named, uploaded: false))).Should().Be("assets.meter_event_photo_missing");
+        (await RecordEvent(tenant, asset, meter, new { kind = "failed", occurredAt = DateTimeOffset.UtcNow.AddHours(-1), reason = "Display dark since this morning", photos = new[] { photo } }, uploaded: false))
+            .StatusCode.Should().Be(HttpStatusCode.Created);
+    }
+
     private static string[] Photos(int count) => [.. Enumerable.Range(0, count).Select(i => "sha256:" + new string((char)('a' + i), 64))];
 
     private static object Event(string kind, int hours, decimal? before = null, decimal? after = null) => new
@@ -343,8 +373,28 @@ public sealed class MetersApiTests(AssetsHost host) : IClassFixture<AssetsHost>
         photos = Photos(1),
     };
 
-    private Task<HttpResponseMessage> RecordEvent(Guid tenant, Guid asset, Guid meter, object body) =>
-        SendAsync(HttpMethod.Post, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(tenant), body);
+    private async Task<HttpResponseMessage> RecordEvent(Guid tenant, Guid asset, Guid meter, object body, bool uploaded = true)
+    {
+        if (uploaded && System.Text.Json.Nodes.JsonNode.Parse(JsonSerializer.Serialize(body))?["photos"] is System.Text.Json.Nodes.JsonArray photos)
+        {
+            foreach (var photo in photos.Select(p => p?.GetValueKind() == JsonValueKind.String ? p.GetValue<string>() : null).OfType<string>().Where(MeterRules.IsPhotoReference))
+            {
+                await host.Files.PutAsync($"tenants/{tenant:D}/assets/meters/{meter:D}/evidence-{photo["sha256:".Length..]}", Png, "image/png", Ct);
+            }
+        }
+
+        return await SendAsync(HttpMethod.Post, $"/api/v1/assets/{asset}/meters/{meter}/events", Admin(tenant), body);
+    }
+
+    private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, (byte)'I', (byte)'H', (byte)'D', (byte)'R'];
+
+    private async Task<HttpResponseMessage> UploadAsync(Guid tenant, Guid asset, Guid meter, byte[] content, string contentType)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/assets/{asset}/meters/{meter}/evidence") { Content = new ByteArrayContent(content) };
+        request.Content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", Admin(tenant));
+        return await host.Client.SendAsync(request, Ct);
+    }
 
     private AsyncServiceScope Scope(Guid tenant)
     {

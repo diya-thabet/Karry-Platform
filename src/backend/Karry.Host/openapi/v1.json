@@ -6618,6 +6618,157 @@
         }
       }
     },
+    "/api/v1/assets/{assetId}/meters/{meterId}/evidence": {
+      "post": {
+        "tags": [
+          "AssetsModule"
+        ],
+        "operationId": "UploadMeterEvidence",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "meterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            },
+            "image/png": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            },
+            "image/webp": {
+              "schema": {
+                "$ref": "#/components/schemas/IFormFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeterEvidenceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/assets/{assetId}/meters/{meterId}/evidence/{sha256}": {
+      "get": {
+        "tags": [
+          "AssetsModule"
+        ],
+        "operationId": "GetMeterEvidence",
+        "parameters": [
+          {
+            "name": "assetId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "meterId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/imports/templates/{kind}": {
       "get": {
         "tags": [
@@ -10833,6 +10984,18 @@
           }
         },
         "description": "A reading: the value shown at `ReadAt`, received at `RecordedAt` from `RecordedBy` (a user subject)."
+      },
+      "MeterEvidenceResponse": {
+        "required": [
+          "photo"
+        ],
+        "type": "object",
+        "properties": {
+          "photo": {
+            "type": "string"
+          }
+        },
+        "description": "An uploaded photo of a meter event: the `sha256:` reference the event names."
       },
       "MeterInput": {
         "required": [

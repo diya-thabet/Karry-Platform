@@ -1,10 +1,12 @@
 // CI: `pnpm --filter @karry/i18n check:catalogs`: catalogs consistent, and every key used by the UI exists.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { checkCatalogs, findUsedKeys } from "./check.ts";
 import { catalogs } from "./catalogs.ts";
 
-const root = new URL("../../../", import.meta.url).pathname;
+// fileURLToPath, not .pathname: on Windows the pathname is "/E:/…", which join turns into "E:\E:\…".
+const root = fileURLToPath(new URL("../../../", import.meta.url));
 // User-facing text lives in the apps and the design system only.
 const sources = ["apps", "packages/ui"].flatMap((folder) => files(join(root, folder)));
 

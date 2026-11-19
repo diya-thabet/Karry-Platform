@@ -1,4 +1,5 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Domain;
 using Karry.SharedKernel.Results;
@@ -49,11 +50,16 @@ public interface IMeterStore
 /// never changed or removed, each one is in the company's ledger, and a meter never goes back. Readings come from the
 /// people who manage the asset in P1 and from the field app in Phase 2.
 /// </summary>
-public sealed class MeterOperations(IMeterStore store, AssetOperations assets, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
+public sealed class MeterOperations(IMeterStore store, AssetOperations assets, IObjectStore files, ICallerAccess caller, ITenantContext tenant, TimeProvider clock)
 {
     public const int DefaultLimit = 50;
 
     public static readonly Error NotFound = Error.NotFound("assets.meter_not_found", "No such meter on this asset.");
+
+    /// <summary>An event names a photo that was not uploaded for this meter.</summary>
+    public static readonly Error PhotoMissing = Error.Validation("assets.meter_event_photo_missing", "Upload each photo of the event first.");
+
+    public static readonly Error EvidenceNotFound = Error.NotFound("assets.meter_evidence_not_found", "No such photo on this meter.");
 
     public static readonly Error Changed = Error.Conflict("assets.meter_changed", "The meter changed meanwhile (another reading?); read it again and retry.");
 
@@ -154,7 +160,7 @@ public sealed class MeterOperations(IMeterStore store, AssetOperations assets, I
     }
 
     /// <summary>
-    /// Records a meter event (US-P2-AST-01, 02; ADR-0036 §5) by a person who manages the machine, ledgered under their
+    /// Records a meter event (US-P2-AST-01, 02; ADR-0036 Â§5) by a person who manages the machine, ledgered under their
     /// name; the continuity of the meter's entries is re-evaluated when the event is dispatched (FieldOps).
     /// </summary>
     public async Task<Result<MeterEvent>> RecordEventAsync(AssetId assetId, MeterId meterId, MeterEventInput input, CancellationToken cancellationToken)
@@ -177,6 +183,22 @@ public sealed class MeterOperations(IMeterStore store, AssetOperations assets, I
             return MeterRules.EventOccurredAtMissing;
         }
 
+        if (input.Photos is { } photos && MeterRules.EventPhotos(photos) is null)
+        {
+            if (!files.Available)
+            {
+                return AssetPhotos.Unavailable;
+            }
+
+            foreach (var photo in photos)
+            {
+                if (await files.GetAsync(EvidenceKey(meterId, photo), cancellationToken).ConfigureAwait(false) is null)
+                {
+                    return PhotoMissing.With("photo", photo);
+                }
+            }
+        }
+
         var recorded = meter.Value.RecordEvent(clock, kind.Value, occurredAt, input.ValueBefore, input.ValueAfter, input.Reason, input.Photos, caller.Subject);
         if (!recorded.IsSuccess)
         {
@@ -185,6 +207,58 @@ public sealed class MeterOperations(IMeterStore store, AssetOperations assets, I
 
         return await store.TrySaveAsync(meter.Value, cancellationToken).ConfigureAwait(false) ? recorded : Changed;
     }
+
+    /// <summary>
+    /// A photo for a meter event (ADR-0036 Â§5), uploaded before the event that names it: a JPEG, PNG or WebP of at most
+    /// 5 MB, kept under the company's prefix by its fingerprint (the same photo twice is one object). Returns its
+    /// <c>sha256:</c> reference.
+    /// </summary>
+    public async Task<Result<string>> UploadEvidenceAsync(AssetId assetId, MeterId meterId, ReadOnlyMemory<byte> content, CancellationToken cancellationToken)
+    {
+        var meter = await ManagedMeterAsync(assetId, meterId, cancellationToken).ConfigureAwait(false);
+        if (!meter.IsSuccess)
+        {
+            return meter.Error;
+        }
+
+        if (!files.Available)
+        {
+            return AssetPhotos.Unavailable;
+        }
+
+        var photo = AssetPhotos.Create(content.Span);
+        if (!photo.IsSuccess)
+        {
+            return photo.Error;
+        }
+
+        var reference = "sha256:" + photo.Value.Sha256;
+        await files.PutAsync(EvidenceKey(meterId, reference), content.ToArray(), photo.Value.ContentType, cancellationToken).ConfigureAwait(false);
+        return reference;
+    }
+
+    /// <summary>A photo of a meter event, for a person who sees the machine.</summary>
+    public async Task<Result<StoredObject>> EvidenceAsync(AssetId assetId, MeterId meterId, string sha256, CancellationToken cancellationToken)
+    {
+        var asset = await assets.GetAsync(assetId, cancellationToken).ConfigureAwait(false);
+        if (!asset.IsSuccess)
+        {
+            return asset.Error;
+        }
+
+        var reference = "sha256:" + sha256;
+        if (!MeterRules.IsPhotoReference(reference) || !files.Available
+            || await store.FindAsync(meterId, cancellationToken).ConfigureAwait(false) is not { } meter || meter.AssetId != assetId
+            || await files.GetAsync(EvidenceKey(meterId, reference), cancellationToken).ConfigureAwait(false) is not { } stored)
+        {
+            return EvidenceNotFound;
+        }
+
+        return stored;
+    }
+
+    private string EvidenceKey(MeterId meterId, string reference) =>
+        ObjectKeys.ForTenant(Tenant.Value, "assets", $"meters/{meterId}/evidence-{reference["sha256:".Length..]}");
 
     /// <summary>The events of a meter of an asset the caller sees, oldest first.</summary>
     public async Task<Result<IReadOnlyList<MeterEvent>>> EventsAsync(AssetId assetId, MeterId meterId, CancellationToken cancellationToken)
