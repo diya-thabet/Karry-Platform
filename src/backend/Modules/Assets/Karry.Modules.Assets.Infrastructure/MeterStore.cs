@@ -17,6 +17,7 @@ internal sealed class MeterStore(AssetsDbContext db) : IMeterStore
         ArgumentNullException.ThrowIfNull(meter);
         db.Meters.Add(meter);
         db.MeterReadings.AddRange(meter.PendingReadings);
+        db.MeterEvents.AddRange(meter.PendingEvents);
         meter.ClearPendingReadings();
     }
 
@@ -27,6 +28,7 @@ internal sealed class MeterStore(AssetsDbContext db) : IMeterStore
     {
         ArgumentNullException.ThrowIfNull(meter);
         db.MeterReadings.AddRange(meter.PendingReadings);
+        db.MeterEvents.AddRange(meter.PendingEvents);
         meter.ClearPendingReadings();
     }
 
@@ -34,6 +36,7 @@ internal sealed class MeterStore(AssetsDbContext db) : IMeterStore
     {
         ArgumentNullException.ThrowIfNull(meter);
         db.MeterReadings.AddRange(meter.PendingReadings);
+        db.MeterEvents.AddRange(meter.PendingEvents);
         meter.ClearPendingReadings();
         try
         {
@@ -46,6 +49,9 @@ internal sealed class MeterStore(AssetsDbContext db) : IMeterStore
             return false;
         }
     }
+
+    public async Task<IReadOnlyList<MeterEvent>> EventsAsync(MeterId meter, CancellationToken cancellationToken) =>
+        await db.MeterEvents.AsNoTracking().Where(e => e.MeterId == meter).OrderBy(e => e.OccurredAt).ThenBy(e => e.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public async Task<IReadOnlyList<MeterReading>> ReadingsAsync(MeterId meter, Guid? after, int take, CancellationToken cancellationToken)
     {

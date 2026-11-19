@@ -173,6 +173,21 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("ListMeterReadings");
+
+        // Meter events (US-P2-AST-01, 02; ADR-0036 §5): replaced, reset, failed, repaired, with a reason and photos.
+        endpoints.MapPost("/{assetId:guid}/meters/{meterId:guid}/events", RecordMeterEventAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .RequireIdempotencyKey()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("RecordMeterEvent");
+
+        endpoints.MapGet("/{assetId:guid}/meters/{meterId:guid}/events", ListMeterEventsAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("ListMeterEvents");
     }
 
     private static Ok<AssetTypeListResponse> ListAssetTypes() =>
@@ -302,6 +317,22 @@ public sealed class AssetsModule : IModule
             : result.Error.ToProblem();
     }
 
+    private static async Task<Results<Created<MeterEventResponse>, ProblemHttpResult>> RecordMeterEventAsync(
+        Guid assetId, Guid meterId, MeterEventInput request, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.RecordEventAsync(new AssetId(assetId), new MeterId(meterId), request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Created($"/api/v1/assets/{assetId}/meters/{meterId}/events", MeterEventResponse.From(result.Value))
+            : result.Error.ToProblem();
+    }
+
+    private static async Task<Results<Ok<MeterEventListResponse>, ProblemHttpResult>> ListMeterEventsAsync(
+        Guid assetId, Guid meterId, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.EventsAsync(new AssetId(assetId), new MeterId(meterId), cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new MeterEventListResponse([.. result.Value.Select(MeterEventResponse.From)])) : result.Error.ToProblem();
+    }
+
     private static async Task<Results<Ok<ReadingListResponse>, ProblemHttpResult>> ListReadingsAsync(
         Guid assetId, Guid meterId, [FromServices] MeterOperations meters, CancellationToken cancellationToken, Guid? cursor = null, int? limit = null)
     {
@@ -392,6 +423,21 @@ public sealed record MeterResponse(
 public sealed record ReadingListResponse(IReadOnlyList<ReadingResponse> Items, Guid? NextCursor);
 
 /// <summary>A reading: the value shown at <c>ReadAt</c>, received at <c>RecordedAt</c> from <c>RecordedBy</c> (a user subject).</summary>
+/// <summary>A meter event; values in the meter's unit, null where the kind has none.</summary>
+public sealed record MeterEventResponse(
+    Guid Id, string Kind, DateTimeOffset OccurredAt, decimal? ValueBefore, decimal? ValueAfter, string Reason, IReadOnlyList<string> Photos, DateTimeOffset RecordedAt, string? RecordedBy)
+{
+    public static MeterEventResponse From(MeterEvent meterEvent)
+    {
+        ArgumentNullException.ThrowIfNull(meterEvent);
+        return new(
+            meterEvent.Id, MeterRules.EventKindCode(meterEvent.Kind), meterEvent.OccurredAt, meterEvent.ValueBefore, meterEvent.ValueAfter, meterEvent.Reason,
+            meterEvent.Photos, meterEvent.RecordedAt, meterEvent.RecordedBy);
+    }
+}
+
+public sealed record MeterEventListResponse(IReadOnlyList<MeterEventResponse> Items);
+
 public sealed record ReadingResponse(Guid Id, decimal Value, DateTimeOffset ReadAt, DateTimeOffset RecordedAt, string? RecordedBy)
 {
     public static ReadingResponse From(MeterReading reading)

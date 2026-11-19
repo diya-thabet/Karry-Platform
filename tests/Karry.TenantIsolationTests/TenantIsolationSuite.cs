@@ -370,6 +370,17 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(asset);
         await insert.ExecuteNonQueryAsync();
+
+        // A meter event (P2.7), whose reason (Alphameterevent) B must never read.
+        await using var meterEvent = new NpgsqlCommand(
+            """
+            INSERT INTO assets.meter_events (id, tenant_id, meter_id, asset_id, kind, occurred_at, value_before, value_after, reason, photos, recorded_at)
+            VALUES (gen_random_uuid(), $2, $1, $3, 'Failed', '2026-01-02T00:00:00Z', NULL, NULL, 'Alphameterevent', ARRAY['sha256:' || repeat('a', 64)], now())
+            """, connection);
+        meterEvent.Parameters.AddWithValue(id);
+        meterEvent.Parameters.AddWithValue(tenant);
+        meterEvent.Parameters.AddWithValue(asset);
+        await meterEvent.ExecuteNonQueryAsync();
         return id;
     }
 
@@ -531,7 +542,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag"],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag", "Alphameterevent"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }

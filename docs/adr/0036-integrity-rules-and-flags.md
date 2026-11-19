@@ -80,6 +80,18 @@ with time, reason and photos (evidence blobs), recorded in the portal by a perso
 (authenticated, ledgered under their name). REPLACED and RESET carry the offset that keeps accumulated usage continuous.
 Tablets pull them; a FAILED meter switches the tablet to operating times and the entries to `estimated` until REPAIRED.
 
+As built (slice 3a): `assets.meter_events` (append-only, RLS, ledgered `assets.meter_event_recorded.v1`), recorded
+through `POST /api/v1/assets/{assetId}/meters/{meterId}/events` by a person who manages the machine
+(`assets.registry.manage`: the same people as a separate `assets.meters.events` would name, so no new permission). The
+meter keeps its ID through a replacement (entries and tablets keep naming it); REPLACED and RESET add before − after to
+its offset and make the value after its last reading; FAILED stops it, REPAIRED makes it count again from the repair
+reading. Photos are `sha256:` references (1 to 5); checking that they exist comes with the portal form (slice 3b).
+FieldOps reads the events through `IMeterEvents` on every start and end, and is told of a new one through the Assets
+outbox (`IMeterEventSubscriber`, in the dispatcher's transaction), so the gap an event explains closes. In the check,
+the events between two starts (after the first, up to the second) are read in time order: a replacement or reset must
+start from the value due and moves it to its value after, a failure leaves nothing due, a repair makes its reading due;
+an estimated segment is not compared. Hand mutation check: 11 mutants, all killed.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

@@ -71,6 +71,86 @@ public sealed record MeterAdded(Guid MeterId, Guid AssetId, string Kind, decimal
 [AuditSubject("asset", nameof(AssetId))]
 public sealed record MeterReadingRecorded(Guid MeterId, Guid AssetId, Guid ReadingId, decimal Value, DateTimeOffset ReadAt, string? Actor) : DomainEvent;
 
+/// <summary>What happened to a meter (ADR-0036 §5): a manager's decision, recorded with a reason and photos.</summary>
+public enum MeterEventKind
+{
+    /// <summary>A new meter in place of the old one: the old one's final value, the new one's initial value.</summary>
+    Replaced = 1,
+
+    /// <summary>The meter went back (rollover, reset): the value before, the value after.</summary>
+    Reset = 2,
+
+    /// <summary>The meter stopped counting: entries are estimated until it is repaired.</summary>
+    Failed = 3,
+
+    /// <summary>The meter counts again from the value read at the repair.</summary>
+    Repaired = 4,
+}
+
+/// <summary>
+/// One meter event (US-P2-AST-01, 02; ADR-0036 §5). Rows are append-only (trigger and grants): a wrong event is
+/// explained by a later one, never edited. REPLACED and RESET carry both values (usage stays continuous: the meter's
+/// offset grows by before − after); FAILED may carry the last value shown; REPAIRED carries the value read at the repair.
+/// </summary>
+public sealed class MeterEvent : ITenantOwned
+{
+    internal MeterEvent(
+        Guid id, TenantId tenantId, MeterId meterId, AssetId assetId, MeterEventKind kind, DateTimeOffset occurredAt, decimal? valueBefore, decimal? valueAfter,
+        string reason, IReadOnlyList<string> photos, DateTimeOffset recordedAt, string? recordedBy)
+    {
+        Id = id;
+        TenantId = tenantId;
+        MeterId = meterId;
+        AssetId = assetId;
+        Kind = kind;
+        OccurredAt = occurredAt;
+        ValueBefore = valueBefore;
+        ValueAfter = valueAfter;
+        Reason = reason;
+        Photos = photos;
+        RecordedAt = recordedAt;
+        RecordedBy = recordedBy;
+    }
+
+    // EF Core
+    private MeterEvent()
+    {
+        Reason = string.Empty;
+    }
+
+    public Guid Id { get; private set; }
+
+    public TenantId TenantId { get; private set; }
+
+    public MeterId MeterId { get; private set; }
+
+    public AssetId AssetId { get; private set; }
+
+    public MeterEventKind Kind { get; private set; }
+
+    /// <summary>When it happened on the machine (not when it was recorded).</summary>
+    public DateTimeOffset OccurredAt { get; private set; }
+
+    public decimal? ValueBefore { get; private set; }
+
+    public decimal? ValueAfter { get; private set; }
+
+    public string Reason { get; private set; }
+
+    /// <summary>The photos that show it, as <c>sha256:</c> references (evidence).</summary>
+    public IReadOnlyList<string> Photos { get; private set; } = [];
+
+    public DateTimeOffset RecordedAt { get; private set; }
+
+    public string? RecordedBy { get; private set; }
+}
+
+[EventType("assets.meter_event_recorded.v1")]
+[AuditSubject("asset", nameof(AssetId))]
+public sealed record MeterEventRecorded(
+    Guid MeterId, Guid AssetId, Guid MeterEventId, string Kind, DateTimeOffset HappenedAt, decimal? ValueBefore, decimal? ValueAfter, string Reason, IReadOnlyList<string> Photos, string? Actor)
+    : DomainEvent;
+
 [EventType("assets.meter_status_changed.v1")]
 [AuditSubject("asset", nameof(AssetId))]
 public sealed record MeterStatusChanged(Guid MeterId, Guid AssetId, string From, string To, string? Actor) : DomainEvent;
@@ -82,6 +162,7 @@ public sealed record MeterStatusChanged(Guid MeterId, Guid AssetId, string From,
 public sealed class Meter : AggregateRoot<MeterId>, ITenantOwned
 {
     private readonly List<MeterReading> pending = [];
+    private readonly List<MeterEvent> pendingEvents = [];
 
     private Meter(MeterId id, TenantId tenantId, AssetId assetId, MeterKind kind, decimal initialReading, DateOnly installedOn, DateTimeOffset at)
         : base(id)
@@ -129,8 +210,15 @@ public sealed class Meter : AggregateRoot<MeterId>, ITenantOwned
     /// <summary>Readings recorded since the meter was loaded, for the store to insert.</summary>
     public IReadOnlyList<MeterReading> PendingReadings => pending;
 
-    /// <summary>Called by the store once <see cref="PendingReadings"/> are saved.</summary>
-    public void ClearPendingReadings() => pending.Clear();
+    /// <summary>Events recorded since the meter was loaded, for the store to insert.</summary>
+    public IReadOnlyList<MeterEvent> PendingEvents => pendingEvents;
+
+    /// <summary>Called by the store once <see cref="PendingReadings"/> and <see cref="PendingEvents"/> are saved.</summary>
+    public void ClearPendingReadings()
+    {
+        pending.Clear();
+        pendingEvents.Clear();
+    }
 
     /// <summary>A new meter with its initial reading as the first of its history, read at the start of the installation day (UTC).</summary>
     public static Meter Add(TimeProvider clock, TenantId tenant, AssetId asset, MeterKind kind, decimal initialReading, DateOnly installedOn, string? actor)
@@ -199,6 +287,122 @@ public sealed class Meter : AggregateRoot<MeterId>, ITenantOwned
         return true;
     }
 
+    /// <summary>
+    /// Records a meter event (ADR-0036 §5) after its checks: not before the last reading, not in the future; REPLACED and
+    /// RESET need both values, the value before not below the last reading of a counting meter, and move the offset by
+    /// before − after (the value after becomes the last reading, a failed meter counts again); FAILED needs a counting
+    /// meter and stops it; REPAIRED needs a failed meter and a value not below the last reading, and makes it count again.
+    /// </summary>
+    public Result<MeterEvent> RecordEvent(
+        TimeProvider clock, MeterEventKind kind, DateTimeOffset occurredAt, decimal? before, decimal? after, string? reason, IReadOnlyList<string>? photos, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status == MeterStatus.Replaced)
+        {
+            return MeterRules.NotCounting;
+        }
+
+        if (MeterRules.EventReason(reason) is { } badReason)
+        {
+            return badReason;
+        }
+
+        if (MeterRules.EventPhotos(photos) is { } badPhotos)
+        {
+            return badPhotos;
+        }
+
+        if (occurredAt > clock.GetUtcNow() + MeterRules.ClockTolerance)
+        {
+            return MeterRules.ReadInFuture;
+        }
+
+        if (occurredAt < LastReadAt)
+        {
+            return MeterRules.ReadBeforeLast(LastReadAt);
+        }
+
+        foreach (var value in new[] { before, after })
+        {
+            if (value is { } v && MeterRules.Value(v) is { } invalid)
+            {
+                return invalid;
+            }
+        }
+
+        switch (kind)
+        {
+            case MeterEventKind.Replaced or MeterEventKind.Reset:
+                if (before is not { } final || after is not { } initial)
+                {
+                    return MeterRules.EventValuesMissing;
+                }
+
+                if (Status == MeterStatus.Ok && final < LastValue)
+                {
+                    return MeterRules.Decreased(LastValue);
+                }
+
+                Offset += final - initial;
+                SetCounting(clock, actor);
+                Append(clock, initial, occurredAt, actor);
+                break;
+            case MeterEventKind.Failed:
+                if (Status != MeterStatus.Ok)
+                {
+                    return MeterRules.NotCounting;
+                }
+
+                if (before is { } shown && shown < LastValue)
+                {
+                    return MeterRules.Decreased(LastValue);
+                }
+
+                after = null;
+                SetStatus(clock, MeterStatus.Failed, actor);
+                break;
+            case MeterEventKind.Repaired:
+                if (Status != MeterStatus.Failed)
+                {
+                    return MeterRules.NotFailed;
+                }
+
+                if (after is not { } read)
+                {
+                    return MeterRules.EventValuesMissing;
+                }
+
+                if (read < LastValue)
+                {
+                    return MeterRules.Decreased(LastValue);
+                }
+
+                before = null;
+                SetCounting(clock, actor);
+                Append(clock, read, occurredAt, actor);
+                break;
+            default:
+                return MeterRules.EventKindInvalid;
+        }
+
+        var recorded = new MeterEvent(
+            EntityId.New<MeterId>(clock).Value, TenantId, Id, AssetId, kind, occurredAt, before, after, reason!.Trim(), [.. photos!], clock.GetUtcNow(), actor);
+        pendingEvents.Add(recorded);
+        ChangedAt = recorded.RecordedAt;
+        Raise(new MeterEventRecorded(
+            Id.Value, AssetId.Value, recorded.Id, MeterRules.EventKindCode(kind), occurredAt, before, after, recorded.Reason, recorded.Photos, actor)
+        { OccurredAt = ChangedAt });
+        return recorded;
+    }
+
+    private void SetCounting(TimeProvider clock, string? actor)
+    {
+        if (Status == MeterStatus.Failed)
+        {
+            SetStatus(clock, MeterStatus.Ok, actor);
+        }
+    }
+
     private MeterReading Append(TimeProvider clock, decimal value, DateTimeOffset readAt, string? actor)
     {
         var reading = new MeterReading(EntityId.New<MeterId>(clock).Value, TenantId, Id, value, readAt, clock.GetUtcNow(), actor);
@@ -227,6 +431,53 @@ public static class MeterRules
     public static readonly Error ReadInFuture = Error.Validation("assets.reading_in_future", "A reading cannot be dated in the future.");
 
     public static readonly Error NotCounting = Error.Conflict("assets.meter_not_counting", "This meter is failed or replaced; it takes no reading.");
+
+    public static readonly Error EventOccurredAtMissing = Error.Validation("assets.meter_event_time", "Say when it happened.");
+
+    public static readonly Error NotFailed = Error.Conflict("assets.meter_not_failed", "Only a failed meter is repaired.");
+
+    public static readonly Error EventKindInvalid = Error.Validation("assets.meter_event_invalid", "The event is replaced, reset, failed or repaired.");
+
+    public static readonly Error EventValuesMissing = Error.Validation(
+        "assets.meter_event_values", "Replaced and reset need the value before and after; repaired needs the value read at the repair.");
+
+    public const int MinReason = 10;
+    public const int MaxReason = 500;
+    public const int MaxPhotos = 5;
+
+    public static readonly Error EventReasonInvalid = Error.Validation("assets.meter_event_reason", $"Say why, in {MinReason} to {MaxReason} characters.");
+
+    public static readonly Error EventPhotosInvalid = Error.Validation("assets.meter_event_photos", $"One to {MaxPhotos} different photos, as sha256 references.");
+
+    public static Error? EventReason(string? reason) =>
+        reason?.Trim() is { Length: >= MinReason and <= MaxReason } ? null : EventReasonInvalid;
+
+    public static Error? EventPhotos(IReadOnlyList<string>? photos) =>
+        photos is { Count: >= 1 and <= MaxPhotos } && photos.All(IsPhotoReference) && photos.Distinct(StringComparer.Ordinal).Count() == photos.Count ? null : EventPhotosInvalid;
+
+    /// <summary><c>sha256:</c> and 64 lowercase hex digits, as evidence is named everywhere.</summary>
+    public static bool IsPhotoReference(string? reference) =>
+        reference is { Length: 71 } && reference.StartsWith("sha256:", StringComparison.Ordinal) && reference.AsSpan(7).IndexOfAnyExcept(LowerHex) < 0;
+
+    private static readonly System.Buffers.SearchValues<char> LowerHex = System.Buffers.SearchValues.Create("0123456789abcdef");
+
+    public static Result<MeterEventKind> EventKind(string? kind) => kind switch
+    {
+        "replaced" => MeterEventKind.Replaced,
+        "reset" => MeterEventKind.Reset,
+        "failed" => MeterEventKind.Failed,
+        "repaired" => MeterEventKind.Repaired,
+        _ => EventKindInvalid,
+    };
+
+    public static string EventKindCode(MeterEventKind kind) => kind switch
+    {
+        MeterEventKind.Replaced => "replaced",
+        MeterEventKind.Reset => "reset",
+        MeterEventKind.Failed => "failed",
+        MeterEventKind.Repaired => "repaired",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, null),
+    };
 
     public static readonly Error ReplacementLater = Error.BusinessRule(
         "assets.meter_replacement_unavailable", "Replacing a meter (a new one with an offset) comes with field operations.");

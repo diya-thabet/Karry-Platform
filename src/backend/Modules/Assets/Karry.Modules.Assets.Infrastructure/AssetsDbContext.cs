@@ -25,6 +25,8 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
 
     public DbSet<MeterReading> MeterReadings => Set<MeterReading>();
 
+    public DbSet<MeterEvent> MeterEvents => Set<MeterEvent>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -74,7 +76,7 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
 
         modelBuilder.Entity<Meter>(meter =>
         {
-            meter.ToTable("meters", t => t.HasCheckConstraint("ck_meters_values", "initial_reading >= 0 AND last_value >= initial_reading"));
+            meter.ToTable("meters", t => t.HasCheckConstraint("ck_meters_values", "initial_reading >= 0 AND last_value >= 0"));
             meter.HasKey(m => m.Id);
             meter.Property(m => m.Id).HasConversion(id => id.Value, value => new MeterId(value)).ValueGeneratedNever();
             meter.Property(m => m.AssetId).HasConversion(id => id.Value, value => new AssetId(value));
@@ -88,6 +90,7 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
             // Two readings at once on one meter: the second save fails instead of breaking "never goes back".
             meter.Property<uint>("xmin").IsRowVersion();
             meter.Ignore(m => m.PendingReadings);
+            meter.Ignore(m => m.PendingEvents);
             meter.Ignore(m => m.DomainEvents);
             meter.Ignore(m => m.AggregateKey);
         });
@@ -102,6 +105,30 @@ public sealed class AssetsDbContext(DbContextOptions<AssetsDbContext> options) :
             reading.Property(r => r.Value).HasPrecision(9, MeterRules.Decimals);
             reading.Property(r => r.RecordedBy).HasMaxLength(200);
             reading.HasIndex(r => new { r.MeterId, r.ReadAt, r.Id });
+        });
+
+        modelBuilder.Entity<MeterEvent>(meterEvent =>
+        {
+            meterEvent.ToTable("meter_events", t => t.HasCheckConstraint(
+                "ck_meter_events_values",
+                "(kind IN ('Replaced', 'Reset') AND value_before IS NOT NULL AND value_after IS NOT NULL) "
+                + "OR (kind = 'Failed' AND value_after IS NULL) OR (kind = 'Repaired' AND value_before IS NULL AND value_after IS NOT NULL)"));
+            meterEvent.HasKey(e => e.Id);
+            meterEvent.Property(e => e.Id).ValueGeneratedNever();
+            meterEvent.Property(e => e.MeterId).HasConversion(id => id.Value, value => new MeterId(value));
+            meterEvent.Property(e => e.AssetId).HasConversion(id => id.Value, value => new AssetId(value));
+            meterEvent.HasOne<Meter>().WithMany().HasForeignKey(e => e.MeterId).OnDelete(DeleteBehavior.Restrict);
+            meterEvent.Property(e => e.Kind).HasConversion<string>().HasMaxLength(10);
+            meterEvent.Property(e => e.ValueBefore).HasPrecision(9, MeterRules.Decimals);
+            meterEvent.Property(e => e.ValueAfter).HasPrecision(9, MeterRules.Decimals);
+            meterEvent.Property(e => e.Reason).HasMaxLength(MeterRules.MaxReason);
+            meterEvent.Property(e => e.Photos).HasColumnType("text[]").HasConversion(
+                photos => photos.ToArray(),
+                stored => stored,
+                new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<IReadOnlyList<string>>(
+                    (a, b) => a!.SequenceEqual(b!), list => list.Aggregate(0, (hash, item) => HashCode.Combine(hash, item.GetHashCode(StringComparison.Ordinal))), list => list.ToArray()));
+            meterEvent.Property(e => e.RecordedBy).HasMaxLength(200);
+            meterEvent.HasIndex(e => new { e.TenantId, e.MeterId, e.OccurredAt });
         });
     }
 }

@@ -59,7 +59,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
-            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IShiftCalendar>(new AnyTimeShift())
+            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(new KnownMeterEvents()).AddSingleton<IShiftCalendar>(new AnyTimeShift())
             .BuildServiceProvider(validateScopes: true);
         assets.All[Asset] = new AssetSummary(Asset, "EX-01", "excavator", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         assets.All[Truck] = new AssetSummary(Truck, "TR-01", "haul-truck", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
