@@ -65,6 +65,20 @@ internal sealed class ActiveSites(OrganizationDbContext db) : IUsageSource
         await db.Sites.LongCountAsync(s => s.Status == SiteStatus.Active, cancellationToken).ConfigureAwait(false);
 }
 
+/// <summary>RULE-FO-04's distance, computed by PostGIS on the geography (metres on the ellipsoid, 0 inside the polygon).</summary>
+internal sealed class SiteGeofence(OrganizationDbContext db) : ISiteGeofence
+{
+    public async Task<decimal?> MetresOutsideAsync(Guid siteId, decimal latitude, decimal longitude, CancellationToken cancellationToken)
+    {
+        var (lat, lon) = ((double)latitude, (double)longitude);
+        var metres = await db.Database.SqlQuery<double?>($"""
+            SELECT ST_Distance(boundary::geography, ST_SetSRID(ST_MakePoint({lon}, {lat}), 4326)::geography) AS "Value"
+            FROM organization.sites WHERE id = {siteId} AND boundary IS NOT NULL
+            """).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return metres is { } m ? Math.Round((decimal)m, 0, MidpointRounding.AwayFromZero) : null;
+    }
+}
+
 internal sealed class SiteDirectory(OrganizationDbContext db) : ISiteDirectory
 {
     public Task<SiteSummary?> FindAsync(Guid siteId, CancellationToken cancellationToken) =>

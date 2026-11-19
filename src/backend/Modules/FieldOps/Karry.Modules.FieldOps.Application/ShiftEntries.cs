@@ -57,11 +57,17 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
     public const string CapturesMember = "captures";
 
     /// <summary>
-    /// The members a shift command's payload may have: the record, its envelope and the device signature, plus the
-    /// evidence list the sync module checks before the handler (ADR-0032 §7) and the capture records. Anything else is
-    /// refused, so nothing unread travels in a signed command.
+    /// The tablet's clock as it knew it when signing, <c>{"offsetMs": server − tablet}</c> (ADR-0031 §6), for the clock
+    /// skew rule (RULE-FO-03). Optional: a tablet that never measured it, or an older app, sends none (offset 0).
     /// </summary>
-    private static readonly HashSet<string> PayloadMembers = new(["record", "envelope", "deviceSignature", "evidence", CapturesMember], StringComparer.Ordinal);
+    public const string ClockMember = "clock";
+
+    /// <summary>
+    /// The members a shift command's payload may have: the record, its envelope and the device signature, plus the
+    /// evidence list the sync module checks before the handler (ADR-0032 §7), the capture records and the clock.
+    /// Anything else is refused, so nothing unread travels in a signed command.
+    /// </summary>
+    private static readonly HashSet<string> PayloadMembers = new(["record", "envelope", "deviceSignature", "evidence", CapturesMember, ClockMember], StringComparer.Ordinal);
 
     /// <summary>The signed record, or a final rejection when the payload or the envelope's binding to the record is wrong.</summary>
     public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version) =>
@@ -74,7 +80,8 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
             || !payload.TryGetProperty("record", out var record) || !payload.TryGetProperty("envelope", out var envelope)
             || !payload.TryGetProperty("deviceSignature", out var signature) || signature.ValueKind != JsonValueKind.String
             || !payload.EnumerateObject().All(m => PayloadMembers.Contains(m.Name)) || envelope.ValueKind != JsonValueKind.Object
-            || (payload.TryGetProperty(CapturesMember, out var captures) && captures.ValueKind != JsonValueKind.Array))
+            || (payload.TryGetProperty(CapturesMember, out var captures) && captures.ValueKind != JsonValueKind.Array)
+            || !TryClockOffset(payload, out _))
         {
             return (null, invalid);
         }
@@ -85,6 +92,27 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
             && envelope.TryGetProperty("payloadHash", out var hash) && hash.ValueKind == JsonValueKind.String && hash.GetString() == SignatureEnvelopes.PayloadHash(record);
         return binds ? (new SignedRecord(record, envelope, signature.GetString()!), null) : (null, EnvelopeMismatch);
     }
+
+    /// <summary>
+    /// The clock offset the command reports (0 when it has no <see cref="ClockMember"/>); false when the member is there
+    /// but is not exactly <c>{"offsetMs": whole number}</c> within <see cref="ClockSkew.MaxOffsetMs"/>.
+    /// </summary>
+    public static bool TryClockOffset(JsonElement payload, out long offsetMs)
+    {
+        offsetMs = 0;
+        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty(ClockMember, out var clock))
+        {
+            return true;
+        }
+
+        return clock.ValueKind == JsonValueKind.Object && clock.EnumerateObject().Count() == 1
+            && clock.TryGetProperty("offsetMs", out var offset) && offset.ValueKind == JsonValueKind.Number && offset.TryGetInt64(out offsetMs)
+            && Math.Abs(offsetMs) <= ClockSkew.MaxOffsetMs;
+    }
+
+    /// <summary>When the tablet's own clock says it signed (the envelope's <c>context.deviceTime</c>); read after the envelope was accepted.</summary>
+    public DateTimeOffset DeviceTime =>
+        DateTimeOffset.Parse(Envelope.GetProperty("context").GetProperty("deviceTime").GetString()!, CultureInfo.InvariantCulture, DateTimeStyles.None);
 
     /// <summary>The person who signed (the envelope's signer, the one unlocked on the tablet); read after the envelope was accepted.</summary>
     public Guid Signer => Guid.Parse(Envelope.GetProperty("signer").GetProperty("userId").GetString()!);
@@ -186,7 +214,7 @@ public static partial class RecordFields
 /// time; what needs a look is flagged, never refused (ADR-0031 §3).
 /// </summary>
 public sealed class StartShiftEntry(
-    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant)
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant, ISiteGeofence geofence)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.start.v1";
@@ -338,8 +366,14 @@ public sealed class StartShiftEntry(
         await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, meterId, meter.Kind, command.SiteId, cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "start", photo, null, command.SiteId, cancellationToken)
             .ConfigureAwait(false);
+        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, ClockOffset(command), command.ReceivedAt, rootId, "start", command.SiteId, cancellationToken)
+            .ConfigureAwait(false);
+        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
+
+    /// <summary>The clock offset the command reports (its shape was checked when the payload was read).</summary>
+    internal static long ClockOffset(VerifiedCommand command) => SignedRecord.TryClockOffset(command.Payload, out var offset) ? offset : 0;
 
     /// <summary>Whether the operator has another segment sharing time with <c>[from, to)</c> (OVERLAP, TC-P2-FO-011).</summary>
     internal static async Task<bool> OverlapsAsync(IShiftEntryStore store, Guid operatorId, Guid rootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken) =>
@@ -366,7 +400,8 @@ public sealed class StartShiftEntry(
 /// <c>fieldops.shift_entry.end.v1</c> (US-P2-FO-04): the operator ends the segment. Stored as the next version, the
 /// whole entry with the end added; Δ and the end's time are checked and flagged (RULE-FO-02, ADR-0034 §6).
 /// </summary>
-public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterEvents meterEvents, IIntegrityFlags integrity, ITenantContext tenant)
+public sealed class EndShiftEntry(
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterEvents meterEvents, IIntegrityFlags integrity, ISiteGeofence geofence, ITenantContext tenant)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.end.v1";
@@ -484,6 +519,9 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
         await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, start.MeterId, start.MeterKind, start.SiteId, cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "end", photo, start.StartPhoto, start.SiteId, cancellationToken)
             .ConfigureAwait(false);
+        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, StartShiftEntry.ClockOffset(command), command.ReceivedAt, rootId, "end", start.SiteId, cancellationToken)
+            .ConfigureAwait(false);
+        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
             IntegrityFindings.Delta(ended, raised.Contains(ShiftEntryFlags.Delta)), cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);

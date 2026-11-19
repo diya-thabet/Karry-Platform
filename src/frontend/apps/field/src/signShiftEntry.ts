@@ -88,6 +88,7 @@ const round = (value: number, decimals: number) => Math.round(value * 10 ** deci
  * server applies, so a signed fact is never refused for its shape), an envelope binding it with the meter photo and the
  * handwritten signature (ADR-0033), signed with the device key, and the evidence: the photo, the strokes and their PNG.
  * The photo's capture record rides in the signed command payload (`captures`, ADR-0032 §5).
+ * So does the clock offset the tablet knew when signing (`clock`, server − tablet), for the clock skew rule (RULE-FO-03).
  */
 export async function signStart(db: KarryOfflineDb, context: SigningContext, input: StartInput): Promise<OutboxRecord> {
   const record: StartRecord = {
@@ -145,7 +146,7 @@ async function signAndEnqueue(
   const signed = await signEnvelope(device.privateKey, envelope);
   return enqueue(db, {
     type,
-    payload: { record, envelope: signed.envelope, deviceSignature: signed.deviceSignature, captures: [photo.capture] },
+    payload: { record, envelope: signed.envelope, deviceSignature: signed.deviceSignature, captures: [photo.capture], clock: { offsetMs: Math.round(device.clockOffsetMs) } },
     evidence: [
       { content: photo.content, contentType: photo.contentType, thumbnail: photo.thumbnail },
       { content: utf8(signature.strokesJson), contentType: "application/json" },

@@ -113,7 +113,22 @@ tablet uploads (subject `sync_command`, linked to the `device`), in the transact
 slice 3a: the Assets outbox is dispatched in `Karry.Workers`, which did not load FieldOps and Integrity, so a meter
 event never re-evaluated continuity outside the tests; Workers now loads both (checked by running `anchor-now`).
 RULE-FO-03 needs a measured skew: the tablet corrects its requests with its known offset, so the server cannot
-tell a wrong clock from an offline delay; slice 5b has the tablet report its offset in the envelope's context.
+tell a wrong clock from an offline delay; slice 5b has the tablet report its offset with each signed fact.
+
+As built (slice 5b): the tablet sends, with each signed start and end, the clock offset it last measured
+(`clock: {"offsetMs": server − tablet}`, a payload member beside `captures`, covered by the command's device
+signature). It is not put in the envelope's context: the envelope is a versioned format with shared vectors, and a
+new member would be a v2 for one number. A `clock` that is not exactly a whole `offsetMs` within a year is refused
+(`fieldops.entry_invalid`); an older app sends none (offset 0). RULE-FO-03 (`ClockSkew.Judge`, pure, CsCheck
+properties) judges each signed fact (subject its envelope, linked to the entry): `offset` when the known offset is
+beyond `maxSkewMinutes` (10), `ahead` when the envelope's device time corrected by it is later than the server
+received the fact by more than that (an offline delay only makes a fact older). A clock moved back while offline and
+put right before the next contact cannot be told from an offline delay; this stays a known limit (threat T-04).
+RULE-FO-04: Organization's `ISiteGeofence` gives the distance in metres from the envelope's `context.geo` to the
+site's drawn boundary (PostGIS `ST_Distance` on the geography, 0 inside); beyond `marginMetres` (200) the signed fact
+is flagged, with the distance, the position's accuracy and the margin. Without a position (location refused) or a
+boundary nothing is judged. Both rules read their thresholds from `IIntegrityFlags.SettingsAsync` (slice 6 makes them
+company settings).
 
 ## Options considered
 

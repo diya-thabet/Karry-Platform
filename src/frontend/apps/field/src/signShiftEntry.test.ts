@@ -41,6 +41,7 @@ interface Payload {
   envelope: SignatureEnvelopeV1;
   deviceSignature: string;
   captures: Photo["capture"][];
+  clock: { offsetMs: number };
   evidence: { sha256: string; size: number; contentType: string }[];
 }
 
@@ -66,6 +67,7 @@ describe("signing a shift entry (P2.5, ADR-0033, ADR-0034 §5)", () => {
     });
     expect(await verifyEnvelope(publicKey, envelope, deviceSignature)).toBe(true);
     expect(captures).toEqual([meterPhoto.capture]);
+    expect((command.payload as Payload).clock).toEqual({ offsetMs: 0 });
     expect(evidence).toEqual([
       { sha256: meterPhoto.capture.sha256, size: 64, contentType: "image/webp" },
       { sha256: await sha256Hex(utf8(signature.strokesJson)), size: signature.strokesJson.length, contentType: "application/json" },
@@ -96,6 +98,16 @@ describe("signing a shift entry (P2.5, ADR-0033, ADR-0034 §5)", () => {
     });
     expect(envelope.recordVersion).toBe(2);
     expect(envelope.context.geo).toBeUndefined();
+  });
+
+  it("TC-P2-SYNC-008: sends the clock offset it knew when signing, so a clock 3 h ahead is measured, not guessed", async () => {
+    await db.device.update("this", { clockOffsetMs: -3 * 60 * 60 * 1000 });
+
+    const command = await signStart(db, context, { assetId: asset, meterId: meter, startedAt: new Date("2026-11-09T06:02:00Z"), startValue: "10.0", fuelStartPercent: 50, photo: await photo(2), signature });
+
+    const { envelope, clock } = command.payload as Payload;
+    expect(clock).toEqual({ offsetMs: -10_800_000 });
+    expect(envelope.context.deviceTime).toBe("2026-11-09T06:03:00.000Z");
   });
 
   it("never signs a record the server would refuse, and records nothing", async () => {

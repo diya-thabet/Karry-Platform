@@ -57,6 +57,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     private readonly KnownMeterEvents meterEvents = new();
     private readonly Shifts shifts = new();
     private readonly Devices devices = new();
+    private readonly Geofence geofence = new();
     private KarryDatabase database = null!;
     private ServiceProvider services = null!;
 
@@ -72,7 +73,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
-            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts)
+            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts).AddSingleton<ISiteGeofence>(geofence)
             .BuildServiceProvider(validateScopes: true);
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
         shifts.Shift = DayShift;
@@ -463,6 +464,59 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-003")]
+    public async Task A_fact_signed_on_a_skewed_clock_is_flagged_and_one_signed_offline_days_ago_is_not()
+    {
+        var (known, ahead, late) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var now = DateTimeOffset.UtcNow;
+        const long hour = 60 * 60 * 1000;
+
+        // The tablet had measured its clock 3 h ahead of the server when the operator signed.
+        await HandleAsync(TenantA, StartShiftEntry.Name,
+            WithClock(Start(known, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), deviceTime: DeviceTime(now.AddHours(3))), -3 * hour));
+        // Its clock was moved 3 h forward after the last measure: the fact says it was signed after it arrived.
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(ahead, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), deviceTime: DeviceTime(now.AddHours(3))));
+        // Signed two days ago on a right clock, sent today: an offline delay, not a skew.
+        await HandleAsync(TenantA, StartShiftEntry.Name,
+            WithClock(Start(late, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), deviceTime: DeviceTime(now.AddDays(-2))), 2_000));
+
+        (await RowsAsync(TenantA, "SELECT e.root_id || '|' || f.key || '|' || f.severity || '|' || (f.details->>'reason') || '|' || (f.details->>'minutesAhead') "
+            + "FROM integrity.flags f JOIN fieldops.shift_entries e ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-03' ORDER BY f.opened_at"))
+            .Should().Equal($"{known}|start|medium|offset|180", $"{ahead}|start|medium|ahead|180");
+    }
+
+    [Fact]
+    public async Task A_clock_member_that_is_not_a_whole_offset_within_a_year_is_refused()
+    {
+        foreach (var clock in new JsonNode[] { new JsonObject { ["offsetMs"] = 1.5 }, new JsonObject { ["offsetMs"] = "0" }, new JsonObject(), new JsonArray(),
+            new JsonObject { ["offsetMs"] = 0, ["at"] = "x" }, new JsonObject { ["offsetMs"] = ClockSkew.MaxOffsetMs + 1 } })
+        {
+            var payload = Start(Guid.CreateVersion7(), ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7());
+            payload["clock"] = clock;
+            (await HandleAsync(TenantA, StartShiftEntry.Name, payload)).Should().Be(SignedRecord.Invalid, clock.ToJsonString());
+        }
+
+        await NothingWrittenAsync();
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-004")]
+    public async Task A_start_or_end_signed_beyond_the_margin_outside_the_site_is_flagged_and_one_within_it_or_without_a_position_is_not()
+    {
+        geofence.Outside = latitude => latitude switch { 36.9m => 250m, 36.81m => 200m, _ => 0m };
+        var (outside, unknown) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(outside, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7(), geo: Geo(36.9, 10.0, 15)));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(outside, 2, ShiftStart.AddHours(8), "18.0", geo: Geo(36.81, 10.0, 8)));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(unknown, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+
+        (await RowsAsync(TenantA, "SELECT e.root_id || '|' || f.key || '|' || f.severity || '|' || (f.details->>'metresOutside') || '|' || (f.details->>'accuracyMetres') "
+            + "|| '|' || (f.details->>'marginMetres') FROM integrity.flags f JOIN fieldops.shift_entries e ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-04'"))
+            .Should().Equal($"{outside}|start|medium|250|15|200");
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-FO-005")]
     public async Task An_end_with_a_delta_out_of_bounds_opens_an_integrity_flag_on_the_entry_and_a_good_one_does_not()
     {
@@ -573,6 +627,15 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private static JsonObject Geo(double lat, double lon, double accuracy) => new() { ["lat"] = lat, ["lon"] = lon, ["acc"] = accuracy };
 
+    /// <summary>The tablet's clock offset as it knew it when signing (server − tablet), beside the signed record.</summary>
+    private static JsonObject WithClock(JsonObject payload, long offsetMs)
+    {
+        payload["clock"] = new JsonObject { ["offsetMs"] = offsetMs };
+        return payload;
+    }
+
+    private static string DeviceTime(DateTimeOffset at) => at.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffzzz", System.Globalization.CultureInfo.InvariantCulture);
+
     private Guid FreshMeter()
     {
         var meter = Guid.CreateVersion7();
@@ -607,7 +670,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private JsonObject Start(
         Guid root, DateTimeOffset startedAt, string startValue, Guid? meter = null, Guid? previous = null, string? remarks = null, Guid? signer = null, Guid? asset = null,
-        string? photo = null, bool captured = true)
+        string? photo = null, bool captured = true, JsonObject? geo = null, string? deviceTime = null)
     {
         var record = Record(root, startedAt, startValue, meter, asset);
         record["startPhoto"] = photo ?? NextPhoto();
@@ -621,7 +684,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             record["remarks"] = remarks;
         }
 
-        return Captured(Signed(record, 1, signer), record["startPhoto"]!.GetValue<string>(), captured);
+        return Captured(Signed(record, 1, signer, geo, deviceTime), record["startPhoto"]!.GetValue<string>(), captured);
     }
 
     private static int photos;
@@ -648,7 +711,9 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         return payload;
     }
 
-    private JsonObject End(Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null, JsonObject? geo = null, string? photo = null, bool captured = true)
+    private JsonObject End(
+        Guid root, int version, DateTimeOffset endedAt, string endValue, string? stoppages = null, JsonObject? geo = null, string? photo = null, bool captured = true,
+        string? deviceTime = null)
     {
         var endPhoto = photo ?? NextPhoto();
         var record = new JsonObject
@@ -665,11 +730,11 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             record["stoppages"] = JsonNode.Parse(stoppages);
         }
 
-        return Captured(Signed(record, version, geo: geo), endPhoto, captured);
+        return Captured(Signed(record, version, geo: geo, deviceTime: deviceTime), endPhoto, captured);
     }
 
     /// <summary>The command payload: the record, an envelope naming it, and the tablet's signature over the envelope.</summary>
-    private JsonObject Signed(JsonObject record, int version, Guid? signer = null, JsonObject? geo = null)
+    private JsonObject Signed(JsonObject record, int version, Guid? signer = null, JsonObject? geo = null, string? deviceTime = null)
     {
         using var recordDocument = JsonDocument.Parse(record.ToJsonString());
         var envelope = new JsonObject
@@ -681,7 +746,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
             ["recordVersion"] = version,
             ["payloadHash"] = SignatureEnvelopes.PayloadHash(recordDocument.RootElement),
             ["signer"] = new JsonObject { ["userId"] = (signer ?? Operator).ToString(), ["role"] = "operator", ["deviceId"] = Device.ToString() },
-            ["context"] = new JsonObject { ["deviceTime"] = "2026-11-09T06:02:11.250+00:00", ["appVersion"] = "1.4.0" },
+            ["context"] = new JsonObject { ["deviceTime"] = deviceTime ?? "2026-11-09T06:02:11.250+00:00", ["appVersion"] = "1.4.0" },
         };
         if (geo is not null)
         {
@@ -807,6 +872,15 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         public Dictionary<Guid, MeterSummary> All { get; } = [];
 
         public Task<MeterSummary?> FindAsync(Guid meterId, CancellationToken cancellationToken) => Task.FromResult(All.GetValueOrDefault(meterId));
+    }
+
+    /// <summary>Organization's geofence: metres outside the site's boundary by latitude; the site has no boundary by default.</summary>
+    private sealed class Geofence : ISiteGeofence
+    {
+        public Func<decimal, decimal?> Outside { get; set; } = _ => null;
+
+        public Task<decimal?> MetresOutsideAsync(Guid siteId, decimal latitude, decimal longitude, CancellationToken cancellationToken) =>
+            Task.FromResult(siteId == Site ? Outside(latitude) : null);
     }
 
     private sealed class Shifts : IShiftCalendar

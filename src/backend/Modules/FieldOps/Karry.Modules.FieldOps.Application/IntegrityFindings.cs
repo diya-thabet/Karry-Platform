@@ -5,6 +5,7 @@ using Karry.BuildingBlocks.Sync;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.Integrity.Contracts;
+using Karry.Modules.Organization.Contracts;
 
 namespace Karry.Modules.FieldOps.Application;
 
@@ -19,8 +20,72 @@ public static class IntegrityFindings
 
     public const string Meter = "meter";
 
-    /// <summary>A signed fact (its signature envelope): the photo rules judge each start and end on its own.</summary>
+    /// <summary>A signed fact (its signature envelope): the photo, clock and geofence rules judge each start and end on its own.</summary>
     public const string SignedFact = "signature_envelope";
+
+    /// <summary>
+    /// RULE-FO-03 on one signed start or end (<see cref="ClockSkew"/>): the subject is the signed fact, linked to the
+    /// entry; the tolerance is the rule's <c>maxSkewMinutes</c>.
+    /// </summary>
+    public static async Task SyncClockAsync(
+        IIntegrityFlags integrity, ISyncTransaction transaction, SignedRecord fact, long offsetMs, DateTimeOffset receivedAt, Guid rootId, string part, Guid siteId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(integrity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(fact);
+        var settings = await integrity.SettingsAsync(IntegrityRules.ClockSkew, cancellationToken).ConfigureAwait(false);
+        var tolerance = TimeSpan.FromMinutes((double)settings.Thresholds["maxSkewMinutes"]);
+        var deviceTime = fact.DeviceTime;
+        var skew = ClockSkew.Judge(deviceTime, offsetMs, receivedAt, tolerance);
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(SignedFact, fact.EnvelopeId), IntegrityRules.ClockSkew, siteId,
+            skew is null ? [] :
+            [
+                new Finding(part, [new FlagSubject(ShiftEntry, rootId)], [], new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["part"] = part,
+                    ["reason"] = skew.Reason,
+                    ["minutesAhead"] = skew.MinutesAhead.ToString(CultureInfo.InvariantCulture),
+                    ["deviceTime"] = deviceTime.ToString("O", CultureInfo.InvariantCulture),
+                    ["receivedAt"] = receivedAt.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture),
+                }),
+            ],
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// RULE-FO-04 on one signed start or end: the tablet's position (the envelope's <c>context.geo</c>) is more than the
+    /// rule's <c>marginMetres</c> outside the site's drawn boundary. Nothing is judged without a position (location
+    /// refused) or without a boundary; the subject is the signed fact, linked to the entry.
+    /// </summary>
+    public static async Task SyncGeofenceAsync(
+        ISiteGeofence geofence, IIntegrityFlags integrity, ISyncTransaction transaction, SignedRecord fact, Guid rootId, string part, Guid siteId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(geofence);
+        ArgumentNullException.ThrowIfNull(integrity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(fact);
+        var findings = new List<Finding>();
+        if (fact.Position is { } position
+            && await geofence.MetresOutsideAsync(siteId, position.Latitude, position.Longitude, cancellationToken).ConfigureAwait(false) is { } outside)
+        {
+            var margin = (await integrity.SettingsAsync(IntegrityRules.Geofence, cancellationToken).ConfigureAwait(false)).Thresholds["marginMetres"];
+            if (outside > margin)
+            {
+                findings.Add(new Finding(part, [new FlagSubject(ShiftEntry, rootId)], [], new Dictionary<string, string>(StringComparer.Ordinal)
+                {
+                    ["part"] = part,
+                    ["metresOutside"] = outside.ToString(CultureInfo.InvariantCulture),
+                    ["accuracyMetres"] = position.AccuracyM.ToString(CultureInfo.InvariantCulture),
+                    ["marginMetres"] = margin.ToString(CultureInfo.InvariantCulture),
+                }));
+            }
+        }
+
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(SignedFact, fact.EnvelopeId), IntegrityRules.Geofence, siteId,
+            findings, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// The photo rules of one signed start or end (ADR-0036 §1, security rules): RULE-FO-05 when the command carries no
