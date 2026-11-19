@@ -65,12 +65,25 @@ public sealed class FieldOpsModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("PublishChecklist");
 
+        endpoints.MapGet("/holds", ListHoldsAsync)
+            .RequirePermission(FieldOpsPermissions.EntriesRead)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .WithName("ListHolds");
+
         endpoints.MapPost("/holds/{holdId:guid}/release", ReleaseHoldAsync)
             .RequirePermission(FieldOpsPermissions.HoldsRelease)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("ReleaseHold");
+    }
+
+    /// <summary>Held machines of the caller's sites (status <c>open</c> by default, <c>released</c> or <c>all</c>), newest first, at most 200.</summary>
+    private static async Task<Results<Ok<HoldListResponse>, ProblemHttpResult>> ListHoldsAsync(
+        Guid? siteId, string? status, [FromServices] SafetyHolds holds, CancellationToken cancellationToken)
+    {
+        var result = await holds.ListAsync(siteId, status, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new HoldListResponse([.. result.Value.Select(HoldResponse.From)])) : result.Error.ToProblem();
     }
 
     private static async Task<Results<Ok<HoldReleaseResponse>, ProblemHttpResult>> ReleaseHoldAsync(
@@ -189,5 +202,23 @@ public sealed record HoldReleaseResponse(Guid HoldId, Guid AssetId, DateTimeOffs
     {
         ArgumentNullException.ThrowIfNull(r);
         return new(r.Id.Value, r.AssetId, r.ReleasedAt, r.ReleasedBy, r.Reason);
+    }
+}
+
+/// <summary>Held machines, newest first.</summary>
+public sealed record HoldListResponse(IReadOnlyList<HoldResponse> Items);
+
+/// <summary>
+/// A hold (ADR-0035 §4): the machine (and its code), the site where the checklist was signed, the critical items answered
+/// Not OK, when and by whom; <c>release</c> once a manager released it.
+/// </summary>
+public sealed record HoldResponse(
+    Guid Id, Guid AssetId, string? AssetCode, Guid SiteId, Guid SubmissionId, IReadOnlyList<string> Items, DateTimeOffset OpenedAt, Guid OpenedBy, HoldReleaseResponse? Release)
+{
+    public static HoldResponse From(HoldView view)
+    {
+        ArgumentNullException.ThrowIfNull(view);
+        var h = view.Hold;
+        return new(h.Id.Value, h.AssetId, view.AssetCode, h.SiteId, h.SubmissionId, h.Items, h.OpenedAt, h.OpenedBy, view.Release is null ? null : HoldReleaseResponse.From(view.Release));
     }
 }

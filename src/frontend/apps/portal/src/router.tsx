@@ -2,6 +2,7 @@ import { createRootRouteWithContext, createRoute, createRouter, redirect, type R
 import { AssetPage, AssetsPage } from "./assets/AssetsPages";
 import { AuditPage } from "./audit/AuditPage";
 import { ChecklistPage, ChecklistsPage } from "./checklists/ChecklistsPages";
+import { HoldsPage } from "./holds/HoldsPage";
 import { PlanPage } from "./billing/PlanPage";
 import { HomePage } from "./home/HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
@@ -117,6 +118,7 @@ const site = createRoute({
 });
 
 const assets = createRoute({ getParentRoute: () => company, path: "/assets", component: AssetsPage });
+const holds = createRoute({ getParentRoute: () => company, path: "/assets/holds", component: HoldsPage });
 const newAsset = createRoute({ getParentRoute: () => company, path: "/assets/new", component: () => <AssetPage /> });
 const asset = createRoute({
   getParentRoute: () => company,
@@ -131,7 +133,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),

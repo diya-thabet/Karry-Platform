@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Karry.Modules.Assets.Contracts;
 using Karry.Testing;
 using Npgsql;
 
@@ -76,6 +77,45 @@ public sealed class HoldsApiTests(FieldOpsHost host) : IClassFixture<FieldOpsHos
 
         host.SiteOf[FieldOpsHost.SiteManager] = site;
         (await ReleaseAsync(tenant, hold, Reason, TestTokens.ForTenant(tenant, FieldOpsHost.SiteManager))).StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task The_list_shows_open_holds_of_the_callers_sites_and_released_ones_on_request()
+    {
+        var tenant = await ProvisionAsync();
+        var (north, south) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (held, heldAsset) = await HoldAsync(tenant, north);
+        host.Assets.All[heldAsset] = new AssetSummary(heldAsset, "PE-07", "excavator", []);
+        var (released, _) = await HoldAsync(tenant, north);
+        var (elsewhere, _) = await HoldAsync(tenant, south);
+        (await ReleaseAsync(tenant, released, Reason)).StatusCode.Should().Be(HttpStatusCode.OK);
+        host.SiteOf[FieldOpsHost.SiteManager] = north;
+
+        var open = await ListAsync(tenant, "");
+        var done = await ListAsync(tenant, "?status=released");
+        var all = await ListAsync(tenant, $"?status=all&siteId={north}");
+        var manager = await ListAsync(tenant, "?status=all", TestTokens.ForTenant(tenant, FieldOpsHost.SiteManager));
+        var wrong = await GetAsync(tenant, "?status=closed");
+
+        open.Should().BeEquivalentTo([elsewhere, held]);
+        done.Should().Equal(released);
+        all.Should().BeEquivalentTo([held, released]);
+        manager.Should().BeEquivalentTo([held, released], "a site manager sees the holds of their sites only");
+        wrong.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var row = (await Json(await GetAsync(tenant, "?status=released"))).GetProperty("items")[0];
+        (row.GetProperty("items")[0].GetString(), row.GetProperty("release").GetProperty("reason").GetString()).Should().Be(("brakes", Reason));
+        var first = (await Json(await GetAsync(tenant, $"?siteId={north}"))).GetProperty("items")[0];
+        (first.GetProperty("assetCode").GetString(), first.GetProperty("release").ValueKind).Should().Be(("PE-07", JsonValueKind.Null));
+    }
+
+    private async Task<List<Guid>> ListAsync(Guid tenant, string query, string? token = null) =>
+        [.. (await Json(await GetAsync(tenant, query, token))).GetProperty("items").EnumerateArray().Select(h => h.GetProperty("id").GetGuid())];
+
+    private async Task<HttpResponseMessage> GetAsync(Guid tenant, string query, string? token = null)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"/api/v1/fieldops/holds{query}");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token ?? TestTokens.ForTenant(tenant, "admin-1"));
+        return await host.Client.SendAsync(request, Ct);
     }
 
     /// <summary>A hold as a critical Not OK opens it (the handler is tested on its own): written by the owner.</summary>

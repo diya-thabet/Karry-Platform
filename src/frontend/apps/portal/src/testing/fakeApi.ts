@@ -30,6 +30,7 @@ type Subscription = components["schemas"]["SubscriptionResponse"];
 type Invoice = components["schemas"]["InvoiceResponse"];
 type Checklist = components["schemas"]["ChecklistResponse"];
 type PublishChecklist = components["schemas"]["PublishChecklist"];
+type Hold = components["schemas"]["HoldResponse"];
 
 export interface Sent {
   method: string;
@@ -88,6 +89,8 @@ export function fakeApi(options: {
   instances?: ShiftInstance[];
   /** Materials of `GET /materials` (default: none). */
   materials?: Material[];
+  /** Safety holds, open or released (default: none). */
+  holds?: Hold[];
   /** Every published checklist version, any machine type (default: none). */
   checklists?: Checklist[];
   /** Machines of `GET /assets` (default: none). */
@@ -136,6 +139,7 @@ export function fakeApi(options: {
   const materials: Material[] = [...(options.materials ?? [])];
   const assets: Asset[] = [...(options.assets ?? [])];
   const checklists: Checklist[] = [...(options.checklists ?? [])];
+  const holds: Hold[] = [...(options.holds ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
   const imports: ImportJob[] = [];
@@ -317,6 +321,11 @@ export function fakeApi(options: {
     const material = materialsRoute(request.method, url, body, request.headers.get("If-Match"));
     if (material) {
       return material;
+    }
+
+    const held = holdsRoute(request.method, url, body);
+    if (held) {
+      return held;
     }
 
     const checklisted = checklistsRoute(request.method, url, body);
@@ -742,6 +751,35 @@ export function fakeApi(options: {
     }
   }
 
+  // Safety holds: the list (open by default, released, all; by site) and the release of one (ADR-0035 §5).
+  function holdsRoute(method: string, url: URL, body: unknown): Response | null {
+    const match = /^\/api\/v1\/fieldops\/holds(?:\/([^/]+)\/release)?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const id = match[1];
+    if (!id && method === "GET") {
+      const status = url.searchParams.get("status") ?? "open";
+      const site = url.searchParams.get("siteId");
+      return json(200, { items: holds.filter((h) => (status === "all" || (status === "open") === (h.release === null)) && (!site || h.siteId === site)) });
+    }
+
+    const index = holds.findIndex((h) => h.id === id);
+    const found = holds[index];
+    if (!found) {
+      return problem(404, "fieldops.hold_not_found");
+    }
+
+    if (found.release) {
+      return problem(409, "fieldops.hold_released");
+    }
+
+    const release = { holdId: found.id, assetId: found.assetId, releasedAt: "2026-11-19T10:00:00Z", releasedBy: "admin-1", reason: (body as { reason: string }).reason };
+    holds[index] = { ...found, release };
+    return json(200, release);
+  }
+
   // Checklist templates: the newest per machine type, every version of one type, publish the next (ADR-0035 §2).
   function checklistsRoute(method: string, url: URL, body: unknown): Response | null {
     const match = /^\/api\/v1\/fieldops\/checklists(?:\/([^/]+)\/versions)?$/.exec(url.pathname);
@@ -946,6 +984,15 @@ export function fakeApi(options: {
     },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
+  };
+}
+
+/** An open hold on the excavator PEL-01: its brakes were answered Not OK. */
+export function hold(overrides: Partial<Hold> = {}): Hold {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000009001", assetId: "0192f0c1-0000-7000-8000-000000007001", assetCode: "PEL-01", siteId: "0192f0c1-0000-7000-8000-000000005001",
+    submissionId: "0192f0c1-0000-7000-8000-000000009101", items: ["brakes"], openedAt: "2026-11-19T06:10:00Z", openedBy: "0192f0c1-0000-7000-8000-000000000501",
+    release: null, ...overrides,
   };
 }
 
