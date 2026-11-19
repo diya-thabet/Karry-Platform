@@ -9,6 +9,7 @@ type ShiftPattern = components["schemas"]["ShiftPatternResponse"];
 type NonWorkingDay = components["schemas"]["NonWorkingDayResponse"];
 type ShiftInstance = components["schemas"]["ShiftInstanceResponse"];
 type Material = components["schemas"]["MaterialResponse"];
+type IntegrityRule = components["schemas"]["RuleResponse"];
 type MaterialInput = components["schemas"]["MaterialInput"];
 type DensityVersion = components["schemas"]["DensityVersionResponse"];
 type DensityInput = components["schemas"]["DensityInput"];
@@ -89,6 +90,8 @@ export function fakeApi(options: {
   instances?: ShiftInstance[];
   /** Materials of `GET /materials` (default: none). */
   materials?: Material[];
+  /** The company's integrity rules (default: the catalogue with its defaults, `integrityCatalog()`). */
+  integrityRules?: IntegrityRule[];
   /** Safety holds, open or released (default: none). */
   holds?: Hold[];
   /** Every published checklist version, any machine type (default: none). */
@@ -137,6 +140,7 @@ export function fakeApi(options: {
   const patterns: Record<string, ShiftPattern[]> = { ...options.patterns };
   const days: Record<string, NonWorkingDay[]> = { ...options.days };
   const materials: Material[] = [...(options.materials ?? [])];
+  const integrityRules: IntegrityRule[] = [...(options.integrityRules ?? integrityCatalog())];
   const assets: Asset[] = [...(options.assets ?? [])];
   const checklists: Checklist[] = [...(options.checklists ?? [])];
   const holds: Hold[] = [...(options.holds ?? [])];
@@ -317,6 +321,40 @@ export function fakeApi(options: {
     const organization = organizationRoute(request.method, url, body, request.headers.get("If-Match"));
     if (organization) {
       return organization;
+    }
+
+    const ruleMatch = /^\/api\/v1\/integrity\/rules(?:\/([^/]+))?$/.exec(url.pathname);
+    if (ruleMatch) {
+      const code = ruleMatch[1];
+      if (request.method === "GET" && code === undefined) {
+        return json(200, { items: integrityRules });
+      }
+
+      const index = integrityRules.findIndex((r) => r.rule === code);
+      const found = integrityRules[index];
+      if (request.method !== "PUT" || !found) {
+        return problem(404, "integrity.rule_not_found");
+      }
+
+      const ifMatch = request.headers.get("If-Match");
+      if (ifMatch !== null && ifMatch !== found.version) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const input = body as { enabled: boolean; thresholds: Record<string, string> | null };
+      if (found.security && !input.enabled) {
+        return problem(400, "integrity.rule_locked");
+      }
+
+      integrityRules[index] = {
+        ...found,
+        enabled: input.enabled,
+        thresholds: found.thresholds.map((t) => ({ ...t, value: input.thresholds?.[t.name] ?? t.value })),
+        changedAt: "2026-11-19T10:00:00Z",
+        changedBy: "admin-1",
+        version: nextVersion(found.version),
+      };
+      return json(200, integrityRules[index]);
     }
 
     const material = materialsRoute(request.method, url, body, request.headers.get("If-Match"));
@@ -952,6 +990,14 @@ export function fakeApi(options: {
         sites[index] = { ...found, ...change, version: `"${String(Number(found.version.replaceAll('"', "")) + 1)}"` };
       }
     },
+    /** Another administrator saves the rule meanwhile (a new version): the open form is now out of date (H-C1). */
+    changeRuleElsewhere: (code: string, change: Partial<IntegrityRule>) => {
+      const index = integrityRules.findIndex((r) => r.rule === code);
+      const found = integrityRules[index];
+      if (found) {
+        integrityRules[index] = { ...found, ...change, version: nextVersion(found.version) };
+      }
+    },
     /** Another person saves the material meanwhile (a new version): the open form is now out of date (H-C1). */
     changeMaterialElsewhere: (id: string, change: Partial<Material>) => {
       const index = materials.findIndex((m) => m.id === id);
@@ -1078,6 +1124,22 @@ export function material(overrides: Partial<Material> = {}): Material {
     densities: [versionFrom("2026-01-01", { bank: 2.2, loose: 1.6, compacted: null, moisture: 0.03 })],
     status: "active", createdAt: "2026-10-26T08:00:00Z", changedAt: "2026-10-26T08:00:00Z", archivedAt: null, version: '"1"', ...overrides,
   };
+}
+
+/** The rules of P2.7 as a company without settings runs them (the server's catalogue, ADR-0036 §1). */
+export function integrityCatalog(): IntegrityRule[] {
+  const rule = (code: string, severity: string, security: boolean, thresholds: IntegrityRule["thresholds"] = []): IntegrityRule => ({
+    rule: code, severity, security, enabled: true, thresholds, changedAt: null, changedBy: null, version: '"0"',
+  });
+  return [
+    rule("RULE-FO-01", "high", false),
+    rule("RULE-FO-02", "high", false, [{ name: "toleranceHours", value: 0.5, default: 0.5, min: 0, max: 4, decimals: 1, unit: "h" }]),
+    rule("RULE-FO-03", "medium", false, [{ name: "maxSkewMinutes", value: 10, default: 10, min: 1, max: 1440, decimals: 0, unit: "min" }]),
+    rule("RULE-FO-04", "medium", false, [{ name: "marginMetres", value: 200, default: 200, min: 0, max: 5000, decimals: 0, unit: "m" }]),
+    rule("RULE-FO-05", "high", true),
+    rule("RULE-FO-06", "high", true),
+    rule("RULE-FO-07", "critical", true),
+  ];
 }
 
 /** The next record version, as PostgreSQL's xmin moves on with every save. */

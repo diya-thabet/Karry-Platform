@@ -4,7 +4,7 @@ area: domain
 tags: [rules, fraud, alerts, thresholds]
 source: "PHASES_DETAILED_PLAN.md §24"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-11-19
 ---
 
 # Alert & Detection Rule Catalogue
@@ -54,5 +54,7 @@ last_updated: 2026-10-21
 | RULE-TEL-03 | Machine outside geofence during shift | Any | Medium | P9 |
 | RULE-TEL-04 | Engine running outside recorded shifts | > 15 min | High | P9 |
 | RULE-OPS-01 | Device not synced | > 24 h | Medium | P2 |
+
+A company tunes the thresholds and switches of its rules (Settings › Integrity rules, as built in P2.7: [ADR-0036](../../adr/0036-integrity-rules-and-flags.md) §1). RULE-FO-02 takes 0 to 4 h in tenths, RULE-FO-03 1 to 1440 min, RULE-FO-04 0 to 5000 m; RULE-FO-05, 06 and 07 are security rules and cannot be switched off.
 
 All thresholds are tenant-configurable, except security rules (FO-05, FO-07), which can be adjusted in severity but not disabled.

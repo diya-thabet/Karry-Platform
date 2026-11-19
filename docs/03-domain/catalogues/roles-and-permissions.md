@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-11-09
+last_updated: 2026-11-19
 ---
 
 # Default Role & Permission Matrix
@@ -66,7 +66,8 @@ The matrix above is the target for the whole product. In code it is the union of
 | `fieldops.checklists.read` | tenant | no | Tenant Admin, Controller, Site Manager, Maintenance Planner | Pre-start checklist templates and every published version (ADR-0035 §2; P2.6). Tablets get the newest version through sync |
 | `fieldops.checklists.manage` | tenant | no | Tenant Admin, Site Manager, Maintenance Planner | Publish the next version of an asset type's checklist; company-wide, so a site assignment alone does not grant it (ADR-0035 §2; P2.6) |
 | `fieldops.holds.release` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Release a machine held as unsafe by a critical Not OK, with a reason of 10 to 500 characters; ledgered under the person's name (ADR-0035 §5; P2.6) |
-| `integrity.flags.read` | site | no | Tenant Admin, Executive, Controller, Site Manager, Maintenance Planner | Integrity flags of the caller's sites, open and closed (ADR-0036; P2.7). Settling them is the controller console (P2.8) |
+| `integrity.flags.read` | site | no | Tenant Admin, Executive, Controller, Site Manager, Maintenance Planner | Integrity flags of the caller's sites, open and closed (ADR-0036; P2.7). Settling them is the controller console (P2.8). Also reads the company's rule settings |
+| `integrity.rules.manage` | tenant | yes | Tenant Admin | Switch the company's integrity rules on or off and set their thresholds, with a recent sign-in; the security rules (RULE-FO-05, 06, 07) cannot be switched off; ledgered (ADR-0036 §1; P2.7) |
 | `imports.files.manage` | tenant | yes | Tenant Admin | Excel import (US-P1-ORG-03, ADR-0027): templates, uploads, reports, commit and discard; each kind also needs the permission of the data it writes |
 | `tenancy.settings.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): company settings and logo (P1.11; every member reads them) |
 | `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |

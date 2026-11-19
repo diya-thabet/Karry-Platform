@@ -523,7 +523,8 @@ public sealed class EndShiftEntry(
             .ConfigureAwait(false);
         await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
-            IntegrityFindings.Delta(ended, raised.Contains(ShiftEntryFlags.Delta)), cancellationToken).ConfigureAwait(false);
+            IntegrityFindings.Delta(ended, (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"]),
+            cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);
     }
 

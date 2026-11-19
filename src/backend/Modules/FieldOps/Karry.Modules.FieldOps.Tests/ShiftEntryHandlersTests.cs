@@ -527,7 +527,25 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         await HandleAsync(TenantA, EndShiftEntry.Name, End(good, 2, ShiftStart.AddHours(17), "107.0"));
 
         (await RowsAsync(TenantA, "SELECT rule || '|' || subject_type || '|' || subject_id || '|' || key || '|' || details::text FROM integrity.flags WHERE rule = 'RULE-FO-02'"))
-            .Should().Equal($"RULE-FO-02|shift_entry|{bad}|delta|{{\"delta\": \"-1.0\", \"minutes\": \"480\", \"endValue\": \"99.0\", \"meterKind\": \"hours\", \"startValue\": \"100.0\"}}");
+            .Should().Equal($"RULE-FO-02|shift_entry|{bad}|delta|{{\"delta\": \"-1.0\", \"minutes\": \"480\", \"endValue\": \"99.0\", \"meterKind\": \"hours\", \"startValue\": \"100.0\", \"toleranceHours\": \"0.5\"}}");
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-005")]
+    public async Task The_integrity_flag_of_a_delta_follows_the_company_tolerance_while_the_entry_keeps_the_tablet_rule()
+    {
+        // US-P2-INT-01 AC3: the company allows 1 h beyond the real length (the catalogue: 0.5 h).
+        await ExecuteAsync(database.Admin, $"INSERT INTO integrity.rule_settings (id, tenant_id, rule, enabled, thresholds, changed_at) "
+            + $"VALUES ('{Guid.CreateVersion7()}', '{TenantA}', 'RULE-FO-02', true, '{{\"toleranceHours\": 1.0}}', now())");
+        var (within, beyond) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(within, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(within, 2, ShiftStart.AddHours(8), "18.8"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(beyond, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(beyond, 2, ShiftStart.AddHours(8), "19.1"));
+
+        (await RowsAsync(TenantA, "SELECT subject_id || '|' || (details->>'toleranceHours') FROM integrity.flags WHERE rule = 'RULE-FO-02'")).Should().Equal($"{beyond}|1.0");
+        (await RowsAsync(TenantA, $"SELECT array_to_string(flags, ',') FROM fieldops.shift_entries WHERE root_id = '{within}' AND version = 2"))
+            .Should().Equal("RULE-FO-02");
     }
 
     [Fact]

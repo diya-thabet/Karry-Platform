@@ -212,6 +212,62 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_flags_severity", "severity IN ('low', 'medium', 'high', 'critical')");
                         });
                 });
+
+            modelBuilder.Entity("Karry.Modules.Integrity.Domain.RuleSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<string>("Rule")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("rule");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Thresholds")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("thresholds");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rule_settings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_rule_settings_tenant_id");
+
+                    b.HasIndex("TenantId", "Rule")
+                        .IsUnique()
+                        .HasDatabaseName("ix_rule_settings_tenant_id_rule");
+
+                    b.ToTable("rule_settings", "integrity", t =>
+                        {
+                            t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07')");
+                        });
+                });
 #pragma warning restore 612, 618
         }
     }

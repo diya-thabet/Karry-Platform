@@ -167,15 +167,24 @@ public static partial class ShiftEntryRules
             flags.Add(ShiftEntryFlags.EndBeforeStart);
         }
 
-        // Exact: tenths of an hour against ticks (no floating point), as the field app computes it (shared vectors).
-        var delta = endValue - startValue;
-        var tooLarge = meterKind == "hours" && endedAt > startedAt && delta * TimeSpan.TicksPerHour > (endedAt - startedAt + DeltaTolerance).Ticks;
-        if (delta < 0 || tooLarge)
+        if (DeltaOutOfRange(meterKind, startedAt, startValue, endedAt, endValue, DeltaTolerance))
         {
             flags.Add(ShiftEntryFlags.Delta);
         }
 
         return flags;
+    }
+
+    /// <summary>
+    /// RULE-FO-02: Δ negative or, for an hour meter, beyond the segment's real length plus <paramref name="tolerance"/>.
+    /// The entry's own flag uses <see cref="DeltaTolerance"/> (what the tablet shows, shared vectors); the Integrity
+    /// flag uses the company's <c>toleranceHours</c>.
+    /// </summary>
+    public static bool DeltaOutOfRange(string meterKind, DateTimeOffset startedAt, decimal startValue, DateTimeOffset endedAt, decimal endValue, TimeSpan tolerance)
+    {
+        // Exact: tenths of an hour against ticks (no floating point), as the field app computes it (shared vectors).
+        var delta = endValue - startValue;
+        return delta < 0 || (meterKind == "hours" && endedAt > startedAt && delta * TimeSpan.TicksPerHour > (endedAt - startedAt + tolerance).Ticks);
     }
 
     /// <summary>

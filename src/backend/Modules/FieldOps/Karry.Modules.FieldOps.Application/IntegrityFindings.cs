@@ -201,11 +201,16 @@ public static class IntegrityFindings
         await SyncContinuityAsync(store, events, integrity, joined, meter.MeterId, meter.Kind, null, cancellationToken).ConfigureAwait(false);
     }
 
-    /// <summary>The Δ finding of an ended entry, or none (RULE-FO-02): the two values, Δ and the segment's length.</summary>
-    public static IReadOnlyList<Finding> Delta(ShiftEntryVersion entry, bool flagged)
+    /// <summary>
+    /// The Δ finding of an ended entry, or none (RULE-FO-02, with the company's <c>toleranceHours</c>): the two values, Δ,
+    /// the segment's length and the tolerance.
+    /// </summary>
+    public static IReadOnlyList<Finding> Delta(ShiftEntryVersion entry, decimal toleranceHours)
     {
         ArgumentNullException.ThrowIfNull(entry);
-        if (!flagged || entry.EndValue is not { } end || entry.EndedAt is not { } endedAt)
+        var tolerance = TimeSpan.FromTicks((long)(toleranceHours * TimeSpan.TicksPerHour));
+        if (entry.EndValue is not { } end || entry.EndedAt is not { } endedAt
+            || !ShiftEntryRules.DeltaOutOfRange(entry.MeterKind, entry.StartedAt, entry.StartValue, endedAt, end, tolerance))
         {
             return [];
         }
@@ -222,6 +227,7 @@ public static class IntegrityFindings
                     ["startValue"] = Text(entry.StartValue),
                     ["endValue"] = Text(end),
                     ["delta"] = Text(end - entry.StartValue),
+                    ["toleranceHours"] = toleranceHours.ToString(CultureInfo.InvariantCulture),
                     ["minutes"] = ((long)Math.Floor((endedAt - entry.StartedAt).TotalMinutes)).ToString(CultureInfo.InvariantCulture),
                 }),
         ];

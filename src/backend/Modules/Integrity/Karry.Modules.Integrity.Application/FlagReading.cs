@@ -12,10 +12,17 @@ public static class IntegrityPermissions
     /// <summary>Read the integrity flags of the caller's sites (P2.7; settling them is P2.8's controller console).</summary>
     public const string FlagsRead = "integrity.flags.read";
 
+    /// <summary>
+    /// Switch the company's non-security rules on or off and set their thresholds (ADR-0036 §1): it decides what gets
+    /// flagged, so it is a company administrator's, with a second factor and a recent sign-in.
+    /// </summary>
+    public const string RulesManage = "integrity.rules.manage";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(FlagsRead, ScopeKind.Site, privileged: false,
             Roles.TenantAdmin, Roles.Executive, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner),
+        new(RulesManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
     ];
 }
 

@@ -121,23 +121,3 @@ public sealed class IntegrityFlag : AggregateRoot<IntegrityFlagId>, ITenantOwned
         Raise(new FlagClosed(Id.Value, Rule, reason, actor) { OccurredAt = at });
     }
 }
-
-/// <summary>A rule as the catalogue defines it (detection-rules.md): severity, whether it is a security rule, thresholds.</summary>
-public sealed record RuleDefinition(string Code, string Severity, bool Security, IReadOnlyDictionary<string, decimal> Thresholds);
-
-/// <summary>The rules of P2.7 with their default settings (ADR-0036 §1); security rules cannot be switched off.</summary>
-public static class RuleCatalog
-{
-    public static IReadOnlyList<RuleDefinition> All { get; } =
-    [
-        new("RULE-FO-01", "high", false, new Dictionary<string, decimal>()),
-        new("RULE-FO-02", "high", false, new Dictionary<string, decimal> { ["toleranceHours"] = 0.5m }),
-        new("RULE-FO-03", "medium", false, new Dictionary<string, decimal> { ["maxSkewMinutes"] = 10m }),
-        new("RULE-FO-04", "medium", false, new Dictionary<string, decimal> { ["marginMetres"] = 200m }),
-        new("RULE-FO-05", "high", true, new Dictionary<string, decimal>()),
-        new("RULE-FO-06", "high", true, new Dictionary<string, decimal>()),
-        new("RULE-FO-07", "critical", true, new Dictionary<string, decimal>()),
-    ];
-
-    public static RuleDefinition? Find(string rule) => All.SingleOrDefault(r => string.Equals(r.Code, rule, StringComparison.Ordinal));
-}

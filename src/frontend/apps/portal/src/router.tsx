@@ -14,6 +14,7 @@ import { sections } from "./shell/sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { Shell, ShellNotFound } from "./shell/Shell";
 import { CompanyPage } from "./settings/CompanyPage";
+import { RulesPage } from "./integrity/RulesPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SupportPage } from "./settings/SupportPage";
 import { TabletsPage } from "./settings/TabletsPage";
@@ -86,6 +87,7 @@ const imports = createRoute({ getParentRoute: () => company, path: "/settings/im
 const tablets = createRoute({ getParentRoute: () => company, path: "/settings/tablets", component: TabletsPage });
 const support = createRoute({ getParentRoute: () => company, path: "/settings/support", component: SupportPage });
 const companySettings = createRoute({ getParentRoute: () => company, path: "/settings/company", component: CompanyPage });
+const integrityRules = createRoute({ getParentRoute: () => company, path: "/settings/integrity", component: RulesPage });
 const materials = createRoute({ getParentRoute: () => company, path: "/settings/materials", component: MaterialsPage });
 const newMaterial = createRoute({ getParentRoute: () => company, path: "/settings/materials/new", component: () => <MaterialPage /> });
 const material = createRoute({
@@ -133,7 +135,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),
