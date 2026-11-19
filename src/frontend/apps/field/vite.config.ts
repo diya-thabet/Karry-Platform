@@ -60,5 +60,7 @@ export default defineConfig(({ mode }) => ({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test-setup.ts"],
+    // Above the 5 s a findBy*/waitFor may wait (test-setup.ts), so a slow page fails on its own message.
+    testTimeout: 15_000,
   },
 }));
