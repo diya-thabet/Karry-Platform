@@ -11,7 +11,11 @@ public sealed record FlagSubject(string Type, Guid Id);
 /// <see cref="Evidence"/> are links to what shows it (photos as <c>sha256:</c> references); <see cref="Details"/> are the
 /// values the explanation names (the two meter values, the skew in minutes …).
 /// </summary>
-public sealed record Finding(string Key, IReadOnlyList<FlagSubject> Related, IReadOnlyList<string> Evidence, IReadOnlyDictionary<string, string> Details);
+public sealed record Finding(string Key, IReadOnlyList<FlagSubject> Related, IReadOnlyList<string> Evidence, IReadOnlyDictionary<string, string> Details)
+{
+    /// <summary>The site the finding belongs to, when it is not the subject's (a meter that moved between its two segments).</summary>
+    public Guid? SiteId { get; init; }
+}
 
 /// <summary>A rule's settings in the current company: switched on, and its thresholds by name (ADR-0036 §1).</summary>
 public sealed record RuleSettings(string Rule, bool Enabled, IReadOnlyDictionary<string, decimal> Thresholds);

@@ -48,7 +48,7 @@ internal sealed class FlagWriter(IntegrityDbContext db, ITenantContext tenant, T
         foreach (var finding in found.Values.Where(f => !open.Any(o => o.Key == f.Key)))
         {
             db.Flags.Add(IntegrityFlag.Open(
-                clock, company, rule, definition.Severity, new SubjectRef(subject.Type, subject.Id), finding.Key, siteId,
+                clock, company, rule, definition.Severity, new SubjectRef(subject.Type, subject.Id), finding.Key, finding.SiteId ?? siteId,
                 [.. finding.Related.Select(r => new SubjectRef(r.Type, r.Id))], finding.Evidence, finding.Details));
         }
 

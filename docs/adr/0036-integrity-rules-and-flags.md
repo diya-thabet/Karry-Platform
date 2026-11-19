@@ -61,6 +61,18 @@ runs for the meter on every start, end, late arrival and meter event, so a late 
 neighbours (TC-P2-FO-008). It is property-tested (CsCheck): random readings and events give a flag exactly where an
 unexplained discontinuity is.
 
+As built (slice 2): `Continuity.Find` (FieldOps domain) orders a meter's current segment versions by start time, then
+entry ID, and compares each start with the end just before it; a segment still running has no end, so the next start
+is not compared (a missing end is RULE-FO-08). The start and end handlers save the entry, re-evaluate the whole meter
+and call `SyncAsync` (subject `meter`, key `<before>><after>`, both entries related, the end and start photos as
+evidence, the values in `details`); a finding may name its own site (`Finding.SiteId`, the later entry's site, for a
+meter that moved). The end also syncs RULE-FO-02 on the entry (key `delta`). A module context may join the same upload
+transaction twice (`ModuleDbContext.JoinAsync` is idempotent for that transaction). The property test is CsCheck;
+the mutation check was run by hand (eight mutants of `Find` and `Difference`, all killed): Stryker's first test run
+fails on the Windows machine with the database tests, so a nightly Stryker step for FieldOps waits for a run on CI.
+Residual: the whole meter is read on every start and end (indexed on tenant, meter, start; fine for years of
+shifts, to revisit with a window if a meter's history grows large).
+
 ### 5. Meter events are manager decisions
 
 `assets.meter_events`: REPLACED (old final, new initial), RESET (value before, value after), FAILED and REPAIRED, each

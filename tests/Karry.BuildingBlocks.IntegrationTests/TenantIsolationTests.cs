@@ -314,6 +314,29 @@ public sealed class TenantIsolationTests(PostgresFixture postgres) : IAsyncLifet
         await act.Should().ThrowAsync<InvalidOperationException>().WithMessage("*already has a transaction*");
     }
 
+    [Fact]
+    [Trait("Story", "P2.7")]
+    public async Task A_context_already_in_the_sync_transaction_may_join_it_again()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var connection = new NpgsqlConnection(database.App);
+        await connection.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        await InTenantAsync(TenantA, async db =>
+        {
+            await db.JoinAsync(new Joined(connection, transaction), ct);
+            db.Notes.Add(SiteNote.Write(clock, TenantA, "first rule"));
+            await db.SaveChangesAsync(ct);
+            await db.JoinAsync(new Joined(connection, transaction), ct);
+            db.Notes.Add(SiteNote.Write(clock, TenantA, "second rule"));
+            return await db.SaveChangesAsync(ct);
+        });
+        await transaction.CommitAsync(ct);
+
+        (await RawCountAsync(database.Admin, "SELECT count(*) FROM tenantprobe.site_notes")).Should().Be(2);
+    }
+
     private sealed record Joined(System.Data.Common.DbConnection Connection, System.Data.Common.DbTransaction Transaction) : Karry.BuildingBlocks.Sync.ISyncTransaction;
 
     private ServiceProvider BuildServices(string connectionString)

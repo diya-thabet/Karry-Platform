@@ -11,6 +11,7 @@ using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Application;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.FieldOps.Infrastructure;
+using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Infrastructure;
@@ -49,7 +50,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
     public async ValueTask InitializeAsync()
     {
         database = await postgres.Server.NewKarryDatabaseAsync();
-        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).BuildServiceProvider())
+        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).BuildServiceProvider())
         {
             await MigrationRunner.MigrateAsync(migrations, database.Owner, CancellationToken.None);
         }
@@ -57,7 +58,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         var meters = new Meters();
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         services = new ServiceCollection().AddLogging()
-            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App)
+            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IShiftCalendar>(new AnyTimeShift())
             .BuildServiceProvider(validateScopes: true);
         assets.All[Asset] = new AssetSummary(Asset, "EX-01", "excavator", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);

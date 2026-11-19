@@ -54,7 +54,7 @@ public sealed class FieldOpsHost : IAsyncLifetime
         builder.Services.AddKarryApiConventions();
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new FieldOpsModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new FieldOpsModule(), new Integrity.Api.IntegrityModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         // The Assets module is not composed here: machines are unknown (no code) unless a test adds them.
         builder.Services.AddSingleton<IAssetDirectory>(Assets);

@@ -274,7 +274,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.5 ✅** (#147–#197; P2.5 9b, the usability test and demo, is the owner's), **P2.6 pre-start checklists in progress**: slices 1–5 merged (#198–#203), slice 6 portal holds in review (#204), slice 7 close-out next ([slice plan](../04-phases/phase-02-field-operations/p2.6-checklists-plan.md), [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) proposed) |
+| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slice 1 Integrity module merged (#208), slice 2 continuity engine in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
 | P3–P11 | Not started |
 
 ---
@@ -347,6 +347,13 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-19 — P2.6 close-out; P2.7 slices 1–2 (agent)
+- **Done:** P2.6 slice 6 merged (#204) and close-out (#206: demo checklists, browser E2E `field-checklist.spec.ts`, security review, ADR-0035 accepted, threat R-14). P2.7 plan and ADR-0036 proposed (#207). Slice 1 (#208): Integrity module (`integrity.flags`, open → closed only, never deleted, ledgered `integrity.flag_opened.v1`/`flag_closed.v1`; `IIntegrityFlags.SyncAsync` in the caller's transaction; `GET /api/v1/integrity/flags` with `integrity.flags.read`). Slice 2 (in review): `Continuity.Find` (pure, CsCheck property, manual mutation check: 8 mutants killed); start and end raise and close RULE-FO-01 on the meter and the end RULE-FO-02 on the entry (TC-P2-FO-007, 008); `Finding.SiteId`; `ModuleDbContext.JoinAsync` idempotent for the same transaction.
+- **Verification (slice 2):** FieldOps 162/162, BuildingBlocks integration 57/57, Integrity 4/4, architecture 32/32, tenant isolation 476/476, Sync 59/59, host integration 58 (2 database-connect timeouts under load, 14/14 when rerun alone), `dotnet format` clean on the changed projects.
+- **Mistakes / lessons:** (1) #208's tests assumed UUIDv7 order inside one millisecond: compare as sets. (2) A module called twice in one upload (Integrity for two rules) joined its context to the transaction twice and threw: `JoinAsync` now returns when already in that transaction. (3) Stryker.NET's initial run fails on this Windows machine with the database tests (>50 % failing under its runner): run mutation checks by hand locally, Stryker only in CI. (4) After `dotnet restore --force-evaluate`, Git for Windows and Git Bash disagree on the index stat: keep only the files where `git diff --ignore-cr-at-eol` shows a change, and stage files by name.
+- **Pending owner item:** the opencode hand-off stash ("opencode-handoff") is still kept, never committed.
+- **Next:** P2.7 slice 3: meter events (REPLACED/RESET with offsets, FAILED/REPAIRED) in Assets, read by the continuity engine (TC-P2-FO-009).
 
 ### 2026-11-19 — P2.6 pre-start checklists, slices 1–6 (agent)
 - **Goal:** continue phase after phase (owner: keep going, merge green PRs, remove merged branches, docs every time, no cloud).
