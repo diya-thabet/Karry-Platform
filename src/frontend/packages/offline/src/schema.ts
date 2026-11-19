@@ -49,10 +49,17 @@ export interface MeterStateRow {
   open: { entryId: string; version: number; operatorId: string; startedAt: string; startValue: string; shiftDate: string | null; shiftCode: string | null } | null;
 }
 
+/** An item of a checklist (ADR-0035 §2): its text per language, whether a Not OK stops the machine, whether it needs a photo. */
+export interface ChecklistItemRow { code: string; texts: Record<string, string>; critical: boolean; photoOnNotOk: boolean }
+/** The newest published checklist of a machine type (P2.6, FieldOps `checklistTemplates`); `required`: answered before every start. */
+export interface ChecklistTemplateRow { id: string; assetType: string; version: number; required: boolean; items: ChecklistItemRow[] }
+/** An open safety hold (P2.6, FieldOps `safetyHolds`): no start on the machine until a manager releases it. */
+export interface SafetyHoldRow { id: string; assetId: string; items: string[]; openedAt: string }
+
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
 export type StoredAsset = AssetRow & { words: string[] };
 
-export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays"] as const;
+export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays", "checklistTemplates", "safetyHolds"] as const;
 export type Collection = (typeof collections)[number];
 
 export interface SyncStateRecord {
@@ -140,6 +147,8 @@ export type KarryOfflineDb = Dexie & {
   users: EntityTable<FieldUserRow, "id">;
   meterStates: EntityTable<MeterStateRow, "id">;
   nonWorkingDays: EntityTable<NonWorkingDayRow, "id">;
+  checklistTemplates: EntityTable<ChecklistTemplateRow, "id">;
+  safetyHolds: EntityTable<SafetyHoldRow, "id">;
   drafts: EntityTable<DraftRecord, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
@@ -148,7 +157,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v5 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v6 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5; v6 the checklists and safety holds of P2.6). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -182,6 +191,11 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   // v5 (P2.5): forms begun and not signed, per operator.
   db.version(5).stores({
     drafts: "id, operatorId",
+  });
+  // v6 (P2.6): the newest checklist per machine type and the open safety holds; filled by the next pull.
+  db.version(6).stores({
+    checklistTemplates: "id, &assetType",
+    safetyHolds: "id, assetId",
   });
   return db;
 }

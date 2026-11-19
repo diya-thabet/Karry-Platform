@@ -88,6 +88,11 @@ read; a reason outside 10 to 500 characters is `400 fieldops.release_reason_inva
 Two collections join the tablet's pull: `checklistTemplates` (the newest published version per asset type of the
 site's machines, replace-whole) and `safetyHolds` (open holds of the site's machines, replace-whole).
 
+As built (slice 4): `checklistTemplates` carries the newest version of every asset type (checklists are
+company-wide and few) and `safetyHolds` every open hold of the company, so a machine moved to another site keeps its
+hold there; both whole at every pull. The tablet keeps them in Dexie v6 (`checklistTemplates` by `assetType`,
+`safetyHolds` by `assetId`). The answer rules are shared with the tablet through `tests/vectors/checklist-answers.json`.
+
 ## Options considered
 
 1. **FieldOps owns holds (chosen).** One module for the signed facts and what they decide; Assets stays a register.

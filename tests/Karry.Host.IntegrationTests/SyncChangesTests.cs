@@ -279,6 +279,12 @@ public sealed class SyncChangesTests(SyncHost host) : IClassFixture<SyncHost>
         changes.GetProperty("nonWorkingDays").GetProperty("upserts").EnumerateArray().Select(d => $"{d.GetProperty("date").GetString()} {d.GetProperty("name").GetString()}")
             .Should().Equal("2099-05-01 Fête du travail");
         changes.GetProperty("meterStates").GetProperty("upserts").GetArrayLength().Should().Be(0, "no entry was made yet");
+        // Checklists and safety holds (P2.6): whole at every pull, empty while none is published or open.
+        foreach (var collection in new[] { "checklistTemplates", "safetyHolds" })
+        {
+            changes.GetProperty(collection).GetProperty("replace").GetBoolean().Should().BeTrue();
+            changes.GetProperty(collection).GetProperty("upserts").GetArrayLength().Should().Be(0);
+        }
         Ids(changes, "assets").Should().BeEquivalentTo([a.Excavator, a.Loader]);
         var excavator = changes.GetProperty("assets").GetProperty("upserts").EnumerateArray().Single(x => x.GetProperty("id").GetGuid() == a.Excavator);
         excavator.GetProperty("labelCode").GetString().Should().StartWith("KRY1:");

@@ -574,8 +574,13 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     {
         await using var scope = services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
-        var source = scope.ServiceProvider.GetServices<ISyncSource>().Single();
-        return (await source.ChangesAsync(new SyncScope(Device, Site), since, Ct)).Single();
+        var deltas = new List<SyncDelta>();
+        foreach (var source in scope.ServiceProvider.GetServices<ISyncSource>())
+        {
+            deltas.AddRange(await source.ChangesAsync(new SyncScope(Device, Site), since, Ct));
+        }
+
+        return deltas.Single(d => d.Name == "meterStates");
     }
 
     private async Task NothingWrittenAsync() =>

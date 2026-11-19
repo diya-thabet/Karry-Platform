@@ -15,6 +15,7 @@ const allCollections = (overrides: Partial<ChangeSet["changes"]> = {}): ChangeSe
   sites: { upserts: [{ id: site, code: "CAR-NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
   shiftPatterns: { upserts: [], removes: [] }, assets: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
   materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
+  checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true },
   ...overrides,
 });
 
@@ -107,7 +108,21 @@ describe("reference data (US-P1-OFF-03 AC1/AC2)", () => {
   });
 });
 
-describe("schema upgrade (P2.5, schemas v3 to v5)", () => {
+describe("checklists and holds (P2.6)", () => {
+  it("keeps the newest checklist per machine type and drops a released hold at the next pull", async () => {
+    const template = { id: "t2", assetType: "excavator", version: 2, required: true, items: [{ code: "brakes", texts: { fr: "Freins" }, critical: true, photoOnNotOk: true }] };
+    const hold = { id: "h1", assetId: "a1", items: ["brakes"], openedAt: "2026-11-09T06:00:00Z" };
+    await applyChanges(db, { full: true, cursor: "c1", serverTime: "2026-11-09T10:00:00Z", changes: allCollections({ checklistTemplates: { upserts: [template], removes: [], replace: true }, safetyHolds: { upserts: [hold], removes: [], replace: true } }) });
+    expect(await db.safetyHolds.where("assetId").equals("a1").count()).toBe(1);
+
+    await applyChanges(db, { full: false, cursor: "c2", serverTime: "2026-11-09T10:05:00Z", changes: { checklistTemplates: { upserts: [template], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true } } });
+
+    expect(await db.checklistTemplates.where("assetType").equals("excavator").first()).toEqual(template);
+    expect(await db.safetyHolds.count()).toBe(0);
+  });
+});
+
+describe("schema upgrade (P2.5, P2.6: schemas v3 to v6)", () => {
   it("opens a v2 database with its outbox and blobs intact and the new tables empty", async () => {
     const name = `upgrade-${String(++n)}`;
     const v2 = new Dexie(name);
@@ -124,7 +139,9 @@ describe("schema upgrade (P2.5, schemas v3 to v5)", () => {
     expect(await upgraded.meterStates.count()).toBe(0);
     expect(await upgraded.nonWorkingDays.count()).toBe(0);
     expect(await upgraded.drafts.count()).toBe(0);
-    expect(upgraded.verno).toBe(5);
+    expect(await upgraded.checklistTemplates.count()).toBe(0);
+    expect(await upgraded.safetyHolds.count()).toBe(0);
+    expect(upgraded.verno).toBe(6);
     await upgraded.delete();
   });
 });
