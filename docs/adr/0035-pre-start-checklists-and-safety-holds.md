@@ -91,6 +91,12 @@ no Maintenance Manager role). A hold outside the caller's sites, or of another c
 read; a reason outside 10 to 500 characters is `400 fieldops.release_reason_invalid`; a second release is
 `409 fieldops.hold_released`. The ledger keeps the reason and the person (`fieldops.safety_hold_released.v1`).
 
+As built (slice 6): `GET /api/v1/fieldops/holds?status=open|released|all&siteId=` lists the holds of the caller's
+sites (newest first, at most 200, open by default) with the machine's code and the release, if any. It needs
+`fieldops.entries.read`, the permission that reads the same sites' shift entries; releasing still needs
+`fieldops.holds.release`. The portal shows them under Machines → "Machines held as unsafe", with a release dialog
+that asks for the reason first.
+
 ### 6. Sync
 
 Two collections join the tablet's pull: `checklistTemplates` (the newest published version per asset type of the

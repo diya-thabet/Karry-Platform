@@ -8,6 +8,7 @@ import { useAccess, useApi, useCurrentTenant } from "../app/api";
 import { VersionConflict } from "../app/VersionConflict";
 import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { useRecordDraft } from "../app/recordDraft";
+import { HoldsReadPermission } from "../holds/HoldsPage";
 import { Trail } from "../shell/Trail";
 import { todayIn } from "../sites/api";
 import { LabelPrintDialog, LabelPanel, MetersPanel, PhotoPanel, PlacePanel } from "./AssetPanels";
@@ -74,12 +75,21 @@ export function AssetsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("portal.nav.assets")}
-        actions={can(AssetsManagePermission) && (
+        actions={(can(AssetsManagePermission) || can(HoldsReadPermission)) && (
           <>
-            <Button variant="secondary" disabled={rows.length === 0} onClick={() => { setPrinting(true); }}>{t("portal.assets.printLabels")}</Button>
-            <Button asChild>
-              <Link to="/assets/new">{t("portal.assets.new")}</Link>
-            </Button>
+            {can(HoldsReadPermission) && (
+              <Button variant="secondary" asChild>
+                <Link to="/assets/holds">{t("portal.holds.title")}</Link>
+              </Button>
+            )}
+            {can(AssetsManagePermission) && (
+              <>
+                <Button variant="secondary" disabled={rows.length === 0} onClick={() => { setPrinting(true); }}>{t("portal.assets.printLabels")}</Button>
+                <Button asChild>
+                  <Link to="/assets/new">{t("portal.assets.new")}</Link>
+                </Button>
+              </>
+            )}
           </>
         )}
       />

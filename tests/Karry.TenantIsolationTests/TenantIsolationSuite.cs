@@ -515,7 +515,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist"],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString()],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }

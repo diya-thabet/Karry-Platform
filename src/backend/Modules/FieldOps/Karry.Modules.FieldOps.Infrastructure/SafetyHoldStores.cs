@@ -34,6 +34,34 @@ internal sealed class SafetyHoldStore(FieldOpsDbContext db) : ISafetyHoldStore
 
     public Task<bool> ReleasedAsync(SafetyHoldId id, CancellationToken cancellationToken) => db.SafetyHoldReleases.AnyAsync(r => r.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<(SafetyHold Hold, SafetyHoldRelease? Release)>> SearchAsync(HoldQuery query, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var holds = db.SafetyHolds.AsNoTracking();
+        if (query.Sites is { } sites)
+        {
+            var allowed = sites.ToList();
+            holds = holds.Where(h => allowed.Contains(h.SiteId));
+        }
+
+        if (query.SiteId is { } site)
+        {
+            holds = holds.Where(h => h.SiteId == site);
+        }
+
+        var rows = from h in holds
+                   join r in db.SafetyHoldReleases.AsNoTracking() on h.Id equals r.Id into releases
+                   from r in releases.DefaultIfEmpty()
+                   select new { Hold = h, Release = r };
+        if (query.Released is { } released)
+        {
+            rows = released ? rows.Where(x => x.Release != null) : rows.Where(x => x.Release == null);
+        }
+
+        var found = await rows.OrderByDescending(x => x.Hold.OpenedAt).Take(query.Take).ToListAsync(cancellationToken).ConfigureAwait(false);
+        return [.. found.Select(x => (x.Hold, (SafetyHoldRelease?)x.Release))];
+    }
+
     public async Task<bool> TryAddAsync(SafetyHoldRelease release, CancellationToken cancellationToken)
     {
         db.SafetyHoldReleases.Add(release);

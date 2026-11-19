@@ -7448,6 +7448,53 @@
         }
       }
     },
+    "/api/v1/fieldops/holds": {
+      "get": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "ListHolds",
+        "parameters": [
+          {
+            "name": "siteId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/fieldops/holds/{holdId}/release": {
       "post": {
         "tags": [
@@ -9535,6 +9582,21 @@
         },
         "description": "A declared flag: its default, this environment's configured value and the platform-wide value (null when not set).\nCompany and user overrides come before these."
       },
+      "HoldListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HoldResponse"
+            }
+          }
+        },
+        "description": "Held machines, newest first."
+      },
       "HoldReleaseResponse": {
         "required": [
           "holdId",
@@ -9568,6 +9630,69 @@
           }
         },
         "description": "A released hold (ADR-0035 §5): when, by whom and why the machine may run again."
+      },
+      "HoldResponse": {
+        "required": [
+          "id",
+          "assetId",
+          "assetCode",
+          "siteId",
+          "submissionId",
+          "items",
+          "openedAt",
+          "openedBy",
+          "release"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "siteId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "submissionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "openedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "release": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/HoldReleaseResponse"
+              }
+            ]
+          }
+        },
+        "description": "A hold (ADR-0035 §4): the machine (and its code), the site where the checklist was signed, the critical items answered\nNot OK, when and by whom; `release` once a manager released it."
       },
       "HttpValidationProblemDetails": {
         "type": "object",

@@ -1508,6 +1508,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fieldops/holds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListHolds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fieldops/holds/{holdId}/release": {
         parameters: {
             query?: never;
@@ -2045,6 +2061,10 @@ export interface components {
             /** Format: date-time */
             platformChangedAt: null | string;
         };
+        /** @description Held machines, newest first. */
+        HoldListResponse: {
+            items: components["schemas"]["HoldResponse"][];
+        };
         /** @description A released hold (ADR-0035 §5): when, by whom and why the machine may run again. */
         HoldReleaseResponse: {
             /** Format: uuid */
@@ -2055,6 +2075,27 @@ export interface components {
             releasedAt: string;
             releasedBy: null | string;
             reason: string;
+        };
+        /**
+         * @description A hold (ADR-0035 §4): the machine (and its code), the site where the checklist was signed, the critical items answered
+         *     Not OK, when and by whom; `release` once a manager released it.
+         */
+        HoldResponse: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            assetId: string;
+            assetCode: null | string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: uuid */
+            submissionId: string;
+            items: string[];
+            /** Format: date-time */
+            openedAt: string;
+            /** Format: uuid */
+            openedBy: string;
+            release: null | components["schemas"]["HoldReleaseResponse"];
         };
         HttpValidationProblemDetails: {
             type?: null | string;
@@ -8690,6 +8731,38 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListHolds: {
+        parameters: {
+            query?: {
+                siteId?: string;
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HoldListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

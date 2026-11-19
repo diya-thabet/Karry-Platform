@@ -3,6 +3,7 @@ using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.SharedKernel.Authorization;
@@ -10,6 +11,7 @@ using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Karry.Modules.FieldOps.Tests;
 
@@ -35,6 +37,9 @@ public sealed class FieldOpsHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    /// <summary>The machines the host knows, by ID.</summary>
+    public KnownAssets Assets { get; } = new();
+
     public async ValueTask InitializeAsync()
     {
         server = await PostgresServer.StartAsync();
@@ -48,6 +53,8 @@ public sealed class FieldOpsHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new FieldOpsModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
+        // The Assets module is not composed here: machines are unknown (no code) unless a test adds them.
+        builder.Services.AddSingleton<IAssetDirectory>(Assets);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -71,4 +78,12 @@ public sealed class FieldOpsHost : IAsyncLifetime
             await server.DisposeAsync();
         }
     }
+}
+
+/// <summary>Machines for the FieldOps host, in place of the Assets module.</summary>
+public sealed class KnownAssets : IAssetDirectory
+{
+    public System.Collections.Concurrent.ConcurrentDictionary<Guid, AssetSummary> All { get; } = new();
+
+    public Task<AssetSummary?> FindAsync(Guid assetId, CancellationToken cancellationToken) => Task.FromResult(All.GetValueOrDefault(assetId));
 }

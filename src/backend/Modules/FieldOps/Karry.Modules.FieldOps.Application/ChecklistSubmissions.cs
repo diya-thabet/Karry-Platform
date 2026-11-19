@@ -166,7 +166,16 @@ public interface ISafetyHoldStore
 
     /// <summary>Saves the release; false when the hold was released meanwhile.</summary>
     Task<bool> TryAddAsync(SafetyHoldRelease release, CancellationToken cancellationToken);
+
+    /// <summary>Holds matching the query with their release, if any, newest first.</summary>
+    Task<IReadOnlyList<(SafetyHold Hold, SafetyHoldRelease? Release)>> SearchAsync(HoldQuery query, CancellationToken cancellationToken);
 }
+
+/// <summary>A checked search of holds; <c>Sites</c> null means every site of the company, <c>Released</c> null both states.</summary>
+public sealed record HoldQuery(IReadOnlySet<Guid>? Sites, Guid? SiteId, bool? Released, int Take);
+
+/// <summary>A hold as the portal lists it: the machine's code with it.</summary>
+public sealed record HoldView(SafetyHold Hold, SafetyHoldRelease? Release, string? AssetCode);
 
 /// <summary>A release as the portal sends it: why the machine may run again.</summary>
 public sealed record ReleaseHold(string? Reason);
@@ -175,8 +184,41 @@ public sealed record ReleaseHold(string? Reason);
 /// Releasing a hold (ADR-0035 §5, US-P2-FO-02 AC3): a manager with <c>fieldops.holds.release</c> on the hold's site
 /// decides, with a reason of 10 to 500 characters; the decision and its author are ledgered with the release.
 /// </summary>
-public sealed class SafetyHolds(ISafetyHoldStore store, ICallerAccess caller, TimeProvider clock)
+public sealed class SafetyHolds(ISafetyHoldStore store, IAssetDirectory assets, ICallerAccess caller, TimeProvider clock)
 {
+    public const int MaxListed = 200;
+
+    public static readonly Error StatusInvalid = Error.Validation("fieldops.hold_status_invalid", "The status is open, released or all.");
+
+    /// <summary>
+    /// The holds of the caller's sites (those where they read shift entries), open ones by default, newest first, with the
+    /// machine's code (P2.6 slice 6: the portal's list of held machines).
+    /// </summary>
+    public async Task<Result<IReadOnlyList<HoldView>>> ListAsync(Guid? siteId, string? status, CancellationToken cancellationToken)
+    {
+        if (status is not (null or "open" or "released" or "all"))
+        {
+            return StatusInvalid;
+        }
+
+        bool? released = status switch
+        {
+            null or "open" => false,
+            "released" => true,
+            "all" => null,
+            _ => throw new InvalidOperationException(),
+        };
+        var scope = caller.Current.ScopeOf(FieldOpsPermissions.EntriesRead);
+        var found = await store.SearchAsync(new HoldQuery(scope.TenantWide ? null : scope.Sites, siteId, released, MaxListed), cancellationToken).ConfigureAwait(false);
+        var views = new List<HoldView>();
+        foreach (var (hold, release) in found)
+        {
+            views.Add(new HoldView(hold, release, (await assets.FindAsync(hold.AssetId, cancellationToken).ConfigureAwait(false))?.Code));
+        }
+
+        return views;
+    }
+
     public static readonly Error NotFound = Error.NotFound("fieldops.hold_not_found", "No such hold on your sites.");
 
     public static readonly Error AlreadyReleased = Error.Conflict("fieldops.hold_released", "This hold is already released.");
