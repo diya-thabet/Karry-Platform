@@ -270,4 +270,23 @@ describe("the pre-start checklist on the tablet (US-P2-FO-02, P2.6)", () => {
     expect(await db.outbox.count()).toBe(0);
     await db.delete();
   });
+
+  it("TC-P2-FO-010: on a failed meter no reading is asked, the start is the last known end, and the start is signed", async () => {
+    const { db, device } = await tablet();
+    await db.meters.put({ id: meter, assetId: asset, kind: "hours", unit: "h", status: "failed" });
+    const { onDone } = await open(db, device);
+    await chooseMachine();
+    await takeThePhoto();
+
+    expect(screen.getByRole("note")).toHaveTextContent("Ce compteur est en panne : aucune valeur n’est demandée. Le début est la dernière fin connue (1200.0 h)");
+    expect(screen.queryByLabelText("Valeur de début (h)")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier et signer" }));
+    expect(await screen.findByRole("region", { name: "pad" })).toHaveTextContent("1200.0 h (estimé)");
+    fireEvent.click(screen.getByRole("button", { name: "signer" }));
+
+    await waitFor(() => { expect(onDone).toHaveBeenCalled(); });
+    const [command] = await db.outbox.toArray();
+    expect((command?.payload as { record: unknown }).record).toMatchObject({ meterId: meter, startValue: "1200.0" });
+    await db.delete();
+  });
 });

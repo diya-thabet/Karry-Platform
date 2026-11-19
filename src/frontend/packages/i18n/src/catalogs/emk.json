@@ -1288,5 +1288,12 @@
   "portal.meterEvents.addPhotos": "Jaw fara a kan",
   "portal.meterEvents.save": "Ko kɛra mara",
   "portal.meterEvents.saved": "Ko kɛra maralen don",
-  "portal.meterEvents.recordedBy": "Min y'a sɛbɛn"
+  "portal.meterEvents.recordedBy": "Min y'a sɛbɛn",
+  "field.estimated": "jateminɛ",
+  "field.start.failedMeter": "Jatebaga in tiɲɛna: jate si tɛ ɲininka. Daminɛ ye laban min dɔnna ({value} {unit}), sɛbɛnni bɛna jateminɛ baara waati la min bɛ fɔ laban na.",
+  "field.end.failedMeter": "Jatebaga in tiɲɛna: masin baara waati fɔ. Laban bɛ jate, sɛbɛnni bɛ taamasiyɛn ko jateminɛ.",
+  "field.end.operatingTime": "Baara waati ({unit})",
+  "field.end.distance": "Taama janya ({unit})",
+  "field.end.operatingHelp": "A bɛ fara daminɛ kan ka laban sɔrɔ, tɔɲɔ kelen tɛmɛbali.",
+  "field.end.estimatedEnd": "Laban jateminɛ: {value} {unit}"
 }

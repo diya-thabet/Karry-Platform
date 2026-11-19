@@ -5,7 +5,7 @@ import { Button, TextField } from "@karry/ui";
 import { PhotoCapture, preloadParts, SignStep } from "./lazyParts";
 import { PartBoundary } from "./PartBoundary";
 import type { Photo } from "./camera";
-import { assessEnd, type ActiveShift } from "./endRules";
+import { assessEnd, estimatedEndValue, type ActiveShift } from "./endRules";
 import { meterText, stoppageReasons, type Stoppage, type StoppageReason } from "./shiftRules";
 import { signEnd } from "./signShiftEntry";
 import type { FormEnvironment } from "./StartShift";
@@ -42,7 +42,9 @@ export function EndShift({ environment, active, onDone, onCancel }: {
   useEffect(() => { preloadParts(); }, []);
 
   const { machine, open, unit } = active;
-  const assessment = assessEnd({ value: value.trim(), meterKind: active.meterKind, startedAt: open.startedAt, startValue: open.startValue, endedAt: now() });
+  // Failed-meter mode (US-P2-AST-02): the operator gives the operating time (or distance); the end is the start plus it.
+  const endValue = active.meterFailed ? estimatedEndValue(open.startValue, value.trim()) ?? "" : value.trim();
+  const assessment = assessEnd({ value: endValue, meterKind: active.meterKind, startedAt: open.startedAt, startValue: open.startValue, endedAt: now() });
   const stoppagesValid = stoppages.every(validStoppage);
   const ready = photo !== null && assessment.block === null && stoppagesValid;
   const delta = assessment.deltaTenths === null ? null : `${assessment.deltaTenths < 0 ? "-" : ""}${meterText(Math.abs(assessment.deltaTenths))}`;
@@ -56,7 +58,7 @@ export function EndShift({ environment, active, onDone, onCancel }: {
     setFailed(false);
     try {
       await signEnd(db, { userId: session.userId, appVersion: environment.appVersion, now, position: environment.position }, {
-        rootId: open.entryId, version: open.version + 1, endedAt: now(), endValue: value.trim(), fuelEndPercent: fuel, photo, signature,
+        rootId: open.entryId, version: open.version + 1, endedAt: now(), endValue, fuelEndPercent: fuel, photo, signature,
         stoppages: stoppages.filter(validStoppage).map((s): Stoppage => ({ reason: s.reason, minutes: Number(s.minutes) })),
         ...(remarks.trim() === "" ? {} : { remarks: remarks.trim() }),
       });
@@ -106,9 +108,13 @@ export function EndShift({ environment, active, onDone, onCancel }: {
               )}
           {photo && !capturing && <p className="flex items-center gap-2 font-medium text-success"><CircleCheck aria-hidden className="size-5" />{t("field.start.photoTaken")}</p>}
 
-          <TextField label={t("field.end.value", { unit })} description={t("field.start.valueHelp")} inputMode="decimal" autoComplete="off"
+          {active.meterFailed && <p role="note" className="rounded-xl border-[length:var(--karry-border-width)] border-warning bg-warning-soft p-4 text-lg font-medium">{t("field.end.failedMeter")}</p>}
+          <TextField
+            label={active.meterFailed ? t(active.meterKind === "km" ? "field.end.distance" : "field.end.operatingTime", { unit }) : t("field.end.value", { unit })}
+            description={active.meterFailed ? t("field.end.operatingHelp") : t("field.start.valueHelp")} inputMode="decimal" autoComplete="off"
             value={value} onChange={(e) => { setValue(e.target.value); }} className="text-2xl" />
-          {delta !== null && <p className="text-xl font-semibold">{t("field.end.delta", { delta, unit })}</p>}
+          {active.meterFailed && endValue !== "" && <p className="text-xl font-semibold">{t("field.end.estimatedEnd", { value: endValue, unit })}</p>}
+          {!active.meterFailed && delta !== null && <p className="text-xl font-semibold">{t("field.end.delta", { delta, unit })}</p>}
           {value.trim() !== "" && assessment.block !== null && (
             <p role="alert" className="font-medium text-danger">{t(`field.end.block.${assessment.block}`, { start: open.startValue, unit })}</p>
           )}
@@ -162,7 +168,7 @@ export function EndShift({ environment, active, onDone, onCancel }: {
               <dl className="grid grid-cols-2 gap-1">
                 <dt>{t("field.start.machine")}</dt><dd className="font-semibold">{machine.code}</dd>
                 <dt>{t("field.start.summaryValue")}</dt><dd className="font-semibold">{open.startValue} {unit}</dd>
-                <dt>{t("field.end.summaryValue")}</dt><dd className="font-semibold">{value.trim()} {unit}</dd>
+                <dt>{t("field.end.summaryValue")}</dt><dd className="font-semibold">{endValue} {unit}{active.meterFailed ? ` (${t("field.estimated")})` : ""}</dd>
                 <dt>{t("field.end.summaryDelta")}</dt><dd className="font-semibold">{delta} {unit}</dd>
                 <dt>{t("field.start.summaryFuel")}</dt><dd className="font-semibold">{fuel} %</dd>
               </dl>

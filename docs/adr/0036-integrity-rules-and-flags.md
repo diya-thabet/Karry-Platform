@@ -98,6 +98,13 @@ JPEG, PNG or WebP of at most 5 MB, kept under the company's prefix by its SHA-25
 The portal records events on the meter of a machine, in place of the old "mark failed / working" buttons; the status
 endpoint stays for the API but the screens change a meter only through events.
 
+As built (slice 4): the tablets already pull each meter's status (`meters`). On a failed meter the tablet records the
+entry on it (a machine with no working meter is no longer "without meter"), asks no start reading (the start is the
+last known end, else 0.0) and, at the end, asks the operating time (hours) or distance (km); the end is the start plus
+it. The signed record keeps its shape (the shared vectors are unchanged); the server marks the entry `estimated`
+because the meter was failed at the start, Δ is checked as for any entry, and continuity does not compare estimated
+segments. A REPAIRED event makes the meter count again, and the next start asks a reading.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

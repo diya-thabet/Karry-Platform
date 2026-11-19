@@ -14,7 +14,7 @@ import { findMachine, type QrScanner } from "./machines";
 import { readMeterState, type MeterState } from "./meterState";
 import { shiftAt, type ResolvedShift } from "./shifts";
 import { signStart, type Position } from "./signShiftEntry";
-import { assessStart, entryMeter, hasRunningSegment, unusualJumpHours } from "./startRules";
+import { assessStart, entryMeter, estimatedStartValue, hasRunningSegment, unusualJumpHours } from "./startRules";
 import type { Session } from "./unlock";
 
 /** What a form needs from the app around it: the tablet, who unlocked it, and the browser's camera and position. */
@@ -171,8 +171,11 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
     });
   };
   const unit = meter?.unit ?? "";
+  // Failed-meter mode (US-P2-AST-02): no reading; the start is the last known end, and the entry is estimated.
+  const meterFailed = meter?.status === "failed";
+  const startValue = meterFailed ? estimatedStartValue(state) : value.trim();
   const assessment = meter
-    ? assessStart({ value: value.trim(), meterKind: meter.kind, state, operatorId: session.userId, runningElsewhere: context.runningElsewhere })
+    ? assessStart({ value: value.trim(), meterKind: meter.kind, state, operatorId: session.userId, runningElsewhere: context.runningElsewhere, failed: meterFailed })
     : null;
   const blockedBefore = assessment?.block === "machineInUse" || assessment?.block === "alreadyRunning";
   const reasonMissing = assessment?.needsReason === true && remarks.trim() === "";
@@ -190,7 +193,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
     setFailed(false);
     try {
       await signStart(db, { userId: session.userId, appVersion: environment.appVersion, now, position: environment.position }, {
-        assetId: machine.id, meterId: meter.id, startedAt: now(), startValue: value.trim(), fuelStartPercent: fuel, photo, signature,
+        assetId: machine.id, meterId: meter.id, startedAt: now(), startValue, fuelStartPercent: fuel, photo, signature,
         ...(remarks.trim() === "" ? {} : { remarks: remarks.trim() }),
         ...(handoverFrom === null ? {} : { previousRootId: handoverFrom }),
       });
@@ -265,8 +268,12 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
               )}
           {photo && !capturing && <p className="flex items-center gap-2 font-medium text-success"><CircleCheck aria-hidden className="size-5" />{t("field.start.photoTaken")}</p>}
 
-          <TextField label={t("field.start.value", { unit })} description={t("field.start.valueHelp")} inputMode="decimal" autoComplete="off"
-            value={value} onChange={(e) => { setValue(e.target.value); }} className="text-2xl" />
+          {meterFailed
+            ? <p role="note" className="rounded-xl border-[length:var(--karry-border-width)] border-warning bg-warning-soft p-4 text-lg font-medium">{t("field.start.failedMeter", { value: startValue, unit })}</p>
+            : (
+                <TextField label={t("field.start.value", { unit })} description={t("field.start.valueHelp")} inputMode="decimal" autoComplete="off"
+                  value={value} onChange={(e) => { setValue(e.target.value); }} className="text-2xl" />
+              )}
           {value.trim() !== "" && assessment?.block === "value" && <p role="alert" className="font-medium text-danger">{t("field.start.block.value")}</p>}
           {assessment?.block === "belowPrevious" && (
             <p role="alert" className="font-medium text-danger">{t("field.start.block.belowPrevious", { value: state.lastEnd?.value ?? "", unit })}</p>
@@ -297,7 +304,7 @@ export function StartShift({ environment, onDone, onCancel }: { environment: For
             summary={(
               <dl className="grid grid-cols-2 gap-1">
                 <dt>{t("field.start.machine")}</dt><dd className="font-semibold">{machine.code}</dd>
-                <dt>{t("field.start.summaryValue")}</dt><dd className="font-semibold">{value.trim()} {unit}</dd>
+                <dt>{t("field.start.summaryValue")}</dt><dd className="font-semibold">{startValue} {unit}{meterFailed ? ` (${t("field.estimated")})` : ""}</dd>
                 <dt>{t("field.start.summaryFuel")}</dt><dd className="font-semibold">{fuel} %</dd>
               </dl>
             )} />

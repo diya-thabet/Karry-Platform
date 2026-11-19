@@ -106,4 +106,27 @@ describe("ending a shift on the tablet (US-P2-FO-04, P2.5)", () => {
     expect(screen.getByRole("button", { name: "Vérifier et signer" })).toBeDisabled();
     await db.delete();
   });
+
+  it("TC-P2-FO-010: on a failed meter it asks the operating time and signs the start plus it as the end", async () => {
+    const { db, device } = await tablet();
+    await db.meters.put({ id: "0192f0c1-0000-7000-8000-000000000b01", assetId: "0192f0c1-0000-7000-8000-000000000a01", kind: "hours", unit: "h", status: "failed" });
+    const { onDone } = await open(db, device);
+    await takeThePhoto();
+
+    expect(screen.getByRole("note")).toHaveTextContent("Ce compteur est en panne : donnez le temps de marche de la machine.");
+    expect(screen.queryByLabelText("Valeur de fin (h)")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Temps de marche (h)"), { target: { value: "7.5" } });
+    expect(screen.getByText("Fin estimée : 107.5 h")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Temps de marche (h)"), { target: { value: "9" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Le compteur a tourné plus longtemps que le poste");
+    fireEvent.change(screen.getByLabelText("Temps de marche (h)"), { target: { value: "7.5" } });
+    fireEvent.click(screen.getByRole("button", { name: "Vérifier et signer" }));
+    expect(await screen.findByRole("region", { name: "pad" })).toHaveTextContent("107.5 h (estimé)");
+    fireEvent.click(screen.getByRole("button", { name: "signer" }));
+
+    await waitFor(() => { expect(onDone).toHaveBeenCalled(); });
+    const [command] = await db.outbox.toArray();
+    expect((command?.payload as { record: unknown }).record).toMatchObject({ rootId: entry, version: 2, endValue: "107.5" });
+    await db.delete();
+  });
 });

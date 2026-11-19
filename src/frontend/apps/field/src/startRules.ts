@@ -28,6 +28,8 @@ export function assessStart(input: {
   operatorId: string;
   /** This operator's running segment on any machine, if any. */
   runningElsewhere: boolean;
+  /** The meter is failed (US-P2-AST-02): no reading is asked, the start is the last known end (an estimate). */
+  failed?: boolean;
 }): StartAssessment {
   const { state } = input;
   if (state.open !== null) {
@@ -36,6 +38,10 @@ export function assessStart(input: {
 
   if (input.runningElsewhere) {
     return { block: "alreadyRunning", needsReason: false };
+  }
+
+  if (input.failed === true) {
+    return { block: null, needsReason: false };
   }
 
   const tenths = meterTenths(input.value);
@@ -51,10 +57,21 @@ export function assessStart(input: {
   return { block: null, needsReason: input.meterKind === "hours" && previous !== null && tenths - previous > unusualJumpHours * 10 };
 }
 
-/** The meter a shift entry is recorded on: the machine's working hour meter, else its working kilometre meter. */
+/**
+ * The meter a shift entry is recorded on: the machine's working hour meter, else its working kilometre meter, else a
+ * failed one (hours first), on which the entry is estimated from the operating time (US-P2-AST-02, failed-meter mode).
+ */
 export function entryMeter(meters: readonly MeterRow[]): MeterRow | null {
-  const working = meters.filter((m) => m.status === "ok");
-  return working.find((m) => m.kind === "hours") ?? working.find((m) => m.kind === "km") ?? null;
+  const pick = (status: string) => {
+    const usable = meters.filter((m) => m.status === status);
+    return usable.find((m) => m.kind === "hours") ?? usable.find((m) => m.kind === "km") ?? null;
+  };
+  return pick("ok") ?? pick("failed");
+}
+
+/** The start of an entry on a failed meter: its last known end, or zero when the tablet knows none (an estimate either way). */
+export function estimatedStartValue(state: MeterState): string {
+  return state.lastEnd?.value ?? "0.0";
 }
 
 /** Whether this operator has a segment running anywhere, as the tablet knows it (pulled states and its own commands). */

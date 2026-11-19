@@ -1288,5 +1288,12 @@
   "portal.meterEvents.addPhotos": "ߖߊߥ ߝߊߙߊ ߊ ߞߊ߲",
   "portal.meterEvents.save": "ߞߏ ߞߍߙߊ ߡߊߙߊ",
   "portal.meterEvents.saved": "ߞߏ ߞߍߙߊ ߡߊߙߊߟߋ߲ ߘߏ߲",
-  "portal.meterEvents.recordedBy": "Min ߦߊ ߛߍߓߍ߲"
+  "portal.meterEvents.recordedBy": "Min ߦߊ ߛߍߓߍ߲",
+  "field.estimated": "ߖߊߕߋߡߌߣߍ",
+  "field.start.failedMeter": "ߖߊߕߋߓߊߜ߭ߊ ߌ߲ ߕߌߢߍߣߊ: ߖߊߕߋ ߛߌ ߕߍ ߢߌߣߌ߲ߞߊ. ߘߊߡߌߣߍ ߦߋ ߟߊߓߊ߲ min ߘߐ߲ߣߊ ({value} {unit})߸ ߛߍߓߍ߲ߣߌ ߓߍߣߊ ߖߊߕߋߡߌߣߍ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߟߊ min ߓߍ ߝߐ ߟߊߓߊ߲ ߣߊ.",
+  "field.end.failedMeter": "ߖߊߕߋߓߊߜ߭ߊ ߌ߲ ߕߌߢߍߣߊ: ߡߊߛߌ߲ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߝߐ. ߟߊߓߊ߲ ߓߍ ߖߊߕߋ߸ ߛߍߓߍ߲ߣߌ ߓߍ ߕߊ߯ߡߊߛߌߦߍ߲ ߞߏ ߖߊߕߋߡߌߣߍ.",
+  "field.end.operatingTime": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ({unit})",
+  "field.end.distance": "ߕߊ߯ߡߊ ߖߊߢߊ ({unit})",
+  "field.end.operatingHelp": "ߊ ߓߍ ߝߊߙߊ ߘߊߡߌߣߍ ߞߊ߲ ߞߊ ߟߊߓߊ߲ ߛߐߙߐ߸ ߕߐߢߐ ߞߋߟߋ߲ ߕߍߡߍߓߊߟߌ.",
+  "field.end.estimatedEnd": "ߟߊߓߊ߲ ߖߊߕߋߡߌߣߍ: {value} {unit}"
 }
