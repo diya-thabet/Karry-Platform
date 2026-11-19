@@ -17,8 +17,12 @@ function rotateServerKey(): number {
   return Number(output.trim());
 }
 
-/** How many of the `count` newest received envelopes the portal's audit trail shows "Vérifiée". */
+/**
+ * How many of the `count` newest received envelopes the portal's audit trail shows "Vérifiée". The page is opened anew
+ * each time: applying the same filters again shows the list already loaded, without the envelopes received since.
+ */
 async function verifiedEnvelopes(page: Page, count: number): Promise<number> {
+  await page.goto(`${portal("demo-carriere-b")}/audit`);
   await page.getByLabel("Événement").fill("trust.envelope_received.v1");
   await page.getByRole("button", { name: "Appliquer les filtres" }).click();
   let verified = 0;
@@ -46,7 +50,6 @@ test.describe("signatures across a server key rotation (P2.3 carried to P2.5, AD
     // Before: a start and an end, sent and countersigned (the job runs every 30 seconds in Karry.Workers).
     await startAndEnd(tablet, meterNow());
     await expect(outbox.getByText("Tout est envoyé")).toBeVisible({ timeout: 180_000 });
-    await page.goto(`${portal("demo-carriere-b")}/audit`);
     await expect.poll(() => verifiedEnvelopes(page, 2), { timeout: 120_000, intervals: [5_000] }).toBe(2);
 
     const version = rotateServerKey();
