@@ -8,7 +8,7 @@ namespace Karry.Modules.FieldOps.Infrastructure;
 
 public static class FieldOpsInfrastructure
 {
-    /// <summary>Shift entry storage, the handlers of the tablets' shift commands (ADR-0034) and the meter states they pull (P2.5).</summary>
+    /// <summary>Shift entries, checklists and safety holds, the handlers of the tablets' commands (ADR-0034, ADR-0035) and the meter states they pull.</summary>
     public static IServiceCollection AddFieldOpsInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -18,9 +18,13 @@ public static class FieldOpsInfrastructure
         services.AddScoped<EntryReading>();
         services.AddScoped<IChecklistTemplateStore, ChecklistTemplateStore>();
         services.AddScoped<ChecklistTemplates>();
+        services.AddScoped<IChecklistSubmissionStore, ChecklistSubmissionStore>();
+        services.AddScoped<ISafetyHoldStore, SafetyHoldStore>();
+        services.AddScoped<SafetyHolds>();
         services.AddScoped<ISyncSource, MeterStatesSync>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);
         services.AddSyncCommandHandler<EndShiftEntry>(EndShiftEntry.Name);
+        services.AddSyncCommandHandler<SubmitChecklist>(SubmitChecklist.Name);
         return services;
     }
 }

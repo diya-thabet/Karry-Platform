@@ -23,3 +23,15 @@ internal sealed class MeterDirectory(AssetsDbContext db) : IMeterDirectory
             [.. found.Asset.Sites.OrderBy(s => s.From).Select(s => new AssetSiteAssignment(s.SiteId, s.From))]);
     }
 }
+
+/// <summary>Machines for other modules (ADR-0035): the machine, its type and its site history.</summary>
+internal sealed class AssetDirectory(AssetsDbContext db) : IAssetDirectory
+{
+    public async Task<AssetSummary?> FindAsync(Guid assetId, CancellationToken cancellationToken)
+    {
+        var asset = await db.Assets.AsNoTracking().SingleOrDefaultAsync(a => a.Id == new AssetId(assetId), cancellationToken).ConfigureAwait(false);
+        return asset is null
+            ? null
+            : new AssetSummary(assetId, asset.Code, asset.Type, [.. asset.Sites.OrderBy(s => s.From).Select(s => new AssetSiteAssignment(s.SiteId, s.From))]);
+    }
+}

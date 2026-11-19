@@ -48,6 +48,13 @@ evidence, captures}`. The server checks the shape and the answers against the te
 answered once; a photo where the version asks for one); a submission naming a version the server does not know is
 refused (`fieldops.checklist_invalid`), a version older than the newest is accepted as it is (TC-P2-FO-013).
 
+As built (slice 3): the record is exactly `{rootId, version: 1, templateId, templateVersion, assetId, submittedAt,
+answers}` with each answer `{item, answer, photo?}`; a photo is required on a Not OK where the version asks for one
+and accepted only with a Not OK. The template must belong to the machine's type (`fieldops.checklist_invalid`
+otherwise), an unknown machine is `fieldops.asset_unknown`, a second submission of the same `rootId` is
+`fieldops.checklist_exists`. Stored in `fieldops.checklist_submissions` (append-only, RLS) with the site of the
+sending tablet and the operator from the envelope.
+
 ### 4. A critical Not OK opens a hold, in the same transaction
 
 Storing a submission with a critical Not OK opens a hold on the asset (`fieldops.safety_holds`, append-only events:
@@ -58,6 +65,11 @@ opened by a submission, released by a decision) and raises `asset_marked_unsafe`
 - **the server** still stores a start signed on it (it may have been signed before the hold arrived) and flags it
   `ASSET_UNSAFE` for the controller (ADR-0034's rule: flag, never refuse).
 
+As built (slice 3): a hold is held from the checklist's `submittedAt` until its release's time, so a start is
+flagged by when it was signed, not by when it arrived. The submission itself comes back as a conflict flagged
+`ASSET_UNSAFE` so the tablet's history shows it. Holds and releases are separate append-only tables
+(`fieldops.safety_holds`, `fieldops.safety_hold_releases`); a release has the hold's ID, so a hold is released once.
+
 ### 5. Releasing a hold is a manager decision, ledgered
 
 `POST /api/v1/fieldops/holds/{holdId}/release {reason}` with the permission `fieldops.holds.release` (site scope;
@@ -65,6 +77,11 @@ Site Manager and Maintenance Manager by default): the decision, its author and r
 release event, in one transaction; the reason is required (10–500 characters). "Signed" in the sub-phase card means
 this: the portal user is authenticated, the decision is ledgered under their name (the portal has no device key).
 Without the permission: `403` (TC-P2-FO-014).
+
+As built (slice 3): the permission is held by Tenant Admin, Site Manager and Maintenance Planner (the catalogue has
+no Maintenance Manager role). A hold outside the caller's sites, or of another company, is `404` before the body is
+read; a reason outside 10 to 500 characters is `400 fieldops.release_reason_invalid`; a second release is
+`409 fieldops.hold_released`. The ledger keeps the reason and the person (`fieldops.safety_hold_released.v1`).
 
 ### 6. Sync
 

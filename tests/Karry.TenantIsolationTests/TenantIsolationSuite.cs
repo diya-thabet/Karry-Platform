@@ -68,7 +68,12 @@ public sealed class IsolationHost : IAsyncLifetime
         AEntry = await SeedShiftEntryAsync(A.Id, ASite, AAsset, AMeter, AEnvelope, ADevice);
         // Pre-start checklists (P2.6): A's excavator checklist, whose item text B must never read.
         await SeedChecklistAsync(A.Id);
+        // Safety holds (P2.6): an open hold on A's machine, which B must never release.
+        AHold = await SeedHoldAsync(A.Id, ASite, AAsset);
     }
+
+    /// <summary>ID of an open safety hold on tenant A's machine.</summary>
+    public Guid AHold { get; private set; }
 
     /// <summary>The asset type of tenant A's checklist (B asks for the same type: it must get its own, never A's).</summary>
     public const string AChecklistType = "excavator";
@@ -259,6 +264,24 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(AChecklistType);
         await insert.ExecuteNonQueryAsync();
+    }
+
+    private async Task<Guid> SeedHoldAsync(Guid tenant, Guid site, Guid asset)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO fieldops.safety_holds (id, tenant_id, asset_id, site_id, submission_id, items, opened_at, opened_by)
+            VALUES ($1, $2, $3, $4, gen_random_uuid(), ARRAY['brakes'], now(), gen_random_uuid())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(asset);
+        insert.Parameters.AddWithValue(site);
+        await insert.ExecuteNonQueryAsync();
+        return id;
     }
 
     private async Task<Guid> SeedShiftEntryAsync(Guid tenant, Guid site, Guid asset, Guid meter, Guid envelope, Guid device)
@@ -602,6 +625,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "importId" => host.AImport.ToString(),
         "envelopeId" => host.AEnvelope.ToString(),
         "entryId" => host.AEntry.ToString(),
+        "holdId" => host.AHold.ToString(),
         // A catalogue value, as an import kind: B gets its own checklist of that type, never A's.
         "assetType" => IsolationHost.AChecklistType,
         "label" => "KRY1:" + IsolationHost.ALabelToken,

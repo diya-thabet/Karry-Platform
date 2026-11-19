@@ -1137,6 +1137,7 @@
   "permissions.fieldops.entries.read": "Voir les saisies de poste et leurs versions",
   "permissions.fieldops.checklists.read": "Voir les check-lists de démarrage et leurs versions",
   "permissions.fieldops.checklists.manage": "Publier les check-lists de démarrage",
+  "permissions.fieldops.holds.release": "Lever l’immobilisation d’un engin jugé dangereux",
   "permissions.imports.files.manage": "Importer des données depuis Excel",
   "permissions.tenancy.settings.manage": "Modifier les paramètres de l’entreprise",
   "modules.organization": "Sites et postes",

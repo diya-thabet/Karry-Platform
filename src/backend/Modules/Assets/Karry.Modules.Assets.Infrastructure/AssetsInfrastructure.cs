@@ -26,6 +26,7 @@ public static class AssetsInfrastructure
         services.AddScoped<IMeterStore, MeterStore>();
         services.AddScoped<MeterOperations>();
         services.AddScoped<IMeterDirectory, MeterDirectory>();
+        services.AddScoped<IAssetDirectory, AssetDirectory>();
         services.AddScoped<DemoAssetsSeeder>();
         services.AddScoped<IUsageSource, CountedAssets>();
 

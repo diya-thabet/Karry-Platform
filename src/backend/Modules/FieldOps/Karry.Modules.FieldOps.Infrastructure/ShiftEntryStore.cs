@@ -33,6 +33,10 @@ internal sealed class ShiftEntryStore(FieldOpsDbContext db) : IShiftEntryStore
         return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public Task<bool> HeldAtAsync(Guid assetId, DateTimeOffset instant, CancellationToken cancellationToken) =>
+        db.SafetyHolds.AnyAsync(
+            h => h.AssetId == assetId && h.OpenedAt <= instant && !db.SafetyHoldReleases.Any(r => r.Id == h.Id && r.ReleasedAt <= instant), cancellationToken);
+
     public void Add(ShiftEntryVersion version) => db.ShiftEntries.Add(version);
 
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);

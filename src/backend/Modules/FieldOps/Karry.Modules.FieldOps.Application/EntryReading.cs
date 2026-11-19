@@ -21,6 +21,9 @@ public static class FieldOpsPermissions
     /// <summary>Publish a new version of an asset type's checklist (US-P2-FO-03).</summary>
     public const string ChecklistsManage = "fieldops.checklists.manage";
 
+    /// <summary>Release a machine held as unsafe on the caller's sites, with a reason (ADR-0035 §5).</summary>
+    public const string HoldsRelease = "fieldops.holds.release";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(EntriesRead, ScopeKind.Site, privileged: false,
@@ -28,6 +31,8 @@ public static class FieldOpsPermissions
         // Company-wide: a checklist belongs to an asset type, used on every site.
         new(ChecklistsRead, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner),
         new(ChecklistsManage, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.SiteManager, Roles.MaintenancePlanner),
+        // Site-scoped: the people answerable for the site's machines decide when a held one may run again.
+        new(HoldsRelease, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.SiteManager, Roles.MaintenancePlanner),
     ];
 }
 
