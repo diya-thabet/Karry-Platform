@@ -1,4 +1,5 @@
 import { type Locator, type Page } from "@playwright/test";
+import { meterNow } from "./fieldTablet";
 import { expect, test } from "./guard";
 
 // Demo data of `Karry.Host seed-demo` (local stack only), as in field-enrollment.spec.ts.
@@ -68,8 +69,8 @@ test.describe("a shift entry from the tablet to the portal (P2.5, ADR-0033, ADR-
 
     // Offline from here: the start and the end are signed on the tablet only.
     await context.setOffline(true);
-    // Above any end of earlier runs on this meter (hours since 1970): the jump needs a reason, given in the remarks.
-    const value = `${String(Math.floor(Date.now() / 3_600_000))}.0`;
+    // Above any end of earlier tests and runs on this meter (see meterNow); a large jump needs a reason, given in the remarks.
+    const value = meterNow();
     await tablet.getByRole("button", { name: "Commencer mon poste" }).click();
     await tablet.getByLabel(/Code, nom ou étiquette/).fill("pel");
     await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^PEL-01/ }).click();

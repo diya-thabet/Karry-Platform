@@ -1,5 +1,5 @@
 import { expect, test } from "./guard";
-import { enrolledTablet, enrollmentCode, field, startAndEnd, unlock } from "./fieldTablet";
+import { enrolledTablet, enrollmentCode, field, meterNow, startAndEnd, unlock } from "./fieldTablet";
 
 test.describe("a tablet offline for a while (P2.5 done when, ADR-0031, ADR-0032)", () => {
   test.use({ permissions: ["camera"] });
@@ -9,9 +9,9 @@ test.describe("a tablet offline for a while (P2.5 done when, ADR-0031, ADR-0032)
     const context = await browser.newContext({ locale: "fr-FR", permissions: ["camera"] });
     const tablet = await enrolledTablet(context, await enrollmentCode(page));
 
-    // Offline: each shift starts where the last ended (above any earlier run on this meter: hours since 1970).
+    // Offline: each shift starts where the last ended (above any earlier test on this meter: see meterNow).
     await context.setOffline(true);
-    const value = `${String(Math.floor(Date.now() / 3_600_000) + 1)}.0`;
+    const value = meterNow();
     for (let shift = 0; shift < 10; shift++) {
       await startAndEnd(tablet, value);
     }
