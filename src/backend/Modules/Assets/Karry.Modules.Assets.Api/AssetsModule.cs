@@ -184,6 +184,22 @@ public sealed class AssetsModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("RecordMeterEvent");
 
+        endpoints.MapPost("/{assetId:guid}/meters/{meterId:guid}/evidence", UploadMeterEvidenceAsync)
+            .RequirePermission(AssetsPermissions.RegistryManage)
+            .Accepts<IFormFile>("image/jpeg", "image/png", "image/webp")
+            .WithMaxBody(2L * AssetPhotos.MaxBytes)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("UploadMeterEvidence");
+
+        endpoints.MapGet("/{assetId:guid}/meters/{meterId:guid}/evidence/{sha256}", MeterEvidenceAsync)
+            .RequirePermission(AssetsPermissions.RegistryRead)
+            .Produces(StatusCodes.Status200OK, contentType: "image/jpeg")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetMeterEvidence");
+
         endpoints.MapGet("/{assetId:guid}/meters/{meterId:guid}/events", ListMeterEventsAsync)
             .RequirePermission(AssetsPermissions.RegistryRead)
             .ProducesProblem(StatusCodes.Status404NotFound)
@@ -326,6 +342,38 @@ public sealed class AssetsModule : IModule
             : result.Error.ToProblem();
     }
 
+    private static async Task<Results<Ok<MeterEvidenceResponse>, ProblemHttpResult>> UploadMeterEvidenceAsync(
+        Guid assetId, Guid meterId, HttpRequest request, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        // One byte more than allowed is enough to refuse; a larger body is never read into memory.
+        var buffer = new byte[AssetPhotos.MaxBytes + 1];
+        var length = 0;
+        int read;
+        while (length < buffer.Length && (read = await request.Body.ReadAsync(buffer.AsMemory(length), cancellationToken).ConfigureAwait(false)) > 0)
+        {
+            length += read;
+        }
+
+        var result = await meters.UploadEvidenceAsync(new AssetId(assetId), new MeterId(meterId), buffer.AsMemory(0, length), cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new MeterEvidenceResponse(result.Value)) : result.Error.ToProblem();
+    }
+
+    private static async Task<IResult> MeterEvidenceAsync(
+        Guid assetId, Guid meterId, string sha256, HttpContext context, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
+    {
+        var result = await meters.EvidenceAsync(new AssetId(assetId), new MeterId(meterId), sha256, cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        // An image only, as the asset photo: never sniffed into something else, private to the caller, never changes.
+        context.Response.Headers.CacheControl = "private, max-age=86400, immutable";
+        context.Response.Headers.ContentSecurityPolicy = "default-src 'none'";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        return TypedResults.File(result.Value.Content, result.Value.ContentType);
+    }
+
     private static async Task<Results<Ok<MeterEventListResponse>, ProblemHttpResult>> ListMeterEventsAsync(
         Guid assetId, Guid meterId, [FromServices] MeterOperations meters, CancellationToken cancellationToken)
     {
@@ -437,6 +485,9 @@ public sealed record MeterEventResponse(
 }
 
 public sealed record MeterEventListResponse(IReadOnlyList<MeterEventResponse> Items);
+
+/// <summary>An uploaded photo of a meter event: the <c>sha256:</c> reference the event names.</summary>
+public sealed record MeterEvidenceResponse(string Photo);
 
 public sealed record ReadingResponse(Guid Id, decimal Value, DateTimeOffset ReadAt, DateTimeOffset RecordedAt, string? RecordedBy)
 {

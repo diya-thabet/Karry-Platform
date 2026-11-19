@@ -9,6 +9,7 @@ export type AssetChangeInput = components["schemas"]["AssetChangeInput"];
 export type AssetType = components["schemas"]["AssetTypeResponse"];
 export type Meter = components["schemas"]["MeterResponse"];
 export type Reading = components["schemas"]["ReadingResponse"];
+export type MeterEvent = components["schemas"]["MeterEventResponse"];
 
 export const AssetsReadPermission = "assets.registry.read";
 export const AssetsManagePermission = "assets.registry.manage";
@@ -23,6 +24,7 @@ export const maxLabels = 240;
 export const assetsKey = ["assets"] as const;
 export const assetKey = (id: string) => ["assets", id] as const;
 export const metersKey = (assetId: string) => ["assets", assetId, "meters"] as const;
+export const meterEventsKey = (assetId: string, meterId: string) => ["assets", assetId, "meters", meterId, "events"] as const;
 export const readingsKey = (assetId: string, meterId: string) => ["assets", assetId, "meters", meterId, "readings"] as const;
 
 /** The machine type catalogue (the same for every company; the screens translate the codes). */
@@ -56,4 +58,14 @@ export function useSiteNames() {
   const sites = useSites(true);
   const names = new Map((sites.data ?? []).map((site) => [site.id, site.name]));
   return { sites: sites.data ?? [], name: (id: string) => names.get(id) ?? "—" };
+}
+
+/** "2026-11-19T08:30" as typed in the browser's local time → an instant, or null. */
+export function localInstant(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) || date.getTime() > Date.now() + 5 * 60_000 ? null : date.toISOString();
 }

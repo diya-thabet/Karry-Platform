@@ -8,6 +8,7 @@ import {
   assetKey, assetsKey, AssetsManagePermission, assetStatuses, blobUrl, labelsPerSheet, meterKinds, metersKey, readingsKey, readingText,
   useSiteNames, type Asset, type Meter, type Reading,
 } from "./api";
+import { MeterEvents } from "./MeterEvents";
 
 const photoTypes = "image/jpeg,image/png,image/webp";
 
@@ -398,11 +399,6 @@ function MeterDetail({ asset, meter, editable }: { asset: Asset; meter: Meter; e
     },
   });
 
-  const status = useMutation({
-    mutationFn: async (next: string) => (await api.POST("/api/v1/assets/{assetId}/meters/{meterId}/status", { params: { path }, body: { status: next } })).data,
-    onSuccess: refresh,
-  });
-
   // Newest first, as the API lists them.
   const rows = readings.data ?? [];
   return (
@@ -421,13 +417,6 @@ function MeterDetail({ asset, meter, editable }: { asset: Asset; meter: Meter; e
           <Button type="submit" loading={record.isPending}>{t("portal.assets.record")}</Button>
         </form>
       )}
-      {editable && (
-        <div>
-          {meter.status === "ok"
-            ? <Button variant="secondary" loading={status.isPending} onClick={() => { status.mutate("failed"); }}>{t("portal.assets.markFailed")}</Button>
-            : <Button variant="secondary" loading={status.isPending} onClick={() => { status.mutate("ok"); }}>{t("portal.assets.markOk")}</Button>}
-        </div>
-      )}
       <DataTable<Reading>
         caption={t("portal.assets.meterHistory", { meter: t(`portal.assets.meterKind.${meter.kind}`) })}
         rows={rows}
@@ -441,6 +430,7 @@ function MeterDetail({ asset, meter, editable }: { asset: Asset; meter: Meter; e
         ]}
       />
       <p className="text-sm text-text-muted">{t("portal.assets.historyHint")}</p>
+      <MeterEvents asset={asset} meter={meter} editable={editable} />
     </div>
   );
 }

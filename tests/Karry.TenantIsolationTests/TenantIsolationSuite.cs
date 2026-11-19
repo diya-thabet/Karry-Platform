@@ -653,6 +653,8 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "envelopeId" => host.AEnvelope.ToString(),
         "entryId" => host.AEntry.ToString(),
         "holdId" => host.AHold.ToString(),
+        // A meter event photo of A (the seeded event names it): B never reads it.
+        "sha256" => new string('a', 64),
         // A catalogue value, as an import kind: B gets its own checklist of that type, never A's.
         "assetType" => IsolationHost.AChecklistType,
         "label" => "KRY1:" + IsolationHost.ALabelToken,
@@ -671,7 +673,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         using var request = new HttpRequestMessage(new HttpMethod(method), path);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Headers.Add(IdempotencyOptions.HeaderName, Guid.NewGuid().ToString());
-        if (method is "PUT" && path.EndsWith("/photo", StringComparison.Ordinal))
+        if ((method is "PUT" && path.EndsWith("/photo", StringComparison.Ordinal)) || (method is "POST" && path.EndsWith("/evidence", StringComparison.Ordinal)))
         {
             // A real image, so only the asset check can refuse it (the photo routes accept images, not JSON).
             request.Content = new ByteArrayContent([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 0]);

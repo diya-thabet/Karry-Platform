@@ -92,6 +92,12 @@ the events between two starts (after the first, up to the second) are read in ti
 start from the value due and moves it to its value after, a failure leaves nothing due, a repair makes its reading due;
 an estimated segment is not compared. Hand mutation check: 11 mutants, all killed.
 
+As built (slice 3b): photos are uploaded before the event (`POST /api/v1/assets/{assetId}/meters/{meterId}/evidence`, a
+JPEG, PNG or WebP of at most 5 MB, kept under the company's prefix by its SHA-256) and read back by fingerprint
+(`GET …/evidence/{sha256}`); an event naming a photo that is not there is refused (`assets.meter_event_photo_missing`).
+The portal records events on the meter of a machine, in place of the old "mark failed / working" buttons; the status
+endpoint stays for the API but the screens change a meter only through events.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

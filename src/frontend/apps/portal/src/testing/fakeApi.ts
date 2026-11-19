@@ -142,6 +142,7 @@ export function fakeApi(options: {
   const holds: Hold[] = [...(options.holds ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
+  const meterEvents: Record<string, unknown[]> = {};
   const imports: ImportJob[] = [];
   const devices: Device[] = [...(options.devices ?? [])];
   const supportSessions: SupportSession[] = [...(options.supportSessions ?? [])];
@@ -904,6 +905,16 @@ export function fakeApi(options: {
         readings[meter.id] = [reading, ...(readings[meter.id] ?? [])];
         meters[id] = list.map((m) => (m.id === meter.id ? { ...m, lastValue: value, lastReadAt: reading.readAt } : m));
         return json(201, reading);
+      }
+      case meter !== undefined && sub === "evidence" && method === "POST":
+        return json(200, { photo: `sha256:${"c".repeat(64)}` });
+      case meter !== undefined && sub === "events" && method === "GET":
+        return json(200, { items: meterEvents[meter.id] ?? [] });
+      case meter !== undefined && sub === "events" && method === "POST": {
+        const input = body as { kind: string; occurredAt: string; valueBefore: string | null; valueAfter: string | null; reason: string; photos: string[] };
+        const saved = { id: `event-${String(Date.now())}`, ...input, recordedAt: "2026-11-19T10:00:00Z", recordedBy: "admin-1" };
+        meterEvents[meter.id] = [...(meterEvents[meter.id] ?? []), saved];
+        return json(201, saved);
       }
       case meter !== undefined && sub === "status": {
         const next = { ...meter, status: (body as { status: string }).status };

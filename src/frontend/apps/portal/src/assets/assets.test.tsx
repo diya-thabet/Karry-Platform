@@ -5,7 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { asset, fakeApi, meterOf, site } from "../testing/fakeApi";
-import { readingText } from "./api";
+import { localInstant, readingText } from "./api";
 
 const manager = ["assets.registry.read", "assets.registry.manage", "organization.sites.read"];
 const reader = ["assets.registry.read", "organization.sites.read"];
@@ -142,6 +142,49 @@ describe("machines (US-P1-AST-01, US-P1-AST-02, US-P1-AST-03)", () => {
       [`/api/v1/assets/${pel.id}/meters/${meter.id}/readings`, { value: "4300.5", readAt: null }],
       [`/api/v1/assets/${pel.id}/meters/${meter.id}/readings`, { value: "4000", readAt: null }],
     ]);
+  });
+
+  it("records a meter replacement with its values, reason and an uploaded photo, and lists it (US-P2-AST-01)", async () => {
+    const meter = meterOf();
+    const api = fakeApi({ permissions: manager, sites: [nord], assets: [pel], meters: { [pel.id]: [meter] } });
+    await renderAt(`/assets/${pel.id}`, api);
+
+    // A closed <details> hides its form; the test environment does not open it on a click.
+    const details = (await screen.findByText("Record an event")).closest("details");
+    if (details) details.open = true;
+    fireEvent.click(screen.getByRole("button", { name: "Save the event" }));
+    expect(await screen.findByText("Give the date and time, not in the future.")).toBeInTheDocument();
+    expect(screen.getByText("Add at least one photo.")).toBeInTheDocument();
+    expect(api.writes()).toEqual([]);
+
+    fireEvent.change(screen.getByLabelText("When"), { target: { value: "2026-11-18T08:30" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Value before \(h\)/ }), { target: { value: "4 260,5" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Value after \(h\)/ }), { target: { value: "3" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Why/ }), { target: { value: "Counter broken, new one fitted" } });
+    const file = new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "meter.png", { type: "image/png" });
+    fireEvent.change(screen.getByLabelText("Add photos"), { target: { files: [file] } });
+    expect(await screen.findByText("Photo 1")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save the event" }));
+
+    expect(await screen.findByText("Event saved")).toBeInTheDocument();
+    expect(await screen.findByRole("cell", { name: "Counter broken, new one fitted" })).toBeInTheDocument();
+    expect(screen.getByRole("cell", { name: "Meter replaced" })).toBeInTheDocument();
+    const [upload, saved] = api.writes();
+    expect(upload?.path).toBe(`/api/v1/assets/${pel.id}/meters/${meter.id}/evidence`);
+    expect(saved).toMatchObject({
+      path: `/api/v1/assets/${pel.id}/meters/${meter.id}/events`,
+      body: {
+        kind: "replaced", occurredAt: new Date("2026-11-18T08:30").toISOString(), valueBefore: "4260.5", valueAfter: "3",
+        reason: "Counter broken, new one fitted", photos: [`sha256:${"c".repeat(64)}`],
+      },
+    });
+  });
+
+  it("reads a typed date and time as an instant, never one in the future", () => {
+    expect(localInstant("2026-11-18T08:30")).toBe(new Date("2026-11-18T08:30").toISOString());
+    expect(localInstant("2999-01-01T00:00")).toBeNull();
+    expect(localInstant("2026-11-18")).toBeNull();
+    expect(localInstant("")).toBeNull();
   });
 
   it("moves a machine, then changes its status", async () => {
