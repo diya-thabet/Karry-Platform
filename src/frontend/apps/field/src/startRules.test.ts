@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { openOfflineDb, type MeterRow, type OutboxRecord } from "@karry/offline";
 import type { MeterState } from "./meterState";
 import { startCommand } from "./meterState";
-import { assessStart, entryMeter, hasRunningSegment } from "./startRules";
+import { assessStart, entryMeter, estimatedStartValue, hasRunningSegment } from "./startRules";
 
 const me = "u-me";
 const ended: MeterState = { lastEnd: { entryId: "e1", value: "100.0", at: "2026-11-09T14:00:00Z" }, open: null };
@@ -43,6 +43,23 @@ describe("what the start screen checks before signing (US-P2-FO-01 AC4, US-P2-FO
     expect(entryMeter([meter("k", "km"), meter("h", "hours")])?.id).toBe("h");
     expect(entryMeter([meter("k", "km"), meter("h", "hours", "replaced")])?.id).toBe("k");
     expect(entryMeter([meter("h", "hours", "faulty")])).toBeNull();
+  });
+
+  it("falls back to a failed meter, hours first, only when no meter works (US-P2-AST-02)", () => {
+    const meter = (id: string, kind: string, status = "ok"): MeterRow => ({ id, assetId: "a1", kind, unit: kind === "hours" ? "h" : "km", status });
+
+    expect(entryMeter([meter("k", "km", "failed"), meter("h", "hours", "failed")])?.id).toBe("h");
+    expect(entryMeter([meter("h", "hours", "failed"), meter("k", "km")])?.id, "a working meter comes first").toBe("k");
+    expect(entryMeter([meter("k", "km", "failed")])?.id).toBe("k");
+  });
+
+  it("asks no reading of a failed meter: the start is the last known end, and nothing blocks it but a running segment", () => {
+    const state = { lastEnd: { entryId: "e0", value: "1200.0", at: "2026-11-09T14:00:00Z" }, open: null };
+
+    expect(assessStart({ value: "", meterKind: "hours", state, operatorId: "u1", runningElsewhere: false, failed: true })).toEqual({ block: null, needsReason: false });
+    expect(assessStart({ value: "", meterKind: "hours", state, operatorId: "u1", runningElsewhere: true, failed: true }).block).toBe("alreadyRunning");
+    expect(estimatedStartValue(state)).toBe("1200.0");
+    expect(estimatedStartValue({ lastEnd: null, open: null })).toBe("0.0");
   });
 });
 

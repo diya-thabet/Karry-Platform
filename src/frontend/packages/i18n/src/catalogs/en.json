@@ -1288,5 +1288,12 @@
   "portal.meterEvents.addPhotos": "Add photos",
   "portal.meterEvents.save": "Save the event",
   "portal.meterEvents.saved": "Event saved",
-  "portal.meterEvents.recordedBy": "Recorded by"
+  "portal.meterEvents.recordedBy": "Recorded by",
+  "field.estimated": "estimated",
+  "field.start.failedMeter": "This meter has failed: no reading is asked. The start is the last known end ({value} {unit}) and the entry will be estimated from the operating time you give at the end.",
+  "field.end.failedMeter": "This meter has failed: give the machine's operating time. The end is worked out and the entry is marked estimated.",
+  "field.end.operatingTime": "Operating time ({unit})",
+  "field.end.distance": "Distance driven ({unit})",
+  "field.end.operatingHelp": "Added to the start to give the end, at most one decimal.",
+  "field.end.estimatedEnd": "Estimated end: {value} {unit}"
 }

@@ -1288,5 +1288,12 @@
   "portal.meterEvents.addPhotos": "إضافة صور",
   "portal.meterEvents.save": "حفظ الحدث",
   "portal.meterEvents.saved": "تم حفظ الحدث",
-  "portal.meterEvents.recordedBy": "سجّله"
+  "portal.meterEvents.recordedBy": "سجّله",
+  "field.estimated": "تقديري",
+  "field.start.failedMeter": "هذا العداد معطل: لا تُطلب أي قراءة. البداية هي آخر نهاية معروفة ({value} {unit})، وسيُقدَّر الإدخال من مدة التشغيل التي تُدخلها عند النهاية.",
+  "field.end.failedMeter": "هذا العداد معطل: أدخل مدة تشغيل الآلة. تُحسب النهاية ويُعلَّم الإدخال بأنه تقديري.",
+  "field.end.operatingTime": "مدة التشغيل ({unit})",
+  "field.end.distance": "المسافة المقطوعة ({unit})",
+  "field.end.operatingHelp": "يُضاف إلى البداية لإعطاء النهاية، بمنزلة عشرية واحدة على الأكثر.",
+  "field.end.estimatedEnd": "النهاية التقديرية: {value} {unit}"
 }

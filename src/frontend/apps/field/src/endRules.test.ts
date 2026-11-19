@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { openOfflineDb } from "@karry/offline";
-import { assessEnd, findActiveShift } from "./endRules";
+import { assessEnd, estimatedEndValue, findActiveShift } from "./endRules";
 
 const start = { meterKind: "hours", startedAt: "2026-11-09T06:00:00Z", startValue: "100.0" };
 const at = (iso: string) => new Date(iso);
@@ -33,8 +33,16 @@ describe("the operator's active shift (US-P2-FO-04 AC1)", () => {
 
     await db.meterStates.put({ id: "m1", lastEnd: null, open: { entryId: "e1", version: 1, operatorId: "u1", startedAt: "2026-11-09T06:00:00Z", startValue: "100.0", shiftDate: null, shiftCode: null } });
 
-    expect(await findActiveShift(db, "u1")).toMatchObject({ machine: { code: "PE-01" }, meterId: "m1", meterKind: "hours", unit: "h", open: { entryId: "e1", version: 1 } });
+    expect(await findActiveShift(db, "u1")).toMatchObject({ machine: { code: "PE-01" }, meterId: "m1", meterKind: "hours", unit: "h", meterFailed: false, open: { entryId: "e1", version: 1 } });
     expect(await findActiveShift(db, "u2")).toBeNull();
     await db.delete();
+  });
+
+  it("works out the end of a failed meter from the start and the operating time (US-P2-AST-02)", () => {
+    expect(estimatedEndValue("1200.0", "7.5")).toBe("1207.5");
+    expect(estimatedEndValue("0.0", "8")).toBe("8.0");
+    expect(estimatedEndValue("1200.0", "7,5"), "as the wire writes values: a point, as the start screen asks").toBeNull();
+    expect(estimatedEndValue("1200.0", "7.25")).toBeNull();
+    expect(estimatedEndValue("1200.0", "")).toBeNull();
   });
 });

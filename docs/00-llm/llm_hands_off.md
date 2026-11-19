@@ -274,7 +274,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slices 1 Integrity module (#208), 2 continuity engine (#209) and 3a meter events (#210) merged, slice 3b portal meter events in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
+| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slices 1 Integrity module (#208), 2 continuity engine (#209), 3a meter events (#210) and 3b portal meter events (#212) merged, slice 4 failed-meter mode in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
 | P3–P11 | Not started |
 
 ---
@@ -348,7 +348,7 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
-### 2026-11-19 — P2.6 close-out; P2.7 slices 1–3b (agent)
+### 2026-11-19 — P2.6 close-out; P2.7 slices 1–4 (agent)
 - **Done:** P2.6 slice 6 merged (#204) and close-out (#206: demo checklists, browser E2E `field-checklist.spec.ts`, security review, ADR-0035 accepted, threat R-14). P2.7 plan and ADR-0036 proposed (#207). Slice 1 (#208): Integrity module (`integrity.flags`, open → closed only, never deleted, ledgered `integrity.flag_opened.v1`/`flag_closed.v1`; `IIntegrityFlags.SyncAsync` in the caller's transaction; `GET /api/v1/integrity/flags` with `integrity.flags.read`). Slice 2 (in review): `Continuity.Find` (pure, CsCheck property, manual mutation check: 8 mutants killed); start and end raise and close RULE-FO-01 on the meter and the end RULE-FO-02 on the entry (TC-P2-FO-007, 008); `Finding.SiteId`; `ModuleDbContext.JoinAsync` idempotent for the same transaction. Slice 2 merged (#209). Slice 3a (in review): `assets.meter_events` (REPLACED/RESET with offsets, FAILED/REPAIRED; append-only, ledgered), `POST`/`GET /assets/{id}/meters/{meterId}/events`, `IMeterEvents` and `IMeterEventSubscriber` (Assets outbox fan-out) in Assets contracts; the continuity engine reads events in time order (TC-P2-FO-009); hand mutation check 11/11 killed (a surviving "events not sorted" mutant led to a chained-events case in the generator).
 - **Verification (slice 3a):** Assets 73/73, FieldOps 165/165, tenant isolation 482/482, architecture 32/32, host integration 58/58, authorization 6/6, `dotnet format` clean on the changed projects.
 - **Verification (slice 2):** FieldOps 162/162, BuildingBlocks integration 57/57, Integrity 4/4, architecture 32/32, tenant isolation 476/476, Sync 59/59, host integration 58 (2 database-connect timeouts under load, 14/14 when rerun alone), `dotnet format` clean on the changed projects.
@@ -356,7 +356,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Pending owner item:** the opencode hand-off stash ("opencode-handoff") is still kept, never committed.
 - **Slice 3b (in review):** photo upload and read for meter events (`POST`/`GET …/meters/{meterId}/evidence`), events refused when a photo is missing; portal meter events (list and form) replace the "mark failed / working" buttons; 31 `portal.meterEvents.*` keys in five languages (N'Ko generated). Fixed on the way: OpenBao's start script now waits for the node to be active (#211); `check:catalogs` used `URL.pathname` and failed on Windows (`E:\E:\…`), now `fileURLToPath`.
 - **Lessons:** catalogs use single-brace ICU placeholders (`{unit}`), not i18next's `{{unit}}`: a double brace shows as text. A closed `<details>` hides its form from role queries in jsdom: open it in the test.
-- **Next:** P2.7 slice 4: failed-meter mode (tablets pull meter state and events; operating times instead of readings; entries `estimated`).
+- **Slice 4 (in review):** failed-meter mode on the tablet: `entryMeter` falls back to a failed meter (before, a machine whose only meter failed showed "no meter" and could not be started); no start reading (last known end), operating time or distance at the end (end = start + it), "estimated" shown in the summaries; 7 `field.*` keys. Field 304/304, `check:catalogs` 0 problems.
+- **Next:** P2.7 slice 5: rules RULE-FO-03 clock skew, 04 geofence, 05 photo without capture record, 06 photo reused, 07 entry from a revoked device.
 
 ### 2026-11-19 — P2.6 pre-start checklists, slices 1–6 (agent)
 - **Goal:** continue phase after phase (owner: keep going, merge green PRs, remove merged branches, docs every time, no cloud).

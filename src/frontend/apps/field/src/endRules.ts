@@ -1,6 +1,6 @@
 import type { KarryOfflineDb, StoredAsset } from "@karry/offline";
 import { readMeterState, type MeterState } from "./meterState";
-import { endFlags, flags, instantTicks, meterTenths, type MeterKind } from "./shiftRules";
+import { endFlags, flags, instantTicks, meterTenths, meterText, type MeterKind } from "./shiftRules";
 
 /** The running segment of an operator, with its machine and meter, as the home screen shows it ("My active shift"). */
 export interface ActiveShift {
@@ -8,6 +8,8 @@ export interface ActiveShift {
   meterId: string;
   meterKind: string;
   unit: string;
+  /** The meter is failed now: the operator gives the operating time (or distance) and the end is estimated from it. */
+  meterFailed: boolean;
   open: NonNullable<MeterState["open"]>;
 }
 
@@ -29,7 +31,7 @@ export async function findActiveShift(db: KarryOfflineDb, operatorId: string): P
     const meter = await db.meters.get(meterId);
     const machine = meter ? await db.assets.get(meter.assetId) : undefined;
     if (open?.operatorId === operatorId && meter && machine) {
-      return { machine, meterId, meterKind: meter.kind, unit: meter.unit, open };
+      return { machine, meterId, meterKind: meter.kind, unit: meter.unit, meterFailed: meter.status === "failed", open };
     }
   }
 
@@ -47,6 +49,17 @@ export interface EndAssessment {
   block: EndBlock | null;
   /** Δ in tenths when the value reads, else null. */
   deltaTenths: number | null;
+}
+
+/**
+ * The end of an entry on a failed meter (US-P2-AST-02): its start plus the operating time (hours) or distance (km) the
+ * operator gives, as a meter value; null when the amount is not a number with at most one decimal. The signed record
+ * keeps its shape (a start and an end value); the server marks the entry estimated because the meter was failed.
+ */
+export function estimatedEndValue(startValue: string, amount: string): string | null {
+  const start = meterTenths(startValue);
+  const run = meterTenths(amount);
+  return start === null || run === null ? null : meterText(start + run);
 }
 
 /** The checks of the end screen, with the rules the server applies (shared vectors, `shiftRules.ts`). */

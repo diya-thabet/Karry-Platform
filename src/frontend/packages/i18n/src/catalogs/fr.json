@@ -1288,5 +1288,12 @@
   "portal.meterEvents.addPhotos": "Ajouter des photos",
   "portal.meterEvents.save": "Enregistrer l’évènement",
   "portal.meterEvents.saved": "Évènement enregistré",
-  "portal.meterEvents.recordedBy": "Enregistré par"
+  "portal.meterEvents.recordedBy": "Enregistré par",
+  "field.estimated": "estimé",
+  "field.start.failedMeter": "Ce compteur est en panne : aucune valeur n’est demandée. Le début est la dernière fin connue ({value} {unit}) et la saisie sera estimée à partir du temps de marche donné à la fin.",
+  "field.end.failedMeter": "Ce compteur est en panne : donnez le temps de marche de la machine. La fin est calculée et la saisie est marquée estimée.",
+  "field.end.operatingTime": "Temps de marche ({unit})",
+  "field.end.distance": "Distance parcourue ({unit})",
+  "field.end.operatingHelp": "Ajouté au début pour donner la fin, au plus une décimale.",
+  "field.end.estimatedEnd": "Fin estimée : {value} {unit}"
 }
