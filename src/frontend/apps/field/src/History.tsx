@@ -17,6 +17,7 @@ const flagKeys: Record<string, string> = {
   SHIFT_OUTSIDE_PATTERN: "field.history.flag.outsideShift",
   ASSET_NOT_ON_SITE: "field.history.flag.notOnSite",
   OVERLAP: "field.history.flag.overlap",
+  ASSET_UNSAFE: "field.history.flag.unsafe",
 };
 
 interface Shown extends HistoryRow {

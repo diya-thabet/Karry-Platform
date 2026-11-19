@@ -65,6 +65,14 @@ opened by a submission, released by a decision) and raises `asset_marked_unsafe`
 - **the server** still stores a start signed on it (it may have been signed before the hold arrived) and flags it
   `ASSET_UNSAFE` for the controller (ADR-0034's rule: flag, never refuse).
 
+As built (slice 5, tablet): after the machine is chosen, its type's checklist comes before the start form (required:
+no way around it; optional: a Skip button, nothing signed). Each item takes OK, Not OK or N/A; a Not OK asking for a
+photo waits for it. The checklist is signed by the device key for the unlocked operator, without a handwritten
+signature (the operator signs the start by hand right after); its photos are the envelope's evidence and their capture
+records ride as `captures`. A checklist the same operator signed for the same machine on this tablet within 60 minutes
+counts (a form left by an auto-lock does not ask again). The tablet holds a machine for an open hold of the last pull,
+or for its own critical Not OK until a pull after the server's answer; the start screen then only shows the reason.
+
 As built (slice 3): a hold is held from the checklist's `submittedAt` until its release's time, so a start is
 flagged by when it was signed, not by when it arrived. The submission itself comes back as a conflict flagged
 `ASSET_UNSAFE` so the tablet's history shows it. Holds and releases are separate append-only tables
