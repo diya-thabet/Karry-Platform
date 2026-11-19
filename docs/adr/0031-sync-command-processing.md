@@ -157,6 +157,9 @@ server is updated, the tablet's re-send is handled.
 - **Clock offset (US-P2-OFF-05):** every upload answer carries `serverTime`. The tablet measures its offset, and the
   server stores the device's last measured offset (`clock_offset_ms`, `clock_measured_at` on the device). Each
   handler receives `deviceTime`, `receivedAt` and the offset. The `CLOCK_SKEW` flag rule (P2.7) uses them.
+  As built (P2.7 slice 5b): the offset measured on an upload is only what is left after the tablet's own
+  correction, so a shift start or end also carries the offset the tablet knew when it signed (`clock.offsetMs`);
+  RULE-FO-03 uses that and the envelope's device time (ADR-0036, as built in 5b).
 
 ### 7. Contracts (built in `Karry.BuildingBlocks.Sync`, §8)
 

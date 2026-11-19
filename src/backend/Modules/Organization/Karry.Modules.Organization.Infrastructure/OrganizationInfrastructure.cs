@@ -30,6 +30,7 @@ public static class OrganizationInfrastructure
         services.AddScoped<IUsageSource, ActiveSites>();
         services.AddScoped<ISiteDirectory, SiteDirectory>();
         services.AddScoped<IShiftCalendar, ShiftResolution>();
+        services.AddScoped<ISiteGeofence, SiteGeofence>();
         services.AddScoped<IImportTarget, SiteImport>();
         services.AddScoped<BuildingBlocks.Sync.ISyncSource, OrganizationSync>();
         return services;

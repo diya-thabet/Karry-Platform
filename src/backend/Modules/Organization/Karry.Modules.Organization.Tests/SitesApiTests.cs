@@ -4,6 +4,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Karry.Modules.Organization.Tests;
@@ -54,6 +55,28 @@ public sealed class SitesApiTests(OrganizationHost host) : IClassFixture<Organiz
         (await ScalarAsync<bool>($"SELECT ST_Contains(boundary, location) FROM organization.sites WHERE id = '{id}'")).Should().BeTrue("PostGIS answers spatial questions");
         (await ScalarAsync<long>($"SELECT count(*) FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'organization.site_created.v1'"))
             .Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-INT-004")]
+    public async Task The_geofence_measures_metres_outside_the_boundary_zero_inside_and_nothing_without_one_or_in_another_company()
+    {
+        var tenant = await ProvisionAsync();
+        var token = TestTokens.ForTenant(tenant);
+        var drawn = (await Json(await SendAsync(HttpMethod.Post, "/api/v1/organization/sites", token, Input("CAR-GEO", ring: Square)))).GetProperty("id").GetGuid();
+        var bare = (await Json(await SendAsync(HttpMethod.Post, "/api/v1/organization/sites", token, Input("CAR-NUE")))).GetProperty("id").GetGuid();
+
+        (await MetresOutsideAsync(tenant, drawn, 36.8045m, 10.0056m)).Should().Be(0m, "inside the square");
+        (await MetresOutsideAsync(tenant, drawn, 36.8190m, 10.0056m)).Should().BeInRange(1100m, 1120m, "0.01° of latitude north of the top edge is about 1.11 km");
+        (await MetresOutsideAsync(tenant, bare, 36.8190m, 10.0056m)).Should().BeNull("a site without a boundary is not judged");
+        (await MetresOutsideAsync(await ProvisionAsync(), drawn, 36.8190m, 10.0056m)).Should().BeNull("another company does not see the site");
+    }
+
+    private async Task<decimal?> MetresOutsideAsync(Guid tenant, Guid site, decimal latitude, decimal longitude)
+    {
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<BuildingBlocks.Tenancy.ITenantContext>().Set(new SharedKernel.Tenancy.TenantId(tenant));
+        return await scope.ServiceProvider.GetRequiredService<Contracts.ISiteGeofence>().MetresOutsideAsync(site, latitude, longitude, Ct);
     }
 
     [Fact]

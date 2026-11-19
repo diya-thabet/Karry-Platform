@@ -60,6 +60,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(new KnownMeterEvents()).AddSingleton<IShiftCalendar>(new AnyTimeShift())
+            .AddSingleton<ISiteGeofence>(new NoBoundary())
             .BuildServiceProvider(validateScopes: true);
         assets.All[Asset] = new AssetSummary(Asset, "EX-01", "excavator", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         assets.All[Truck] = new AssetSummary(Truck, "TR-01", "haul-truck", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
@@ -325,6 +326,12 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
     }
 
     /// <summary>Every start falls in a shift here: holds are what these tests look at.</summary>
+    /// <summary>A site without a drawn boundary: the geofence rule judges nothing.</summary>
+    private sealed class NoBoundary : ISiteGeofence
+    {
+        public Task<decimal?> MetresOutsideAsync(Guid siteId, decimal latitude, decimal longitude, CancellationToken cancellationToken) => Task.FromResult<decimal?>(null);
+    }
+
     private sealed class AnyTimeShift : IShiftCalendar
     {
         public Task<ResolvedShift?> ResolveAsync(Guid siteId, DateTimeOffset instant, CancellationToken cancellationToken) =>
