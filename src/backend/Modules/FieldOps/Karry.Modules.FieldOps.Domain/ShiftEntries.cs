@@ -121,6 +121,9 @@ public static class ShiftEntryFlags
     public const string EndBeforeStart = "END_BEFORE_START";
 
     public const string Overlap = "OVERLAP";
+
+    /// <summary>The machine was held as unsafe when the shift started (a critical Not OK not yet released, ADR-0035 §4).</summary>
+    public const string AssetUnsafe = "ASSET_UNSAFE";
 }
 
 /// <summary>The rules of a shift entry's values (ADR-0034 §3, §6), shared by the handlers and the tests.</summary>

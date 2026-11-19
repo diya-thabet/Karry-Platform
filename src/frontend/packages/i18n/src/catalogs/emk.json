@@ -1137,6 +1137,7 @@
   "permissions.fieldops.entries.read": "Baara waati sɛbɛnlu ani u yɛlɛmalu lajɛ",
   "permissions.fieldops.checklists.read": "Baara daminɛ lajɛli sɛbɛnlu ani u yɛlɛmalu lajɛ",
   "permissions.fieldops.checklists.manage": "Baara daminɛ lajɛli sɛbɛnlu bɔ",
+  "permissions.fieldops.holds.release": "Masin min jɔra a man ɲi ko la, o bila",
   "permissions.imports.files.manage": "Kunnafonilu don ka bɔ Excel la",
   "permissions.tenancy.settings.manage": "Sosiyete labɛnlu yɛlɛma",
   "modules.organization": "Baarayɔrɔlu ani kartlu",

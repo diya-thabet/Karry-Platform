@@ -28,6 +28,9 @@ public interface IShiftEntryStore
     /// </summary>
     Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfOperatorAsync(Guid operatorId, Guid exceptRootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
 
+    /// <summary>Whether the machine was held as unsafe at <paramref name="instant"/>: a hold opened by then and not released by then (ADR-0035 §4).</summary>
+    Task<bool> HeldAtAsync(Guid assetId, DateTimeOffset instant, CancellationToken cancellationToken);
+
     void Add(ShiftEntryVersion version);
 
     Task SaveAsync(CancellationToken cancellationToken);
@@ -54,7 +57,11 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
     private static readonly HashSet<string> PayloadMembers = new(["record", "envelope", "deviceSignature", "evidence", CapturesMember], StringComparer.Ordinal);
 
     /// <summary>The signed record, or a final rejection when the payload or the envelope's binding to the record is wrong.</summary>
-    public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version)
+    public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version) =>
+        Read(payload, rootId, version, ShiftEntryRules.RecordType, Invalid);
+
+    /// <summary>The same for another record type (a checklist, ADR-0035 §3), refused with <paramref name="invalid"/> when the payload's shape is wrong.</summary>
+    public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version, string recordType, HandlerOutcome.Rejected invalid)
     {
         if (payload.ValueKind != JsonValueKind.Object
             || !payload.TryGetProperty("record", out var record) || !payload.TryGetProperty("envelope", out var envelope)
@@ -62,10 +69,10 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
             || !payload.EnumerateObject().All(m => PayloadMembers.Contains(m.Name)) || envelope.ValueKind != JsonValueKind.Object
             || (payload.TryGetProperty(CapturesMember, out var captures) && captures.ValueKind != JsonValueKind.Array))
         {
-            return (null, Invalid);
+            return (null, invalid);
         }
 
-        var binds = envelope.TryGetProperty("recordType", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == ShiftEntryRules.RecordType
+        var binds = envelope.TryGetProperty("recordType", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == recordType
             && envelope.TryGetProperty("recordId", out var id) && id.ValueKind == JsonValueKind.String && id.GetString() == rootId.ToString()
             && envelope.TryGetProperty("recordVersion", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) && n == version
             && envelope.TryGetProperty("payloadHash", out var hash) && hash.ValueKind == JsonValueKind.String && hash.GetString() == SignatureEnvelopes.PayloadHash(record);
@@ -282,6 +289,11 @@ public sealed class StartShiftEntry(
         if (shift is null)
         {
             flags.Add(ShiftEntryFlags.OutsidePattern);
+        }
+
+        if (await store.HeldAtAsync(assetId, startedAt, cancellationToken).ConfigureAwait(false))
+        {
+            flags.Add(ShiftEntryFlags.AssetUnsafe);
         }
 
         store.Add(new ShiftEntryVersion

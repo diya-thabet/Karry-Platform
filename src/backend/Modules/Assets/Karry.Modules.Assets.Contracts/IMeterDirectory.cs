@@ -19,6 +19,19 @@ public interface IMeterDirectory
     Task<MeterSummary?> FindAsync(Guid meterId, CancellationToken cancellationToken);
 }
 
+/// <summary>A machine as other modules see it: its code, its type (a code of the type catalogue) and its site assignments, oldest first.</summary>
+public sealed record AssetSummary(Guid AssetId, string Code, string Type, IReadOnlyList<AssetSiteAssignment> Sites)
+{
+    /// <summary>The site the machine was on at <paramref name="instant"/>, or null before its first assignment.</summary>
+    public Guid? SiteAt(DateTimeOffset instant) => Sites.LastOrDefault(s => s.From <= instant)?.SiteId;
+}
+
+/// <summary>The current tenant's machines, for other modules (pre-start checklists). Read in the caller's unit of work (RLS).</summary>
+public interface IAssetDirectory
+{
+    Task<AssetSummary?> FindAsync(Guid assetId, CancellationToken cancellationToken);
+}
+
 /// <summary>How meter values are written everywhere: decimal text with at most this many decimals (ADR-0025, ADR-0034).</summary>
 public static class MeterValues
 {

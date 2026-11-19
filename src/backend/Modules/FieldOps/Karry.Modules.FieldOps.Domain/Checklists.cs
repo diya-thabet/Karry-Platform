@@ -75,6 +75,9 @@ public sealed class ChecklistTemplate : AggregateRoot<ChecklistTemplateId>, ITen
 /// <summary>Validation of a checklist (US-P2-FO-03 AC1).</summary>
 public static partial class ChecklistRules
 {
+    /// <summary>The record type a submission's envelope names (ADR-0035 §3).</summary>
+    public const string RecordType = "fieldops.checklist";
+
     public const int MaxItems = 50;
     public const int TextMaxLength = 200;
 
@@ -123,6 +126,43 @@ public static partial class ChecklistRules
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The critical items answered Not OK when the answers fit the template version (ADR-0035 §3: every item answered
+    /// once, nothing else, a photo where a Not OK asks for one, a photo only with a Not OK), else null.
+    /// </summary>
+    public static IReadOnlyList<string>? CriticalNotOk(ChecklistTemplate template, IReadOnlyList<ChecklistAnswer> answers)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        ArgumentNullException.ThrowIfNull(answers);
+        var items = template.Items.ToDictionary(i => i.Code, StringComparer.Ordinal);
+        if (answers.Count != items.Count || answers.Select(a => a.Item).Distinct(StringComparer.Ordinal).Count() != answers.Count)
+        {
+            return null;
+        }
+
+        var critical = new List<string>();
+        foreach (var answer in answers)
+        {
+            if (!items.TryGetValue(answer.Item, out var item) || !ChecklistAnswers.All.Contains(answer.Answer))
+            {
+                return null;
+            }
+
+            var notOk = answer.Answer == ChecklistAnswers.NotOk;
+            if ((notOk && item.PhotoOnNotOk && answer.Photo is null) || (!notOk && answer.Photo is not null))
+            {
+                return null;
+            }
+
+            if (notOk && item.Critical)
+            {
+                critical.Add(item.Code);
+            }
+        }
+
+        return critical;
     }
 
     [GeneratedRegex("^[a-z][a-z0-9-]{1,39}$")]

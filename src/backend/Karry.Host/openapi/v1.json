@@ -7447,6 +7447,77 @@
           }
         }
       }
+    },
+    "/api/v1/fieldops/holds/{holdId}/release": {
+      "post": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "ReleaseHold",
+        "parameters": [
+          {
+            "name": "holdId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseHold"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HoldReleaseResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9464,6 +9535,40 @@
         },
         "description": "A declared flag: its default, this environment's configured value and the platform-wide value (null when not set).\nCompany and user overrides come before these."
       },
+      "HoldReleaseResponse": {
+        "required": [
+          "holdId",
+          "assetId",
+          "releasedAt",
+          "releasedBy",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "holdId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "assetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "releasedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "releasedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "description": "A released hold (ADR-0035 §5): when, by whom and why the machine may run again."
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -11142,6 +11247,21 @@
             "format": "date"
           }
         }
+      },
+      "ReleaseHold": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A release as the portal sends it: why the machine may run again."
       },
       "RoleAssignment": {
         "required": [

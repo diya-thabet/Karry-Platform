@@ -64,6 +64,20 @@ public sealed class FieldOpsModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("PublishChecklist");
+
+        endpoints.MapPost("/holds/{holdId:guid}/release", ReleaseHoldAsync)
+            .RequirePermission(FieldOpsPermissions.HoldsRelease)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("ReleaseHold");
+    }
+
+    private static async Task<Results<Ok<HoldReleaseResponse>, ProblemHttpResult>> ReleaseHoldAsync(
+        Guid holdId, ReleaseHold body, [FromServices] SafetyHolds holds, CancellationToken cancellationToken)
+    {
+        var result = await holds.ReleaseAsync(holdId, body, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(HoldReleaseResponse.From(result.Value)) : result.Error.ToProblem();
     }
 
     private static async Task<Ok<ChecklistListResponse>> ListChecklistsAsync([FromServices] ChecklistTemplates checklists, CancellationToken cancellationToken) =>
@@ -165,5 +179,15 @@ public sealed record ChecklistResponse(
     {
         ArgumentNullException.ThrowIfNull(c);
         return new(c.Id.Value, c.AssetType, c.Version, c.Required, [.. c.Items.Select(i => new ChecklistItemResponse(i.Code, i.Texts, i.Critical, i.PhotoOnNotOk))], c.PublishedAt);
+    }
+}
+
+/// <summary>A released hold (ADR-0035 §5): when, by whom and why the machine may run again.</summary>
+public sealed record HoldReleaseResponse(Guid HoldId, Guid AssetId, DateTimeOffset ReleasedAt, string? ReleasedBy, string Reason)
+{
+    public static HoldReleaseResponse From(SafetyHoldRelease r)
+    {
+        ArgumentNullException.ThrowIfNull(r);
+        return new(r.Id.Value, r.AssetId, r.ReleasedAt, r.ReleasedBy, r.Reason);
     }
 }
