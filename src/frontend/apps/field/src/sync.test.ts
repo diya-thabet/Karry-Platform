@@ -14,7 +14,7 @@ function changeSet(full: boolean, cursor: string, serverTime: string, assets: { 
       assets: { upserts: assets.map((a) => ({ ...a, name: "Pelle", type: "excavator", siteId: site, status: "active", make: null, model: null, serialNumber: null, plate: null, labelCode: null })), removes: [] },
       meters: { upserts: [], removes: [] },
       materials: { upserts: [], removes: [] },
-      users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
+      users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] }, checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true },
     },
   };
 }
