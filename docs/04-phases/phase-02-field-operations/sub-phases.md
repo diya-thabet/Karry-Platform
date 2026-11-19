@@ -504,6 +504,8 @@ a signature, and no network.
 
 ### P2.6 — Pre-start checklists
 
+> Slice plan: [P2.6 pre-start checklists](p2.6-checklists-plan.md), design [ADR-0035](../../adr/0035-pre-start-checklists-and-safety-holds.md).
+
 **In plain words:** before a machine starts, the operator goes through its checklist; a critical "not OK" stops the
 machine until a manager decides.
 
