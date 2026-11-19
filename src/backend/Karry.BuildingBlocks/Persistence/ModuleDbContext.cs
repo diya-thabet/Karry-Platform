@@ -58,11 +58,17 @@ public abstract partial class ModuleDbContext : DbContext
     /// <summary>
     /// Makes this context work in a sync upload's transaction (ADR-0031 §2): the same connection, the same transaction,
     /// so what it saves, with its outbox rows and ledger entries, commits or rolls back with the upload. Called by a
-    /// sync command handler before its first query.
+    /// sync command handler before its first query. Joining the transaction it is already in does nothing (a module
+    /// called twice in one upload, as Integrity is for two rules).
     /// </summary>
     public async Task JoinAsync(ISyncTransaction transaction, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(transaction);
+        if (Database.CurrentTransaction?.GetDbTransaction() == transaction.Transaction)
+        {
+            return;
+        }
+
         if (Database.CurrentTransaction is not null)
         {
             throw new InvalidOperationException("This context already has a transaction of its own.");

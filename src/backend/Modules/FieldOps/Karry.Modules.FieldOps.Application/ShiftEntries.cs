@@ -5,6 +5,7 @@ using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 
@@ -27,6 +28,9 @@ public interface IShiftEntryStore
     /// <paramref name="to"/>: still running); the caller decides with <see cref="ShiftEntryRules.Overlaps"/>.
     /// </summary>
     Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfOperatorAsync(Guid operatorId, Guid exceptRootId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
+
+    /// <summary>The current versions of every entry on <paramref name="meterId"/> (the continuity check, ADR-0036 §4).</summary>
+    Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfMeterAsync(Guid meterId, CancellationToken cancellationToken);
 
     /// <summary>Whether the machine was held as unsafe at <paramref name="instant"/>: a hold opened by then and not released by then (ADR-0035 §4).</summary>
     Task<bool> HeldAtAsync(Guid assetId, DateTimeOffset instant, CancellationToken cancellationToken);
@@ -179,7 +183,7 @@ public static partial class RecordFields
 /// time; what needs a look is flagged, never refused (ADR-0031 §3).
 /// </summary>
 public sealed class StartShiftEntry(
-    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IShiftCalendar shifts, ITenantContext tenant) : ISyncCommandHandler
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant) : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.start.v1";
 
@@ -327,6 +331,7 @@ public sealed class StartShiftEntry(
             ReceivedAt = command.ReceivedAt,
         });
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncContinuityAsync(store, integrity, transaction, meterId, meter.Kind, command.SiteId, cancellationToken).ConfigureAwait(false);
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
 
@@ -355,7 +360,7 @@ public sealed class StartShiftEntry(
 /// <c>fieldops.shift_entry.end.v1</c> (US-P2-FO-04): the operator ends the segment. Stored as the next version, the
 /// whole entry with the end added; Δ and the end's time are checked and flagged (RULE-FO-02, ADR-0034 §6).
 /// </summary>
-public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder envelopes, ITenantContext tenant) : ISyncCommandHandler
+public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder envelopes, IIntegrityFlags integrity, ITenantContext tenant) : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.end.v1";
 
@@ -431,7 +436,7 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
 
         var flags = start.Flags.Union(raised, StringComparer.Ordinal).ToList();
 
-        store.Add(new ShiftEntryVersion
+        var ended = new ShiftEntryVersion
         {
             TenantId = tenantId,
             RootId = rootId,
@@ -466,8 +471,12 @@ public sealed class EndShiftEntry(IShiftEntryStore store, IEnvelopeRecorder enve
             CommandId = command.CommandId,
             DeviceId = command.DeviceId,
             ReceivedAt = command.ReceivedAt,
-        });
+        };
+        store.Add(ended);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncContinuityAsync(store, integrity, transaction, start.MeterId, start.MeterKind, start.SiteId, cancellationToken).ConfigureAwait(false);
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
+            IntegrityFindings.Delta(ended, raised.Contains(ShiftEntryFlags.Delta)), cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);
     }
 

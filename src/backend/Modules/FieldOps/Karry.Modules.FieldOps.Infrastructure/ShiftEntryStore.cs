@@ -33,6 +33,12 @@ internal sealed class ShiftEntryStore(FieldOpsDbContext db) : IShiftEntryStore
         return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<ShiftEntryVersion>> SegmentsOfMeterAsync(Guid meterId, CancellationToken cancellationToken) =>
+        await db.ShiftEntries.AsNoTracking()
+            .Where(e => e.MeterId == meterId)
+            .Where(e => !db.ShiftEntries.Any(later => later.RootId == e.RootId && later.Version > e.Version))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public Task<bool> HeldAtAsync(Guid assetId, DateTimeOffset instant, CancellationToken cancellationToken) =>
         db.SafetyHolds.AnyAsync(
             h => h.AssetId == assetId && h.OpenedAt <= instant && !db.SafetyHoldReleases.Any(r => r.Id == h.Id && r.ReleasedAt <= instant), cancellationToken);

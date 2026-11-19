@@ -11,6 +11,7 @@ using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Application;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.FieldOps.Infrastructure;
+using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Infrastructure;
@@ -63,13 +64,13 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     public async ValueTask InitializeAsync()
     {
         database = await postgres.Server.NewKarryDatabaseAsync();
-        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).BuildServiceProvider())
+        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).BuildServiceProvider())
         {
             await MigrationRunner.MigrateAsync(migrations, database.Owner, CancellationToken.None);
         }
 
         services = new ServiceCollection().AddLogging()
-            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App)
+            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IShiftCalendar>(shifts)
             .BuildServiceProvider(validateScopes: true);
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
@@ -361,6 +362,61 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    [Trait("Story", "US-P2-FO-07")]
+    [Trait("TestCase", "TC-P2-FO-007")]
+    public async Task A_night_start_that_is_not_the_day_end_opens_an_integrity_flag_on_the_meter_linking_both_entries_and_photos()
+    {
+        var (meter, day, night) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "100.0", meter: meter));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0"));
+
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(12), "110.5", meter: meter, signer: NextOperator));
+
+        (await FlagsAsync(TenantA)).Should().Equal(
+            $"RULE-FO-01|high|meter|{meter}|{day}>{night}|{Site}|open|[{{\"id\": \"{day}\", \"type\": \"shift_entry\"}}, {{\"id\": \"{night}\", \"type\": \"shift_entry\"}}]"
+            + $"|[\"{Photo}\", \"{Photo}\"]|{{\"endValue\": \"108.0\", \"meterKind\": \"hours\", \"difference\": \"2.5\", \"startValue\": \"110.5\"}}");
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_opened.v1'")).Should().Be(1);
+        (await RowsAsync(TenantB, "SELECT key FROM integrity.flags")).Should().BeEmpty();
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-07")]
+    [Trait("TestCase", "TC-P2-FO-008")]
+    public async Task A_late_entry_is_compared_with_its_real_neighbours_and_closes_the_gap_it_explains()
+    {
+        var (meter, monday, tuesday, wednesday) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(monday, ShiftStart, "100.0", meter: meter));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(monday, 2, ShiftStart.AddHours(8), "108.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(wednesday, ShiftStart.AddDays(2), "116.0", meter: meter, signer: NextOperator));
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal($"{monday}>{wednesday}|open");
+
+        // Tuesday's entry was kept offline: it arrives last, starts where Monday ended and ends short of Wednesday's start.
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(tuesday, ShiftStart.AddDays(1), "108.0", meter: meter, signer: Guid.CreateVersion7()));
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal(
+            [$"{monday}>{wednesday}|re-evaluated"], "Tuesday is still running: nothing to compare Wednesday with yet");
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(tuesday, 2, ShiftStart.AddDays(1).AddHours(8), "115.0"));
+
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal($"{monday}>{wednesday}|re-evaluated", $"{tuesday}>{wednesday}|open");
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries WHERE event_type = 'integrity.flag_closed.v1'")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-FO-005")]
+    public async Task An_end_with_a_delta_out_of_bounds_opens_an_integrity_flag_on_the_entry_and_a_good_one_does_not()
+    {
+        var (bad, good) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(bad, ShiftStart, "100.0"));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(bad, 2, ShiftStart.AddHours(8), "99.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(good, ShiftStart.AddHours(9), "99.0", signer: NextOperator));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(good, 2, ShiftStart.AddHours(17), "107.0"));
+
+        (await RowsAsync(TenantA, "SELECT rule || '|' || subject_type || '|' || subject_id || '|' || key || '|' || details::text FROM integrity.flags WHERE rule = 'RULE-FO-02'"))
+            .Should().Equal($"RULE-FO-02|shift_entry|{bad}|delta|{{\"delta\": \"-1.0\", \"minutes\": \"480\", \"endValue\": \"99.0\", \"meterKind\": \"hours\", \"startValue\": \"100.0\"}}");
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-SIG-007")]
     public async Task Entries_are_append_only_and_another_company_does_not_see_them()
     {
@@ -582,6 +638,12 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         return deltas.Single(d => d.Name == "meterStates");
     }
+
+    /// <summary>The company's integrity flags, oldest first: in full, or as key and state (open, or the reason it closed).</summary>
+    private Task<List<string>> FlagsAsync(Guid tenant, bool brief = false) => RowsAsync(tenant, brief
+        ? "SELECT key || '|' || coalesce(close_reason, 'open') FROM integrity.flags ORDER BY opened_at, key"
+        : "SELECT rule || '|' || severity || '|' || subject_type || '|' || subject_id || '|' || key || '|' || site_id || '|' || coalesce(close_reason, 'open') || '|' "
+            + "|| related::text || '|' || evidence::text || '|' || details::text FROM integrity.flags ORDER BY opened_at, key");
 
     private async Task NothingWrittenAsync() =>
         (await ScalarAsync<long>(database.Admin, "SELECT (SELECT count(*) FROM fieldops.shift_entries) + (SELECT count(*) FROM audit.signature_envelopes) + (SELECT count(*) FROM audit.ledger_entries)"))
