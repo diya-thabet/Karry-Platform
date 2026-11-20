@@ -129,6 +129,20 @@ public static partial class TypeRules
         where InfrastructurePackagePrefix(reference.Name) is not null
         select $"{name} references {reference.Name}: domain code must stay free of infrastructure.";
 
+    /// <summary>
+    /// The API description names each schema after its type alone (OpenAPI, api-standards.md): two public request or response
+    /// types of the same name in different modules would share one schema, and the generated client would carry the
+    /// wrong shape for one of them. Every <c>*Request</c>, <c>*Response</c> and <c>*Input</c> name is unique.
+    /// </summary>
+    public static IEnumerable<string> ApiSchemaNamesAreUnique(IEnumerable<Type> types) =>
+        from type in types
+        where (type.IsPublic || type.IsNestedPublic) && !type.IsGenericTypeDefinition && !(type.IsAbstract && type.IsSealed)
+        where type.Name.EndsWith("Response", StringComparison.Ordinal) || type.Name.EndsWith("Request", StringComparison.Ordinal)
+            || type.Name.EndsWith("Input", StringComparison.Ordinal)
+        group type by type.Name into named
+        where named.Count() > 1
+        select $"{named.Key}: one API schema name for {string.Join(", ", named.Select(t => t.FullName).Order(StringComparer.Ordinal))}; rename one.";
+
     private static string? InfrastructurePackagePrefix(string? name) =>
         InfrastructureAssemblyPrefixes.FirstOrDefault(prefix => name?.StartsWith(prefix, StringComparison.Ordinal) == true);
 

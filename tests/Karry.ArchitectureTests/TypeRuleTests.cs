@@ -62,6 +62,27 @@ public sealed class TypeRuleTests
         TypeRules.TenantIdIsNeverPubliclySettable([typeof(MovableRow), typeof(FixedRow)])
             .Should().ContainSingle().Which.Should().Contain(nameof(MovableRow));
 
+    [Fact]
+    public void Product_api_schema_names_are_unique() =>
+        TypeRules.ApiSchemaNamesAreUnique(ProductTypes).Should().BeEmpty();
+
+    [Fact]
+    public void Two_request_or_response_types_of_one_name_are_a_violation() =>
+        TypeRules.ApiSchemaNamesAreUnique([typeof(OneModule.ThingResponse), typeof(OtherModule.ThingResponse), typeof(OneModule.ThingInput), typeof(Fine)])
+            .Should().ContainSingle().Which.Should().Contain("ThingResponse");
+
+    public static class OneModule
+    {
+        public sealed record ThingResponse(Guid Id);
+
+        public sealed record ThingInput(string Name);
+    }
+
+    public static class OtherModule
+    {
+        public sealed record ThingResponse(string Key);
+    }
+
     public sealed record Unnamed : DomainEvent;
 
     [EventType("NotAName")]

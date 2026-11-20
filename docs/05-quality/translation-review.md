@@ -4,7 +4,7 @@ area: quality
 tags: [i18n, l10n, translation, review, arabic, malinke, maninka, nko, rtl, catalogs, native-speaker, glossary]
 source: "ADR-0030 (owner decisions 2026-10-29)"
 status: live
-last_updated: 2026-11-19
+last_updated: 2026-11-20
 ---
 
 # Translation review
@@ -102,6 +102,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-19 | `portal.meterEvents.*` (31 keys) | ar, emk, nqo | P2.7 meter events in the portal: replaced, reset, failed, repaired; "Pourquoi", "Photos" |
 | 2026-11-19 | `field.estimated`, `field.start.failedMeter`, `field.end.failedMeter`, `field.end.operatingTime`, `field.end.distance`, `field.end.operatingHelp`, `field.end.estimatedEnd` | ar, emk, nqo | P2.7 failed-meter mode on the tablet ("temps de marche", "estimé") |
 | 2026-11-19 | `portal.holds.*` (25 keys) | ar, emk, nqo | P2.6 portal list of held machines and the release dialog ("lever l’immobilisation" in French) |
+| 2026-11-20 | `portal.integrity.flags.*`, `portal.integrity.flag.*` (32 keys) | ar, emk, nqo | P2.7 integrity flag list: what each rule found with its values (ICU `select` for start/end, ahead/behind; plurals), "alertes d’intégrité", "lasɔmini" |
 | 2026-11-19 | `portal.integrity.*` (31 keys), `portal.settings.integrityHint`, `permissions.integrity.rules.manage` | ar, emk, nqo | P2.7 integrity rules page: what each rule checks, severities, thresholds with units ("alerte", "seuil", "tolérance" in French; "lasɔmini" in Malinké as for the flags) |
 | 2026-11-19 | `field.checklist.*` (15 keys), `field.start.block.unsafe`, `field.history.flag.unsafe` | ar, emk, nqo | P2.6 checklist step on the tablet: "held as unsafe" and "Not OK" are what operators read before a start |
 | 2026-11-09 | `portal.signature.*` (17 keys: the verification badge, its checks and results) | ar, emk, nqo | P2.3 portal "Verified" badge |

@@ -2107,6 +2107,25 @@ export interface components {
                 [key: string]: number | string;
             };
         };
+        /** @description Where the tablet was (WGS 84 degrees, accuracy in metres); null when location access was refused. */
+        EntryLocationResponse: {
+            /** Format: double */
+            latitude: number | string;
+            /** Format: double */
+            longitude: number | string;
+            /** Format: int32 */
+            accuracyM: number | string;
+        };
+        /** @description The shift an entry was resolved to when its start arrived (ADR-0034 §2). */
+        EntryShiftResponse: {
+            /** Format: date */
+            date: string;
+            code: string;
+            /** Format: date-time */
+            startsAt: string;
+            /** Format: date-time */
+            endsAt: string;
+        };
         /** @description One check of the verification and its result: `pass`, `fail`, `pending` or `not_checked`. */
         EnvelopeCheck: {
             name: string;
@@ -2143,12 +2162,6 @@ export interface components {
         };
         FlagCatalogResponse: {
             items: components["schemas"]["FlagResponse"][];
-        };
-        /** @description A page of flags, newest first; `nextCursor` when more follow. */
-        FlagListResponse: {
-            items: components["schemas"]["FlagResponse"][];
-            /** Format: uuid */
-            nextCursor: null | string;
         };
         /**
          * @description A declared flag: its default, this environment's configured value and the platform-wide value (null when not set).
@@ -2274,6 +2287,42 @@ export interface components {
             row: number | string;
             key: string;
             action: string;
+        };
+        /** @description A page of flags, newest first; `nextCursor` when more follow. */
+        IntegrityFlagListResponse: {
+            items: components["schemas"]["IntegrityFlagResponse"][];
+            /** Format: uuid */
+            nextCursor: null | string;
+        };
+        /**
+         * @description A flag (ADR-0036 §2): the rule and its severity, what it is about and linked to, the evidence and the values its
+         *     explanation names; `closedAt` and `closeReason` once it no longer holds or was settled.
+         */
+        IntegrityFlagResponse: {
+            /** Format: uuid */
+            id: string;
+            rule: string;
+            severity: string;
+            subject: components["schemas"]["IntegrityFlagSubjectResponse"];
+            key: string;
+            /** Format: uuid */
+            siteId: null | string;
+            related: components["schemas"]["IntegrityFlagSubjectResponse"][];
+            evidence: string[];
+            details: {
+                [key: string]: string;
+            };
+            /** Format: date-time */
+            openedAt: string;
+            /** Format: date-time */
+            closedAt: null | string;
+            closeReason: null | string;
+        };
+        /** @description An entity a flag is about or linked to. */
+        IntegrityFlagSubjectResponse: {
+            type: string;
+            /** Format: uuid */
+            id: string;
         };
         InviteUser: {
             firstName: null | string;
@@ -2763,7 +2812,7 @@ export interface components {
             segmentNo: number | string;
             /** Format: uuid */
             previousEntryId: null | string;
-            shift: null | components["schemas"]["ShiftResponse"];
+            shift: null | components["schemas"]["EntryShiftResponse"];
             /** Format: date-time */
             startedAt: string;
             /** Format: double */
@@ -2771,7 +2820,7 @@ export interface components {
             /** Format: int32 */
             fuelStartPercent: number | string;
             startPhoto: string;
-            startLocation: null | components["schemas"]["LocationResponse"];
+            startLocation: null | components["schemas"]["EntryLocationResponse"];
             /** Format: date-time */
             endedAt: null | string;
             /** Format: double */
@@ -2781,7 +2830,7 @@ export interface components {
             /** Format: int32 */
             fuelEndPercent: null | number | string;
             endPhoto: null | string;
-            endLocation: null | components["schemas"]["LocationResponse"];
+            endLocation: null | components["schemas"]["EntryLocationResponse"];
             stoppages: components["schemas"]["StoppageResponse"][];
             remarks: null | string;
             estimated: boolean;
@@ -9217,7 +9266,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FlagListResponse"];
+                    "application/json": components["schemas"]["IntegrityFlagListResponse"];
                 };
             };
             /** @description Bad Request */
