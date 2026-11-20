@@ -3,7 +3,7 @@ title: "ADR-0036: Integrity rules and flags"
 area: adr
 tags: [adr, phase-2, p2-7, integrity, rules, flags, continuity, meter-events]
 source: "P2.7 planning (sub-phases.md §P2.7, §Decisions), US-P2-FO-07, US-P2-AST-01, US-P2-AST-02, US-P2-INT-01, ADR-0034"
-status: proposed
+status: accepted
 last_updated: 2026-11-20
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-20
 
 > [Docs index](../README.md) › [ADRs](README.md) · [P2.7 slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md)
 
-- **Status:** Proposed (2026-11-19, P2.7 planning)
+- **Status:** Accepted (2026-11-20, P2.7 close-out; security review below). Proposed 2026-11-19 at P2.7 planning.
 - **Date:** 2026-11-19
 
 ## Context
@@ -177,6 +177,27 @@ operator signed no checklist of that machine in the 60 minutes before (`Checklis
 `checklistValidMinutes`), the start's signed fact is flagged with the type and the version. A checklist handled after
 the starts it covers (kept offline, uploaded later) weighs them again in its own transaction, which closes their flags.
 A version published after a start is not held against it.
+
+## Security review (P2.7 close-out, 2026-11-20)
+
+| Threat | What P2.7 does | Evidence |
+|---|---|---|
+| T-01 operator identity (R-13) | Every signed start and end's signer is checked against Identity's field users of the site, the tablet's own unlock rule; anyone else raises RULE-FO-09 (critical, security) with the reason. The fact is kept | `FieldSignersTests`, `ShiftEntryHandlersTests` (TC-P2-INT-009) |
+| T-01 residual | Roles are judged as they are when the fact arrives, not when it was signed; a deactivation between signing and upload is flagged, with its date for the controller | threat model R-13 |
+| T-03 evidence | A photo without its capture record (not from the app's camera) raises RULE-FO-05; a photo already on another entry, or the start's photo used for the end, raises RULE-FO-06 | `ShiftEntryHandlersTests` (TC-P2-INT-005, 006), planted-anomaly generator |
+| T-04 backdating | The tablet sends the clock offset it measured beside the signed record; a fact signed on a clock off by more than the threshold, or dated after its arrival, raises RULE-FO-03; an offline delay with a right clock does not | `ClockSkewTests`, `ShiftEntryHandlersTests` (TC-P2-INT-003) |
+| T-05 replay | Unchanged: commands are idempotent by ID and sequence (P1.15). A flag opens once per subject, rule and key, so a replayed or re-evaluated fact never duplicates one | `FlagsTests`, `SyncBatchesTests` |
+| T-06 tampering of flags and settings | Flags only open and close: a trigger refuses any other change and every delete, `DELETE`/`TRUNCATE` revoked from `karry_app`; every open, close and settings change is ledgered under its author | `FlagsTests` (`A_flag_only_closes_it_is_never_deleted_nor_changed_otherwise`), `RuleSettingsApiTests` |
+| Rule settings | Only a Tenant Admin with a recent sign-in changes a rule (`integrity.rules.manage`, privileged), with `If-Match`; the security rules RULE-FO-05, 06, 07, 09 and 10 cannot be switched off: the API refuses it, a check constraint built from the catalogue refuses the row, and the engine runs them whatever is stored | `RuleSettingsApiTests`, `RuleSettingRulesTests` |
+| Safety (R-14) | A start without its operator's checklist of the machine in the hour before, where the type's version in force requires one, raises RULE-FO-10 (security); a checklist arriving later closes it; a start on a held machine stays `ASSET_UNSAFE` | `ChecklistSubmissionHandlersTests` (TC-P2-INT-010) |
+| Safety residual | A hold reaches other tablets at their next pull; P2.10 notifies the site's managers when one opens | threat model R-14 |
+| Revoked tablet | Each quarantined command of a revoked tablet raises RULE-FO-07 (critical) linked to the tablet, once | `SyncBatchesTests` (TC-P2-INT-007) |
+| T-09/T-11 isolation | RLS on `integrity.flags` and `integrity.rule_settings`; the flag list is limited to the caller's sites; the isolation suite attacks `{rule}` and looks for another company's flags | `TenantIsolationSuite`, `FlagsTests` |
+| T-10 disclosure | A flag's details hold meter values, minutes, metres and reasons, never a price, cost or wage: nothing to mask | review |
+| Completeness | Seeded histories with every signed-fact rule planted at random come out as exactly the planted flags (P2.7's "done when"); a mutant fails all seeds | `ShiftEntryHandlersTests` (`Every_planted_anomaly_comes_out_as_its_flag_and_nothing_else_does`) |
+
+Open: settling a flag (a controller's decision with a reason) is P2.8's console; until then a flag closes only when a
+re-evaluation no longer finds it.
 
 ## Options considered
 
