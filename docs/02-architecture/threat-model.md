@@ -4,7 +4,7 @@ area: architecture
 tags: [security, threat-model, stride, tenancy, sync, signatures, ledger, fraud]
 source: "Phase 0 WP-P0-18"
 status: draft
-last_updated: 2026-11-09
+last_updated: 2026-11-20
 ---
 
 # Threat Model v1 (STRIDE)
@@ -90,7 +90,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 | R-04 | Collusion across several roles | Statistical anomaly detection independent of approvals; telematics cross-check (Phase 9) |
 | R-12 | The server signing key's OpenBao unseal key and root token live in a volume (`baokeys`) on the same host, locally and on premises, so root or the `docker` group on that host could sign as the server | The API's token can only sign with `karry-server` and read public keys; KMS-held key or OpenBao auto-unseal in the environments (P1.17); for on-premises installs, an unseal key held off the host (manual unseal after each restart: `start.sh` would then wait sealed) or auto-unseal is decided with the on-premises package; meanwhile restrict root and the `docker` group on that host |
 | R-14 | A tablet learns of another tablet's safety hold only at its next pull, and a required pre-start checklist is enforced by the tablet only: a start made in that gap, or by a tampered app without a checklist, reaches the server flagged `ASSET_UNSAFE` or not flagged (ADR-0035 §7) | P2.7: a rule flags a start without a recent checklist where one is required; P2.10: the site's managers are notified when a hold opens |
-| R-13 | A shift entry's operator is whoever the tablet's app names in the signed envelope; the server does not yet check that this person is an active field user of the site, so a tampered app on an enrolled tablet could sign entries as anyone | The tablet unlocks only with the person's PIN (server lockout, P1.15); entries keep tablet and envelope; P2.7 flags a signer who is not an active field user of the site (Identity contract), never rejecting the fact |
+| R-13 | **Mitigated in P2.7 (2026-11-20).** Was: the server did not check that a shift entry's signer is an active field user of the site, so a tampered app on an enrolled tablet could sign as anyone. Now RULE-FO-09 (security rule, always on) flags every signed start and end whose signer the site's tablets would not unlock for (`FieldSignersTests`, `ShiftEntryHandlersTests`). Residual: roles are judged as they are when the fact arrives, not as they were when it was signed; the fact is flagged, never refused | Controllers review RULE-FO-09 flags (P2.8 console); the PIN lockout and per-entry signatures stay |
 | R-11 | Self-service password reset trusts the person's mailbox | Privileged accounts must also pass their second factor (H-I6); reset links live 5 minutes and are single use; Keycloak's mail relay credentials only in the vault (P1.17) |
 | R-10 | The `karry-identity` service-account secret can manage users, organizations and clients of the realm (needed for invitations, deactivation and per-tenant redirect URIs) | Secret only in the vault (P1.17), never in config outside local; least-privilege role list pinned by `RealmConfigurationTests`; admin events on in Keycloak |
 | R-09 | An invitation link is forwarded or intercepted before the invitee uses it | Single use, 7 days, token only in the URL fragment, hash-only storage; the invitee chooses the password; privileged roles must also enrol a second factor; resend rotates (P1.9 UI) |
@@ -103,6 +103,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
+| 2026-11-20 | P2.7 | RULE-FO-09 (ADR-0036 slice 7c): R-13 mitigated, signers checked against Identity's field users of the site on every signed start and end | Software architect |
 | 2026-11-18 | P2.5 | Tablet flows (ADR-0034 §10): T-01 (operator shown on every screen, drafts per operator, the meter photo only from the app camera), T-03 (the photo's hash in the signed record and envelope), T-17 (drafts purged after 24 h at unlock) | Software architect |
 | 2026-11-09 | P2.4 | Shift entries (ADR-0034 accepted, security review in its §9): T-01 extended (operator = envelope signer, envelope bound to its record), T-10 reviewed (nothing to mask); new residual risk R-13 (signer not yet checked against Identity) | Software architect |
 | 2026-11-09 | P2.3 | Signature envelopes (ADR-0033 accepted, security review in its §7): T-02, T-03, T-06 and T-07 extended to envelopes, countersignatures and published server keys; a revoked tablet's envelope is now refused by the recorder too; new residual risk R-12 (server key custody before KMS) | Software architect |

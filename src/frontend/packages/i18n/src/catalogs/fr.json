@@ -1360,5 +1360,8 @@
   "portal.integrity.flag.RULE-FO-06": "La photo du compteur {part, select, start {au début} other {à la fin}} figure aussi sur {others, plural, one {# autre saisie} other {# autres saisies}}.",
   "portal.integrity.flag.RULE-FO-06.sameAsStart": "La photo de fin est la même que celle du début.",
   "portal.integrity.flag.RULE-FO-07": "Une tablette révoquée a envoyé une commande ({type}) ; elle a été mise de côté, pas appliquée.",
+  "portal.integrity.rule.RULE-FO-09.title": "Signataire",
+  "portal.integrity.rule.RULE-FO-09.description": "La personne qui a signé est quelqu’un pour qui les tablettes du site s’ouvrent : un utilisateur terrain actif avec un rôle sur le site.",
+  "portal.integrity.flag.RULE-FO-09": "{part, select, start {Le début a été signé} other {La fin a été signée}} par {reason, select, unknown {une personne inconnue de l’entreprise} not_field_user {une personne qui ne signe pas sur tablette} inactive {une personne dont le compte n’est pas encore actif} deactivated {une personne désactivée le {deactivatedAt, date, medium}} not_on_site {une personne sans rôle sur ce site} other {une personne non autorisée ici}}.",
   "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils"
 }

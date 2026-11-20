@@ -5,6 +5,7 @@ using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
@@ -214,7 +215,7 @@ public static partial class RecordFields
 /// time; what needs a look is flagged, never refused (ADR-0031 §3).
 /// </summary>
 public sealed class StartShiftEntry(
-    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant, ISiteGeofence geofence)
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant, ISiteGeofence geofence, IFieldSigners signers)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.start.v1";
@@ -369,6 +370,7 @@ public sealed class StartShiftEntry(
         await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, ClockOffset(command), command.ReceivedAt, rootId, "start", command.SiteId, cancellationToken)
             .ConfigureAwait(false);
         await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
 
@@ -401,7 +403,8 @@ public sealed class StartShiftEntry(
 /// whole entry with the end added; Δ and the end's time are checked and flagged (RULE-FO-02, ADR-0034 §6).
 /// </summary>
 public sealed class EndShiftEntry(
-    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterEvents meterEvents, IIntegrityFlags integrity, ISiteGeofence geofence, ITenantContext tenant)
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterEvents meterEvents, IIntegrityFlags integrity, ISiteGeofence geofence, ITenantContext tenant,
+    IFieldSigners signers)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.end.v1";
@@ -522,6 +525,7 @@ public sealed class EndShiftEntry(
         await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, StartShiftEntry.ClockOffset(command), command.ReceivedAt, rootId, "end", start.SiteId, cancellationToken)
             .ConfigureAwait(false);
         await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
             IntegrityFindings.Delta(ended, (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"]),
             cancellationToken).ConfigureAwait(false);

@@ -162,6 +162,15 @@ photo already used, on starts and ends; the open flags are then compared, as a s
 seeds, each planting every one of the six rules; with the geofence answering "inside the margin" all three fail.
 RULE-FO-07 (Sync) keeps its own test.
 
+As built (slice 7c): RULE-FO-09 (critical, security) closes R-13. Identity's new contract `IFieldSigners` applies the
+tablet's own unlock rule (the users it pulls: active field users with an employee ID and a role on the site or across
+the company) to the envelope's signer of each signed start and end; FieldOps raises the flag on the signed fact with
+the reason (`unknown`, `not_field_user`, `inactive`, `deactivated` with the date, `not_on_site`). The fact is kept. The
+judgement is made when the fact arrives: an entry signed offline before a deactivation and sent after it is flagged,
+and the date lets a controller tell the two apart. The planted-anomaly generator plants it too. The database's
+"security rules stay on" constraint is now built from the catalogue (`IntegrityDbContext.SecurityRulesOn`), so a new
+security rule cannot be left out of it.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

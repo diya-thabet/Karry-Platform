@@ -1360,5 +1360,8 @@
   "portal.integrity.flag.RULE-FO-06": "صورة العدّاد عند {part, select, start {البداية} other {النهاية}} موجودة أيضًا في {others, plural, one {إدخال آخر} two {إدخالين آخرين} few {# إدخالات أخرى} many {# إدخالًا آخر} other {# إدخال آخر}}.",
   "portal.integrity.flag.RULE-FO-06.sameAsStart": "صورة النهاية هي نفسها صورة البداية.",
   "portal.integrity.flag.RULE-FO-07": "أرسل جهاز لوحي ملغى أمرًا ({type})؛ وُضع جانبًا ولم يُطبَّق.",
+  "portal.integrity.rule.RULE-FO-09.title": "الموقِّع",
+  "portal.integrity.rule.RULE-FO-09.description": "الشخص الذي وقّع هو من تُفتح له الأجهزة اللوحية في الموقع: مستخدم ميداني نشط له دور في الموقع.",
+  "portal.integrity.flag.RULE-FO-09": "وُقِّعت {part, select, start {البداية} other {النهاية}} من قِبل {reason, select, unknown {شخص لا تعرفه الشركة} not_field_user {شخص لا يوقّع على الأجهزة اللوحية} inactive {شخص لم يُفعَّل حسابه بعد} deactivated {شخص عُطِّل في {deactivatedAt, date, medium}} not_on_site {شخص ليس له دور في هذا الموقع} other {شخص غير مخوَّل هنا}}.",
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها"
 }

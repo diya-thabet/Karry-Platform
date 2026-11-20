@@ -1360,5 +1360,8 @@
   "portal.integrity.flag.RULE-FO-06": "Kontɛri ja {part, select, start {daminɛ} other {laban}} la bɛ {others, plural, one {sɛbɛn # wɛrɛ} other {sɛbɛn # wɛrɛ}} kan fana.",
   "portal.integrity.flag.RULE-FO-06.sameAsStart": "Laban ja ni daminɛ ja ye kelen ye.",
   "portal.integrity.flag.RULE-FO-07": "Tabileti bɔnen ye ci dɔ ci ({type}); a bilara kɛrɛfɛ, a ma kɛ.",
+  "portal.integrity.rule.RULE-FO-09.title": "Bolonɔbila",
+  "portal.integrity.rule.RULE-FO-09.description": "Mɔgɔ min ye bolonɔ bila, sigiyɔrɔ tabiletilu bɛ dayɛlɛ o ye: foroba baarakɛla min bɛ baara la, jɔyɔrɔ b’a bolo sigiyɔrɔ la.",
+  "portal.integrity.flag.RULE-FO-09": "{part, select, start {Daminɛ} other {Laban}} bolonɔ bilala {reason, select, unknown {mɔgɔ ye min tɛ dɔn baarayɔrɔ la} not_field_user {mɔgɔ ye min tɛ bolonɔ bila tabileti kan} inactive {mɔgɔ ye min ka kɔnti ma daminɛ fɔlɔ} deactivated {mɔgɔ ye min bɔra baara la {deactivatedAt, date, medium}} not_on_site {mɔgɔ ye jɔyɔrɔ tɛ min bolo sigiyɔrɔ nin na} other {mɔgɔ ye min ma daganna yan}} fɛ.",
   "permissions.integrity.rules.manage": "Tiɲɛni sariyalu daminɛ walima u dabila, ani u dancɛlu sigi"
 }

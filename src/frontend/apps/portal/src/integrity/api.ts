@@ -54,6 +54,7 @@ const explained: Record<string, readonly string[]> = {
   "RULE-FO-05": ["part"],
   "RULE-FO-06": ["part", "otherEntries"],
   "RULE-FO-07": ["type"],
+  "RULE-FO-09": ["part", "reason"],
 };
 
 /**
@@ -87,6 +88,8 @@ export function flagExplanation(t: TFunction, flag: IntegrityFlag): string {
       return d.sameAsStart === "true"
         ? t("portal.integrity.flag.RULE-FO-06.sameAsStart")
         : t("portal.integrity.flag.RULE-FO-06", { part, others: n("otherEntries") });
+    case "RULE-FO-09":
+      return t("portal.integrity.flag.RULE-FO-09", { part, reason: d.reason ?? "", deactivatedAt: new Date(d.deactivatedAt ?? 0) });
     default:
       return t("portal.integrity.flag.RULE-FO-07", { type: d.type ?? "" });
   }

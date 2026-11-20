@@ -4,6 +4,7 @@ using System.Text.Json;
 using Karry.BuildingBlocks.Sync;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Organization.Contracts;
 
@@ -84,6 +85,42 @@ public static class IntegrityFindings
         }
 
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(SignedFact, fact.EnvelopeId), IntegrityRules.Geofence, siteId,
+            findings, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// RULE-FO-09 on one signed start or end (threat R-13, security rule): the envelope's signer is not someone the
+    /// site's tablets unlock for (unknown, an office account, inactive, deactivated, or without a role on the site). The
+    /// fact is kept; the flag carries why, and when the person was deactivated so a controller can tell a fact signed
+    /// before it from one signed after.
+    /// </summary>
+    public static async Task SyncSignerAsync(
+        IFieldSigners signers, IIntegrityFlags integrity, ISyncTransaction transaction, SignedRecord fact, Guid rootId, string part, Guid siteId,
+        CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(signers);
+        ArgumentNullException.ThrowIfNull(integrity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(fact);
+        var findings = new List<Finding>();
+        if (await signers.RefusalAsync(fact.Signer, siteId, cancellationToken).ConfigureAwait(false) is { } refusal)
+        {
+            var details = new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["part"] = part,
+                ["reason"] = refusal.Reason,
+                ["signer"] = fact.Signer.ToString("D"),
+                ["deviceTime"] = fact.DeviceTime.ToString("O", CultureInfo.InvariantCulture),
+            };
+            if (refusal.DeactivatedAt is { } at)
+            {
+                details["deactivatedAt"] = at.ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+            }
+
+            findings.Add(new Finding(part, [new FlagSubject(ShiftEntry, rootId)], [], details));
+        }
+
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(SignedFact, fact.EnvelopeId), IntegrityRules.UnknownSigner, siteId,
             findings, cancellationToken).ConfigureAwait(false);
     }
 

@@ -60,7 +60,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(new KnownMeterEvents()).AddSingleton<IShiftCalendar>(new AnyTimeShift())
-            .AddSingleton<ISiteGeofence>(new NoBoundary())
+            .AddSingleton<ISiteGeofence>(new NoBoundary()).AddSingleton<Karry.Modules.Identity.Contracts.IFieldSigners>(new KnownSigners())
             .BuildServiceProvider(validateScopes: true);
         assets.All[Asset] = new AssetSummary(Asset, "EX-01", "excavator", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         assets.All[Truck] = new AssetSummary(Truck, "TR-01", "haul-truck", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
