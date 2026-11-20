@@ -1363,5 +1363,8 @@
   "portal.integrity.rule.RULE-FO-09.title": "الموقِّع",
   "portal.integrity.rule.RULE-FO-09.description": "الشخص الذي وقّع هو من تُفتح له الأجهزة اللوحية في الموقع: مستخدم ميداني نشط له دور في الموقع.",
   "portal.integrity.flag.RULE-FO-09": "وُقِّعت {part, select, start {البداية} other {النهاية}} من قِبل {reason, select, unknown {شخص لا تعرفه الشركة} not_field_user {شخص لا يوقّع على الأجهزة اللوحية} inactive {شخص لم يُفعَّل حسابه بعد} deactivated {شخص عُطِّل في {deactivatedAt, date, medium}} not_on_site {شخص ليس له دور في هذا الموقع} other {شخص غير مخوَّل هنا}}.",
+  "portal.integrity.rule.RULE-FO-10.title": "فحص ما قبل التشغيل",
+  "portal.integrity.rule.RULE-FO-10.description": "عندما يتطلب نوع الآلة فحصًا قبل التشغيل، يكون المشغّل قد وقّع فحصًا للآلة خلال الساعة التي سبقت التشغيل.",
+  "portal.integrity.flag.RULE-FO-10": "شُغِّلت الآلة دون فحص ما قبل التشغيل من المشغّل خلال آخر {minutes, number} دقيقة، وهو ما يتطلبه نوعها.",
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها"
 }

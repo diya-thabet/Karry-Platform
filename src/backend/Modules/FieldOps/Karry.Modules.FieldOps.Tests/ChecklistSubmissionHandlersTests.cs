@@ -181,8 +181,57 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
             .Should().Be(0);
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-010")]
+    public async Task A_start_without_its_operators_recent_checklist_where_one_is_required_is_flagged_and_a_checklist_arriving_later_closes_it()
+    {
+        var template = await PublishAsync(required: true, at: Morning.AddDays(-7));
+        var (checkedFirst, never, stale, late) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        JsonArray Ok() => Answers(("brakes", "ok", null), ("lights", "ok", null));
+        await HandleAsync(Submit(Guid.CreateVersion7(), template, Ok(), submittedAt: Morning.AddMinutes(-20), signer: checkedFirst));
+        await HandleAsync(Submit(Guid.CreateVersion7(), template, Ok(), submittedAt: Morning.AddMinutes(-90), signer: stale));
+        // Another operator's checklist of the machine does not count for this one.
+        await HandleAsync(Submit(Guid.CreateVersion7(), template, Ok(), submittedAt: Morning.AddMinutes(50), signer: checkedFirst));
+
+        (await HandleAsync(Start(Morning, checkedFirst), StartShiftEntry.Name)).Should().NotBeOfType<HandlerOutcome.Rejected>();
+        (await HandleAsync(Start(Morning.AddHours(1), never), StartShiftEntry.Name)).Should().NotBeOfType<HandlerOutcome.Rejected>("the start is kept and flagged");
+        await HandleAsync(Start(Morning, stale), StartShiftEntry.Name);
+        await HandleAsync(Start(Morning.AddHours(2), late), StartShiftEntry.Name);
+        (await ChecklistFlagsAsync()).Should().Equal($"{never}|open|excavator|{template.Version}", $"{stale}|open|excavator|{template.Version}", $"{late}|open|excavator|{template.Version}");
+
+        // The late operator's checklist was signed before the start but kept offline: it arrives now.
+        await HandleAsync(Submit(Guid.CreateVersion7(), template, Ok(), submittedAt: Morning.AddHours(2).AddMinutes(-10), signer: late));
+
+        (await ChecklistFlagsAsync()).Should().Equal($"{never}|open|excavator|{template.Version}", $"{stale}|open|excavator|{template.Version}", $"{late}|re-evaluated|excavator|{template.Version}");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-010")]
+    public async Task A_start_is_not_held_to_an_optional_checklist_nor_to_one_published_after_it()
+    {
+        await PublishAsync(required: false, at: Morning.AddDays(-7));
+        await HandleAsync(Start(Morning, Guid.CreateVersion7()), StartShiftEntry.Name);
+        await PublishAsync(required: true);
+        await HandleAsync(Start(Morning.AddHours(1), Guid.CreateVersion7()), StartShiftEntry.Name);
+
+        (await ChecklistFlagsAsync()).Should().BeEmpty("the version in force at both starts is the optional one: the required one was published today");
+    }
+
+    /// <summary>A clock stopped at one instant: a version published before the tests' shifts of 9 November.</summary>
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    /// <summary>RULE-FO-10 flags, oldest first: the start's operator, open or why it closed, the machine type and the version in force.</summary>
+    private Task<List<string>> ChecklistFlagsAsync() => RowsAsync(
+        "SELECT e.operator_id || '|' || coalesce(f.close_reason, 'open') || '|' || (f.details->>'assetType') || '|' || (f.details->>'templateVersion') "
+        + "FROM integrity.flags f JOIN fieldops.shift_entries e ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-10' ORDER BY f.opened_at");
+
     /// <summary>Publishes the next version of the excavator checklist: brakes (critical) and lights, plus an extra item.</summary>
-    private async Task<ChecklistTemplate> PublishAsync(bool required, string? extra = null)
+    private async Task<ChecklistTemplate> PublishAsync(bool required, string? extra = null, DateTimeOffset? at = null)
     {
         await using var scope = services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantA));
@@ -195,7 +244,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         }
 
         var versions = await store.VersionsAsync("excavator", Ct);
-        var template = ChecklistTemplate.Publish(TimeProvider.System, new TenantId(TenantA), "excavator", versions.Count + 1, required, items, "admin-1");
+        var template = ChecklistTemplate.Publish(at is { } instant ? new FixedClock(instant) : TimeProvider.System, new TenantId(TenantA), "excavator", versions.Count + 1, required, items, "admin-1");
         (await store.TryAddAsync(template, Ct)).Should().BeTrue();
         return template;
     }
@@ -205,7 +254,9 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
             ? new JsonObject { ["item"] = a.Item, ["answer"] = a.Answer }
             : new JsonObject { ["item"] = a.Item, ["answer"] = a.Answer, ["photo"] = a.Photo }))];
 
-    private JsonObject Submit(Guid root, ChecklistTemplate template, JsonArray answers, DateTimeOffset? submittedAt = null, int? templateVersion = null, Guid? asset = null, string? recordType = null) =>
+    private JsonObject Submit(
+        Guid root, ChecklistTemplate template, JsonArray answers, DateTimeOffset? submittedAt = null, int? templateVersion = null, Guid? asset = null, string? recordType = null,
+        Guid? signer = null) =>
         Signed(new JsonObject
         {
             ["rootId"] = root.ToString(),
@@ -215,7 +266,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
             ["assetId"] = (asset ?? Asset).ToString(),
             ["submittedAt"] = (submittedAt ?? Morning).ToString("yyyy-MM-ddTHH:mm:ss.fffzzz", System.Globalization.CultureInfo.InvariantCulture),
             ["answers"] = answers,
-        }, recordType ?? ChecklistRules.RecordType);
+        }, recordType ?? ChecklistRules.RecordType, signer);
 
     private JsonObject Start(DateTimeOffset startedAt, Guid signer) => Signed(new JsonObject
     {

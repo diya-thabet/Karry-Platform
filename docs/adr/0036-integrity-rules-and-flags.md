@@ -171,6 +171,13 @@ and the date lets a controller tell the two apart. The planted-anomaly generator
 "security rules stay on" constraint is now built from the catalogue (`IntegrityDbContext.SecurityRulesOn`), so a new
 security rule cannot be left out of it.
 
+As built (slice 7d): RULE-FO-10 (high, security) closes R-14. On each start FieldOps reads the machine type's
+checklist version in force at the start time (the newest published by then); when it is required and the start's
+operator signed no checklist of that machine in the 60 minutes before (`ChecklistRules.ValidMinutes`, the tablet's
+`checklistValidMinutes`), the start's signed fact is flagged with the type and the version. A checklist handled after
+the starts it covers (kept offline, uploaded later) weighs them again in its own transaction, which closes their flags.
+A version published after a start is not held against it.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

@@ -1363,5 +1363,8 @@
   "portal.integrity.rule.RULE-FO-09.title": "Who signed",
   "portal.integrity.rule.RULE-FO-09.description": "The person who signed is someone the site's tablets open for: an active field user with a role on the site.",
   "portal.integrity.flag.RULE-FO-09": "The {part, select, start {start} other {end}} was signed by {reason, select, unknown {someone the company does not know} not_field_user {someone who does not sign on tablets} inactive {someone whose account is not active yet} deactivated {a person deactivated on {deactivatedAt, date, medium}} not_on_site {someone with no role on this site} other {someone not allowed here}}.",
+  "portal.integrity.rule.RULE-FO-10.title": "Pre-start checklist",
+  "portal.integrity.rule.RULE-FO-10.description": "Where the machine type requires a pre-start checklist, the operator signed one for the machine in the hour before starting.",
+  "portal.integrity.flag.RULE-FO-10": "The machine was started without the operator's pre-start checklist of the last {minutes, number} min, which its type requires.",
   "permissions.integrity.rules.manage": "Switch integrity rules on or off and set their thresholds"
 }
