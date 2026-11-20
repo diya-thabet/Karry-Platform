@@ -9,6 +9,7 @@ import { VersionConflict } from "../app/VersionConflict";
 import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { useRecordDraft } from "../app/recordDraft";
 import { HoldsReadPermission } from "../holds/HoldsPage";
+import { FlagsReadPermission } from "../integrity/api";
 import { Trail } from "../shell/Trail";
 import { todayIn } from "../sites/api";
 import { LabelPrintDialog, LabelPanel, MetersPanel, PhotoPanel, PlacePanel } from "./AssetPanels";
@@ -75,11 +76,16 @@ export function AssetsPage() {
     <div className="flex flex-col gap-4">
       <PageHeader
         title={t("portal.nav.assets")}
-        actions={(can(AssetsManagePermission) || can(HoldsReadPermission)) && (
+        actions={(can(AssetsManagePermission) || can(HoldsReadPermission) || can(FlagsReadPermission)) && (
           <>
             {can(HoldsReadPermission) && (
               <Button variant="secondary" asChild>
                 <Link to="/assets/holds">{t("portal.holds.title")}</Link>
+              </Button>
+            )}
+            {can(FlagsReadPermission) && (
+              <Button variant="secondary" asChild>
+                <Link to="/assets/integrity">{t("portal.integrity.flags.title")}</Link>
               </Button>
             )}
             {can(AssetsManagePermission) && (

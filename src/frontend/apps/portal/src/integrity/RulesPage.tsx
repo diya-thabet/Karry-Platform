@@ -2,15 +2,13 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Lock } from "lucide-react";
 import { intlLocale, useTranslation } from "@karry/i18n";
-import { Button, Card, Checkbox, EmptyState, ErrorState, PageHeader, PageSkeleton, StatusChip, TextField, useToast, type Status } from "@karry/ui";
+import { Button, Card, Checkbox, EmptyState, ErrorState, PageHeader, PageSkeleton, StatusChip, TextField, useToast } from "@karry/ui";
 import { useAccess, useApi, useWithStepUp } from "../app/api";
 import { VersionConflict } from "../app/VersionConflict";
 import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
-import { rulesKey, RulesManagePermission, thresholdText, useIntegrityRules, type IntegrityRule } from "./api";
-
-const severityStatus: Record<string, Status> = { low: "pending", medium: "warning", high: "error", critical: "error" };
+import { rulesKey, RulesManagePermission, severityStatus, thresholdText, useIntegrityRules, type IntegrityRule } from "./api";
 
 /**
  * The company's integrity rules (ADR-0036 §1, US-P2-INT-01 AC3): what each rule checks, whether it runs and its

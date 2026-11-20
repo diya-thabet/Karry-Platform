@@ -141,12 +141,12 @@ public sealed record ShiftEntryListResponse(IReadOnlyList<ShiftEntryResponse> It
 public sealed record ShiftEntryDetailResponse(ShiftEntryResponse Entry, IReadOnlyList<ShiftEntryResponse> Versions);
 
 /// <summary>The shift an entry was resolved to when its start arrived (ADR-0034 §2).</summary>
-public sealed record ShiftResponse(DateOnly Date, string Code, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
+public sealed record EntryShiftResponse(DateOnly Date, string Code, DateTimeOffset StartsAt, DateTimeOffset EndsAt);
 
 /// <summary>Where the tablet was (WGS 84 degrees, accuracy in metres); null when location access was refused.</summary>
-public sealed record LocationResponse(decimal Latitude, decimal Longitude, int AccuracyM)
+public sealed record EntryLocationResponse(decimal Latitude, decimal Longitude, int AccuracyM)
 {
-    public static LocationResponse? From(Position? position) => position is null ? null : new(position.Latitude, position.Longitude, position.AccuracyM);
+    public static EntryLocationResponse? From(Position? position) => position is null ? null : new(position.Latitude, position.Longitude, position.AccuracyM);
 }
 
 /// <summary>A stoppage during the segment.</summary>
@@ -158,21 +158,21 @@ public sealed record StoppageResponse(string Reason, int Minutes);
 /// </summary>
 public sealed record ShiftEntryResponse(
     Guid Id, int Version, string Status, Guid SiteId, Guid AssetId, Guid MeterId, string MeterKind, string Unit, Guid OperatorId,
-    int SegmentNo, Guid? PreviousEntryId, ShiftResponse? Shift, DateTimeOffset StartedAt, decimal StartValue, int FuelStartPercent,
-    string StartPhoto, LocationResponse? StartLocation, DateTimeOffset? EndedAt, decimal? EndValue, decimal? Usage, int? FuelEndPercent, string? EndPhoto,
-    LocationResponse? EndLocation,
+    int SegmentNo, Guid? PreviousEntryId, EntryShiftResponse? Shift, DateTimeOffset StartedAt, decimal StartValue, int FuelStartPercent,
+    string StartPhoto, EntryLocationResponse? StartLocation, DateTimeOffset? EndedAt, decimal? EndValue, decimal? Usage, int? FuelEndPercent, string? EndPhoto,
+    EntryLocationResponse? EndLocation,
     IReadOnlyList<StoppageResponse> Stoppages, string? Remarks, bool Estimated, IReadOnlyList<string> Flags, Guid EnvelopeId, Guid DeviceId,
     DateTimeOffset ReceivedAt)
 {
     public static ShiftEntryResponse From(ShiftEntryVersion e)
     {
         ArgumentNullException.ThrowIfNull(e);
-        var shift = e is { ShiftDate: { } date, ShiftCode: { } code, ShiftStartsAt: { } starts, ShiftEndsAt: { } ends } ? new ShiftResponse(date, code, starts, ends) : null;
+        var shift = e is { ShiftDate: { } date, ShiftCode: { } code, ShiftStartsAt: { } starts, ShiftEndsAt: { } ends } ? new EntryShiftResponse(date, code, starts, ends) : null;
         return new ShiftEntryResponse(
             e.RootId, e.Version, EntryReading.StatusCode(e.Status), e.SiteId, e.AssetId, e.MeterId, e.MeterKind, e.MeterKind == "hours" ? "h" : "km", e.OperatorId,
             e.SegmentNo, e.PreviousRootId, shift, e.StartedAt, e.StartValue, e.FuelStartPercent,
-            e.StartPhoto, LocationResponse.From(e.StartPosition), e.EndedAt, e.EndValue, e.EndValue - e.StartValue, e.FuelEndPercent, e.EndPhoto,
-            LocationResponse.From(e.EndPosition),
+            e.StartPhoto, EntryLocationResponse.From(e.StartPosition), e.EndedAt, e.EndValue, e.EndValue - e.StartValue, e.FuelEndPercent, e.EndPhoto,
+            EntryLocationResponse.From(e.EndPosition),
             [.. e.Stoppages.Select(s => new StoppageResponse(s.Reason, s.Minutes))], e.Remarks, e.Estimated, e.Flags, e.EnvelopeId, e.DeviceId,
             e.ReceivedAt);
     }

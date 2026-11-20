@@ -92,13 +92,13 @@ public sealed class IntegrityModule : IModule
     /// Flags of the caller's sites, newest first: <c>status</c> open (default), closed or all; by site, rule or subject;
     /// <c>cursor</c> is the last flag ID of the previous page.
     /// </summary>
-    private static async Task<Results<Ok<FlagListResponse>, ProblemHttpResult>> SearchFlagsAsync(
+    private static async Task<Results<Ok<IntegrityFlagListResponse>, ProblemHttpResult>> SearchFlagsAsync(
         Guid? siteId, string? rule, string? status, string? subjectType, Guid? subjectId, Guid? cursor, int? limit,
         [FromServices] FlagReading flags, CancellationToken cancellationToken)
     {
         var result = await flags.SearchAsync(siteId, rule, status, subjectType, subjectId, cursor, limit, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess
-            ? TypedResults.Ok(new FlagListResponse([.. result.Value.Items.Select(FlagResponse.From)], result.Value.NextCursor))
+            ? TypedResults.Ok(new IntegrityFlagListResponse([.. result.Value.Items.Select(IntegrityFlagResponse.From)], result.Value.NextCursor))
             : result.Error.ToProblem();
     }
 }
@@ -128,23 +128,23 @@ public sealed record RuleResponse(
 }
 
 /// <summary>A page of flags, newest first; <c>nextCursor</c> when more follow.</summary>
-public sealed record FlagListResponse(IReadOnlyList<FlagResponse> Items, Guid? NextCursor);
+public sealed record IntegrityFlagListResponse(IReadOnlyList<IntegrityFlagResponse> Items, Guid? NextCursor);
 
 /// <summary>An entity a flag is about or linked to.</summary>
-public sealed record FlagSubjectResponse(string Type, Guid Id);
+public sealed record IntegrityFlagSubjectResponse(string Type, Guid Id);
 
 /// <summary>
 /// A flag (ADR-0036 §2): the rule and its severity, what it is about and linked to, the evidence and the values its
 /// explanation names; <c>closedAt</c> and <c>closeReason</c> once it no longer holds or was settled.
 /// </summary>
-public sealed record FlagResponse(
-    Guid Id, string Rule, string Severity, FlagSubjectResponse Subject, string Key, Guid? SiteId, IReadOnlyList<FlagSubjectResponse> Related,
+public sealed record IntegrityFlagResponse(
+    Guid Id, string Rule, string Severity, IntegrityFlagSubjectResponse Subject, string Key, Guid? SiteId, IReadOnlyList<IntegrityFlagSubjectResponse> Related,
     IReadOnlyList<string> Evidence, IReadOnlyDictionary<string, string> Details, DateTimeOffset OpenedAt, DateTimeOffset? ClosedAt, string? CloseReason)
 {
-    public static FlagResponse From(IntegrityFlag f)
+    public static IntegrityFlagResponse From(IntegrityFlag f)
     {
         ArgumentNullException.ThrowIfNull(f);
-        return new(f.Id.Value, f.Rule, f.Severity, new(f.SubjectType, f.SubjectId), f.Key, f.SiteId, [.. f.Related.Select(r => new FlagSubjectResponse(r.Type, r.Id))],
+        return new(f.Id.Value, f.Rule, f.Severity, new(f.SubjectType, f.SubjectId), f.Key, f.SiteId, [.. f.Related.Select(r => new IntegrityFlagSubjectResponse(r.Type, r.Id))],
             f.Evidence, f.Details, f.OpenedAt, f.ClosedAt, f.CloseReason);
     }
 }
