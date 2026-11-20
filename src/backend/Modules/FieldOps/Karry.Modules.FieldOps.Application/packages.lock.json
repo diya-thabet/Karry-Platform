@@ -304,6 +304,12 @@
           "Karry.SharedKernel": "[1.0.0, )"
         }
       },
+      "karry.modules.identity.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
       "karry.modules.integrity.contracts": {
         "type": "Project",
         "dependencies": {

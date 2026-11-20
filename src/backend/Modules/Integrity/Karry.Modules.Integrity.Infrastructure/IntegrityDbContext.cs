@@ -16,6 +16,10 @@ public sealed class IntegrityDbContext(DbContextOptions<IntegrityDbContext> opti
 {
     public const string SchemaName = "integrity";
 
+    /// <summary>A security rule's row is always switched on (ADR-0036 §1): the catalogue's security rules, in its order.</summary>
+    public static readonly string SecurityRulesOn =
+        $"enabled OR rule NOT IN ({string.Join(", ", RuleCatalog.All.Where(r => r.Security).Select(r => $"'{r.Code}'"))})";
+
     public override string Schema => SchemaName;
 
     public DbSet<IntegrityFlag> Flags => Set<IntegrityFlag>();
@@ -53,7 +57,7 @@ public sealed class IntegrityDbContext(DbContextOptions<IntegrityDbContext> opti
         modelBuilder.Entity<RuleSetting>(setting =>
         {
             setting.ToTable("rule_settings", t =>
-                t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07')"));
+                t.HasCheckConstraint("ck_rule_settings_security_on", SecurityRulesOn));
             setting.HasKey(s => s.Id);
             setting.Ignore(s => s.DomainEvents);
             setting.Property(s => s.Id).HasConversion(id => id.Value, value => new RuleSettingId(value)).ValueGeneratedNever();

@@ -1168,6 +1168,7 @@ export function integrityCatalog(): IntegrityRule[] {
     rule("RULE-FO-05", "high", true),
     rule("RULE-FO-06", "high", true),
     rule("RULE-FO-07", "critical", true),
+    rule("RULE-FO-09", "critical", true),
   ];
 }
 

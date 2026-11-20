@@ -1360,5 +1360,8 @@
   "portal.integrity.flag.RULE-FO-06": "The meter photo of the {part, select, start {start} other {end}} is also on {others, plural, one {# other entry} other {# other entries}}.",
   "portal.integrity.flag.RULE-FO-06.sameAsStart": "The end photo is the same as the start photo.",
   "portal.integrity.flag.RULE-FO-07": "A revoked tablet sent a command ({type}); it was set aside, not applied.",
+  "portal.integrity.rule.RULE-FO-09.title": "Who signed",
+  "portal.integrity.rule.RULE-FO-09.description": "The person who signed is someone the site's tablets open for: an active field user with a role on the site.",
+  "portal.integrity.flag.RULE-FO-09": "The {part, select, start {start} other {end}} was signed by {reason, select, unknown {someone the company does not know} not_field_user {someone who does not sign on tablets} inactive {someone whose account is not active yet} deactivated {a person deactivated on {deactivatedAt, date, medium}} not_on_site {someone with no role on this site} other {someone not allowed here}}.",
   "permissions.integrity.rules.manage": "Switch integrity rules on or off and set their thresholds"
 }

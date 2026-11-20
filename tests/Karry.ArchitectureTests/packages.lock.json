@@ -640,6 +640,7 @@
           "Karry.Modules.Assets.Contracts": "[1.0.0, )",
           "Karry.Modules.FieldOps.Contracts": "[1.0.0, )",
           "Karry.Modules.FieldOps.Domain": "[1.0.0, )",
+          "Karry.Modules.Identity.Contracts": "[1.0.0, )",
           "Karry.Modules.Integrity.Contracts": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
           "Karry.Modules.Trust.Contracts": "[1.0.0, )"
