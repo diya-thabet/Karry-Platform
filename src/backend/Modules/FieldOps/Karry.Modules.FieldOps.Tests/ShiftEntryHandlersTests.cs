@@ -643,6 +643,122 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
 
+    /// <summary>
+    /// The generator of P2.7's "done when" (plan §1): shift histories on several meters, each signed start and end
+    /// carrying anomalies planted at random (a start that does not continue the meter, a delta out of bounds, a skewed
+    /// clock, a position outside the site, a photo without its capture record, a photo already used), go through the real
+    /// handlers in shift order; the company's open integrity flags are then exactly the planted anomalies, and only those.
+    /// Seeded, so a failure replays.
+    /// </summary>
+    [Theory]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-001")]
+    [Trait("TestCase", "TC-P2-INT-002")]
+    [Trait("TestCase", "TC-P2-INT-003")]
+    [Trait("TestCase", "TC-P2-INT-004")]
+    [Trait("TestCase", "TC-P2-INT-005")]
+    [Trait("TestCase", "TC-P2-INT-006")]
+    [InlineData(20261120)]
+    [InlineData(7)]
+    [InlineData(1337)]
+    public async Task Every_planted_anomaly_comes_out_as_its_flag_and_nothing_else_does(int seed)
+    {
+        var random = new Random(seed);
+        geofence.Outside = latitude => latitude == 36.9m ? 250m : 0m;
+        var now = DateTimeOffset.UtcNow;
+        var expected = new List<string>();
+        var used = new List<string>();
+        var planted = new Dictionary<string, int>(StringComparer.Ordinal);
+        bool Plant(string rule, double chance)
+        {
+            var yes = random.NextDouble() < chance;
+            if (yes)
+            {
+                planted[rule] = planted.GetValueOrDefault(rule) + 1;
+            }
+
+            return yes;
+        }
+
+        for (var m = 0; m < 4; m++)
+        {
+            var meter = FreshMeter();
+            var shifts = random.Next(2, 6);
+            (Guid Root, decimal End)? before = null;
+            for (var i = 0; i < shifts; i++)
+            {
+                var root = Guid.CreateVersion7();
+                var startedAt = ShiftStart.AddHours(12 * i);
+                var due = before?.End ?? 1000m + random.Next(0, 5000);
+                var startValue = due;
+                if (before is { } previous && Plant("RULE-FO-01", 0.3))
+                {
+                    startValue = due + (random.Next(1, 200) / 10m * (random.Next(2) == 0 ? -1 : 1));
+                    startValue = startValue < 0 ? due + 1m : startValue;
+                    expected.Add($"RULE-FO-01|{meter}|{previous.Root}>{root}");
+                }
+
+                var start = Start(root, startedAt, Text(startValue), meter: meter, signer: Guid.CreateVersion7(), photo: PlantedPhoto("start"),
+                    captured: !PlantedFlag("RULE-FO-05", "start"), geo: PlantedFlag("RULE-FO-04", "start") ? Geo(36.9, 10.0, 15) : null,
+                    deviceTime: PlantedFlag("RULE-FO-03", "start") ? DeviceTime(now.AddHours(3)) : null);
+                (await HandleAsync(TenantA, StartShiftEntry.Name, start)).Should().NotBeOfType<HandlerOutcome.Rejected>();
+
+                // Every segment ends but the last one in about half the histories: a running segment is not compared.
+                if (i == shifts - 1 && random.Next(2) == 0)
+                {
+                    break;
+                }
+
+                var delta = random.Next(0, 81) / 10m;
+                if (Plant("RULE-FO-02", 0.25))
+                {
+                    delta = random.Next(2) == 0 ? -random.Next(1, 50) / 10m : 8.5m + (random.Next(1, 100) / 10m);
+                    expected.Add($"RULE-FO-02|{root}|delta");
+                }
+
+                var endValue = Math.Max(0m, startValue + delta);
+                var end = End(root, 2, startedAt.AddHours(8), Text(endValue), photo: PlantedPhoto("end"),
+                    captured: !PlantedFlag("RULE-FO-05", "end"), geo: PlantedFlag("RULE-FO-04", "end") ? Geo(36.9, 10.0, 15) : null,
+                    deviceTime: PlantedFlag("RULE-FO-03", "end") ? DeviceTime(now.AddHours(3)) : null);
+                (await HandleAsync(TenantA, EndShiftEntry.Name, end)).Should().NotBeOfType<HandlerOutcome.Rejected>();
+                before = (root, endValue);
+
+                // An anomaly on one signed fact: the flag's subject is its envelope, its key the part (start or end).
+                bool PlantedFlag(string rule, string part)
+                {
+                    var yes = Plant(rule, 0.15);
+                    if (yes)
+                    {
+                        expected.Add($"{rule}|{root}|{part}");
+                    }
+
+                    return yes;
+                }
+
+                // A photo of an earlier entry, now and then; otherwise a fresh one.
+                string PlantedPhoto(string part)
+                {
+                    if (used.Count > 0 && Plant("RULE-FO-06", 0.1))
+                    {
+                        expected.Add($"RULE-FO-06|{root}|{part}");
+                        return used[random.Next(used.Count)];
+                    }
+
+                    var photo = NextPhoto();
+                    used.Add(photo);
+                    return photo;
+                }
+            }
+        }
+
+        var flags = await RowsAsync(TenantA, "SELECT f.rule || '|' || coalesce(e.root_id, f.subject_id) || '|' || f.key FROM integrity.flags f "
+            + "LEFT JOIN (SELECT DISTINCT envelope_id, root_id FROM fieldops.shift_entries) e ON e.envelope_id = f.subject_id WHERE f.closed_at IS NULL");
+        flags.Should().BeEquivalentTo(expected, $"seed {seed} planted {string.Join(", ", planted.Select(p => $"{p.Key} ×{p.Value}"))}");
+        planted.Keys.Should().BeEquivalentTo(["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06"], "each seed plants every rule of a signed fact");
+    }
+
+    private static string Text(decimal value) => value.ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture);
+
     private static JsonObject Geo(double lat, double lon, double accuracy) => new() { ["lat"] = lat, ["lon"] = lon, ["acc"] = accuracy };
 
     /// <summary>The tablet's clock offset as it knew it when signing (server − tablet), beside the signed record.</summary>
