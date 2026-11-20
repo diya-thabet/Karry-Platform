@@ -76,6 +76,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts).AddSingleton<ISiteGeofence>(geofence).AddSingleton<IFieldSigners>(signers)
+            .AddSingleton<IAssetDirectory>(new NoChecklistMachines())
             .BuildServiceProvider(validateScopes: true);
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
         shifts.Shift = DayShift;
@@ -1052,6 +1053,12 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         public Task<decimal?> MetresOutsideAsync(Guid siteId, decimal latitude, decimal longitude, CancellationToken cancellationToken) =>
             Task.FromResult(siteId == Site ? Outside(latitude) : null);
+    }
+
+    /// <summary>Assets' directory: no machine is known here, so no checklist is required (RULE-FO-10 is tested with the checklists).</summary>
+    private sealed class NoChecklistMachines : IAssetDirectory
+    {
+        public Task<AssetSummary?> FindAsync(Guid assetId, CancellationToken cancellationToken) => Task.FromResult<AssetSummary?>(null);
     }
 
     private sealed class Shifts : IShiftCalendar

@@ -39,6 +39,15 @@ public interface IShiftEntryStore
     /// <summary>Whether the machine was held as unsafe at <paramref name="instant"/>: a hold opened by then and not released by then (ADR-0035 §4).</summary>
     Task<bool> HeldAtAsync(Guid assetId, DateTimeOffset instant, CancellationToken cancellationToken);
 
+    /// <summary>The newest checklist version of the machine type published by <paramref name="instant"/>, or null when there is none.</summary>
+    Task<ChecklistTemplate?> ChecklistInForceAsync(string assetType, DateTimeOffset instant, CancellationToken cancellationToken);
+
+    /// <summary>Whether the operator signed a checklist of the machine submitted within <c>[from, to]</c> (RULE-FO-10).</summary>
+    Task<bool> CheckedAsync(Guid assetId, Guid operatorId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+
+    /// <summary>The starts (version 1) by the operator on the machine within <c>[from, to]</c>: a checklist that arrives late is weighed for them.</summary>
+    Task<IReadOnlyList<ShiftEntryVersion>> StartsAsync(Guid assetId, Guid operatorId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+
     void Add(ShiftEntryVersion version);
 
     Task SaveAsync(CancellationToken cancellationToken);
@@ -215,7 +224,8 @@ public static partial class RecordFields
 /// time; what needs a look is flagged, never refused (ADR-0031 §3).
 /// </summary>
 public sealed class StartShiftEntry(
-    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant, ISiteGeofence geofence, IFieldSigners signers)
+    IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterDirectory meters, IMeterEvents meterEvents, IShiftCalendar shifts, IIntegrityFlags integrity, ITenantContext tenant, ISiteGeofence geofence, IFieldSigners signers,
+    IAssetDirectory assets)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.start.v1";
@@ -333,7 +343,7 @@ public sealed class StartShiftEntry(
             flags.Add(ShiftEntryFlags.AssetUnsafe);
         }
 
-        store.Add(new ShiftEntryVersion
+        var entry = new ShiftEntryVersion
         {
             TenantId = tenantId,
             RootId = rootId,
@@ -362,7 +372,8 @@ public sealed class StartShiftEntry(
             CommandId = command.CommandId,
             DeviceId = command.DeviceId,
             ReceivedAt = command.ReceivedAt,
-        });
+        };
+        store.Add(entry);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, meterId, meter.Kind, command.SiteId, cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "start", photo, null, command.SiteId, cancellationToken)
@@ -371,6 +382,10 @@ public sealed class StartShiftEntry(
             .ConfigureAwait(false);
         await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
         await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
+        if (await assets.FindAsync(assetId, cancellationToken).ConfigureAwait(false) is { } asset)
+        {
+            await IntegrityFindings.SyncChecklistAsync(store, integrity, transaction, entry, asset.Type, cancellationToken).ConfigureAwait(false);
+        }
         return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
 

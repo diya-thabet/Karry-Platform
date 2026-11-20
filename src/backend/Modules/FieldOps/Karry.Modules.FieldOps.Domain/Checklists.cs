@@ -79,6 +79,12 @@ public static partial class ChecklistRules
     public const string RecordType = "fieldops.checklist";
 
     public const int MaxItems = 50;
+
+    /// <summary>
+    /// How long a signed checklist counts for the start that follows it, by the same operator on the same machine: the
+    /// tablet's <c>checklistValidMinutes</c> (field app <c>checklistRules.ts</c>), which RULE-FO-10 mirrors on the server.
+    /// </summary>
+    public const int ValidMinutes = 60;
     public const int TextMaxLength = 200;
 
     /// <summary>The languages a text may be written in (the apps' catalogs, ADR-0030).</summary>

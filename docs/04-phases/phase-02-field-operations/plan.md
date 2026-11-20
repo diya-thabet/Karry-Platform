@@ -285,6 +285,7 @@ integrity.flag(id, tenant_id, rule_code, severity, record_type, record_id, detai
 | TC-P2-VER-006 | Auto-approval policy | Unflagged entries auto-approved, audited with policy version |
 | TC-P2-VER-007 | Policy change mid-day | Items keep their policy version |
 | TC-P2-INT-001..007 | Each RULE-FO-0x positive & negative case | Correct flags |
+| TC-P2-INT-010 | Start where the machine type's checklist in force is required: by an operator with a checklist of the machine in the 60 min before; without one; with one too old; another operator's checklist; a checklist arriving after the start; an optional version; a required version published after the start | Flag exactly for the start without its operator's recent checklist; the late checklist closes it; optional or later versions raise nothing |
 | TC-P2-INT-009 | Start or end signed by someone the site's tablets do not unlock for (unknown, office account, inactive, deactivated, no role on the site) | Fact stored, RULE-FO-09 flag with the reason; an allowed signer raises nothing |
 | TC-P2-DOC-001 | Shift PDF 200 entries | < 10 s, QR verifies |
 

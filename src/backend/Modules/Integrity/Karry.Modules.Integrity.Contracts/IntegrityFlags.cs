@@ -45,4 +45,7 @@ public static class IntegrityRules
 
     /// <summary>A fact signed by someone who may not sign on the site's tablets (threat R-13).</summary>
     public const string UnknownSigner = "RULE-FO-09";
+
+    /// <summary>A start without a recent pre-start checklist where the machine type requires one (threat R-14).</summary>
+    public const string MissingChecklist = "RULE-FO-10";
 }
