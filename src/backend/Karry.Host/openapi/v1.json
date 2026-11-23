@@ -14332,7 +14332,8 @@
           "createdAt",
           "deactivatedAt",
           "pinSet",
-          "version"
+          "version",
+          "linkedFieldUserId"
         ],
         "type": "object",
         "properties": {
@@ -14395,9 +14396,16 @@
           },
           "version": {
             "type": "string"
+          },
+          "linkedFieldUserId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         },
-        "description": "A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it)."
+        "description": "A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it);\n`linkedFieldUserId` is an office account's link to the same person's field account (ADR-0037 §4)."
       }
     }
   },

@@ -50,7 +50,14 @@ export function UsersPage() {
           ]}
         />
       }
-      detail={user ? <UserRoles key={user.id} user={user} /> : <EmptyState icon={MousePointerClick} title={t("portal.users.pick")} />}
+      detail={user
+        ? (
+            <div className="flex flex-col gap-6">
+              <UserRoles key={user.id} user={user} />
+              {user.kind === "office" && <FieldAccount key={`${user.id}-field`} user={user} people={users.data ?? []} />}
+            </div>
+          )
+        : <EmptyState icon={MousePointerClick} title={t("portal.users.pick")} />}
     />
   );
 }
@@ -189,6 +196,66 @@ function UserRoles({ user }: { user: User }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * The field account of an office user (ADR-0037 §4): when a controller also drives, their tablet account is linked here
+ * so they never approve their own entries or a machine they drove. Changing it asks the person to confirm their identity.
+ */
+function FieldAccount({ user, people }: { user: User; people: User[] }) {
+  const { t } = useTranslation();
+  const api = useApi();
+  const withStepUp = useWithStepUp();
+  const queryClient = useQueryClient();
+  const toast = useToast();
+  const { can } = useAccess();
+  const none = "none";
+  const [choice, setChoice] = useState(user.linkedFieldUserId ?? none);
+  const fieldUsers = people.filter((p) => p.kind === "field" && (p.status === "active" || p.id === user.linkedFieldUserId));
+  const label = (p: User) => `${p.firstName} ${p.lastName}${p.employeeId ? ` · ${p.employeeId}` : ""}`;
+
+  const save = useMutation({
+    mutationFn: () => withStepUp(async () => {
+      await api.PUT("/api/v1/identity/users/{id}/field-account", {
+        params: { path: { id: user.id } },
+        body: { fieldUserId: choice === none ? null : choice },
+      });
+      return true;
+    }),
+    onSuccess: async (saved) => {
+      if (!saved) {
+        return;
+      }
+
+      await queryClient.invalidateQueries({ queryKey: usersKey });
+      toast({ status: "ok", title: t("portal.users.fieldAccountSaved") });
+    },
+  });
+
+  if (!can("identity.users.manage")) {
+    const linked = people.find((p) => p.id === user.linkedFieldUserId);
+    return (
+      <section className="flex flex-col gap-1">
+        <h3 className="font-semibold">{t("portal.users.fieldAccount")}</h3>
+        <p>{linked ? label(linked) : t("portal.users.fieldAccountNone")}</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="flex flex-col gap-3">
+      <h3 className="font-semibold">{t("portal.users.fieldAccount")}</h3>
+      <p className="text-sm text-text-muted">{t("portal.users.fieldAccountHint")}</p>
+      <div className="flex flex-wrap items-end gap-3">
+        <SelectField label={t("portal.users.fieldAccount")} value={choice} onValueChange={setChoice}
+          options={[{ value: none, label: t("portal.users.fieldAccountNone") }, ...fieldUsers.map((p) => ({ value: p.id, label: label(p) }))]} />
+        <Button type="button" variant="secondary" loading={save.isPending} disabled={choice === (user.linkedFieldUserId ?? none)}
+          onClick={() => { save.mutate(); }}>
+          {t("portal.users.fieldAccountSave")}
+        </Button>
+      </div>
+    </section>
   );
 }
 

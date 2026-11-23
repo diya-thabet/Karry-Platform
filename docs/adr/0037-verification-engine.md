@@ -126,6 +126,11 @@ run as for OVERLAP), is `403 verification.sod_operated_asset`. A decision writes
 (`identity.users.manage`, recent sign-in, `identity.user_field_account_linked.v1`; one office account per field
 account, a unique index). Its portal screen and the tablet's view of a rejection are slice 2b.
 
+As built (slice 2b): the users API returns an office account's `linkedFieldUserId`; Settings › Users shows an office
+user's field account and lets a user administrator choose one of the company's active field accounts, or none,
+confirming their identity first (the API checks the recent sign-in once the user is the caller's to manage). Someone
+who reads users only sees the link. The tablet's view of a rejection moved to slice 2c.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of
