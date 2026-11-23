@@ -113,6 +113,19 @@ site scope: Tenant Admin, Executive, Controller, Site Manager) lists the caller'
 `status` pending (pending and awaiting a second approval, the default), reviewed or all. `review_actions` comes with
 the first decision (slice 2).
 
+As built (slice 2): `POST /api/v1/verification/items/{itemId}/approve` and `…/reject` (reason code of
+`RejectionReasons` and a comment of 10 to 500 characters) with `verification.items.review` (site scope: Tenant Admin,
+Controller, Site Manager) and `If-Match` on the item's version: a stale version or a lost race is `409
+request.version_conflict`, a decided item `409 verification.item_decided`. An item outside the caller's sites,
+judged when the decision is made, is `404`. Separation of duties: the reviewer's office account gives their linked
+field account through Identity's `IReviewers`; equal to the producer is `403 verification.sod_own_record`; a segment
+of that person on the item's machine during the time it covers, answered by FieldOps' `IReviewableRecords` (segments
+run as for OVERLAP), is `403 verification.sod_operated_asset`. A decision writes an append-only `review_actions` row
+(`UPDATE`/`DELETE`/`TRUNCATE` revoked) and a ledger event carrying the record's hash
+(`verification.review_item_approved.v1`, `…_rejected.v1`). The link is `PUT /api/v1/identity/users/{id}/field-account`
+(`identity.users.manage`, recent sign-in, `identity.user_field_account_linked.v1`; one office account per field
+account, a unique index). Its portal screen and the tablet's view of a rejection are slice 2b.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

@@ -91,6 +91,8 @@ public sealed class IdentityDbContext(DbContextOptions<IdentityDbContext> option
             user.HasIndex(u => new { u.TenantId, u.Phone }).IsUnique().HasFilter("phone IS NOT NULL");
             user.HasIndex(u => new { u.TenantId, u.EmployeeId }).IsUnique().HasFilter("employee_id IS NOT NULL");
             user.HasIndex(u => u.Subject).IsUnique().HasFilter("subject IS NOT NULL");
+            // A field account is one person's: at most one office account links to it (ADR-0037 §4).
+            user.HasIndex(u => new { u.TenantId, u.LinkedFieldUserId }).IsUnique().HasFilter("linked_field_user_id IS NOT NULL");
             user.Ignore(u => u.DisplayName);
             user.Ignore(u => u.DomainEvents);
             user.Ignore(u => u.AggregateKey);

@@ -12,9 +12,13 @@ public static class VerificationPermissions
     /// <summary>Read the review items of the caller's sites (the queue; deciding on them comes with P2.8 slice 2).</summary>
     public const string ItemsRead = "verification.items.read";
 
+    /// <summary>Approve or reject the entries of the caller's sites (US-P2-VER-02, 03), never their own (ADR-0037 §4).</summary>
+    public const string ItemsReview = "verification.items.review";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(ItemsRead, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Executive, Roles.Controller, Roles.SiteManager),
+        new(ItemsReview, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager),
     ];
 }
 

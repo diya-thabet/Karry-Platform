@@ -1367,5 +1367,6 @@
   "portal.integrity.rule.RULE-FO-10.description": "Ni masin sugu bɛ daminɛ ɲɛ lajɛli ɲini, baarakɛla ye bolonɔ bila lajɛli dɔ kan masin kama lɛrɛ kelen kɔnɔ sani a ka daminɛ.",
   "portal.integrity.flag.RULE-FO-10": "Masin daminɛna k’a sɔrɔ baarakɛla ma daminɛ ɲɛ lajɛli kɛ miniti {minutes, number} laban kɔnɔ, a sugu b’o ɲini.",
   "permissions.integrity.rules.manage": "Tiɲɛni sariyalu daminɛ walima u dabila, ani u dancɛlu sigi",
-  "permissions.verification.items.read": "I ka sigiyɔrɔlu ka baara sɛbɛn minnu bɛ lajɛli makɔnɔ, olu ye"
+  "permissions.verification.items.read": "I ka sigiyɔrɔlu ka baara sɛbɛn minnu bɛ lajɛli makɔnɔ, olu ye",
+  "permissions.verification.items.review": "I ka sigiyɔrɔlu ka baara sɛbɛnlu sɔn walima k’u ban (i yɛrɛ ta tɛ)"
 }

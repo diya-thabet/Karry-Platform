@@ -649,6 +649,32 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     [Fact]
     [Trait("Story", "US-P2-VER-02")]
+    [Trait("TestCase", "TC-P2-VER-001")]
+    public async Task Whether_a_person_drove_a_machine_during_a_window_follows_their_segments_on_it_and_a_running_one_counts()
+    {
+        var (driver, ended, running) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var otherAsset = Guid.CreateVersion7();
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(ended, ShiftStart, "100.0", meter: FreshMeter(), signer: driver));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(ended, 2, ShiftStart.AddHours(8), "108.0"));
+        shifts.Shift = null; // no shift: a segment without an end runs 12 h (MaxOpenRun)
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(running, ShiftStart.AddDays(1), "10.0", meter: FreshMeter(), signer: driver));
+
+        async Task<bool> Drove(Guid person, Guid asset, DateTimeOffset from, DateTimeOffset? to)
+        {
+            await using var scope = services.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantA));
+            return await scope.ServiceProvider.GetServices<Karry.Modules.Verification.Contracts.IReviewableRecords>().Single().OperatedAsync(person, asset, from, to, Ct);
+        }
+
+        (await Drove(driver, Asset, ShiftStart.AddHours(7), ShiftStart.AddHours(9))).Should().BeTrue("the ended segment runs until 14:00");
+        (await Drove(driver, Asset, ShiftStart.AddHours(8), ShiftStart.AddHours(10))).Should().BeFalse("it ended when this window starts");
+        (await Drove(driver, Asset, ShiftStart.AddDays(1).AddHours(3), ShiftStart.AddDays(1).AddHours(4))).Should().BeTrue("a running segment still holds the machine");
+        (await Drove(driver, otherAsset, ShiftStart.AddHours(7), ShiftStart.AddHours(9))).Should().BeFalse("another machine");
+        (await Drove(Guid.CreateVersion7(), Asset, ShiftStart.AddHours(7), ShiftStart.AddHours(9))).Should().BeFalse("another person");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-02")]
     public async Task An_ended_entry_is_submitted_for_review_once_bound_to_the_hash_its_operator_signed_and_a_start_alone_is_not()
     {
         var (ended, running) = (Guid.CreateVersion7(), Guid.CreateVersion7());

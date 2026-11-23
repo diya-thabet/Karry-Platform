@@ -42,6 +42,7 @@ public static class IdentityInfrastructure
         services.AddScoped<UserAdministration>();
         services.AddScoped<IUserNames, UserNames>();
         services.AddScoped<IFieldSigners, FieldSigners>();
+        services.AddScoped<IReviewers, Reviewers>();
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up. Changes to
         // the shared portal client are serialized with the other processes through the database.
@@ -67,6 +68,7 @@ public static class IdentityInfrastructure
         services.AddScoped<ChangeUserRolesHandler>();
         services.AddScoped<ResendInvitationHandler>();
         services.AddScoped<SetPinHandler>();
+        services.AddScoped<LinkFieldAccountHandler>();
         services.AddScoped<DeviceStore>();
         services.AddScoped<IDeviceStore>(sp => sp.GetRequiredService<DeviceStore>());
         services.AddScoped<BuildingBlocks.Devices.IDeviceDirectory>(sp => sp.GetRequiredService<DeviceStore>());

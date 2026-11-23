@@ -15,6 +15,9 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
     public Task<UserAccount?> FindBySubjectAsync(string subject, CancellationToken cancellationToken) =>
         db.Users.SingleOrDefaultAsync(u => u.Subject == subject, cancellationToken);
 
+    public Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken) =>
+        db.Users.AnyAsync(u => u.LinkedFieldUserId == fieldUserId && u.Id != except, cancellationToken);
+
     public Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken) =>
         db.Invitations.SingleOrDefaultAsync(i => i.TokenHash == tokenHash, cancellationToken);
 

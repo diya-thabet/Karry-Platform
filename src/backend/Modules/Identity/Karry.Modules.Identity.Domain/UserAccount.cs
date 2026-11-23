@@ -65,6 +65,14 @@ public sealed record UserPinSet(Guid UserId, string? Actor) : DomainEvent;
 [AuditSubject("user", nameof(UserId))]
 public sealed record UserPinLocked(Guid UserId, Guid DeviceId, DateTimeOffset LockedUntil) : DomainEvent;
 
+/// <summary>
+/// An office account linked to (or unlinked from) the field account of the same person (ADR-0037 §4): separation of
+/// duties sees both as one reviewer.
+/// </summary>
+[EventType("identity.user_field_account_linked.v1")]
+[AuditSubject("user", nameof(UserId))]
+public sealed record UserFieldAccountLinked(Guid UserId, Guid? FieldUserId, string? Actor) : DomainEvent;
+
 [EventType("identity.invitation_reissued.v1")]
 [AuditSubject("user", nameof(UserId))]
 public sealed record InvitationReissued(Guid UserId, Guid InvitationId, Guid ReplacedInvitationId, DateTimeOffset ExpiresAt, string? Actor) : DomainEvent;
@@ -141,6 +149,9 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     public DateTimeOffset ChangedAt { get; private set; }
 
     public DateTimeOffset? DeactivatedAt { get; private set; }
+
+    /// <summary>An office account's link to the same person's field account (ADR-0037 §4); null for none, always null on a field account.</summary>
+    public Guid? LinkedFieldUserId { get; private set; }
 
     /// <summary>The record version (PostgreSQL <c>xmin</c>): changes with every save; the roles form sends it back as <c>If-Match</c> (H-C1).</summary>
     public uint Version { get; private set; }
@@ -407,6 +418,36 @@ public sealed partial class UserAccount : AggregateRoot<UserId>, ITenantOwned
     }
 
     /// <summary>Idempotent: deactivating a deactivated user changes nothing and raises nothing.</summary>
+    /// <summary>
+    /// Links this office account to <paramref name="field"/>, the same person's field account, or unlinks it (null).
+    /// False when nothing changes. Only an office account is linked, only to a field account.
+    /// </summary>
+    public Result<bool> LinkFieldAccount(TimeProvider clock, UserAccount? field, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Kind != UserKind.Office)
+        {
+            return Error.BusinessRule("identity.not_office_user", "Only an office account is linked to a field account.");
+        }
+
+        if (field is not null && field.Kind != UserKind.Field)
+        {
+            return Error.Validation("identity.not_field_user", "The account to link is not a field account.");
+        }
+
+        var target = field?.Id.Value;
+        if (LinkedFieldUserId == target)
+        {
+            return false;
+        }
+
+        var at = clock.GetUtcNow();
+        LinkedFieldUserId = target;
+        ChangedAt = at;
+        Raise(new UserFieldAccountLinked(Id.Value, target, actor) { OccurredAt = at });
+        return true;
+    }
+
     public bool Deactivate(TimeProvider clock, string? actor)
     {
         ArgumentNullException.ThrowIfNull(clock);

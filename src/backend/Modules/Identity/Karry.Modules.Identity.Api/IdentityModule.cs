@@ -121,6 +121,18 @@ public sealed class IdentityModule : IModule
             .WithName("ResendInvitation");
 
         // A field user's PIN, set by an administrator (an imported field user has none yet, P1.14).
+        // Who a controller is as a person (ADR-0037 §4): it decides what they may approve, so a recent sign-in (checked by
+        // the handler once the user is the caller's to manage).
+        endpoints.MapPut("/users/{id:guid}/field-account", LinkFieldAccountAsync)
+            .RequirePermission(IdentityPermissions.UsersManage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("LinkFieldAccount");
+
         endpoints.MapPut("/users/{id:guid}/pin", SetPinAsync)
             .RequirePermission(IdentityPermissions.UsersManage)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -327,6 +339,14 @@ public sealed class IdentityModule : IModule
         var user = await db.Users.AsNoTracking().SingleAsync(u => u.Id == new UserId(result.Value), cancellationToken).ConfigureAwait(false);
         var tenantRoles = await roles.LoadAsync(cancellationToken).ConfigureAwait(false);
         return TypedResults.Created($"/api/v1/identity/users/{result.Value}", ToResponse(user, tenantRoles));
+    }
+
+    /// <summary>Links an office account to the same person's field account (<c>fieldUserId</c>), or unlinks it (<c>null</c>).</summary>
+    private static async Task<Results<NoContent, ProblemHttpResult>> LinkFieldAccountAsync(
+        Guid id, LinkFieldAccount request, [FromServices] LinkFieldAccountHandler handler, CancellationToken cancellationToken)
+    {
+        var result = await handler.HandleAsync(id, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
     }
 
     private static async Task<Results<NoContent, ProblemHttpResult>> SetPinAsync(

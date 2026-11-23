@@ -19,6 +19,21 @@ public interface IReviewIntake
     Task SubmitAsync(DbConnection connection, DbTransaction transaction, ReviewSubmission submission, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// What separation of duties asks the module that owns a record type (ADR-0037 §4), implemented by that module for its
+/// <see cref="RecordType"/>.
+/// </summary>
+public interface IReviewableRecords
+{
+    string RecordType { get; }
+
+    /// <summary>
+    /// Whether <paramref name="person"/> (a field account) operated <paramref name="assetId"/> at some time within
+    /// <c>[from, to]</c> (a record without an end runs as long as the module says); such a person may not decide on it.
+    /// </summary>
+    Task<bool> OperatedAsync(Guid person, Guid assetId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
+}
+
 /// <summary>The record types Verification reviews.</summary>
 public static class ReviewRecordTypes
 {

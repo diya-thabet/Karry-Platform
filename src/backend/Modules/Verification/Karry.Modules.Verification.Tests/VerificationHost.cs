@@ -3,13 +3,16 @@ using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Verification.Api;
+using Karry.Modules.Verification.Contracts;
 using Karry.SharedKernel.Authorization;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Karry.Modules.Verification.Tests;
 
@@ -31,6 +34,12 @@ public sealed class VerificationHost : IAsyncLifetime
     /// <summary>The site of a site role (a subject not listed holds its role across the company).</summary>
     public ConcurrentDictionary<string, Guid> SiteOf { get; } = new();
 
+    /// <summary>Identity's office ↔ field account links, by subject (ADR-0037 §4).</summary>
+    public LinkedAccounts People { get; } = new();
+
+    /// <summary>FieldOps' answer to "did this person drive this machine then?", as (person, asset) pairs.</summary>
+    public OperatedAssets Operated { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -51,6 +60,8 @@ public sealed class VerificationHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new VerificationModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
+        builder.Services.AddSingleton<IReviewers>(People);
+        builder.Services.AddSingleton<IReviewableRecords>(Operated);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -74,4 +85,22 @@ public sealed class VerificationHost : IAsyncLifetime
             await server.DisposeAsync();
         }
     }
+}
+
+public sealed class LinkedAccounts : IReviewers
+{
+    public ConcurrentDictionary<string, Guid> FieldAccountOf { get; } = new();
+
+    public Task<Guid?> FieldAccountOfAsync(string subject, CancellationToken cancellationToken) =>
+        Task.FromResult(FieldAccountOf.TryGetValue(subject, out var field) ? field : (Guid?)null);
+}
+
+public sealed class OperatedAssets : IReviewableRecords
+{
+    public ConcurrentDictionary<(Guid Person, Guid Asset), bool> Drove { get; } = new();
+
+    public string RecordType => ReviewRecordTypes.ShiftEntry;
+
+    public Task<bool> OperatedAsync(Guid person, Guid assetId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken) =>
+        Task.FromResult(Drove.ContainsKey((person, assetId)));
 }
