@@ -4,7 +4,7 @@ area: quality
 tags: [i18n, l10n, translation, review, arabic, malinke, maninka, nko, rtl, catalogs, native-speaker, glossary]
 source: "ADR-0030 (owner decisions 2026-10-29)"
 status: live
-last_updated: 2026-11-20
+last_updated: 2026-11-23
 ---
 
 # Translation review
@@ -102,6 +102,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-19 | `portal.meterEvents.*` (31 keys) | ar, emk, nqo | P2.7 meter events in the portal: replaced, reset, failed, repaired; "Pourquoi", "Photos" |
 | 2026-11-19 | `field.estimated`, `field.start.failedMeter`, `field.end.failedMeter`, `field.end.operatingTime`, `field.end.distance`, `field.end.operatingHelp`, `field.end.estimatedEnd` | ar, emk, nqo | P2.7 failed-meter mode on the tablet ("temps de marche", "estimé") |
 | 2026-11-19 | `portal.holds.*` (25 keys) | ar, emk, nqo | P2.6 portal list of held machines and the release dialog ("lever l’immobilisation" in French) |
+| 2026-11-23 | `permissions.verification.items.read` | ar, emk, nqo | P2.8 review queue permission ("saisies à vérifier") |
 | 2026-11-20 | `portal.integrity.rule.RULE-FO-10.*`, `portal.integrity.flag.RULE-FO-10` | ar, emk, nqo | P2.7 RULE-FO-10: start without the pre-start checklist; "contrôle avant démarrage" as on the tablet |
 | 2026-11-20 | `portal.integrity.rule.RULE-FO-09.*`, `portal.integrity.flag.RULE-FO-09` | ar, emk, nqo | P2.7 RULE-FO-09: who signed, with the reason (ICU `select` with a nested date); "signataire" |
 | 2026-11-20 | `portal.integrity.flags.*`, `portal.integrity.flag.*` (32 keys) | ar, emk, nqo | P2.7 integrity flag list: what each rule found with its values (ICU `select` for start/end, ahead/behind; plurals), "alertes d’intégrité", "lasɔmini" |

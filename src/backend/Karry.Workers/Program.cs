@@ -18,6 +18,7 @@ using Karry.Modules.Sync.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.Modules.Verification.Infrastructure;
 using Karry.Workers;
 using Quartz;
 
@@ -54,6 +55,10 @@ builder.Services.AddSyncInfrastructure(connectionString);
 // (IMeterEventSubscriber, ADR-0036 §4), raising and closing integrity flags in the dispatcher's transaction.
 builder.Services.AddFieldOpsInfrastructure(connectionString);
 builder.Services.AddIntegrityInfrastructure(connectionString);
+
+// Verification: the FieldOps handlers submit ended entries for review in their transaction (ADR-0037 §1); the SLA job
+// of P2.8 runs here too.
+builder.Services.AddVerificationInfrastructure(connectionString);
 
 // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
 // The runner rebuilds the requester's access, so this host knows every module's permissions.

@@ -9,6 +9,7 @@ using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
+using Karry.Modules.Verification.Contracts;
 
 namespace Karry.Modules.FieldOps.Application;
 
@@ -419,7 +420,7 @@ public sealed class StartShiftEntry(
 /// </summary>
 public sealed class EndShiftEntry(
     IShiftEntryStore store, IEnvelopeRecorder envelopes, IMeterEvents meterEvents, IIntegrityFlags integrity, ISiteGeofence geofence, ITenantContext tenant,
-    IFieldSigners signers)
+    IFieldSigners signers, IReviewIntake reviews)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.shift_entry.end.v1";
@@ -544,6 +545,12 @@ public sealed class EndShiftEntry(
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
             IntegrityFindings.Delta(ended, (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"]),
             cancellationToken).ConfigureAwait(false);
+
+        // The ended version is what a controller decides on (ADR-0037 §1): submitted in this transaction, bound to the
+        // hash the operator signed.
+        await reviews.SubmitAsync(transaction.Connection, transaction.Transaction, new ReviewSubmission(
+            ReviewRecordTypes.ShiftEntry, rootId, ended.Version, signed.Envelope.GetProperty("payloadHash").GetString()!, ended.SiteId, ended.OperatorId,
+            ended.AssetId, ended.StartedAt, ended.EndedAt, ended.Flags), cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);
     }
 

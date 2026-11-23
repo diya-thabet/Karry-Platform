@@ -141,7 +141,8 @@
           "Karry.Modules.Identity.Contracts": "[1.0.0, )",
           "Karry.Modules.Integrity.Contracts": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
-          "Karry.Modules.Trust.Contracts": "[1.0.0, )"
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )",
+          "Karry.Modules.Verification.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.fieldops.contracts": {
@@ -183,6 +184,12 @@
         }
       },
       "karry.modules.trust.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.contracts": {
         "type": "Project",
         "dependencies": {
           "Karry.SharedKernel": "[1.0.0, )"

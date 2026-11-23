@@ -406,7 +406,8 @@
           "Karry.Modules.Identity.Contracts": "[1.0.0, )",
           "Karry.Modules.Integrity.Contracts": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
-          "Karry.Modules.Trust.Contracts": "[1.0.0, )"
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )",
+          "Karry.Modules.Verification.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.fieldops.contracts": {
@@ -545,6 +546,41 @@
         "dependencies": {
           "AWSSDK.S3": "[4.0.104.4, )",
           "Karry.Modules.Trust.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Verification.Application": "[1.0.0, )",
+          "Karry.Modules.Verification.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Verification.Contracts": "[1.0.0, )",
+          "Karry.Modules.Verification.Domain": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.verification.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Verification.Application": "[1.0.0, )",
+          "Karry.Modules.Verification.Domain": "[1.0.0, )"
         }
       },
       "karry.sharedkernel": {

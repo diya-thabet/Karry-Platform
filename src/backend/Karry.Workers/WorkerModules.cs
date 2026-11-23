@@ -11,6 +11,7 @@ using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
+using Karry.Modules.Verification.Api;
 
 namespace Karry.Workers;
 
@@ -34,6 +35,7 @@ internal static class WorkerModules
         new ImportsModule(),
         new FieldOpsModule(),
         new IntegrityModule(),
+        new VerificationModule(),
     ];
 
     public static AuthorizationCatalog Catalog { get; } = AuthorizationCatalog.From(All);

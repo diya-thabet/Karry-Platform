@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Review items and decisions of Verification: the services behind its API and its contract (ADR-0037). -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Verification.Domain/Karry.Modules.Verification.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Verification.Contracts/Karry.Modules.Verification.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

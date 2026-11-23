@@ -1636,6 +1636,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/verification/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["SearchReviewItems"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2709,6 +2725,40 @@ export interface components {
         /** @description A release as the portal sends it: why the machine may run again. */
         ReleaseHold: {
             reason: null | string;
+        };
+        /** @description A page of review items, oldest first; `nextCursor` when more follow. */
+        ReviewItemListResponse: {
+            items: components["schemas"]["ReviewItemResponse"][];
+            /** Format: uuid */
+            nextCursor: null | string;
+        };
+        /**
+         * @description A review item (ADR-0037 §2): the record version it is about, the hash it was signed with, who produced it, the asset
+         *     and time it covers, its flags when submitted, and where it stands.
+         */
+        ReviewItemResponse: {
+            /** Format: uuid */
+            id: string;
+            recordType: string;
+            /** Format: uuid */
+            recordId: string;
+            /** Format: int32 */
+            recordVersion: number | string;
+            recordHash: string;
+            /** Format: uuid */
+            siteId: string;
+            /** Format: uuid */
+            producedBy: string;
+            /** Format: uuid */
+            assetId: null | string;
+            /** Format: date-time */
+            coveredFrom: string;
+            /** Format: date-time */
+            coveredTo: null | string;
+            flags: string[];
+            status: string;
+            /** Format: date-time */
+            createdAt: string;
         };
         /** @description A role held tenant-wide (Guid? RoleAssignment.SiteId null) or on one site (US-P1-IAM-03 AC1, US-P1-IAM-06). */
         RoleAssignment: {
@@ -9346,6 +9396,41 @@ export interface operations {
             };
             /** @description Conflict */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    SearchReviewItems: {
+        parameters: {
+            query?: {
+                siteId?: string;
+                status?: string;
+                recordType?: string;
+                cursor?: string;
+                limit?: number | string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewItemListResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

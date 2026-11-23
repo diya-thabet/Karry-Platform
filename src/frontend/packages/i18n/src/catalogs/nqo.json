@@ -1366,5 +1366,6 @@
   "portal.integrity.rule.RULE-FO-10.title": "ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ",
   "portal.integrity.rule.RULE-FO-10.description": "ߣߌ ߡߊߛߌ߲ ߛߎߜ߭ߎ ߓߍ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߢߌߣߌ߸ ߓߊ߯ߙߊߞߍߟߊ ߦߋ ߓߏߟߏߣߐ ߓߌߟߊ ߟߊߖߍߟߌ ߘߐ ߞߊ߲ ߡߊߛߌ߲ ߞߊߡߊ ߟߍߙߍ ߞߋߟߋ߲ ߞߐߣߐ ߛߊߣߌ ߊ ߞߊ ߘߊߡߌߣߍ.",
   "portal.integrity.flag.RULE-FO-10": "ߡߊߛߌ߲ ߘߊߡߌߣߍߣߊ ߞߊ ߛߐߙߐ ߓߊ߯ߙߊߞߍߟߊ ߡߊ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߞߍ ߡߌߣߌߕߌ {minutes, number} ߟߊߓߊ߲ ߞߐߣߐ߸ ߊ ߛߎߜ߭ߎ ߓߏ ߢߌߣߌ.",
-  "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ"
+  "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ",
+  "permissions.verification.items.read": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ ߓߊ߯ߙߊ ߛߍߓߍ߲ ߡߌ߲ߣߎ ߓߍ ߟߊߖߍߟߌ ߡߊߞߐߣߐ߸ ߏߟߎ ߦߋ"
 }

@@ -16,6 +16,7 @@ using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.Modules.Verification.Infrastructure;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -68,13 +69,13 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     public async ValueTask InitializeAsync()
     {
         database = await postgres.Server.NewKarryDatabaseAsync();
-        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).BuildServiceProvider())
+        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).AddVerificationInfrastructure(database.App).BuildServiceProvider())
         {
             await MigrationRunner.MigrateAsync(migrations, database.Owner, CancellationToken.None);
         }
 
         services = new ServiceCollection().AddLogging()
-            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
+            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).AddVerificationInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts).AddSingleton<ISiteGeofence>(geofence).AddSingleton<IFieldSigners>(signers)
             .AddSingleton<IAssetDirectory>(new NoChecklistMachines())
             .BuildServiceProvider(validateScopes: true);
@@ -645,6 +646,24 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-02")]
+    public async Task An_ended_entry_is_submitted_for_review_once_bound_to_the_hash_its_operator_signed_and_a_start_alone_is_not()
+    {
+        var (ended, running) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(ended, ShiftStart, "100.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+        var end = End(ended, 2, ShiftStart.AddHours(8), "99.0");
+        await HandleAsync(TenantA, EndShiftEntry.Name, end);
+        await HandleAsync(TenantA, EndShiftEntry.Name, end);
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(running, ShiftStart, "10.0", meter: FreshMeter(), signer: Guid.CreateVersion7()));
+
+        var signedHash = end["envelope"]!["payloadHash"]!.GetValue<string>();
+        (await RowsAsync(TenantA, "SELECT i.record_id || '|' || i.record_version || '|' || i.record_hash || '|' || i.status || '|' || (i.produced_by = e.operator_id) "
+            + "|| '|' || i.flags::text FROM verification.review_items i JOIN fieldops.shift_entries e ON e.root_id = i.record_id AND e.version = i.record_version"))
+            .Should().Equal($"{ended}|2|{signedHash}|pending|true|[\"RULE-FO-02\"]");
+        (await RowsAsync(TenantB, "SELECT record_id::text FROM verification.review_items")).Should().BeEmpty();
+    }
 
     [Fact]
     [Trait("Story", "US-P2-INT-01")]
