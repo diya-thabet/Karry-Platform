@@ -1366,5 +1366,6 @@
   "portal.integrity.rule.RULE-FO-10.title": "Contrôle avant démarrage",
   "portal.integrity.rule.RULE-FO-10.description": "Quand le type d’engin exige un contrôle avant démarrage, le conducteur en a signé un pour l’engin dans l’heure avant de démarrer.",
   "portal.integrity.flag.RULE-FO-10": "L’engin a démarré sans le contrôle avant démarrage du conducteur des {minutes, number} dernières minutes, que son type exige.",
-  "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils"
+  "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils",
+  "permissions.verification.items.read": "Voir les saisies à vérifier de vos sites"
 }

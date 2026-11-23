@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-11-19
+last_updated: 2026-11-23
 ---
 
 # Default Role & Permission Matrix
@@ -68,6 +68,7 @@ The matrix above is the target for the whole product. In code it is the union of
 | `fieldops.holds.release` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Release a machine held as unsafe by a critical Not OK, with a reason of 10 to 500 characters; ledgered under the person's name (ADR-0035 §5; P2.6) |
 | `integrity.flags.read` | site | no | Tenant Admin, Executive, Controller, Site Manager, Maintenance Planner | Integrity flags of the caller's sites, open and closed (ADR-0036; P2.7). Settling them is the controller console (P2.8). Also reads the company's rule settings |
 | `integrity.rules.manage` | tenant | yes | Tenant Admin | Switch the company's integrity rules on or off and set their thresholds, with a recent sign-in; the security rules (RULE-FO-05, 06, 07) cannot be switched off; ledgered (ADR-0036 §1; P2.7) |
+| `verification.items.read` | site | no | Tenant Admin, Executive, Controller, Site Manager | The review items of the caller's sites: the queue of entries waiting for a decision, and decided ones (ADR-0037; P2.8). Deciding on them comes with P2.8 slice 2 |
 | `imports.files.manage` | tenant | yes | Tenant Admin | Excel import (US-P1-ORG-03, ADR-0027): templates, uploads, reports, commit and discard; each kind also needs the permission of the data it writes |
 | `tenancy.settings.manage` | tenant | yes | Tenant Admin | Users, roles, masking, policies (F): company settings and logo (P1.11; every member reads them) |
 | `billing.subscription.read` | tenant | no | Tenant Admin, Executive, Finance | Billing & plan (P1.10: plan, state, usage, invoices; changes are made by Karry operators until self-service in Phase 10) |

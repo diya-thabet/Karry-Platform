@@ -10,6 +10,7 @@
     <!-- Integrity flags raised in the upload's transaction (ADR-0036 §3). -->
     <ProjectReference Include="../../Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
     <ProjectReference Include="../../Integrity/Karry.Modules.Integrity.Contracts/Karry.Modules.Integrity.Contracts.csproj" />
+    <ProjectReference Include="../../Verification/Karry.Modules.Verification.Contracts/Karry.Modules.Verification.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
   </ItemGroup>
 </Project>

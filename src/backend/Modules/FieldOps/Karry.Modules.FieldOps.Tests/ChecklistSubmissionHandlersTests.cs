@@ -15,6 +15,7 @@ using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.Modules.Verification.Infrastructure;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,7 +51,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
     public async ValueTask InitializeAsync()
     {
         database = await postgres.Server.NewKarryDatabaseAsync();
-        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).BuildServiceProvider())
+        await using (var migrations = new ServiceCollection().AddLogging().AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).AddVerificationInfrastructure(database.App).BuildServiceProvider())
         {
             await MigrationRunner.MigrateAsync(migrations, database.Owner, CancellationToken.None);
         }
@@ -58,7 +59,7 @@ public sealed class ChecklistSubmissionHandlersTests(FieldOpsDatabase postgres) 
         var meters = new Meters();
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, Morning.AddDays(-30))]);
         services = new ServiceCollection().AddLogging()
-            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
+            .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App).AddVerificationInfrastructure(database.App)
             .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IAssetDirectory>(assets).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(new KnownMeterEvents()).AddSingleton<IShiftCalendar>(new AnyTimeShift())
             .AddSingleton<ISiteGeofence>(new NoBoundary()).AddSingleton<Karry.Modules.Identity.Contracts.IFieldSigners>(new KnownSigners())
             .BuildServiceProvider(validateScopes: true);

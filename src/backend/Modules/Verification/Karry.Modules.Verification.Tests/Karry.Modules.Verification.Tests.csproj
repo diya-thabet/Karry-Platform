@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unit and integration tests of the Verification module (test settings come from Directory.Build.props). -->
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Verification.Api/Karry.Modules.Verification.Api.csproj" />
+    <!-- Direct references so Stryker (nightly mutation testing) can find the projects it mutates. -->
+    <ProjectReference Include="../Karry.Modules.Verification.Domain/Karry.Modules.Verification.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Verification.Application/Karry.Modules.Verification.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Verification.Infrastructure/Karry.Modules.Verification.Infrastructure.csproj" />
+    <!-- The read API's host: tenants and the ledger as in production. -->
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
+    <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+
+</Project>

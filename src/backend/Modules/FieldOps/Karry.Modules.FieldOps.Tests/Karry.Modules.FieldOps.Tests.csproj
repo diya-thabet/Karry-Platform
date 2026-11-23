@@ -20,6 +20,7 @@
     <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Api/Karry.Modules.Tenancy.Api.csproj" />
     <!-- The real Integrity module: continuity and Δ flags are raised in the upload's transaction (ADR-0036). -->
     <ProjectReference Include="../../Integrity/Karry.Modules.Integrity.Api/Karry.Modules.Integrity.Api.csproj" />
+    <ProjectReference Include="../../Verification/Karry.Modules.Verification.Api/Karry.Modules.Verification.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

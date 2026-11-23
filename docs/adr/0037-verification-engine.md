@@ -99,6 +99,20 @@ A rejected entry shows as rejected with the reason in the operator's history at 
 source carries the review outcome); a resubmission is a new entry linked to the rejected one (`previousRootId` kept
 as it is today for handovers, plus `resubmits`). The push and the in-app notice are P2.10's.
 
+## As built
+
+As built (slice 1): module `Verification` (schema `verification`, RLS, ledgered). A record version is submitted
+through `Verification.Contracts.IReviewIntake.SubmitAsync(connection, transaction, submission)` **in the owning
+module's transaction**, as integrity flags are (ADR-0036 §3), not through an outbox as §1 first said: FieldOps has no
+outbox, and the item must commit with the version it reviews. The submission is a snapshot of the version's facts
+(record type, ID, version, hash as signed, site, producer, asset, covered window, flags), kept on the item for the
+decisions of slice 2; one item per version (unique index), a repeated submission changes nothing, a review item is
+never deleted (`DELETE`/`TRUNCATE` revoked from `karry_app`). FieldOps submits each ended version with the hash the
+operator signed (the end envelope's `payloadHash`). `GET /api/v1/verification/items` (`verification.items.read`,
+site scope: Tenant Admin, Executive, Controller, Site Manager) lists the caller's sites' items oldest first:
+`status` pending (pending and awaiting a second approval, the default), reviewed or all. `review_actions` comes with
+the first decision (slice 2).
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

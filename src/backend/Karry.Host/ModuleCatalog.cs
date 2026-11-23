@@ -11,6 +11,7 @@ using Karry.Modules.Organization.Api;
 using Karry.Modules.Sync.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
+using Karry.Modules.Verification.Api;
 
 namespace Karry.Host;
 
@@ -33,5 +34,6 @@ internal static class ModuleCatalog
         new SyncModule(),
         new FieldOpsModule(),
         new IntegrityModule(),
+        new VerificationModule(),
     ];
 }
