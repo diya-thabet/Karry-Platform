@@ -4,7 +4,7 @@ area: architecture
 tags: [stack, dotnet, react, postgresql, keycloak, python]
 source: "MASTER_PLAN.md §7"
 status: baseline
-last_updated: 2026-11-09
+last_updated: 2026-11-23
 ---
 
 # Technology Stack
@@ -131,7 +131,7 @@ old, licence read from the package itself (not only the project's web page).
 | QuestPDF (PDF candidate, P2.11) | 2026.9.1 (2026-09-25) | Community licence, free up to USD 1 M annual revenue; paid above | Needs owner approval under the licence rule ([guidelines](../00-llm/llm_guidelines.md)) |
 | Camera and image compression | none | — | The browser APIs (`getUserMedia`, `OffscreenCanvas`, `createImageBitmap`) are enough; no helper library |
 
-**PDF engine (open, decided by the P2.11 spike, ADR-0038):** the recommendation going into Phase 2 was PDFsharp +
+**PDF engine (open, decided by the P2.11 spike, ADR-0039):** the recommendation going into Phase 2 was PDFsharp +
 MigraDoc because it was MIT. Since 6.5.0 its packages are AGPL, so the options are now: (1) **pin PDFsharp/MigraDoc
 6.2.4 (MIT)**, accepting no further fixes from upstream (Renovate must be told not to update it); (2) **QuestPDF
 Community** with the owner's approval and a revenue check each year; (3) another MIT engine found in the spike. The
