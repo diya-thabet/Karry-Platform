@@ -15,7 +15,7 @@ const allCollections = (overrides: Partial<ChangeSet["changes"]> = {}): ChangeSe
   sites: { upserts: [{ id: site, code: "CAR-NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
   shiftPatterns: { upserts: [], removes: [] }, assets: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
   materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
-  checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true },
+  checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true }, reviewOutcomes: { upserts: [], removes: [], replace: true },
   ...overrides,
 });
 
@@ -122,7 +122,7 @@ describe("checklists and holds (P2.6)", () => {
   });
 });
 
-describe("schema upgrade (P2.5, P2.6: schemas v3 to v6)", () => {
+describe("schema upgrade (P2.5, P2.6, P2.8: schemas v3 to v7)", () => {
   it("opens a v2 database with its outbox and blobs intact and the new tables empty", async () => {
     const name = `upgrade-${String(++n)}`;
     const v2 = new Dexie(name);
@@ -141,7 +141,8 @@ describe("schema upgrade (P2.5, P2.6: schemas v3 to v6)", () => {
     expect(await upgraded.drafts.count()).toBe(0);
     expect(await upgraded.checklistTemplates.count()).toBe(0);
     expect(await upgraded.safetyHolds.count()).toBe(0);
-    expect(upgraded.verno).toBe(6);
+    expect(await upgraded.reviewOutcomes.count()).toBe(0);
+    expect(upgraded.verno).toBe(7);
     await upgraded.delete();
   });
 });
