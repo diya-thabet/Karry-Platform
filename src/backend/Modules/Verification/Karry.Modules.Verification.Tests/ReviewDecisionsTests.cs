@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Verification.Contracts;
 using Karry.SharedKernel.Tenancy;
@@ -230,6 +231,97 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token ?? TestTokens.ForTenant(tenant, "admin-1"));
         return host.Client.SendAsync(request, Ct);
     }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-04")]
+    [Trait("TestCase", "TC-P2-VER-004")]
+    public async Task A_correction_within_the_thresholds_keeps_both_versions_ledgers_the_diff_and_approves_the_new_one()
+    {
+        var tenant = await ProvisionAsync();
+        var item = await PendingItemAsync(tenant);
+        host.Operated.NextCorrection = OperatedAssets.Within;
+
+        using var stale = await CorrectAsync(tenant, item, new { endValue = "107.5" }, "The photo shows 107.5, not 108.0.", TestTokens.ForTenant(tenant, "admin-1"));
+        using var shortReason = await CorrectAsync(tenant, item, new { endValue = "107.5" }, "typo");
+        using var corrected = await CorrectAsync(tenant, item, new { endValue = "107.5" }, "The photo shows 107.5, not 108.0.");
+
+        stale.StatusCode.Should().Be(HttpStatusCode.Unauthorized, "a correction changes a signed fact: a recent sign-in");
+        (await CodeAsync(shortReason)).Should().Be("verification.comment_invalid");
+        corrected.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await corrected.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        body.GetProperty("corrected").GetProperty("status").GetString().Should().Be("corrected");
+        var next = body.GetProperty("next");
+        (next.GetProperty("status").GetString(), next.GetProperty("recordVersion").GetInt32(), next.GetProperty("correctedBy").GetString()).Should().Be(("approved", 3, "admin-1"));
+        (await RowsAsync($"SELECT (payload::jsonb->>'fromHash') || '|' || (payload::jsonb->>'toHash') || '|' || (payload::jsonb->'changes'->0->>'before') || '>' "
+            + $"|| (payload::jsonb->'changes'->0->>'after') || '|' || (payload::jsonb->>'material') FROM audit.ledger_entries WHERE tenant_id = '{tenant}' "
+            + "AND event_type = 'verification.review_item_corrected.v1'")).Should().Equal($"{Hash}|sha256:{new string('e', 64)}|108.0>107.5|false");
+        host.Operated.Corrections.Should().Contain(c => c.Version == 2 && c.Fields.ContainsKey("endValue") && c.Fields["endValue"] == "107.5");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-04")]
+    [Trait("TestCase", "TC-P2-VER-003")]
+    public async Task A_correction_beyond_the_thresholds_waits_for_a_second_approver_who_is_not_the_corrector()
+    {
+        var tenant = await ProvisionAsync();
+        var item = await PendingItemAsync(tenant);
+        host.Operated.NextCorrection = new CorrectionOutcome.Corrected(3, "sha256:" + new string('f', 64), [new FieldChange("endValue", "108.0", "112.0")], Material: true);
+
+        using var corrected = await CorrectAsync(tenant, item, new { endValue = "112.0" }, "The meter was misread: 112.0 on the photo.");
+        var next = (await corrected.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("next");
+        var waiting = new Pending(next.GetProperty("id").GetGuid(), next.GetProperty("version").GetString()!.Trim('"'));
+        using var byCorrector = await SecondAsync(tenant, waiting, Recent(tenant, "admin-1"));
+        using var notRecent = await SecondAsync(tenant, waiting, TestTokens.ForTenant(tenant, "manager-2"));
+        using var bySomeoneElse = await SecondAsync(tenant, waiting, Recent(tenant, "manager-2"));
+        using var again = await SecondAsync(tenant, waiting, Recent(tenant, "manager-3"));
+
+        next.GetProperty("status").GetString().Should().Be("awaiting_second");
+        byCorrector.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await CodeAsync(byCorrector)).Should().Be("verification.sod_own_correction");
+        notRecent.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await bySomeoneElse.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("status").GetString().Should().Be("approved");
+        again.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await RowsAsync($"SELECT (payload::jsonb->>'correctedBy') || '|' || (payload::jsonb->>'actor') FROM audit.ledger_entries WHERE tenant_id = '{tenant}' "
+            + "AND event_type = 'verification.review_item_second_approved.v1'")).Should().Equal("admin-1|manager-2");
+        host.Operated.NextCorrection = OperatedAssets.Within;
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-04")]
+    public async Task A_correction_the_record_refuses_or_one_of_a_version_that_moved_changes_nothing()
+    {
+        var tenant = await ProvisionAsync();
+        var item = await PendingItemAsync(tenant);
+
+        host.Operated.NextCorrection = new CorrectionOutcome.Refused("verification.field_not_correctable", "Only meter values and fuel.");
+        using var refused = await CorrectAsync(tenant, item, new { asset = "x" }, "Wrong machine chosen on the tablet.");
+        host.Operated.NextCorrection = new CorrectionOutcome.Moved();
+        using var moved = await CorrectAsync(tenant, item, new { endValue = "107.5" }, "The photo shows 107.5, not 108.0.");
+        host.Operated.NextCorrection = OperatedAssets.Within;
+
+        (await CodeAsync(refused)).Should().Be("verification.field_not_correctable");
+        moved.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        (await RowsAsync($"SELECT status FROM verification.review_items WHERE tenant_id = '{tenant}'")).Should().Equal("pending");
+    }
+
+    private Task<HttpResponseMessage> CorrectAsync(Guid tenant, Pending item, object fields, string reason, string? token = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/verification/items/{item.Id}/correct") { Content = JsonContent.Create(new { fields, reason }) };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token ?? Recent(tenant, "admin-1"));
+        request.Headers.TryAddWithoutValidation("If-Match", "\"" + item.Version + "\"");
+        return host.Client.SendAsync(request, Ct);
+    }
+
+    private Task<HttpResponseMessage> SecondAsync(Guid tenant, Pending item, string token)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/verification/items/{item.Id}/second-approve");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        return host.Client.SendAsync(request, Ct);
+    }
+
+    private static string Recent(Guid tenant, string subject) =>
+        TestTokens.Create(subject, (TenantResolutionMiddleware.TenantClaim, tenant.ToString()),
+            (PermissionMiddleware.AuthTimeClaim, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
     private sealed record Pending(Guid Id, string Version);
 

@@ -103,6 +103,15 @@ public sealed class ShiftEntryVersion : ITenantOwned
     public Guid DeviceId { get; init; }
 
     public DateTimeOffset ReceivedAt { get; init; }
+
+    /// <summary>
+    /// The controller who corrected this version (US-P2-VER-04, ADR-0037), or null for a version the tablet signed. A
+    /// corrected version has no envelope and no device (empty IDs): the decision is ledgered by Verification.
+    /// </summary>
+    public string? CorrectedBy { get; init; }
+
+    /// <summary>Why the controller corrected it, as they wrote it.</summary>
+    public string? CorrectionReason { get; init; }
 }
 
 /// <summary>The flags of ADR-0034 §6: stored with the fact, never a reason to refuse it.</summary>

@@ -370,6 +370,16 @@ namespace Karry.Modules.FieldOps.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("command_id");
 
+                    b.Property<string>("CorrectedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("corrected_by");
+
+                    b.Property<string>("CorrectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("correction_reason");
+
                     b.Property<Guid>("DeviceId")
                         .HasColumnType("uuid")
                         .HasColumnName("device_id");

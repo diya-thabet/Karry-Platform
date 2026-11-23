@@ -40,6 +40,7 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             item.Property(i => i.RecordType).HasMaxLength(60);
             item.Property(i => i.RecordHash).HasMaxLength(80);
             item.Property(i => i.Status).HasMaxLength(20);
+            item.Property(i => i.CorrectedBy).HasMaxLength(200);
             item.Property(i => i.Flags).HasColumnType("jsonb").HasConversion(JsonList.Converter, JsonList.Comparer);
             item.Property(i => i.Version).IsRecordVersion();
             // One item per record version: a version submitted again (an upload retried) changes nothing.

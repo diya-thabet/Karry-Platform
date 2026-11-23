@@ -8357,6 +8357,192 @@
         }
       }
     },
+    "/api/v1/verification/items/{itemId}/correct": {
+      "post": {
+        "tags": [
+          "VerificationModule"
+        ],
+        "operationId": "CorrectReviewItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectEntry"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorrectionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verification/items/{itemId}/second-approve": {
+      "post": {
+        "tags": [
+          "VerificationModule"
+        ],
+        "operationId": "SecondApproveReviewItem",
+        "parameters": [
+          {
+            "name": "itemId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewItemResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/verification/items/{itemId}/reject": {
       "post": {
         "tags": [
@@ -9760,6 +9946,47 @@
           }
         },
         "description": "The converted quantity (full precision: round only for display), the factors used and the version's date."
+      },
+      "CorrectEntry": {
+        "required": [
+          "fields",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "fields": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A correction (US-P2-VER-04 AC1): the fields with their new values as the records write them, and why."
+      },
+      "CorrectionResponse": {
+        "required": [
+          "corrected",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "corrected": {
+            "$ref": "#/components/schemas/ReviewItemResponse"
+          },
+          "next": {
+            "$ref": "#/components/schemas/ReviewItemResponse"
+          }
+        },
+        "description": "A correction: the item corrected and the item of the new version (approved, or awaiting a second approver)."
       },
       "CreateEnrollment": {
         "required": [
@@ -12730,7 +12957,8 @@
           "flags",
           "status",
           "createdAt",
-          "version"
+          "version",
+          "correctedBy"
         ],
         "type": "object",
         "properties": {
@@ -12797,6 +13025,12 @@
           },
           "version": {
             "type": "string"
+          },
+          "correctedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         },
         "description": "A review item (ADR-0037 §2): the record version it is about, the hash it was signed with, who produced it, the asset\nand time it covers, its flags when submitted, where it stands, and its `version` for `If-Match`."

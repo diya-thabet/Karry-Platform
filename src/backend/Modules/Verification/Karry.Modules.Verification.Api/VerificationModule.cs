@@ -62,6 +62,24 @@ public sealed class VerificationModule : IModule
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("ApproveReviewItem");
 
+        endpoints.MapPost("/items/{itemId:guid}/correct", CorrectAsync)
+            .RequirePermission(VerificationPermissions.ItemsReview)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("CorrectReviewItem");
+
+        endpoints.MapPost("/items/{itemId:guid}/second-approve", SecondApproveAsync)
+            .RequirePermission(VerificationPermissions.ItemsSecondApprove)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("SecondApproveReviewItem");
+
         endpoints.MapPost("/items/{itemId:guid}/reject", RejectAsync)
             .RequirePermission(VerificationPermissions.ItemsReview)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -121,6 +139,36 @@ public sealed class VerificationModule : IModule
             : result.Error.ToProblem();
     }
 
+    /// <summary>
+    /// Corrects an entry (US-P2-VER-04): <c>fields</c> by name with their new values, and a reason of 10 to 500
+    /// characters; <c>If-Match</c> as for approving; a recent sign-in. Returns the corrected item and the new version's
+    /// item, approved or awaiting a second approver.
+    /// </summary>
+    private static async Task<Results<Ok<CorrectionResponse>, ProblemHttpResult>> CorrectAsync(
+        Guid itemId, CorrectEntry request, [FromHeader(Name = "If-Match")] string? ifMatch, [FromServices] ReviewDecisions decisions, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        if (!expected.IsSuccess)
+        {
+            return expected.Error.ToProblem();
+        }
+
+        var result = await decisions.CorrectAsync(itemId, request, expected.Value, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Ok(new CorrectionResponse(ReviewItemResponse.From(result.Value.Corrected), ReviewItemResponse.From(result.Value.Next)))
+            : result.Error.ToProblem();
+    }
+
+    /// <summary>Approves a correction beyond the thresholds (US-P2-VER-04 AC3): another person than the corrector.</summary>
+    private static async Task<Results<Ok<ReviewItemResponse>, ProblemHttpResult>> SecondApproveAsync(
+        Guid itemId, [FromHeader(Name = "If-Match")] string? ifMatch, HttpResponse response, [FromServices] ReviewDecisions decisions, CancellationToken cancellationToken)
+    {
+        var expected = RecordVersionHttp.Expected(ifMatch);
+        return expected.IsSuccess
+            ? Decided(await decisions.SecondApproveAsync(itemId, expected.Value, cancellationToken).ConfigureAwait(false), response)
+            : expected.Error.ToProblem();
+    }
+
     private static Results<Ok<ReviewItemResponse>, ProblemHttpResult> Decided(Result<ReviewItem> result, HttpResponse response)
     {
         if (!result.IsSuccess)
@@ -146,6 +194,9 @@ public sealed class VerificationModule : IModule
     }
 }
 
+/// <summary>A correction: the item corrected and the item of the new version (approved, or awaiting a second approver).</summary>
+public sealed record CorrectionResponse(ReviewItemResponse Corrected, ReviewItemResponse Next);
+
 /// <summary>An entry of a bulk approval: the item and the <c>version</c> the reviewer saw.</summary>
 public sealed record ApproveItem(Guid Id, string? Version);
 
@@ -164,12 +215,12 @@ public sealed record ReviewItemListResponse(IReadOnlyList<ReviewItemResponse> It
 /// </summary>
 public sealed record ReviewItemResponse(
     Guid Id, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, Guid ProducedBy, Guid? AssetId,
-    DateTimeOffset CoveredFrom, DateTimeOffset? CoveredTo, IReadOnlyList<string> Flags, string Status, DateTimeOffset CreatedAt, string Version)
+    DateTimeOffset CoveredFrom, DateTimeOffset? CoveredTo, IReadOnlyList<string> Flags, string Status, DateTimeOffset CreatedAt, string Version, string? CorrectedBy)
 {
     public static ReviewItemResponse From(ReviewItem i)
     {
         ArgumentNullException.ThrowIfNull(i);
         return new(i.Id.Value, i.RecordType, i.RecordId, i.RecordVersion, i.RecordHash, i.SiteId, i.ProducedBy, i.AssetId, i.CoveredFrom, i.CoveredTo,
-            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version));
+            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version), i.CorrectedBy);
     }
 }

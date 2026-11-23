@@ -45,8 +45,10 @@ public static class ReviewActionKinds
 {
     public const string Approve = "approve";
     public const string Reject = "reject";
+    public const string Correct = "correct";
+    public const string SecondApprove = "second_approve";
 
-    public static IReadOnlyList<string> All { get; } = [Approve, Reject];
+    public static IReadOnlyList<string> All { get; } = [Approve, Reject, Correct, SecondApprove];
 }
 
 /// <summary>Why an entry is rejected (US-P2-VER-03 AC1); the comment says the rest.</summary>
@@ -65,6 +67,23 @@ public static class RejectionReasons
 [EventType("verification.review_item_approved.v1")]
 [AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
 public sealed record ReviewItemApproved(Guid ItemId, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, string? Actor) : DomainEvent;
+
+/// <summary>
+/// A correction (US-P2-VER-04 AC2): the version corrected and the new one, both hashes, every field before and after,
+/// the reason and the person; the new version is approved at once or waits for a second approver (<c>Material</c>).
+/// </summary>
+[EventType("verification.review_item_corrected.v1")]
+[AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
+public sealed record ReviewItemCorrected(
+    Guid ItemId, Guid RecordId, int FromVersion, int ToVersion, string FromHash, string ToHash, IReadOnlyList<CorrectionChange> Changes, string Reason, bool Material,
+    Guid SiteId, string? Actor) : DomainEvent;
+
+/// <summary>A field changed by a correction, as the ledger keeps it.</summary>
+public sealed record CorrectionChange(string Field, string? Before, string? After);
+
+[EventType("verification.review_item_second_approved.v1")]
+[AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
+public sealed record ReviewItemSecondApproved(Guid ItemId, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, string? CorrectedBy, string? Actor) : DomainEvent;
 
 [EventType("verification.review_item_rejected.v1")]
 [AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
@@ -148,6 +167,9 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
 
     public string Status { get; private set; } = ReviewStatuses.Pending;
 
+    /// <summary>For a corrected version's item: the controller who corrected it (never its second approver).</summary>
+    public string? CorrectedBy { get; private set; }
+
     public DateTimeOffset CreatedAt { get; private set; }
 
     /// <summary>The row version (<c>xmin</c>, H-C1): two reviewers acting at once, one wins (TC-P2-VER-008).</summary>
@@ -212,6 +234,55 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
         var at = clock.GetUtcNow();
         Status = ReviewStatuses.Approved;
         return Action(clock, ReviewActionKinds.Approve, actor, null, null, at) with { BatchId = batch };
+    }
+
+    /// <summary>
+    /// Records a correction of this pending item's version (US-P2-VER-04): this item is <c>corrected</c>; the item of the
+    /// new version is returned, approved by the corrector, or awaiting a second approver when the change is material.
+    /// </summary>
+    public Result<(ReviewAction Action, ReviewItem Next)> Correct(
+        TimeProvider clock, string? actor, string? reason, int toVersion, string toHash, IReadOnlyList<CorrectionChange> changes, bool material)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(changes);
+        if (Status != ReviewStatuses.Pending)
+        {
+            return ReviewRules.NotPending;
+        }
+
+        var text = reason?.Trim() ?? string.Empty;
+        if (text.Length is < ReviewRules.CommentMinLength or > ReviewRules.CommentMaxLength)
+        {
+            return ReviewRules.CommentInvalid;
+        }
+
+        var at = clock.GetUtcNow();
+        Status = ReviewStatuses.Corrected;
+        Raise(new ReviewItemCorrected(Id.Value, RecordId, RecordVersion, toVersion, RecordHash, toHash, changes, text, material, SiteId, actor) { OccurredAt = at });
+        var next = Submit(clock, TenantId, RecordType, RecordId, toVersion, toHash, SiteId, ProducedBy, AssetId, CoveredFrom, CoveredTo, Flags);
+        next.CorrectedBy = actor;
+        next.Status = material ? ReviewStatuses.AwaitingSecond : ReviewStatuses.Approved;
+        return (Action(clock, ReviewActionKinds.Correct, actor, null, text, at), next);
+    }
+
+    /// <summary>The second approval of a material correction (US-P2-VER-04 AC3); never by the person who corrected it.</summary>
+    public Result<ReviewAction> SecondApprove(TimeProvider clock, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status != ReviewStatuses.AwaitingSecond)
+        {
+            return ReviewRules.NoSecondApproval;
+        }
+
+        if (actor is not null && actor == CorrectedBy)
+        {
+            return ReviewRules.OwnCorrection;
+        }
+
+        var at = clock.GetUtcNow();
+        Status = ReviewStatuses.Approved;
+        Raise(new ReviewItemSecondApproved(Id.Value, RecordId, RecordVersion, RecordHash, SiteId, CorrectedBy, actor) { OccurredAt = at });
+        return Action(clock, ReviewActionKinds.SecondApprove, actor, null, null, at);
     }
 
     /// <summary>Rejects a pending item with a reason code and a comment (US-P2-VER-03 AC1).</summary>
@@ -314,6 +385,13 @@ public sealed class ReviewBatch : AggregateRoot<ReviewBatchId>, ITenantOwned
 /// <summary>What a decision may not do (ADR-0037 §2, §4).</summary>
 public static class ReviewRules
 {
+    public static readonly Error NotCorrectable = Error.Validation("verification.not_correctable", "This kind of record is not corrected here.");
+
+    public static readonly Error NoSecondApproval = Error.Conflict("verification.no_second_approval", "This entry is not waiting for a second approval.");
+
+    /// <summary>The person who corrected an entry does not approve their own correction (US-P2-VER-04 AC3, TC-P2-VER-003).</summary>
+    public static readonly Error OwnCorrection = Error.Forbidden("verification.sod_own_correction", "Another person approves your correction.");
+
     /// <summary>How many entries one bulk approval may hold.</summary>
     public const int BulkMax = 100;
 
