@@ -155,6 +155,13 @@ integrity list with the feature flags' shape. The same collision hid FieldOps' `
 behind Organization's (now `EntryShiftResponse`, `EntryLocationResponse`). The JSON on the wire did not change; an
 architecture rule now fails on two request or response types of one name.
 
+As built (slice 7b): `Every_planted_anomaly_comes_out_as_its_flag_and_nothing_else_does` (FieldOps, real PostgreSQL)
+builds seeded histories on four meters, two to five shifts each, and plants at random a start that does not continue
+the meter, a delta out of bounds, a skewed clock, a position outside the site, a photo without its capture record and a
+photo already used, on starts and ends; the open flags are then compared, as a set, with the planted ones. Three
+seeds, each planting every one of the six rules; with the geofence answering "inside the margin" all three fail.
+RULE-FO-07 (Sync) keeps its own test.
+
 ## Options considered
 
 1. **Flags in an Integrity module, rules in the owning modules (chosen).** One place to list, settle and audit flags;

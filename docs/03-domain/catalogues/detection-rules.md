@@ -4,7 +4,7 @@ area: domain
 tags: [rules, fraud, alerts, thresholds]
 source: "PHASES_DETAILED_PLAN.md §24"
 status: baseline
-last_updated: 2026-11-19
+last_updated: 2026-11-20
 ---
 
 # Alert & Detection Rule Catalogue
@@ -21,6 +21,8 @@ last_updated: 2026-11-19
 | RULE-FO-06 | Same photo hash reused | Any | High | P2 |
 | RULE-FO-07 | Entry from revoked device | Any | Critical | P2 |
 | RULE-FO-08 | Missing shift end | 1 h after shift end | Low | P2 |
+| RULE-FO-09 | Entry signed by someone who is not an active field user of the site (threat R-13) | Any | Critical | P2 |
+| RULE-FO-10 | Start without a recent pre-start checklist where the machine type requires one (threat R-14) | Any | High | P2 |
 | RULE-WB-01 | Tare deviation vs registered tare | > 3 % | Medium | P3 |
 | RULE-WB-02 | Net above legal payload | > max payload | High | P3 |
 | RULE-WB-03 | Impossible turnaround | < configured min minutes | High | P3 |
