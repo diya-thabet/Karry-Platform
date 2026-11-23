@@ -1363,5 +1363,8 @@
   "portal.integrity.rule.RULE-FO-09.title": "ߓߏߟߏߣߐߓߌߟߊ",
   "portal.integrity.rule.RULE-FO-09.description": "ߡߐߜ߭ߐ min ߦߋ ߓߏߟߏߣߐ ߓߌߟߊ߸ ߛߌߜ߭ߌߦߐߙߐ ߕߊߓߌߟߋߕߌߟߎ ߓߍ ߘߊߦߍߟߍ ߏ ߦߋ: ߝߏߙߏߓߊ ߓߊ߯ߙߊߞߍߟߊ min ߓߍ ߓߊ߯ߙߊ ߟߊ߸ ߖߐߦߐߙߐ ߓߊ ߓߏߟߏ ߛߌߜ߭ߌߦߐߙߐ ߟߊ.",
   "portal.integrity.flag.RULE-FO-09": "{part, select, start {ߘߊߡߌߣߍ} other {ߟߊߓߊ߲}} ߓߏߟߏߣߐ ߓߌߟߊߟߊ {reason, select, unknown {ߡߐߜ߭ߐ ߦߋ min ߕߍ ߘߐ߲ ߓߊ߯ߙߊߦߐߙߐ ߟߊ} not_field_user {ߡߐߜ߭ߐ ߦߋ min ߕߍ ߓߏߟߏߣߐ ߓߌߟߊ ߕߊߓߌߟߋߕߌ ߞߊ߲} inactive {ߡߐߜ߭ߐ ߦߋ min ߞߊ ߞߐ߲ߕߌ ߡߊ ߘߊߡߌߣߍ ߝߐߟߐ} deactivated {ߡߐߜ߭ߐ ߦߋ min ߓߐߙߊ ߓߊ߯ߙߊ ߟߊ {deactivatedAt, date, medium}} not_on_site {ߡߐߜ߭ߐ ߦߋ ߖߐߦߐߙߐ ߕߍ min ߓߏߟߏ ߛߌߜ߭ߌߦߐߙߐ ߣߌ߲ ߣߊ} other {ߡߐߜ߭ߐ ߦߋ min ߡߊ ߘߊߜ߭ߊ߲ߣߊ ߦߊ߲}} ߝߍ.",
+  "portal.integrity.rule.RULE-FO-10.title": "ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ",
+  "portal.integrity.rule.RULE-FO-10.description": "ߣߌ ߡߊߛߌ߲ ߛߎߜ߭ߎ ߓߍ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߢߌߣߌ߸ ߓߊ߯ߙߊߞߍߟߊ ߦߋ ߓߏߟߏߣߐ ߓߌߟߊ ߟߊߖߍߟߌ ߘߐ ߞߊ߲ ߡߊߛߌ߲ ߞߊߡߊ ߟߍߙߍ ߞߋߟߋ߲ ߞߐߣߐ ߛߊߣߌ ߊ ߞߊ ߘߊߡߌߣߍ.",
+  "portal.integrity.flag.RULE-FO-10": "ߡߊߛߌ߲ ߘߊߡߌߣߍߣߊ ߞߊ ߛߐߙߐ ߓߊ߯ߙߊߞߍߟߊ ߡߊ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߞߍ ߡߌߣߌߕߌ {minutes, number} ߟߊߓߊ߲ ߞߐߣߐ߸ ߊ ߛߎߜ߭ߎ ߓߏ ߢߌߣߌ.",
   "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ"
 }

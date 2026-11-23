@@ -265,7 +265,7 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
 
                     b.ToTable("rule_settings", "integrity", t =>
                         {
-                            t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07', 'RULE-FO-09')");
+                            t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07', 'RULE-FO-09', 'RULE-FO-10')");
                         });
                 });
 #pragma warning restore 612, 618

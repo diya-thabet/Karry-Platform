@@ -1363,5 +1363,8 @@
   "portal.integrity.rule.RULE-FO-09.title": "Signataire",
   "portal.integrity.rule.RULE-FO-09.description": "La personne qui a signé est quelqu’un pour qui les tablettes du site s’ouvrent : un utilisateur terrain actif avec un rôle sur le site.",
   "portal.integrity.flag.RULE-FO-09": "{part, select, start {Le début a été signé} other {La fin a été signée}} par {reason, select, unknown {une personne inconnue de l’entreprise} not_field_user {une personne qui ne signe pas sur tablette} inactive {une personne dont le compte n’est pas encore actif} deactivated {une personne désactivée le {deactivatedAt, date, medium}} not_on_site {une personne sans rôle sur ce site} other {une personne non autorisée ici}}.",
+  "portal.integrity.rule.RULE-FO-10.title": "Contrôle avant démarrage",
+  "portal.integrity.rule.RULE-FO-10.description": "Quand le type d’engin exige un contrôle avant démarrage, le conducteur en a signé un pour l’engin dans l’heure avant de démarrer.",
+  "portal.integrity.flag.RULE-FO-10": "L’engin a démarré sans le contrôle avant démarrage du conducteur des {minutes, number} dernières minutes, que son type exige.",
   "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils"
 }

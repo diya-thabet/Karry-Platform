@@ -9,6 +9,18 @@ internal sealed class ShiftEntryStore(FieldOpsDbContext db) : IShiftEntryStore
 {
     public Task JoinAsync(ISyncTransaction transaction, CancellationToken cancellationToken) => db.JoinAsync(transaction, cancellationToken);
 
+    public Task<ChecklistTemplate?> ChecklistInForceAsync(string assetType, DateTimeOffset instant, CancellationToken cancellationToken) =>
+        db.ChecklistTemplates.AsNoTracking().Where(t => t.AssetType == assetType && t.PublishedAt <= instant)
+            .OrderByDescending(t => t.Version).FirstOrDefaultAsync(cancellationToken);
+
+    public Task<bool> CheckedAsync(Guid assetId, Guid operatorId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+        db.ChecklistSubmissions.AsNoTracking().AnyAsync(s => s.AssetId == assetId && s.OperatorId == operatorId && s.SubmittedAt >= from && s.SubmittedAt <= to, cancellationToken);
+
+    public async Task<IReadOnlyList<ShiftEntryVersion>> StartsAsync(Guid assetId, Guid operatorId, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken) =>
+        await db.ShiftEntries.AsNoTracking()
+            .Where(e => e.Version == 1 && e.AssetId == assetId && e.OperatorId == operatorId && e.StartedAt >= from && e.StartedAt <= to)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
     public Task<ShiftEntryVersion?> LatestAsync(Guid rootId, CancellationToken cancellationToken) =>
         db.ShiftEntries.AsNoTracking().Where(e => e.RootId == rootId).OrderByDescending(e => e.Version).FirstOrDefaultAsync(cancellationToken);
 

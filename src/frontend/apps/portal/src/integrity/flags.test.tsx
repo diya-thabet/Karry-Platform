@@ -129,6 +129,8 @@ describe("what a flag found, in words (US-P2-INT-01 AC2)", () => {
     [{ rule: "RULE-FO-09", details: { part: "start", reason: "not_on_site", signer: "x" } }, "The start was signed by someone with no role on this site."],
     [{ rule: "RULE-FO-09", details: { part: "end", reason: "deactivated", deactivatedAt: "2026-11-20T09:30:00Z" } },
       "The end was signed by a person deactivated on Nov 20, 2026."],
+    [{ rule: "RULE-FO-10", details: { part: "start", assetType: "excavator", templateVersion: "2", validMinutes: "60" } },
+      "The machine was started without the operator's pre-start checklist of the last 60 min, which its type requires."],
     [{ rule: "RULE-FO-02", details: { meterKind: "hours" } },
       "The meter does not go back, and an hour meter does not run longer than the shift plus the allowed margin."],
   ])("%j", async (flag, words) => {

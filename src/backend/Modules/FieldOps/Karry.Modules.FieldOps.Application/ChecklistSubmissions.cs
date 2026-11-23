@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Domain;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.SharedKernel.Results;
 
@@ -32,7 +33,9 @@ public sealed record ChecklistRecord(Guid RootId, Guid TemplateId, int TemplateV
 /// once, with its envelope, in the upload's transaction; a critical Not OK opens a hold on the machine in the same
 /// transaction (ledgered <c>fieldops.asset_marked_unsafe.v1</c>) and comes back flagged <c>ASSET_UNSAFE</c>.
 /// </summary>
-public sealed class SubmitChecklist(IChecklistSubmissionStore store, IEnvelopeRecorder envelopes, IAssetDirectory assets, ITenantContext tenant, TimeProvider clock)
+public sealed class SubmitChecklist(
+    IChecklistSubmissionStore store, IEnvelopeRecorder envelopes, IAssetDirectory assets, ITenantContext tenant, TimeProvider clock, IShiftEntryStore entries,
+    IIntegrityFlags integrity)
     : ISyncCommandHandler
 {
     public const string Name = "fieldops.checklist.submit.v1";
@@ -153,6 +156,15 @@ public sealed class SubmitChecklist(IChecklistSubmissionStore store, IEnvelopeRe
         };
         store.Add(submission, critical.Count > 0 ? SafetyHold.Open(clock, submission) : null);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+
+        // A checklist that arrives after the start it was signed for closes that start's RULE-FO-10 flag (R-14).
+        await entries.JoinAsync(transaction, cancellationToken).ConfigureAwait(false);
+        foreach (var start in await entries.StartsAsync(record.AssetId, signed.Signer, record.SubmittedAt, record.SubmittedAt.AddMinutes(ChecklistRules.ValidMinutes), cancellationToken)
+            .ConfigureAwait(false))
+        {
+            await IntegrityFindings.SyncChecklistAsync(entries, integrity, transaction, start, asset.Type, cancellationToken).ConfigureAwait(false);
+        }
+
         return critical.Count == 0 ? new HandlerOutcome.Accepted(record.RootId) : new HandlerOutcome.Conflict(record.RootId, [ShiftEntryFlags.AssetUnsafe]);
     }
 }

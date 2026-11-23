@@ -125,6 +125,37 @@ public static class IntegrityFindings
     }
 
     /// <summary>
+    /// RULE-FO-10 on one start (threat R-14, security rule): the machine type's checklist in force when the shift started
+    /// is required, and its operator signed none for the machine in the <see cref="ChecklistRules.ValidMinutes"/> before.
+    /// The subject is the start's signed fact; a checklist that arrives after its start closes the flag
+    /// (<see cref="SubmitChecklist"/> weighs the starts it covers again).
+    /// </summary>
+    public static async Task SyncChecklistAsync(
+        IShiftEntryStore store, IIntegrityFlags integrity, ISyncTransaction transaction, ShiftEntryVersion start, string assetType, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(store);
+        ArgumentNullException.ThrowIfNull(integrity);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(start);
+        var findings = new List<Finding>();
+        if (await store.ChecklistInForceAsync(assetType, start.StartedAt, cancellationToken).ConfigureAwait(false) is { Required: true } template
+            && !await store.CheckedAsync(start.AssetId, start.OperatorId, start.StartedAt.AddMinutes(-ChecklistRules.ValidMinutes), start.StartedAt, cancellationToken)
+                .ConfigureAwait(false))
+        {
+            findings.Add(new Finding("start", [new FlagSubject(ShiftEntry, start.RootId)], [], new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["part"] = "start",
+                ["assetType"] = assetType,
+                ["templateVersion"] = template.Version.ToString(CultureInfo.InvariantCulture),
+                ["validMinutes"] = ChecklistRules.ValidMinutes.ToString(CultureInfo.InvariantCulture),
+            }));
+        }
+
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(SignedFact, start.EnvelopeId), IntegrityRules.MissingChecklist,
+            start.SiteId, findings, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// The photo rules of one signed start or end (ADR-0036 §1, security rules): RULE-FO-05 when the command carries no
     /// capture record for its photo (the photo did not come from the app's camera), RULE-FO-06 when the same photo is
     /// on another entry, or is both the start and the end photo of this one. The subject is the signed fact, linked to
