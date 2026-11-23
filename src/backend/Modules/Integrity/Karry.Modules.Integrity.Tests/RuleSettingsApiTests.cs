@@ -6,6 +6,7 @@ using System.Text.Json;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Integrity.Contracts;
+using Karry.Modules.Integrity.Domain;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,9 +32,9 @@ public sealed class RuleSettingsApiTests(IntegrityHost host) : IClassFixture<Int
         var rules = await RulesAsync(tenant);
 
         rules.Select(r => r.GetProperty("rule").GetString()).Should().Equal(
-            "RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07");
+            "RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-09");
         rules.Should().OnlyContain(r => r.GetProperty("enabled").GetBoolean() && r.GetProperty("version").GetString() == "\"0\"");
-        rules.Where(r => r.GetProperty("security").GetBoolean()).Select(r => r.GetProperty("rule").GetString()).Should().Equal("RULE-FO-05", "RULE-FO-06", "RULE-FO-07");
+        rules.Where(r => r.GetProperty("security").GetBoolean()).Select(r => r.GetProperty("rule").GetString()).Should().Equal("RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-09");
         var margin = Rule(rules, "RULE-FO-04").GetProperty("thresholds")[0];
         (margin.GetProperty("name").GetString(), margin.GetProperty("value").GetDecimal(), margin.GetProperty("unit").GetString(), margin.GetProperty("max").GetDecimal())
             .Should().Be(("marginMetres", 200m, "m", 5000m));
@@ -67,9 +68,12 @@ public sealed class RuleSettingsApiTests(IntegrityHost host) : IClassFixture<Int
         (await ProblemCodeAsync(refused)).Should().Be("integrity.rule_locked");
         (await SettingsAsync(tenant, IntegrityRules.RevokedDevice)).Enabled.Should().BeTrue();
 
-        await FluentActions.Awaiting(() => ExecuteAsync(
-                $"INSERT INTO integrity.rule_settings (id, tenant_id, rule, enabled, thresholds, changed_at) VALUES ('{Guid.CreateVersion7()}', '{tenant}', 'RULE-FO-05', false, '{{}}', now())"))
-            .Should().ThrowAsync<PostgresException>("a check constraint keeps the security rules on");
+        foreach (var rule in RuleCatalog.All.Where(r => r.Security))
+        {
+            await FluentActions.Awaiting(() => ExecuteAsync(
+                    $"INSERT INTO integrity.rule_settings (id, tenant_id, rule, enabled, thresholds, changed_at) VALUES ('{Guid.CreateVersion7()}', '{tenant}', '{rule.Code}', false, '{{}}', now())"))
+                .Should().ThrowAsync<PostgresException>($"a check constraint keeps {rule.Code} on");
+        }
     }
 
     [Fact]

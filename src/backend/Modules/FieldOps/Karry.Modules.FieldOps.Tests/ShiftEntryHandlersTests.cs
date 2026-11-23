@@ -11,6 +11,7 @@ using Karry.Modules.Assets.Contracts;
 using Karry.Modules.FieldOps.Application;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.FieldOps.Infrastructure;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
@@ -58,6 +59,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     private readonly Shifts shifts = new();
     private readonly Devices devices = new();
     private readonly Geofence geofence = new();
+    private readonly KnownSigners signers = new();
     private KarryDatabase database = null!;
     private ServiceProvider services = null!;
 
@@ -73,7 +75,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         services = new ServiceCollection().AddLogging()
             .AddTrustInfrastructure(database.App).AddFieldOpsInfrastructure(database.App).AddIntegrityInfrastructure(database.App)
-            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts).AddSingleton<ISiteGeofence>(geofence)
+            .AddSingleton<IDeviceDirectory>(devices).AddSingleton<IMeterDirectory>(meters).AddSingleton<IMeterEvents>(meterEvents).AddSingleton<IShiftCalendar>(shifts).AddSingleton<ISiteGeofence>(geofence).AddSingleton<IFieldSigners>(signers)
             .BuildServiceProvider(validateScopes: true);
         meters.All[HourMeter] = new MeterSummary(HourMeter, Asset, "EX-01", "hours", "ok", [new AssetSiteAssignment(Site, ShiftStart.AddDays(-30))]);
         shifts.Shift = DayShift;
@@ -643,10 +645,38 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
 
+    [Fact]
+    [Trait("Story", "US-P2-INT-01")]
+    [Trait("TestCase", "TC-P2-INT-009")]
+    public async Task A_fact_signed_by_someone_the_sites_tablets_do_not_unlock_for_is_stored_and_flagged_with_the_reason()
+    {
+        var (stranger, gone, fine) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (strangerEntry, goneEntry, fineEntry) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var deactivatedAt = new DateTimeOffset(2026, 11, 9, 10, 0, 0, TimeSpan.Zero);
+        signers.Refused[stranger] = new FieldSignerRefusal(FieldSignerRefusals.Unknown);
+        signers.Refused[gone] = new FieldSignerRefusal(FieldSignerRefusals.Deactivated, deactivatedAt);
+
+        (await HandleAsync(TenantA, StartShiftEntry.Name, Start(strangerEntry, ShiftStart, "10.0", meter: FreshMeter(), signer: stranger)))
+            .Should().BeOfType<HandlerOutcome.Accepted>("a signed fact is never refused for who signed it: it is flagged");
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(goneEntry, ShiftStart, "10.0", meter: FreshMeter(), signer: gone));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(fineEntry, ShiftStart, "10.0", meter: FreshMeter(), signer: fine));
+        // The end is signed by the operator of the tablet; the stranger's entry is ended by an allowed person.
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(strangerEntry, 2, ShiftStart.AddHours(8), "18.0"));
+
+        (await RowsAsync(TenantA, "SELECT e.root_id || '|' || f.key || '|' || f.severity || '|' || (f.details->>'reason') || '|' || (f.details->>'signer') || '|' "
+            + "|| coalesce(f.details->>'deactivatedAt', '-') FROM integrity.flags f JOIN (SELECT DISTINCT envelope_id, root_id FROM fieldops.shift_entries) e "
+            + "ON e.envelope_id = f.subject_id WHERE f.rule = 'RULE-FO-09' ORDER BY f.opened_at"))
+            .Should().Equal(
+                $"{strangerEntry}|start|critical|unknown|{stranger}|-",
+                $"{goneEntry}|start|critical|deactivated|{gone}|{deactivatedAt.ToUniversalTime():O}");
+        (await RowsAsync(TenantA, "SELECT count(*)::text FROM fieldops.shift_entries")).Should().Equal("4");
+    }
+
     /// <summary>
     /// The generator of P2.7's "done when" (plan §1): shift histories on several meters, each signed start and end
     /// carrying anomalies planted at random (a start that does not continue the meter, a delta out of bounds, a skewed
-    /// clock, a position outside the site, a photo without its capture record, a photo already used), go through the real
+    /// clock, a position outside the site, a photo without its capture record, a photo already used, a signer the site's
+    /// tablets do not unlock for), go through the real
     /// handlers in shift order; the company's open integrity flags are then exactly the planted anomalies, and only those.
     /// Seeded, so a failure replays.
     /// </summary>
@@ -698,7 +728,13 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
                     expected.Add($"RULE-FO-01|{meter}|{previous.Root}>{root}");
                 }
 
-                var start = Start(root, startedAt, Text(startValue), meter: meter, signer: Guid.CreateVersion7(), photo: PlantedPhoto("start"),
+                var signer = Guid.CreateVersion7();
+                if (PlantedFlag("RULE-FO-09", "start"))
+                {
+                    signers.Refused[signer] = new FieldSignerRefusal(FieldSignerRefusals.NotOnSite);
+                }
+
+                var start = Start(root, startedAt, Text(startValue), meter: meter, signer: signer, photo: PlantedPhoto("start"),
                     captured: !PlantedFlag("RULE-FO-05", "start"), geo: PlantedFlag("RULE-FO-04", "start") ? Geo(36.9, 10.0, 15) : null,
                     deviceTime: PlantedFlag("RULE-FO-03", "start") ? DeviceTime(now.AddHours(3)) : null);
                 (await HandleAsync(TenantA, StartShiftEntry.Name, start)).Should().NotBeOfType<HandlerOutcome.Rejected>();
@@ -754,7 +790,8 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         var flags = await RowsAsync(TenantA, "SELECT f.rule || '|' || coalesce(e.root_id, f.subject_id) || '|' || f.key FROM integrity.flags f "
             + "LEFT JOIN (SELECT DISTINCT envelope_id, root_id FROM fieldops.shift_entries) e ON e.envelope_id = f.subject_id WHERE f.closed_at IS NULL");
         flags.Should().BeEquivalentTo(expected, $"seed {seed} planted {string.Join(", ", planted.Select(p => $"{p.Key} ×{p.Value}"))}");
-        planted.Keys.Should().BeEquivalentTo(["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06"], "each seed plants every rule of a signed fact");
+        planted.Keys.Should().BeEquivalentTo(
+            ["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-09"], "each seed plants every rule of a signed fact");
     }
 
     private static string Text(decimal value) => value.ToString("0.0###", System.Globalization.CultureInfo.InvariantCulture);

@@ -1360,5 +1360,8 @@
   "portal.integrity.flag.RULE-FO-06": "ߞߏ߲ߕߍߙߌ ߖߊ {part, select, start {ߘߊߡߌߣߍ} other {ߟߊߓߊ߲}} ߟߊ ߓߍ {others, plural, one {ߛߍߓߍ߲ # ߥߍߙߍ} other {ߛߍߓߍ߲ # ߥߍߙߍ}} ߞߊ߲ ߝߊߣߊ.",
   "portal.integrity.flag.RULE-FO-06.sameAsStart": "ߟߊߓߊ߲ ߖߊ ߣߌ ߘߊߡߌߣߍ ߖߊ ߦߋ ߞߋߟߋ߲ ߦߋ.",
   "portal.integrity.flag.RULE-FO-07": "ߕߊߓߌߟߋߕߌ ߓߐߣߋ߲ ߦߋ ߗߌ ߘߐ ߗߌ ({type})؛ ߊ ߓߌߟߊߙߊ ߞߍߙߍߝߍ߸ ߊ ߡߊ ߞߍ.",
+  "portal.integrity.rule.RULE-FO-09.title": "ߓߏߟߏߣߐߓߌߟߊ",
+  "portal.integrity.rule.RULE-FO-09.description": "ߡߐߜ߭ߐ min ߦߋ ߓߏߟߏߣߐ ߓߌߟߊ߸ ߛߌߜ߭ߌߦߐߙߐ ߕߊߓߌߟߋߕߌߟߎ ߓߍ ߘߊߦߍߟߍ ߏ ߦߋ: ߝߏߙߏߓߊ ߓߊ߯ߙߊߞߍߟߊ min ߓߍ ߓߊ߯ߙߊ ߟߊ߸ ߖߐߦߐߙߐ ߓߊ ߓߏߟߏ ߛߌߜ߭ߌߦߐߙߐ ߟߊ.",
+  "portal.integrity.flag.RULE-FO-09": "{part, select, start {ߘߊߡߌߣߍ} other {ߟߊߓߊ߲}} ߓߏߟߏߣߐ ߓߌߟߊߟߊ {reason, select, unknown {ߡߐߜ߭ߐ ߦߋ min ߕߍ ߘߐ߲ ߓߊ߯ߙߊߦߐߙߐ ߟߊ} not_field_user {ߡߐߜ߭ߐ ߦߋ min ߕߍ ߓߏߟߏߣߐ ߓߌߟߊ ߕߊߓߌߟߋߕߌ ߞߊ߲} inactive {ߡߐߜ߭ߐ ߦߋ min ߞߊ ߞߐ߲ߕߌ ߡߊ ߘߊߡߌߣߍ ߝߐߟߐ} deactivated {ߡߐߜ߭ߐ ߦߋ min ߓߐߙߊ ߓߊ߯ߙߊ ߟߊ {deactivatedAt, date, medium}} not_on_site {ߡߐߜ߭ߐ ߦߋ ߖߐߦߐߙߐ ߕߍ min ߓߏߟߏ ߛߌߜ߭ߌߦߐߙߐ ߣߌ߲ ߣߊ} other {ߡߐߜ߭ߐ ߦߋ min ߡߊ ߘߊߜ߭ߊ߲ߣߊ ߦߊ߲}} ߝߍ.",
   "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ"
 }

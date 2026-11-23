@@ -4,7 +4,7 @@ area: phases
 tags: [phase-2, shifts, sync, signatures, verification]
 source: "PHASES_DETAILED_PLAN.md §9"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-11-20
 ---
 
 # Phase 2 — Field Operations, Verification & Signatures
@@ -285,6 +285,7 @@ integrity.flag(id, tenant_id, rule_code, severity, record_type, record_id, detai
 | TC-P2-VER-006 | Auto-approval policy | Unflagged entries auto-approved, audited with policy version |
 | TC-P2-VER-007 | Policy change mid-day | Items keep their policy version |
 | TC-P2-INT-001..007 | Each RULE-FO-0x positive & negative case | Correct flags |
+| TC-P2-INT-009 | Start or end signed by someone the site's tablets do not unlock for (unknown, office account, inactive, deactivated, no role on the site) | Fact stored, RULE-FO-09 flag with the reason; an allowed signer raises nothing |
 | TC-P2-DOC-001 | Shift PDF 200 entries | < 10 s, QR verifies |
 
 **Property tests:** continuity engine (random sequences of readings/events → exceptions exactly when unexplained discontinuities exist); ΔH computation never negative without meter event.

@@ -21,6 +21,7 @@ public sealed class RuleSettingRulesTests
     [InlineData("RULE-FO-05")]
     [InlineData("RULE-FO-06")]
     [InlineData("RULE-FO-07")]
+    [InlineData("RULE-FO-09")]
     public void A_security_rule_cannot_be_switched_off_and_always_runs(string code)
     {
         RuleSetting.Create(Clock, Company, Rule(code), enabled: false, Set("x", 1), "admin").Error.Should().Be(RuleSettingRules.Locked);

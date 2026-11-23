@@ -42,4 +42,7 @@ public static class IntegrityRules
     public const string PhotoWithoutCapture = "RULE-FO-05";
     public const string PhotoReused = "RULE-FO-06";
     public const string RevokedDevice = "RULE-FO-07";
+
+    /// <summary>A fact signed by someone who may not sign on the site's tablets (threat R-13).</summary>
+    public const string UnknownSigner = "RULE-FO-09";
 }
