@@ -8,6 +8,6 @@ export {
 } from "./outbox";
 export {
   collections, openOfflineDb,
-  type AssetRow, type BlobRecord, type ChecklistItemRow, type ChecklistTemplateRow, type DraftRecord, type SafetyHoldRow, type OutboxStatus, type Collection, type DeviceRecord, type FieldUserRow, type KarryOfflineDb, type MaterialRow, type MeterRow, type MeterStateRow, type NonWorkingDayRow, type OutboxRecord,
+  type AssetRow, type BlobRecord, type ChecklistItemRow, type ChecklistTemplateRow, type DraftRecord, type ReviewOutcomeRow, type SafetyHoldRow, type OutboxStatus, type Collection, type DeviceRecord, type FieldUserRow, type KarryOfflineDb, type MaterialRow, type MeterRow, type MeterStateRow, type NonWorkingDayRow, type OutboxRecord,
   type SettingsRecord, type ShiftPatternRow, type SiteRow, type StoredAsset, type SyncStateRecord, type UnlockRecord,
 } from "./schema";

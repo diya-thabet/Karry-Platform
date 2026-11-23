@@ -17,6 +17,38 @@ const end = (rootId: string, endedAt: string, value: string, overrides: Partial<
 
 const now = new Date("2026-11-10T08:00:00Z");
 
+describe("a controller's decision in my history (US-P2-VER-03 AC1, P2.8)", () => {
+  const outcome = (recordId: string, recordVersion: number, status: string, reasonCode: string | null = null, comment: string | null = null) =>
+    ({ id: `${recordId}-${String(recordVersion)}`, recordId, recordVersion, status, reasonCode, comment });
+
+  it("shows an approved entry, a rejected one with the reason and comment, and the newest decision of an entry", () => {
+    const rows = historyRows([
+      start("e1", "2026-11-09T06:00:00Z", "100.0"), end("e1", "2026-11-09T14:00:00Z", "108.0"),
+      start("e2", "2026-11-09T15:00:00Z", "108.0"), end("e2", "2026-11-09T22:00:00Z", "115.0"),
+      start("e3", "2026-11-10T06:00:00Z", "115.0"),
+    ], "u1", now, [
+      outcome("e1", 2, "approved"),
+      outcome("e2", 2, "approved"), outcome("e2", 3, "rejected", "wrong_reading", "The end photo shows 112.0."),
+      outcome("someone-else", 2, "rejected", "duplicate", "x"),
+    ]);
+
+    expect(rows.map((r) => [r.entryId, r.status, r.review])).toEqual([
+      ["e3", "submitted", null],
+      ["e2", "refused", { reasonCode: "wrong_reading", comment: "The end photo shows 112.0." }],
+      ["e1", "approved", null],
+    ]);
+  });
+
+  it("keeps the tablet's own states over a decision: still to send, or refused by the server", () => {
+    const rows = historyRows([
+      start("queued", "2026-11-09T06:00:00Z", "1.0", { status: "pending" }),
+      start("refused", "2026-11-09T07:00:00Z", "1.0", { status: "rejected", code: "fieldops.entry_invalid" }),
+    ], "u1", now, [outcome("queued", 2, "approved"), outcome("refused", 2, "approved")]);
+
+    expect(rows.map((r) => [r.entryId, r.status])).toEqual([["refused", "rejected"], ["queued", "queued"]]);
+  });
+});
+
 describe("my history (US-P2-FO-06 AC1)", () => {
   it("shows one row per entry, newest first, with its start, end, latest photo and flags", () => {
     const rows = historyRows([

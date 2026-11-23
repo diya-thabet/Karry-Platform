@@ -9,7 +9,7 @@ import { refusalReasons } from "./refusals";
 import { meterTenths, meterText } from "./shiftRules";
 import type { Session } from "./unlock";
 
-const chip = { queued: "pending", submitted: "ok", rejected: "error" } as const;
+const chip = { queued: "pending", submitted: "ok", rejected: "error", approved: "ok", refused: "error" } as const;
 const flagKeys: Record<string, string> = {
   "RULE-FO-01": "field.history.flag.continuity",
   "RULE-FO-02": "field.history.flag.delta",
@@ -50,7 +50,7 @@ export function History({ db, session, now, onBack, onStart }: {
   useEffect(() => {
     const screen = { open: true };
     void (async () => {
-      const found = historyRows(await db.outbox.toArray(), session.userId, now());
+      const found = historyRows(await db.outbox.toArray(), session.userId, now(), await db.reviewOutcomes.toArray());
       const shown: Shown[] = [];
       for (const row of found) {
         const machine = row.assetId ? (await db.assets.get(row.assetId))?.code ?? "—" : "—";
@@ -118,6 +118,12 @@ export function History({ db, session, now, onBack, onStart }: {
                   <p className="font-medium text-danger">
                     {row.code && row.code in refusalReasons ? t(refusalReasons[row.code] ?? "") : t("field.outbox.reason.other", { code: row.code ?? "?" })}
                   </p>
+                )}
+                {row.status === "refused" && row.review && (
+                  <div className="flex flex-col gap-1 font-medium text-danger">
+                    <p>{t(`field.history.reason.${row.review.reasonCode ?? "other"}`, { defaultValue: t("field.history.reason.other") })}</p>
+                    {row.review.comment && <p className="font-normal">{t("field.history.comment", { comment: row.review.comment })}</p>}
+                  </div>
                 )}
                 {row.status === "rejected" && row.start && !row.endedAt && (
                   <Button variant="secondary" onClick={() => { void again(row); }}>{t("field.history.again")}</Button>

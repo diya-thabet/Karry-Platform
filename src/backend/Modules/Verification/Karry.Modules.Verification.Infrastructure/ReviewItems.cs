@@ -107,6 +107,7 @@ public static class VerificationInfrastructure
         services.AddScoped<ReviewReading>();
         services.AddScoped<IReviewItemStore, ReviewItemStore>();
         services.AddScoped<ReviewDecisions>();
+        services.AddScoped<ISyncSource, ReviewOutcomesSync>();
         return services;
     }
 }
