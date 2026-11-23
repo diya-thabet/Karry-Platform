@@ -16,6 +16,7 @@ import { Shell, ShellNotFound } from "./shell/Shell";
 import { CompanyPage } from "./settings/CompanyPage";
 import { FlagsPage } from "./integrity/FlagsPage";
 import { RulesPage } from "./integrity/RulesPage";
+import { PoliciesPage } from "./verification/PoliciesPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SupportPage } from "./settings/SupportPage";
 import { TabletsPage } from "./settings/TabletsPage";
@@ -89,6 +90,7 @@ const tablets = createRoute({ getParentRoute: () => company, path: "/settings/ta
 const support = createRoute({ getParentRoute: () => company, path: "/settings/support", component: SupportPage });
 const companySettings = createRoute({ getParentRoute: () => company, path: "/settings/company", component: CompanyPage });
 const integrityRules = createRoute({ getParentRoute: () => company, path: "/settings/integrity", component: RulesPage });
+const reviewPolicies = createRoute({ getParentRoute: () => company, path: "/settings/review-policies", component: PoliciesPage });
 const materials = createRoute({ getParentRoute: () => company, path: "/settings/materials", component: MaterialsPage });
 const newMaterial = createRoute({ getParentRoute: () => company, path: "/settings/materials/new", component: () => <MaterialPage /> });
 const material = createRoute({
@@ -137,7 +139,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),

@@ -4,7 +4,7 @@ area: adr
 tags: [adr, phase-2, p2-8, verification, review, separation-of-duties, four-eyes, sla, policies]
 source: "P2.8 planning (sub-phases.md §P2.8, §Decisions), US-P2-VER-02 … 06, US-P2-FO-08, ADR-0033, ADR-0034, ADR-0035, ADR-0036"
 status: proposed
-last_updated: 2026-11-23
+last_updated: 2026-11-24
 ---
 
 # ADR-0037: Verification engine
@@ -170,6 +170,11 @@ site manager). Every item pins the version in force when it is created and its d
 auto-approving policy is approved at once by `policy:<version>`, ledgered `verification.review_item_auto_approved.v1`
 with the version and the person who published it (threat T-13). A correction is judged against the thresholds of the
 item's own version, which Verification passes to the record type (`CorrectionThresholds`). The portal page is slice 5b.
+
+As built (slice 5b): Settings › Review policies shows, per record type, the version in force (or the defaults) with
+its date and publisher, a form (auto-approval, second approval beyond hours and a whole percentage of the signed Δ,
+review within hours, escalation role) checked as the API checks it, and the history of published versions. Publishing
+asks the person to confirm their identity and applies from now; someone who reads the queue sees it read-only.
 
 ## Options considered
 
