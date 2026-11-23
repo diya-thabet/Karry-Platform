@@ -11,6 +11,7 @@ type ShiftInstance = components["schemas"]["ShiftInstanceResponse"];
 type Material = components["schemas"]["MaterialResponse"];
 type IntegrityRule = components["schemas"]["RuleResponse"];
 type IntegrityFlag = components["schemas"]["IntegrityFlagResponse"];
+type PolicyVersion = components["schemas"]["ReviewPolicyVersionResponse"];
 type MaterialInput = components["schemas"]["MaterialInput"];
 type DensityVersion = components["schemas"]["DensityVersionResponse"];
 type DensityInput = components["schemas"]["DensityInput"];
@@ -93,6 +94,8 @@ export function fakeApi(options: {
   materials?: Material[];
   /** The company's integrity rules (default: the catalogue with its defaults, `integrityCatalog()`). */
   integrityRules?: IntegrityRule[];
+  /** Published review policy versions of shift entries, oldest first (default: none, the defaults apply). */
+  policyVersions?: PolicyVersion[];
   /** Integrity flags of `GET /integrity/flags`, newest first (default: none). */
   integrityFlags?: IntegrityFlag[];
   /** Safety holds, open or released (default: none). */
@@ -148,6 +151,7 @@ export function fakeApi(options: {
   const checklists: Checklist[] = [...(options.checklists ?? [])];
   const holds: Hold[] = [...(options.holds ?? [])];
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
+  const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
   const meterEvents: Record<string, unknown[]> = {};
@@ -325,6 +329,25 @@ export function fakeApi(options: {
     const organization = organizationRoute(request.method, url, body, request.headers.get("If-Match"));
     if (organization) {
       return organization;
+    }
+
+    if (url.pathname === "/api/v1/verification/policies" && request.method === "GET") {
+      // Shift entries' policy: the newest published version, or the defaults (ADR-0037 §5).
+      const defaults: PolicyVersion = { version: 0, effectiveFrom: null, autoApprove: false, fourEyesHours: 2, fourEyesShare: 0.05, slaHours: 24, escalateTo: "site-manager", publishedAt: null, publishedBy: null };
+      return json(200, { items: [{ recordType: "fieldops.shift_entry", current: policyVersions.at(-1) ?? defaults, versions: policyVersions }] });
+    }
+
+    if (url.pathname === "/api/v1/verification/policies/fieldops.shift_entry" && request.method === "PUT") {
+      const input = body as Omit<PolicyVersion, "version" | "publishedAt" | "publishedBy">;
+      if (Number(input.slaHours) < 1 || Number(input.slaHours) > 168) {
+        return problem(400, "verification.policy_invalid");
+      }
+
+      const published: PolicyVersion = {
+        ...input, version: policyVersions.length + 1, effectiveFrom: "2026-11-24T10:00:00Z", publishedAt: "2026-11-24T10:00:00Z", publishedBy: "admin-1",
+      };
+      policyVersions.push(published);
+      return json(200, published);
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/integrity/flags") {
