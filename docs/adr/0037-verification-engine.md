@@ -131,6 +131,13 @@ user's field account and lets a user administrator choose one of the company's a
 confirming their identity first (the API checks the recent sign-in once the user is the caller's to manage). Someone
 who reads users only sees the link. The tablet's view of a rejection moved to slice 2c.
 
+As built (slice 2c): Verification is a sync source: `reviewOutcomes` holds the decided shift entries of the tablet's
+site whose time began in the last 14 days (the operator history's window), with the rejection's reason code and
+comment, whole at every pull (`replace`: a few hundred rows at most). The tablet keeps them in offline schema v7
+(`reviewOutcomes`, by entry); "My history" shows a stored entry as approved, or as rejected by the controller with the
+reason and the comment, the newest decided version counting; the tablet's own states (still to send, refused by the
+server) stay over a decision. A resubmission links to the rejected entry when resubmitting is built (§8 keeps it).
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

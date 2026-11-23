@@ -56,10 +56,16 @@ export interface ChecklistTemplateRow { id: string; assetType: string; version: 
 /** An open safety hold (P2.6, FieldOps `safetyHolds`): no start on the machine until a manager releases it. */
 export interface SafetyHoldRow { id: string; assetId: string; items: string[]; openedAt: string }
 
+/**
+ * A controller's decision on one of the site's shift entries (P2.8, Verification `reviewOutcomes`, ADR-0037 §8):
+ * `approved` or `rejected`, with the reason code and comment of a rejection. The site's last 14 days, whole at each pull.
+ */
+export interface ReviewOutcomeRow { id: string; recordId: string; recordVersion: number; status: string; reasonCode: string | null; comment: string | null }
+
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
 export type StoredAsset = AssetRow & { words: string[] };
 
-export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays", "checklistTemplates", "safetyHolds"] as const;
+export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays", "checklistTemplates", "safetyHolds", "reviewOutcomes"] as const;
 export type Collection = (typeof collections)[number];
 
 export interface SyncStateRecord {
@@ -149,6 +155,7 @@ export type KarryOfflineDb = Dexie & {
   nonWorkingDays: EntityTable<NonWorkingDayRow, "id">;
   checklistTemplates: EntityTable<ChecklistTemplateRow, "id">;
   safetyHolds: EntityTable<SafetyHoldRow, "id">;
+  reviewOutcomes: EntityTable<ReviewOutcomeRow, "id">;
   drafts: EntityTable<DraftRecord, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
@@ -157,7 +164,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v6 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5; v6 the checklists and safety holds of P2.6). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v7 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5; v6 the checklists and safety holds of P2.6; v7 the review outcomes of P2.8). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -196,6 +203,10 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   db.version(6).stores({
     checklistTemplates: "id, &assetType",
     safetyHolds: "id, assetId",
+  });
+  // v7 (P2.8): controllers' decisions on the site's entries, by entry; filled by the next pull.
+  db.version(7).stores({
+    reviewOutcomes: "id, recordId",
   });
   return db;
 }

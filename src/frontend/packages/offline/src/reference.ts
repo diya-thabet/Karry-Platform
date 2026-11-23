@@ -1,6 +1,6 @@
 import {
   collections, type AssetRow, type ChecklistTemplateRow, type Collection, type FieldUserRow, type KarryOfflineDb, type MaterialRow, type MeterRow, type MeterStateRow,
-  type NonWorkingDayRow, type SafetyHoldRow, type ShiftPatternRow, type SiteRow, type StoredAsset,
+  type NonWorkingDayRow, type ReviewOutcomeRow, type SafetyHoldRow, type ShiftPatternRow, type SiteRow, type StoredAsset,
 } from "./schema";
 
 interface Rows {
@@ -14,6 +14,7 @@ interface Rows {
   nonWorkingDays: NonWorkingDayRow;
   checklistTemplates: ChecklistTemplateRow;
   safetyHolds: SafetyHoldRow;
+  reviewOutcomes: ReviewOutcomeRow;
 }
 
 /** One answer of `GET /api/v1/sync/changes` (ADR-0028 §5): rows to keep, IDs to drop, and where to continue. */

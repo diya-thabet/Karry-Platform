@@ -1,4 +1,4 @@
-import type { OutboxRecord } from "@karry/offline";
+import type { OutboxRecord, ReviewOutcomeRow } from "@karry/offline";
 import { endCommand, startCommand } from "./meterState";
 
 /** How far back "My history" goes (US-P2-FO-06 AC1); the server keeps the same 14 days of submissions. */
@@ -6,10 +6,10 @@ export const historyDays = 14;
 
 /**
  * Where an entry stands as the tablet knows it (US-P2-FO-06 AC1): `queued` (signed, not yet stored by the server),
- * `submitted` (stored; with the flags a controller will look at) or `rejected` (refused by the server, with its code).
- * Approved and corrected come with the review (P2.8).
+ * `submitted` (stored; with the flags a controller will look at), `rejected` (refused by the server, with its code),
+ * then the controller's decision (P2.8, ADR-0037 §8): `approved`, or `refused` with the reason and comment.
  */
-export type HistoryStatus = "queued" | "submitted" | "rejected";
+export type HistoryStatus = "queued" | "submitted" | "rejected" | "approved" | "refused";
 
 export interface HistoryRow {
   entryId: string;
@@ -25,6 +25,8 @@ export interface HistoryRow {
   flags: string[];
   /** The SHA-256 of the latest meter photo, for its thumbnail. */
   photo: string | null;
+  /** The controller's reason and comment, for a refused entry. */
+  review: { reasonCode: string | null; comment: string | null } | null;
   /** The start's values, to sign it again after a refusal. */
   start: { assetId: string; startValue: string; fuelStartPercent: number; remarks: string } | null;
 }
@@ -42,7 +44,7 @@ const photoHash = (value: unknown) => (typeof value === "string" && value.starts
  * signed for them. One row per entry: its start and end, and the worst state of its commands (a refusal shows over
  * everything, then what is still to send).
  */
-export function historyRows(commands: readonly OutboxRecord[], operatorId: string, now: Date): HistoryRow[] {
+export function historyRows(commands: readonly OutboxRecord[], operatorId: string, now: Date, outcomes: readonly ReviewOutcomeRow[] = []): HistoryRow[] {
   const since = now.getTime() - historyDays * 24 * 60 * 60 * 1000;
   const rows = new Map<string, HistoryRow>();
   const ordered = [...commands].sort((a, b) => a.sequence - b.sequence);
@@ -55,7 +57,7 @@ export function historyRows(commands: readonly OutboxRecord[], operatorId: strin
     }
 
     const row: HistoryRow = rows.get(entryId) ?? {
-      entryId, assetId: null, startedAt: null, startValue: null, endedAt: null, endValue: null, status: "submitted", code: null, flags: [], photo: null, start: null,
+      entryId, assetId: null, startedAt: null, startValue: null, endedAt: null, endValue: null, status: "submitted", code: null, flags: [], photo: null, review: null, start: null,
     };
     if (command.type === startCommand) {
       row.assetId = text(record.assetId);
@@ -80,6 +82,15 @@ export function historyRows(commands: readonly OutboxRecord[], operatorId: strin
 
     row.flags = [...new Set([...row.flags, ...command.flags])];
     rows.set(entryId, row);
+  }
+
+  // The controller's decision, on an entry the server stored (the newest version decided counts).
+  for (const row of rows.values()) {
+    const decided = outcomes.filter((o) => o.recordId === row.entryId).sort((a, b) => b.recordVersion - a.recordVersion)[0];
+    if (row.status === "submitted" && decided) {
+      row.status = decided.status === "approved" ? "approved" : "refused";
+      row.review = decided.status === "approved" ? null : { reasonCode: decided.reasonCode, comment: decided.comment };
+    }
   }
 
   const time = (row: HistoryRow) => Date.parse(row.startedAt ?? row.endedAt ?? "") || 0;

@@ -141,12 +141,45 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         await FluentActions.Awaiting(() => ExecuteAsAppAsync(tenant, "DELETE FROM verification.review_actions")).Should().ThrowAsync<PostgresException>();
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-VER-03")]
+    public async Task The_tablet_pulls_the_decisions_of_its_site_over_the_last_14_days_with_the_reason_of_a_rejection()
+    {
+        var tenant = await ProvisionAsync();
+        var (site, elsewhere) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var today = DateTimeOffset.UtcNow.AddHours(-10);
+        var approved = await PendingItemAsync(tenant, site: site, from: today);
+        var rejected = await PendingItemAsync(tenant, site: site, from: today);
+        await PendingItemAsync(tenant, site: site, from: today);
+        var other = await PendingItemAsync(tenant, site: elsewhere, from: today);
+        var old = await PendingItemAsync(tenant, site: site, from: today.AddDays(-15));
+        foreach (var item in new[] { approved, other, old })
+        {
+            (await DecideAsync(tenant, item, "approve", null)).Dispose();
+        }
+
+        (await DecideAsync(tenant, rejected, "reject", new { reasonCode = "photo_unreadable", comment = "The end photo is blurred, retake it." })).Dispose();
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var delta = (await scope.ServiceProvider.GetServices<Karry.BuildingBlocks.Sync.ISyncSource>().Single().ChangesAsync(new(Guid.CreateVersion7(), site), null, Ct)).Single();
+
+        delta.Name.Should().Be("reviewOutcomes");
+        delta.Replace.Should().BeTrue();
+        JsonSerializer.Serialize(delta.Upserts, JsonSerializerOptions.Web).Should()
+            .Contain($"\"id\":\"{approved.Id}\"").And.Contain($"\"id\":\"{rejected.Id}\"")
+            .And.Contain("\"status\":\"rejected\",\"reasonCode\":\"photo_unreadable\",\"comment\":\"The end photo is blurred, retake it.\"")
+            .And.NotContain(other.Id.ToString()).And.NotContain(old.Id.ToString());
+        delta.Upserts.Should().HaveCount(2, "the pending item is not decided, the other site's and the old one are out of scope");
+    }
+
     private sealed record Pending(Guid Id, string Version);
 
-    private async Task<Pending> PendingItemAsync(Guid tenant, Guid? site = null, Guid? producer = null, Guid? asset = null)
+    private async Task<Pending> PendingItemAsync(Guid tenant, Guid? site = null, Guid? producer = null, Guid? asset = null, DateTimeOffset? from = null)
     {
+        var start = from ?? Morning;
         var submission = new ReviewSubmission(ReviewRecordTypes.ShiftEntry, Guid.CreateVersion7(), 2, Hash, site ?? Guid.CreateVersion7(), producer ?? Guid.CreateVersion7(),
-            asset ?? Guid.CreateVersion7(), Morning, Morning.AddHours(8), []);
+            asset ?? Guid.CreateVersion7(), start, start.AddHours(8), []);
         await using (var scope = host.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
