@@ -44,7 +44,15 @@ internal sealed class ReviewItemStore(VerificationDbContext db) : IReviewItemSto
     public Task<ReviewItem?> FindAsync(ReviewItemId id, CancellationToken cancellationToken) =>
         db.Items.SingleOrDefaultAsync(i => i.Id == id, cancellationToken);
 
+    public async Task<IReadOnlyList<ReviewItem>> FindManyAsync(IReadOnlyCollection<ReviewItemId> ids, CancellationToken cancellationToken)
+    {
+        var wanted = ids.ToList();
+        return await db.Items.Where(i => wanted.Contains(i.Id)).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public void Add(ReviewAction action) => db.Actions.Add(action);
+
+    public void Add(ReviewBatch batch) => db.Batches.Add(batch);
 
     public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
     {

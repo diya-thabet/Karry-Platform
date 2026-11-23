@@ -8209,6 +8209,76 @@
         }
       }
     },
+    "/api/v1/verification/items/approve": {
+      "post": {
+        "tags": [
+          "VerificationModule"
+        ],
+        "operationId": "ApproveReviewItems",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApproveItems"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkApprovalResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/verification/items/{itemId}/approve": {
       "post": {
         "tags": [
@@ -8511,6 +8581,44 @@
           }
         },
         "description": "`Invited` is false when the tenant already had an administrator, or on `Error`."
+      },
+      "ApproveItem": {
+        "required": [
+          "id",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "An entry of a bulk approval: the item and the `version` the reviewer saw."
+      },
+      "ApproveItems": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ApproveItem"
+            }
+          }
+        },
+        "description": "The entries to approve at once."
       },
       "AssetChangeInput": {
         "required": [
@@ -9168,6 +9276,26 @@
           }
         },
         "description": "The answer: bool BlobUpload.Exists when the store already holds this content (a retry; nothing to upload), else the\nURL to `PUT` the bytes to, the headers to send with them exactly as given, and until when the URL works."
+      },
+      "BulkApprovalResponse": {
+        "required": [
+          "batchId",
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "batchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewItemResponse"
+            }
+          }
+        },
+        "description": "A bulk approval: its batch (the one ledger entry) and the items, now approved."
       },
       "ChangeFieldLevels": {
         "required": [

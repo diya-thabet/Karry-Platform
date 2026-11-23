@@ -138,6 +138,13 @@ comment, whole at every pull (`replace`: a few hundred rows at most). The tablet
 reason and the comment, the newest decided version counting; the tablet's own states (still to send, refused by the
 server) stay over a decision. A resubmission links to the rejected entry when resubmitting is built (§8 keeps it).
 
+As built (slice 3): `POST /api/v1/verification/items/approve` takes 1 to 100 different items, each with the `version`
+the reviewer saw. All or none: an item outside the caller's sites (`404`), at another version (`409`), already decided
+(`409`), with a flag (`400 verification.bulk_flagged`, listing them) or refused by separation of duties (`403`) stops
+the batch, and nothing is approved. The decision is a `ReviewBatch` (append-only `review_batches`, RLS) whose one
+ledger event, `verification.review_items_bulk_approved.v1`, lists every item and the hash of its record version
+(US-P2-VER-02 AC2); each item gets an approve action carrying the batch ID and raises no event of its own.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

@@ -46,6 +46,14 @@ public sealed class VerificationModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName("SearchReviewItems");
 
+        endpoints.MapPost("/items/approve", ApproveManyAsync)
+            .RequirePermission(VerificationPermissions.ItemsReview)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("ApproveReviewItems");
+
         endpoints.MapPost("/items/{itemId:guid}/approve", ApproveAsync)
             .RequirePermission(VerificationPermissions.ItemsReview)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -87,6 +95,32 @@ public sealed class VerificationModule : IModule
             : expected.Error.ToProblem();
     }
 
+    /// <summary>
+    /// Approves 1 to 100 entries in one decision (US-P2-VER-02 AC1, AC2): each with the <c>version</c> the reviewer saw;
+    /// all of them or none (a flagged entry, one decided or changed meanwhile, one outside the caller's sites or refused
+    /// by separation of duties stops the whole batch). One ledger entry lists every item and its record hash.
+    /// </summary>
+    private static async Task<Results<Ok<BulkApprovalResponse>, ProblemHttpResult>> ApproveManyAsync(
+        ApproveItems request, [FromServices] ReviewDecisions decisions, CancellationToken cancellationToken)
+    {
+        var items = new List<BulkItem>();
+        foreach (var item in request.Items ?? [])
+        {
+            var expected = RecordVersionHttp.Expected(item.Version);
+            if (!expected.IsSuccess)
+            {
+                return expected.Error.ToProblem();
+            }
+
+            items.Add(new BulkItem(item.Id, expected.Value));
+        }
+
+        var result = await decisions.ApproveManyAsync(items, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess
+            ? TypedResults.Ok(new BulkApprovalResponse(result.Value.Batch.Id.Value, [.. result.Value.Items.Select(ReviewItemResponse.From)]))
+            : result.Error.ToProblem();
+    }
+
     private static Results<Ok<ReviewItemResponse>, ProblemHttpResult> Decided(Result<ReviewItem> result, HttpResponse response)
     {
         if (!result.IsSuccess)
@@ -111,6 +145,15 @@ public sealed class VerificationModule : IModule
             : result.Error.ToProblem();
     }
 }
+
+/// <summary>An entry of a bulk approval: the item and the <c>version</c> the reviewer saw.</summary>
+public sealed record ApproveItem(Guid Id, string? Version);
+
+/// <summary>The entries to approve at once.</summary>
+public sealed record ApproveItems(IReadOnlyList<ApproveItem>? Items);
+
+/// <summary>A bulk approval: its batch (the one ledger entry) and the items, now approved.</summary>
+public sealed record BulkApprovalResponse(Guid BatchId, IReadOnlyList<ReviewItemResponse> Items);
 
 /// <summary>A page of review items, oldest first; <c>nextCursor</c> when more follow.</summary>
 public sealed record ReviewItemListResponse(IReadOnlyList<ReviewItemResponse> Items, Guid? NextCursor);

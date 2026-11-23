@@ -75,7 +75,7 @@ public sealed record ReviewItemRejected(
 /// One decision on an item, append-only (ADR-0037 §2): who, what, why, and the hash of the record version it was about,
 /// so the decision is bound to what the reviewer saw (§3).
 /// </summary>
-public sealed class ReviewAction : ITenantOwned
+public sealed record ReviewAction : ITenantOwned
 {
     public ReviewActionId Id { get; init; }
 
@@ -92,6 +92,9 @@ public sealed class ReviewAction : ITenantOwned
     public string? Comment { get; init; }
 
     public required string RecordHash { get; init; }
+
+    /// <summary>The bulk approval this action belongs to (<see cref="ReviewBatch"/>), or null for a single decision.</summary>
+    public ReviewBatchId? BatchId { get; init; }
 
     public DateTimeOffset At { get; init; }
 }
@@ -194,6 +197,23 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
         return Action(clock, ReviewActionKinds.Approve, actor, null, null, at);
     }
 
+    /// <summary>
+    /// Approves a pending item as part of <paramref name="batch"/> (US-P2-VER-02 AC1, AC2): the batch's single ledger
+    /// entry lists the item and its hash, so the item raises no event of its own.
+    /// </summary>
+    public Result<ReviewAction> ApproveIn(TimeProvider clock, ReviewBatchId batch, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status != ReviewStatuses.Pending)
+        {
+            return ReviewRules.NotPending;
+        }
+
+        var at = clock.GetUtcNow();
+        Status = ReviewStatuses.Approved;
+        return Action(clock, ReviewActionKinds.Approve, actor, null, null, at) with { BatchId = batch };
+    }
+
     /// <summary>Rejects a pending item with a reason code and a comment (US-P2-VER-03 AC1).</summary>
     public Result<ReviewAction> Reject(TimeProvider clock, string? actor, string? reasonCode, string? comment)
     {
@@ -234,9 +254,75 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
     };
 }
 
+public readonly record struct ReviewBatchId(Guid Value) : IEntityId<ReviewBatchId>
+{
+    public static ReviewBatchId From(Guid value) => new(value);
+
+    public override string ToString() => Value.ToString("D");
+}
+
+/// <summary>
+/// A bulk approval's one ledger entry (US-P2-VER-02 AC2): every item approved and the hash of every record version, so a
+/// single decision is bound to exactly the versions the reviewer had on screen.
+/// </summary>
+[EventType("verification.review_items_bulk_approved.v1")]
+[AuditSubject("review_batch", nameof(BatchId))]
+public sealed record ReviewItemsBulkApproved(Guid BatchId, IReadOnlyList<Guid> ItemIds, IReadOnlyList<string> RecordHashes, string? Actor) : DomainEvent;
+
+/// <summary>One bulk approval (ADR-0037 §2, §3): who, when, which items and the hash of each; append-only.</summary>
+public sealed class ReviewBatch : AggregateRoot<ReviewBatchId>, ITenantOwned
+{
+    private ReviewBatch(ReviewBatchId id)
+        : base(id)
+    {
+    }
+
+    // EF Core
+    private ReviewBatch()
+        : base(default)
+    {
+    }
+
+    public TenantId TenantId { get; private set; }
+
+    public string? Actor { get; private set; }
+
+    public DateTimeOffset At { get; private set; }
+
+    public IReadOnlyList<Guid> ItemIds { get; private set; } = [];
+
+    public IReadOnlyList<string> RecordHashes { get; private set; } = [];
+
+    public static ReviewBatch Approve(TimeProvider clock, TenantId tenant, IReadOnlyList<ReviewItem> items, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        ArgumentNullException.ThrowIfNull(items);
+        var at = clock.GetUtcNow();
+        var batch = new ReviewBatch(EntityId.New<ReviewBatchId>(clock))
+        {
+            TenantId = tenant,
+            Actor = actor,
+            At = at,
+            ItemIds = [.. items.Select(i => i.Id.Value)],
+            RecordHashes = [.. items.Select(i => i.RecordHash)],
+        };
+        batch.Raise(new ReviewItemsBulkApproved(batch.Id.Value, batch.ItemIds, batch.RecordHashes, actor) { OccurredAt = at });
+        return batch;
+    }
+}
+
 /// <summary>What a decision may not do (ADR-0037 §2, §4).</summary>
 public static class ReviewRules
 {
+    /// <summary>How many entries one bulk approval may hold.</summary>
+    public const int BulkMax = 100;
+
+    public static readonly Error BulkSize = Error.Validation("verification.bulk_size", $"Approve 1 to {BulkMax} different entries at once.");
+
+    /// <summary>A bulk approval takes entries without flags only (US-P2-VER-02 AC1, TC-P2-VER-002).</summary>
+    public static Error BulkFlagged(IEnumerable<Guid> items) =>
+        Error.Validation("verification.bulk_flagged", $"Entries with flags are approved one by one: {string.Join(", ", items)}.");
+
     public const int CommentMinLength = 10;
     public const int CommentMaxLength = 500;
 
