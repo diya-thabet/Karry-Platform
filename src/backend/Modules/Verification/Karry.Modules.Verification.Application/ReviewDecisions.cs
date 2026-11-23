@@ -1,3 +1,4 @@
+using System.Data.Common;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Identity.Contracts;
@@ -18,12 +19,22 @@ public interface IReviewItemStore
 
     void Add(ReviewBatch batch);
 
+    void Add(ReviewItem item);
+
+    /// <summary>Starts the transaction a correction shares with the record's module; <see cref="CommitAsync"/> ends it.</summary>
+    Task<(DbConnection Connection, DbTransaction Transaction)> BeginAsync(CancellationToken cancellationToken);
+
+    Task CommitAsync(CancellationToken cancellationToken);
+
     /// <summary>False when someone else decided on the item first (its version moved): nothing is saved.</summary>
     Task<bool> TrySaveAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>One entry of a bulk approval: the item and the version the reviewer saw (its <c>If-Match</c>).</summary>
 public sealed record BulkItem(Guid Id, uint? Version);
+
+/// <summary>A correction (US-P2-VER-04 AC1): the fields with their new values as the records write them, and why.</summary>
+public sealed record CorrectEntry(IReadOnlyDictionary<string, string>? Fields, string? Reason);
 
 /// <summary>What a reviewer sends to reject an entry (US-P2-VER-03 AC1).</summary>
 public sealed record RejectEntry(string? ReasonCode, string? Comment);
@@ -113,6 +124,116 @@ public sealed class ReviewDecisions(
 
         store.Add(batch);
         return await store.TrySaveAsync(cancellationToken).ConfigureAwait(false) ? (batch, items) : RecordVersions.Conflict;
+    }
+
+    /// <summary>
+    /// Corrects an entry (US-P2-VER-04): the record's module writes the corrected values as a new version and Verification
+    /// ledgers the before → after with both hashes, in one transaction. The new version is approved by the corrector, or
+    /// waits for a second approver when the change is beyond the four-eyes thresholds. A recent sign-in is required.
+    /// </summary>
+    public async Task<Result<(ReviewItem Corrected, ReviewItem Next)>> CorrectAsync(
+        Guid itemId, CorrectEntry command, uint? expectedVersion, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var item = await store.FindAsync(new ReviewItemId(itemId), cancellationToken).ConfigureAwait(false);
+        if (item is null || !caller.Current.ScopeOf(VerificationPermissions.ItemsReview).CoversSite(item.SiteId))
+        {
+            return NotFound;
+        }
+
+        if (!RecordVersions.Matches(item.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
+        }
+
+        if (item.Status != ReviewStatuses.Pending)
+        {
+            return ReviewRules.NotPending;
+        }
+
+        if (await SeparationOfDutiesAsync(item, cancellationToken).ConfigureAwait(false) is { } refused)
+        {
+            return refused;
+        }
+
+        if (StepUp.Check(caller, clock) is { } stepUp)
+        {
+            return stepUp;
+        }
+
+        var reason = command.Reason?.Trim() ?? string.Empty;
+        if (reason.Length is < ReviewRules.CommentMinLength or > ReviewRules.CommentMaxLength)
+        {
+            return ReviewRules.CommentInvalid;
+        }
+
+        if (records.SingleOrDefault(r => r.RecordType == item.RecordType) is not { } owner)
+        {
+            return ReviewRules.NotCorrectable;
+        }
+
+        var (connection, transaction) = await store.BeginAsync(cancellationToken).ConfigureAwait(false);
+        var outcome = await owner.CorrectAsync(
+            connection, transaction, item.RecordId, item.RecordVersion, command.Fields ?? new Dictionary<string, string>(), reason, caller.Subject, cancellationToken)
+            .ConfigureAwait(false);
+        if (outcome is not CorrectionOutcome.Corrected corrected)
+        {
+            return outcome is CorrectionOutcome.Refused no ? Error.Validation(no.Code, no.Message) : RecordVersions.Conflict;
+        }
+
+        var result = item.Correct(clock, caller.Subject, reason, corrected.Version, corrected.Hash,
+            [.. corrected.Changes.Select(c => new CorrectionChange(c.Field, c.Before, c.After))], corrected.Material);
+        if (!result.IsSuccess)
+        {
+            return result.Error;
+        }
+
+        store.Add(result.Value.Action);
+        store.Add(result.Value.Next);
+        if (!await store.TrySaveAsync(cancellationToken).ConfigureAwait(false))
+        {
+            return RecordVersions.Conflict;
+        }
+
+        await store.CommitAsync(cancellationToken).ConfigureAwait(false);
+        return (item, result.Value.Next);
+    }
+
+    /// <summary>
+    /// The second approval of a material correction (US-P2-VER-04 AC3, TC-P2-VER-003): another person than the corrector,
+    /// with <see cref="VerificationPermissions.ItemsSecondApprove"/> on the item's site and a recent sign-in.
+    /// </summary>
+    public async Task<Result<ReviewItem>> SecondApproveAsync(Guid itemId, uint? expectedVersion, CancellationToken cancellationToken)
+    {
+        var item = await store.FindAsync(new ReviewItemId(itemId), cancellationToken).ConfigureAwait(false);
+        if (item is null || !caller.Current.ScopeOf(VerificationPermissions.ItemsSecondApprove).CoversSite(item.SiteId))
+        {
+            return NotFound;
+        }
+
+        if (!RecordVersions.Matches(item.Version, expectedVersion))
+        {
+            return RecordVersions.Conflict;
+        }
+
+        if (await SeparationOfDutiesAsync(item, cancellationToken).ConfigureAwait(false) is { } refused)
+        {
+            return refused;
+        }
+
+        if (StepUp.Check(caller, clock) is { } stepUp)
+        {
+            return stepUp;
+        }
+
+        var action = item.SecondApprove(clock, caller.Subject);
+        if (!action.IsSuccess)
+        {
+            return action.Error;
+        }
+
+        store.Add(action.Value);
+        return await store.TrySaveAsync(cancellationToken).ConfigureAwait(false) ? item : RecordVersions.Conflict;
     }
 
     private async Task<Result<ReviewItem>> DecideAsync(Guid itemId, uint? expectedVersion, Func<ReviewItem, Result<ReviewAction>> decide, CancellationToken cancellationToken)

@@ -16,6 +16,7 @@ using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.Modules.Verification.Contracts;
 using Karry.Modules.Verification.Infrastructure;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
@@ -646,6 +647,41 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     private static HandlerOutcome.Conflict Flagged(string flag) => new(null, [flag]);
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-04")]
+    [Trait("TestCase", "TC-P2-VER-004")]
+    public async Task A_correction_is_a_new_version_with_its_author_and_reason_the_meters_flags_follow_it_and_a_big_change_is_material()
+    {
+        var (meter, day, night) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        meters.All[meter] = meters.All[HourMeter] with { MeterId = meter };
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(day, ShiftStart, "100.0", meter: meter));
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(day, 2, ShiftStart.AddHours(8), "108.0"));
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(night, ShiftStart.AddHours(12), "110.0", meter: meter, signer: NextOperator));
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal($"{day}>{night}|open");
+
+        async Task<CorrectionOutcome> CorrectAsync(Guid root, int version, Dictionary<string, string> fields)
+        {
+            CorrectionOutcome? outcome = null;
+            await InTransactionAsync(TenantA, async (scope, connection, transaction) =>
+                outcome = await scope.GetServices<IReviewableRecords>().Single().CorrectAsync(connection, transaction, root, version, fields, "Photo shows 110.0", "ctl-1", Ct));
+            return outcome!;
+        }
+
+        var material = await CorrectAsync(day, 2, new() { ["endValue"] = "110.0" });
+        var moved = await CorrectAsync(day, 2, new() { ["fuelEndPercent"] = "35" });
+        var notCorrectable = await CorrectAsync(day, 3, new() { ["assetId"] = Guid.CreateVersion7().ToString() });
+        var small = await CorrectAsync(day, 3, new() { ["fuelEndPercent"] = "35" });
+
+        material.Should().BeOfType<CorrectionOutcome.Corrected>().Which.Should().Match<CorrectionOutcome.Corrected>(c =>
+            c.Version == 3 && c.Material && c.Hash.StartsWith("sha256:", StringComparison.Ordinal) && c.Changes.Single().Before == "108.0" && c.Changes.Single().After == "110.0");
+        moved.Should().BeOfType<CorrectionOutcome.Moved>("version 2 is no longer the latest");
+        notCorrectable.Should().BeOfType<CorrectionOutcome.Refused>().Which.Code.Should().Be("verification.field_not_correctable");
+        small.Should().BeOfType<CorrectionOutcome.Corrected>().Which.Material.Should().BeFalse("fuel only: the meter's Δ did not move");
+        (await RowsAsync(TenantA, $"SELECT version || '|' || coalesce(end_value::text, '') || '|' || coalesce(corrected_by, '-') || '|' || (envelope_id = '{Guid.Empty}') FROM fieldops.shift_entries "
+            + $"WHERE root_id = '{day}' ORDER BY version")).Should().Equal("1||-|false", "2|108.0|-|false", "3|110.0|ctl-1|true", "4|110.0|ctl-1|true");
+        (await FlagsAsync(TenantA, brief: true)).Should().Equal([$"{day}>{night}|re-evaluated"], "the corrected end continues into the night start");
+    }
 
     [Fact]
     [Trait("Story", "US-P2-VER-02")]

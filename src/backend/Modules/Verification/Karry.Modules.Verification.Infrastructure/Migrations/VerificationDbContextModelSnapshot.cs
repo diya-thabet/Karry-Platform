@@ -176,7 +176,7 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
 
                     b.ToTable("review_actions", "verification", t =>
                         {
-                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject')");
+                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject', 'correct', 'second_approve')");
 
                             t.HasCheckConstraint("ck_review_actions_reason", "reason_code IS NULL OR reason_code IN ('wrong_reading', 'photo_unreadable', 'wrong_machine', 'wrong_shift', 'duplicate', 'other')");
                         });
@@ -232,6 +232,11 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                     b.Property<Guid?>("AssetId")
                         .HasColumnType("uuid")
                         .HasColumnName("asset_id");
+
+                    b.Property<string>("CorrectedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("corrected_by");
 
                     b.Property<DateTimeOffset>("CoveredFrom")
                         .HasColumnType("timestamp with time zone")

@@ -103,4 +103,21 @@ public sealed class OperatedAssets : IReviewableRecords
 
     public Task<bool> OperatedAsync(Guid person, Guid assetId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken) =>
         Task.FromResult(Drove.ContainsKey((person, assetId)));
+
+    /// <summary>What FieldOps answers to the next correction (default: version 3, one meter value changed, within the thresholds).</summary>
+    public CorrectionOutcome NextCorrection { get; set; } = Within;
+
+    public static CorrectionOutcome Within { get; } =
+        new CorrectionOutcome.Corrected(3, "sha256:" + new string('e', 64), [new FieldChange("endValue", "108.0", "107.5")], Material: false);
+
+    /// <summary>The corrections asked of FieldOps: record, version, fields.</summary>
+    public ConcurrentQueue<(Guid RecordId, int Version, IReadOnlyDictionary<string, string> Fields)> Corrections { get; } = new();
+
+    public Task<CorrectionOutcome> CorrectAsync(
+        System.Data.Common.DbConnection connection, System.Data.Common.DbTransaction transaction, Guid recordId, int version, IReadOnlyDictionary<string, string> fields,
+        string reason, string? actor, CancellationToken cancellationToken)
+    {
+        Corrections.Enqueue((recordId, version, fields));
+        return Task.FromResult(NextCorrection);
+    }
 }

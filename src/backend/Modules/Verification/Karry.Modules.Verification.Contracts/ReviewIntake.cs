@@ -32,6 +32,37 @@ public interface IReviewableRecords
     /// <c>[from, to]</c> (a record without an end runs as long as the module says); such a person may not decide on it.
     /// </summary>
     Task<bool> OperatedAsync(Guid person, Guid assetId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Applies a controller's correction to <paramref name="version"/> of the record as a new version (US-P2-VER-04),
+    /// in the caller's transaction: the fields by name with their new values as the records write them. Null when the
+    /// record moved past that version meanwhile; a refusal when a field or a value is not acceptable.
+    /// </summary>
+    Task<CorrectionOutcome> CorrectAsync(
+        DbConnection connection, DbTransaction transaction, Guid recordId, int version, IReadOnlyDictionary<string, string> fields, string reason, string? actor,
+        CancellationToken cancellationToken);
+}
+
+/// <summary>One field changed by a correction, before and after, as the records write them.</summary>
+public sealed record FieldChange(string Field, string? Before, string? After);
+
+/// <summary>
+/// What a correction produced: the new version and its hash, every changed field, and whether the change is beyond
+/// the four-eyes thresholds (<c>Material</c>, US-P2-VER-04 AC3). Exactly one of the three outcomes.
+/// </summary>
+public abstract record CorrectionOutcome
+{
+    private CorrectionOutcome()
+    {
+    }
+
+    public sealed record Corrected(int Version, string Hash, IReadOnlyList<FieldChange> Changes, bool Material) : CorrectionOutcome;
+
+    /// <summary>The record has a newer version than the one the reviewer corrected.</summary>
+    public sealed record Moved : CorrectionOutcome;
+
+    /// <summary>A field that cannot be corrected, or a value that is not acceptable (<see cref="Code"/>).</summary>
+    public sealed record Refused(string Code, string Message) : CorrectionOutcome;
 }
 
 /// <summary>The record types Verification reviews.</summary>

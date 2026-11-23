@@ -6,6 +6,7 @@ using Karry.Modules.Verification.Application;
 using Karry.Modules.Verification.Contracts;
 using Karry.Modules.Verification.Domain;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -53,6 +54,16 @@ internal sealed class ReviewItemStore(VerificationDbContext db) : IReviewItemSto
     public void Add(ReviewAction action) => db.Actions.Add(action);
 
     public void Add(ReviewBatch batch) => db.Batches.Add(batch);
+
+    public void Add(ReviewItem item) => db.Items.Add(item);
+
+    public async Task<(DbConnection Connection, DbTransaction Transaction)> BeginAsync(CancellationToken cancellationToken)
+    {
+        var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        return (db.Database.GetDbConnection(), transaction.GetDbTransaction());
+    }
+
+    public Task CommitAsync(CancellationToken cancellationToken) => db.Database.CommitTransactionAsync(cancellationToken);
 
     public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
     {

@@ -1382,5 +1382,6 @@
   "portal.integrity.flag.RULE-FO-10": "شُغِّلت الآلة دون فحص ما قبل التشغيل من المشغّل خلال آخر {minutes, number} دقيقة، وهو ما يتطلبه نوعها.",
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها",
   "permissions.verification.items.read": "عرض الإدخالات المنتظرة للمراجعة في مواقعك",
-  "permissions.verification.items.review": "اعتماد إدخالات مواقعك أو رفضها (وليس إدخالاتك أبدًا)"
+  "permissions.verification.items.review": "اعتماد إدخالات مواقعك أو رفضها (وليس إدخالاتك أبدًا)",
+  "permissions.verification.items.second-approve": "اعتماد تصحيح كبير أجراه شخص آخر (المعتمِد الثاني)"
 }

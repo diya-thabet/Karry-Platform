@@ -48,6 +48,8 @@ public sealed class FieldOpsDbContext(DbContextOptions<FieldOpsDbContext> option
                 t.HasCheckConstraint("ck_shift_entries_closed", "(status = 'Closed') = (ended_at IS NOT NULL AND end_value IS NOT NULL AND end_photo IS NOT NULL)");
             });
             entry.HasKey(e => new { e.TenantId, e.RootId, e.Version });
+            entry.Property(e => e.CorrectedBy).HasMaxLength(200);
+            entry.Property(e => e.CorrectionReason).HasMaxLength(500);
             entry.HasIndex(e => new { e.TenantId, e.MeterId, e.StartedAt });
             entry.HasIndex(e => new { e.TenantId, e.OperatorId, e.StartedAt });
             entry.HasIndex(e => new { e.TenantId, e.SiteId, e.ShiftDate });

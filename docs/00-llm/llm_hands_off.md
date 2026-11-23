@@ -359,7 +359,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Slice 2 merged (#227). Slice 2b (in review):** Settings › Users, an office user's field account; `UserResponse.linkedFieldUserId`. **Lesson:** #227's first CI run failed on `check:generated` because the contract changed after the client was generated: run `corepack pnpm --filter @karry/api-client generate` and `check:generated` after the last backend change, before pushing.
 - **Slice 2b merged (#228). Slice 2c (in review):** Verification `reviewOutcomes` sync source (replace, 14 days), offline schema v7, the field app's history shows approved / rejected by the controller with reason and comment.
 - **Slice 2c merged (#229). Slice 3 (in review):** bulk approval, all or nothing, one `ReviewBatch` ledger event listing every hash.
-- **Next:** slice 4 (corrections: FieldOps new version, before → after, four-eyes beyond the thresholds).
+- **Slice 3 merged (#230). Slice 4 (in review):** corrections as FieldOps versions without envelope (`corrected_by`, `correction_reason`), flags re-evaluated, material beyond 2 h / 5 % of Δ waits for `verification.items.second-approve` (never the corrector).
+- **Next:** slice 5 (review policies, auto-approval).
 
 ### 2026-11-20 — P2.7 slice 7a: portal flag list (agent)
 - **Done:** slice 6 merged (#217), main green. Slice 7a (in review): Machines › Integrity flags (`/assets/integrity`, `integrity.flags.read`): status, site and rule filters, cursor paging (50), each flag in words from its `details` (`flagExplanation`, fallback to the rule's description), severity chip, evidence count, close reason; 32 keys in five languages (N'Ko generated). **Bug found:** duplicate OpenAPI schema names (`FlagResponse`, `ShiftResponse`, `LocationResponse`) gave the client the wrong shapes; integrity and FieldOps records renamed (wire JSON unchanged), architecture rule `ApiSchemaNamesAreUnique` added.

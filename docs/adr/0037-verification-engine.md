@@ -145,6 +145,20 @@ the batch, and nothing is approved. The decision is a `ReviewBatch` (append-only
 ledger event, `verification.review_items_bulk_approved.v1`, lists every item and the hash of its record version
 (US-P2-VER-02 AC2); each item gets an approve action carrying the batch ID and raises no event of its own.
 
+As built (slice 4): `POST /api/v1/verification/items/{itemId}/correct` (`verification.items.review`, `If-Match`, a
+recent sign-in checked after scope and separation of duties) takes `fields` and a reason of 10 to 500 characters. In
+one transaction, Verification calls the record type's `IReviewableRecords.CorrectAsync` and ledgers
+`verification.review_item_corrected.v1` (both versions, both hashes, every field before and after, the reason). For
+shift entries FieldOps corrects the meter values and the fuel levels (a changed machine or shift implies another meter
+and is left to a later slice): a new version with the corrected values, `corrected_by` and `correction_reason`, no
+envelope and no device (empty IDs, the decision is Verification's), a hash of its canonical values; it then
+re-evaluates the meter's continuity and the entry's Δ flags on the corrected values. The change is material when the
+Δ moves by more than 2 h on an hour meter or by more than 5 % of the signed Δ. The corrected item is `corrected`; the
+new version's item is approved by the corrector, or `awaiting_second` when material, approved by
+`POST …/second-approve` (`verification.items.second-approve`, privileged: Tenant Admin, Site Manager, a recent sign-in,
+never the corrector: `403 verification.sod_own_correction`), ledgered `verification.review_item_second_approved.v1`.
+A second refusal is a later slice.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

@@ -1382,5 +1382,6 @@
   "portal.integrity.flag.RULE-FO-10": "The machine was started without the operator's pre-start checklist of the last {minutes, number} min, which its type requires.",
   "permissions.integrity.rules.manage": "Switch integrity rules on or off and set their thresholds",
   "permissions.verification.items.read": "See the entries waiting for review on your sites",
-  "permissions.verification.items.review": "Approve or reject the entries of your sites (never your own)"
+  "permissions.verification.items.review": "Approve or reject the entries of your sites (never your own)",
+  "permissions.verification.items.second-approve": "Approve a large correction made by someone else (second approver)"
 }

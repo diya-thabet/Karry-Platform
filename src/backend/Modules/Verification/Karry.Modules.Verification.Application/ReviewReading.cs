@@ -15,10 +15,16 @@ public static class VerificationPermissions
     /// <summary>Approve or reject the entries of the caller's sites (US-P2-VER-02, 03), never their own (ADR-0037 §4).</summary>
     public const string ItemsReview = "verification.items.review";
 
+    /// <summary>
+    /// Approve a correction beyond the four-eyes thresholds (US-P2-VER-04 AC3): a second person, never the corrector.
+    /// </summary>
+    public const string ItemsSecondApprove = "verification.items.second-approve";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(ItemsRead, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Executive, Roles.Controller, Roles.SiteManager),
         new(ItemsReview, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager),
+        new(ItemsSecondApprove, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.SiteManager),
     ];
 }
 
