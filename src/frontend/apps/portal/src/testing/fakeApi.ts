@@ -475,6 +475,22 @@ export function fakeApi(options: {
 
         return json(200, (users[index] = { ...user, roles: (body as { roles: User["roles"] }).roles, version: nextVersion(user.version) }));
       }
+      case request.method === "PUT" && /^\/users\/[^/]+\/field-account$/.test(path): {
+        // An office account's link to the same person's field account (ADR-0037 §4): one office account per field account.
+        const index = users.findIndex((u) => path.includes(u.id));
+        const found = users[index];
+        if (!found) {
+          return problem(404, "identity.user_not_found");
+        }
+
+        const fieldUserId = (body as { fieldUserId: string | null }).fieldUserId;
+        if (fieldUserId && users.some((u) => u.id !== found.id && u.linkedFieldUserId === fieldUserId)) {
+          return problem(409, "identity.field_account_linked");
+        }
+
+        users[index] = { ...found, linkedFieldUserId: fieldUserId };
+        return new Response(null, { status: 204 });
+      }
       case request.method === "PUT" && /^\/users\/[^/]+\/pin$/.test(path): {
         const index = users.findIndex((u) => path.includes(u.id));
         const found = users[index];
@@ -1106,7 +1122,7 @@ export function user(overrides: Partial<User> = {}): User {
   return {
     id: "0192f0c1-0000-7000-8000-000000000001", kind: "office", status: "active", firstName: "Sami", lastName: "Gharbi",
     email: "sami@example.test", phone: null, employeeId: null, roles: [{ role: "commercial", siteId: null }], requiresMfa: false,
-    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, pinSet: false, version: '"1"', ...overrides,
+    createdAt: "2026-10-24T08:00:00Z", deactivatedAt: null, pinSet: false, version: '"1"', linkedFieldUserId: null, ...overrides,
   };
 }
 
