@@ -39,6 +39,28 @@ internal sealed class ReviewIntake(VerificationDbContext db, ITenantContext tena
     private sealed record Joined(DbConnection Connection, DbTransaction Transaction) : ISyncTransaction;
 }
 
+internal sealed class ReviewItemStore(VerificationDbContext db) : IReviewItemStore
+{
+    public Task<ReviewItem?> FindAsync(ReviewItemId id, CancellationToken cancellationToken) =>
+        db.Items.SingleOrDefaultAsync(i => i.Id == id, cancellationToken);
+
+    public void Add(ReviewAction action) => db.Actions.Add(action);
+
+    public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+}
+
 internal sealed class ReviewItemReader(VerificationDbContext db) : IReviewItemReader
 {
     public async Task<IReadOnlyList<ReviewItem>> SearchAsync(ReviewQuery query, CancellationToken cancellationToken)
@@ -83,6 +105,8 @@ public static class VerificationInfrastructure
         services.AddScoped<IReviewIntake, ReviewIntake>();
         services.AddScoped<IReviewItemReader, ReviewItemReader>();
         services.AddScoped<ReviewReading>();
+        services.AddScoped<IReviewItemStore, ReviewItemStore>();
+        services.AddScoped<ReviewDecisions>();
         return services;
     }
 }

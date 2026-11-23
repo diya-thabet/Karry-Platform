@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Identity.Domain;
@@ -165,6 +166,65 @@ public sealed class SetPinHandler(IIdentityStore store, TimeProvider clock, User
         }
 
         return await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+    }
+}
+
+public sealed record LinkFieldAccount(Guid? FieldUserId);
+
+/// <summary>
+/// Links an office account to the same person's field account, or unlinks it (ADR-0037 §4): separation of duties then
+/// sees the controller who also drives as one person. The caller manages the user; a field account links to one office
+/// account at most; the change is ledgered under the caller's name.
+/// </summary>
+public sealed class LinkFieldAccountHandler(IIdentityStore store, TimeProvider clock, UserAdministration administration, ICallerAccess caller)
+{
+    public static readonly Error FieldUserNotFound = Error.Validation("identity.field_user_not_found", "No such field account in this company.");
+
+    public static readonly Error AlreadyLinked = Error.Conflict("identity.field_account_linked", "This field account is already linked to another office account.");
+
+    public async Task<Result<bool>> HandleAsync(Guid userId, LinkFieldAccount command, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(command);
+        var user = userId == Guid.Empty ? null : await store.FindUserAsync(new UserId(userId), cancellationToken).ConfigureAwait(false);
+        if (user is null || !administration.CanSee(user))
+        {
+            return UserAdministration.NotFound;
+        }
+
+        if (!administration.CanManage(user))
+        {
+            return Error.Forbidden("identity.scope_exceeded", "This user also works outside the sites you manage.");
+        }
+
+        // The link decides what a controller may approve (ADR-0037 §4): a recent sign-in, checked once the user is known to
+        // be the caller's to manage (another company's user stays a 404, as for roles).
+        if (StepUp.Check(caller, clock) is { } stepUp)
+        {
+            return stepUp;
+        }
+
+        UserAccount? field = null;
+        if (command.FieldUserId is { } fieldId)
+        {
+            field = fieldId == Guid.Empty ? null : await store.FindUserAsync(new UserId(fieldId), cancellationToken).ConfigureAwait(false);
+            if (field is null)
+            {
+                return FieldUserNotFound;
+            }
+
+            if (await store.FieldAccountLinkedAsync(fieldId, user.Id, cancellationToken).ConfigureAwait(false))
+            {
+                return AlreadyLinked;
+            }
+        }
+
+        var linked = user.LinkFieldAccount(clock, field, administration.Subject);
+        if (!linked.IsSuccess)
+        {
+            return linked.Error;
+        }
+
+        return linked.Value ? await store.SaveAsync(cancellationToken).ConfigureAwait(false) : false;
     }
 }
 

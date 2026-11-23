@@ -111,6 +111,8 @@ public sealed class ImportSignInFailuresTests
         public Task<UserAccount?> FindBySubjectAsync(string subject, CancellationToken cancellationToken) =>
             Task.FromResult(subject == "known" ? user : null);
 
+        public Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public Task<bool> AddSignInFailureAsync(SignInFailure failure, CancellationToken cancellationToken) =>
             Task.FromResult(Recorded.Add(failure.Id.Value));
 

@@ -1,5 +1,6 @@
 using Karry.SharedKernel.Domain;
 using Karry.SharedKernel.Identity;
+using Karry.SharedKernel.Results;
 using Karry.SharedKernel.Tenancy;
 
 namespace Karry.Modules.Verification.Domain;
@@ -30,6 +31,69 @@ public static class ReviewStatuses
     public const string AwaitingSecond = "awaiting_second";
 
     public static IReadOnlyList<string> All { get; } = [Pending, Approved, Rejected, Corrected, AwaitingSecond];
+}
+
+public readonly record struct ReviewActionId(Guid Value) : IEntityId<ReviewActionId>
+{
+    public static ReviewActionId From(Guid value) => new(value);
+
+    public override string ToString() => Value.ToString("D");
+}
+
+/// <summary>What a reviewer did on an item (ADR-0037 §2).</summary>
+public static class ReviewActionKinds
+{
+    public const string Approve = "approve";
+    public const string Reject = "reject";
+
+    public static IReadOnlyList<string> All { get; } = [Approve, Reject];
+}
+
+/// <summary>Why an entry is rejected (US-P2-VER-03 AC1); the comment says the rest.</summary>
+public static class RejectionReasons
+{
+    public const string WrongReading = "wrong_reading";
+    public const string PhotoUnreadable = "photo_unreadable";
+    public const string WrongMachine = "wrong_machine";
+    public const string WrongShift = "wrong_shift";
+    public const string Duplicate = "duplicate";
+    public const string Other = "other";
+
+    public static IReadOnlyList<string> All { get; } = [WrongReading, PhotoUnreadable, WrongMachine, WrongShift, Duplicate, Other];
+}
+
+[EventType("verification.review_item_approved.v1")]
+[AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
+public sealed record ReviewItemApproved(Guid ItemId, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, string? Actor) : DomainEvent;
+
+[EventType("verification.review_item_rejected.v1")]
+[AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
+public sealed record ReviewItemRejected(
+    Guid ItemId, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, string ReasonCode, string Comment, string? Actor) : DomainEvent;
+
+/// <summary>
+/// One decision on an item, append-only (ADR-0037 §2): who, what, why, and the hash of the record version it was about,
+/// so the decision is bound to what the reviewer saw (§3).
+/// </summary>
+public sealed class ReviewAction : ITenantOwned
+{
+    public ReviewActionId Id { get; init; }
+
+    public TenantId TenantId { get; init; }
+
+    public ReviewItemId ItemId { get; init; }
+
+    public required string Kind { get; init; }
+
+    public string? Actor { get; init; }
+
+    public string? ReasonCode { get; init; }
+
+    public string? Comment { get; init; }
+
+    public required string RecordHash { get; init; }
+
+    public DateTimeOffset At { get; init; }
 }
 
 [EventType("verification.review_item_created.v1")]
@@ -114,4 +178,78 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
         item.Raise(new ReviewItemCreated(item.Id.Value, recordType, recordId, recordVersion, recordHash, siteId) { OccurredAt = at });
         return item;
     }
+
+    /// <summary>Approves a pending item (US-P2-VER-02); who may is the caller's business (permissions, separation of duties).</summary>
+    public Result<ReviewAction> Approve(TimeProvider clock, string? actor)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status != ReviewStatuses.Pending)
+        {
+            return ReviewRules.NotPending;
+        }
+
+        var at = clock.GetUtcNow();
+        Status = ReviewStatuses.Approved;
+        Raise(new ReviewItemApproved(Id.Value, RecordType, RecordId, RecordVersion, RecordHash, SiteId, actor) { OccurredAt = at });
+        return Action(clock, ReviewActionKinds.Approve, actor, null, null, at);
+    }
+
+    /// <summary>Rejects a pending item with a reason code and a comment (US-P2-VER-03 AC1).</summary>
+    public Result<ReviewAction> Reject(TimeProvider clock, string? actor, string? reasonCode, string? comment)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Status != ReviewStatuses.Pending)
+        {
+            return ReviewRules.NotPending;
+        }
+
+        if (reasonCode is null || !RejectionReasons.All.Contains(reasonCode))
+        {
+            return ReviewRules.ReasonInvalid;
+        }
+
+        var text = comment?.Trim() ?? string.Empty;
+        if (text.Length is < ReviewRules.CommentMinLength or > ReviewRules.CommentMaxLength)
+        {
+            return ReviewRules.CommentInvalid;
+        }
+
+        var at = clock.GetUtcNow();
+        Status = ReviewStatuses.Rejected;
+        Raise(new ReviewItemRejected(Id.Value, RecordType, RecordId, RecordVersion, RecordHash, SiteId, reasonCode, text, actor) { OccurredAt = at });
+        return Action(clock, ReviewActionKinds.Reject, actor, reasonCode, text, at);
+    }
+
+    private ReviewAction Action(TimeProvider clock, string kind, string? actor, string? reasonCode, string? comment, DateTimeOffset at) => new()
+    {
+        Id = EntityId.New<ReviewActionId>(clock),
+        TenantId = TenantId,
+        ItemId = Id,
+        Kind = kind,
+        Actor = actor,
+        ReasonCode = reasonCode,
+        Comment = comment,
+        RecordHash = RecordHash,
+        At = at,
+    };
+}
+
+/// <summary>What a decision may not do (ADR-0037 §2, §4).</summary>
+public static class ReviewRules
+{
+    public const int CommentMinLength = 10;
+    public const int CommentMaxLength = 500;
+
+    public static readonly Error NotPending = Error.Conflict("verification.item_decided", "This entry was already decided.");
+
+    public static readonly Error ReasonInvalid = Error.Validation("verification.reason_invalid", "Choose why the entry is rejected.");
+
+    public static readonly Error CommentInvalid =
+        Error.Validation("verification.comment_invalid", $"Write {CommentMinLength} to {CommentMaxLength} characters about what is wrong.");
+
+    /// <summary>Approving or rejecting one's own entry (US-P2-VER-02 AC3).</summary>
+    public static readonly Error OwnRecord = Error.Forbidden("verification.sod_own_record", "You cannot decide on an entry you made.");
+
+    /// <summary>Deciding on a machine one operated in the time the entry covers (US-P2-VER-02 AC3).</summary>
+    public static readonly Error OperatedAsset = Error.Forbidden("verification.sod_operated_asset", "You operated this machine during this entry: another controller decides.");
 }

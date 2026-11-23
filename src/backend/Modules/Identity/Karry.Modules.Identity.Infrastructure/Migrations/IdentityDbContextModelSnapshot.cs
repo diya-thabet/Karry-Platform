@@ -170,7 +170,7 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -214,7 +214,7 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -663,6 +663,10 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("character varying(60)")
                         .HasColumnName("last_name");
 
+                    b.Property<Guid?>("LinkedFieldUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("linked_field_user_id");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -701,7 +705,7 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
-                    b.Property<uint>("xmin")
+                    b.Property<uint>("Version")
                         .IsConcurrencyToken()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("xid")
@@ -730,6 +734,11 @@ namespace Karry.Modules.Identity.Infrastructure.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_users_tenant_id_employee_id")
                         .HasFilter("employee_id IS NOT NULL");
+
+                    b.HasIndex("TenantId", "LinkedFieldUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_users_tenant_id_linked_field_user_id")
+                        .HasFilter("linked_field_user_id IS NOT NULL");
 
                     b.HasIndex("TenantId", "Phone")
                         .IsUnique()

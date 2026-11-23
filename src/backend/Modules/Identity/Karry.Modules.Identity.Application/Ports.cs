@@ -64,6 +64,9 @@ public interface IIdentityStore
 
     Task<UserAccount?> FindBySubjectAsync(string subject, CancellationToken cancellationToken);
 
+    /// <summary>Whether an office account other than <paramref name="except"/> links to <paramref name="fieldUserId"/> (ADR-0037 §4).</summary>
+    Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken);
+
     Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken);
 
     /// <summary>The user's latest invitation that is neither accepted nor replaced.</summary>

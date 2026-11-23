@@ -1008,6 +1008,7 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Identity.Contracts": "[1.0.0, )",
           "Karry.Modules.Verification.Contracts": "[1.0.0, )",
           "Karry.Modules.Verification.Domain": "[1.0.0, )"
         }

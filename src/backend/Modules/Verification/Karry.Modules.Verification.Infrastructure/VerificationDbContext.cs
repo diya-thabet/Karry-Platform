@@ -20,6 +20,8 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
 
     public DbSet<ReviewItem> Items => Set<ReviewItem>();
 
+    public DbSet<ReviewAction> Actions => Set<ReviewAction>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -41,6 +43,24 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             // One item per record version: a version submitted again (an upload retried) changes nothing.
             item.HasIndex(i => new { i.TenantId, i.RecordType, i.RecordId, i.RecordVersion }).IsUnique();
             item.HasIndex(i => new { i.TenantId, i.SiteId, i.Status, i.CreatedAt });
+        });
+
+        modelBuilder.Entity<ReviewAction>(action =>
+        {
+            action.ToTable("review_actions", t =>
+            {
+                t.HasCheckConstraint("ck_review_actions_kind", $"kind IN ({string.Join(", ", ReviewActionKinds.All.Select(k => $"'{k}'"))})");
+                t.HasCheckConstraint("ck_review_actions_reason", $"reason_code IS NULL OR reason_code IN ({string.Join(", ", RejectionReasons.All.Select(r => $"'{r}'"))})");
+            });
+            action.HasKey(a => a.Id);
+            action.Property(a => a.Id).HasConversion(id => id.Value, value => new ReviewActionId(value)).ValueGeneratedNever();
+            action.Property(a => a.ItemId).HasConversion(id => id.Value, value => new ReviewItemId(value));
+            action.Property(a => a.Kind).HasMaxLength(20);
+            action.Property(a => a.Actor).HasMaxLength(200);
+            action.Property(a => a.ReasonCode).HasMaxLength(30);
+            action.Property(a => a.Comment).HasMaxLength(ReviewRules.CommentMaxLength);
+            action.Property(a => a.RecordHash).HasMaxLength(80);
+            action.HasIndex(a => new { a.TenantId, a.ItemId, a.At });
         });
     }
 

@@ -72,7 +72,12 @@ public sealed class IsolationHost : IAsyncLifetime
         AHold = await SeedHoldAsync(A.Id, ASite, AAsset);
         // Integrity flags (P2.7): an open flag of A on its site, whose key (Alphaflag) B must never read.
         await SeedFlagAsync(A.Id, ASite);
+        // Review items (P2.8): a pending item of A on its site, which B must never read, approve or reject.
+        AReviewItem = await SeedReviewItemAsync(A.Id, ASite);
     }
+
+    /// <summary>ID of a pending review item of tenant A (its record hash, <c>sha256:a1…</c>, is a marker too).</summary>
+    public Guid AReviewItem { get; private set; }
 
     /// <summary>ID of an open safety hold on tenant A's machine.</summary>
     public Guid AHold { get; private set; }
@@ -280,6 +285,24 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(site);
         await insert.ExecuteNonQueryAsync();
+    }
+
+    private async Task<Guid> SeedReviewItemAsync(Guid tenant, Guid site)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO verification.review_items (id, tenant_id, record_type, record_id, record_version, record_hash, site_id, produced_by, asset_id,
+              covered_from, covered_to, flags, status, created_at)
+            VALUES ($1, $2, 'fieldops.shift_entry', gen_random_uuid(), 2, 'sha256:a1a1a1a1', $3, gen_random_uuid(), NULL, now(), NULL, '[]', 'pending', now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(site);
+        await insert.ExecuteNonQueryAsync();
+        return id;
     }
 
     private async Task<Guid> SeedHoldAsync(Guid tenant, Guid site, Guid asset)
@@ -542,7 +565,8 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
-            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag", "Alphameterevent"],
+            host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag", "Alphameterevent",
+            host.AReviewItem.ToString(), "sha256:a1a1a1a1"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -653,6 +677,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "envelopeId" => host.AEnvelope.ToString(),
         "entryId" => host.AEntry.ToString(),
         "holdId" => host.AHold.ToString(),
+        "itemId" => host.AReviewItem.ToString(),
         // A meter event photo of A (the seeded event names it): B never reads it.
         "sha256" => new string('a', 64),
         // A catalogue value, as an import kind: B gets its own checklist of that type, never A's.

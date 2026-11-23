@@ -1367,5 +1367,6 @@
   "portal.integrity.rule.RULE-FO-10.description": "عندما يتطلب نوع الآلة فحصًا قبل التشغيل، يكون المشغّل قد وقّع فحصًا للآلة خلال الساعة التي سبقت التشغيل.",
   "portal.integrity.flag.RULE-FO-10": "شُغِّلت الآلة دون فحص ما قبل التشغيل من المشغّل خلال آخر {minutes, number} دقيقة، وهو ما يتطلبه نوعها.",
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها",
-  "permissions.verification.items.read": "عرض الإدخالات المنتظرة للمراجعة في مواقعك"
+  "permissions.verification.items.read": "عرض الإدخالات المنتظرة للمراجعة في مواقعك",
+  "permissions.verification.items.review": "اعتماد إدخالات مواقعك أو رفضها (وليس إدخالاتك أبدًا)"
 }

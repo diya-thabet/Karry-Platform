@@ -116,6 +116,68 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                     b.ToTable("processed_messages", "verification");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Verification.Domain.ReviewAction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Actor")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("actor");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Comment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("comment");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("ReasonCode")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("reason_code");
+
+                    b.Property<string>("RecordHash")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("record_hash");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_review_actions");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_review_actions_tenant_id");
+
+                    b.HasIndex("TenantId", "ItemId", "At")
+                        .HasDatabaseName("ix_review_actions_tenant_id_item_id_at");
+
+                    b.ToTable("review_actions", "verification", t =>
+                        {
+                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject')");
+
+                            t.HasCheckConstraint("ck_review_actions_reason", "reason_code IS NULL OR reason_code IN ('wrong_reading', 'photo_unreadable', 'wrong_machine', 'wrong_shift', 'duplicate', 'other')");
+                        });
+                });
+
             modelBuilder.Entity("Karry.Modules.Verification.Domain.ReviewItem", b =>
                 {
                     b.Property<Guid>("Id")
