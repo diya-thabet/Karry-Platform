@@ -3231,7 +3231,10 @@ export interface components {
             /** Format: uuid */
             nextCursor: null | string;
         };
-        /** @description A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it). */
+        /**
+         * @description A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it);
+         *     `linkedFieldUserId` is an office account's link to the same person's field account (ADR-0037 §4).
+         */
         UserResponse: {
             /** Format: uuid */
             id: string;
@@ -3250,6 +3253,8 @@ export interface components {
             deactivatedAt: null | string;
             pinSet: boolean;
             version: string;
+            /** Format: uuid */
+            linkedFieldUserId: null | string;
         };
     };
     responses: never;
