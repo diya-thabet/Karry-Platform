@@ -2,19 +2,4 @@
 # Only for a contract that described the wire wrongly: the JSON sent must not change. Empty this file in the next PR
 # once the corrected contract is on main (the base of every later comparison). See api-standards.md.
 #
-# 2026-11-20, P2.7 slice 7a: duplicate schema names. GET /integrity/flags was described with the feature flags'
-# FlagResponse, the entries' shift and location with Organization's ShiftResponse and LocationResponse.
-GET /api/v1/fieldops/entries added `#/components/schemas/EntryLocationResponse` to the `items/items/endLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries added `#/components/schemas/EntryLocationResponse` to the `items/items/startLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries added `#/components/schemas/EntryShiftResponse` to the `items/items/shift` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryLocationResponse` to the `entry/endLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryLocationResponse` to the `entry/startLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryLocationResponse` to the `versions/items/endLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryLocationResponse` to the `versions/items/startLocation` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryShiftResponse` to the `entry/shift` response property `oneOf` list for the response status `200`
-GET /api/v1/fieldops/entries/{entryId} added `#/components/schemas/EntryShiftResponse` to the `versions/items/shift` response property `oneOf` list for the response status `200`
-GET /api/v1/integrity/flags removed the required property `items/items/default` from the response with the `200` status
-GET /api/v1/integrity/flags removed the required property `items/items/description` from the response with the `200` status
-GET /api/v1/integrity/flags removed the required property `items/items/environment` from the response with the `200` status
-GET /api/v1/integrity/flags removed the required property `items/items/platform` from the response with the `200` status
-GET /api/v1/integrity/flags removed the required property `items/items/platformChangedAt` from the response with the `200` status
+# Empty: the 2026-11-20 exception (P2.7 slice 7a, #218) was removed once the corrected contract reached main.

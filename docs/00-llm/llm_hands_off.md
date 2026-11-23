@@ -10,7 +10,7 @@
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
 | Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0–P2.4 ✅, next P2.5 (field capture flows on the tablet) ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
-| Last updated | 2026-11-20 |
+| Last updated | 2026-11-23 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
 ---
@@ -276,7 +276,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slices 1 Integrity module (#208), 2 continuity engine (#209), 3a meter events (#210), 3b portal meter events (#212) and 4 failed-meter mode (#213) merged, slices 5a (#215), 5b (#216) and 6 rule settings (#217) merged, slice 7a portal flag list in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
+| P2 Field operations | **P2.0–P2.7 ✅** (#147–#223; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) and P2.7 [ADR-0036](../adr/0036-integrity-rules-and-flags.md) accepted). Next: **P2.8 verification engine** ([sub-phases](../04-phases/phase-02-field-operations/sub-phases.md#p28--verification-engine)) |
 | P3–P11 | Not started |
 
 ---
@@ -350,17 +350,20 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-23 — P2.7 merged and closed (agent)
+- **Done:** the owner granted narrow permissions (`.claude/settings.local.json`, git-ignored: edits under `.github/workflows/` and `tools/ci/`); the one-time `--err-ignore` list for the 14 corrected schema descriptions let #218 pass `openapi-diff`; #218, #223 (7b, replacing #219), #220, #221 and #222 merged in order through the merge guard; this close-out empties `tools/ci/oasdiff-err-ignore.txt` and marks P2.7 ✅.
+- **Mistake / lesson:** the merge guard deletes a merged branch, and GitHub then **closes** a PR stacked on it (#219). Retarget every stacked PR to `main` before merging the one below it. After a squash merge, each branch above must merge `main` (no force push): the conflicts are the squashed copies of the lower slices, resolved by keeping the branch side, except files `main` changed on its own; check that `git diff --numstat origin/main` equals the branch's own commit before pushing.
+- **Next:** P2.8 verification engine.
+
 ### 2026-11-20 — P2.7 slice 7a: portal flag list (agent)
 - **Done:** slice 6 merged (#217), main green. Slice 7a (in review): Machines › Integrity flags (`/assets/integrity`, `integrity.flags.read`): status, site and rule filters, cursor paging (50), each flag in words from its `details` (`flagExplanation`, fallback to the rule's description), severity chip, evidence count, close reason; 32 keys in five languages (N'Ko generated). **Bug found:** duplicate OpenAPI schema names (`FlagResponse`, `ShiftResponse`, `LocationResponse`) gave the client the wrong shapes; integrity and FieldOps records renamed (wire JSON unchanged), architecture rule `ApiSchemaNamesAreUnique` added.
 - **Verification:** portal 249/249, field 305/305, Integrity 21/21, FieldOps 177/177, architecture 34/34, `tsc`/ESLint clean, `check:catalogs` 0 problems, N'Ko `--check` 0, `dotnet format` clean. `openapi-diff` may report the renamed schemas' changed shapes (the old contract was wrong, the wire is the same): check its output on the PR.
-- **Blocked on the owner:** #218's `openapi-diff` fails on the corrected contract (14 "breaking" changes of a description that was wrong; the wire is unchanged). The fix is a one-time `--err-ignore` list (`tools/ci/oasdiff-err-ignore.txt`, emptied in the next PR); the session's safety classifier refuses CI-gate edits, so the owner applies it or allows it.
 - **Slice 7b (in review, stacked on 7a):** the planted-anomaly generator end to end (3 seeds, mutant geofence caught).
 - **Found at close-out:** R-13 (signer not checked against Identity) and R-14 (start without a required checklist) were promised to P2.7 by ADR-0034 and ADR-0035 but were not in the slice plan; added as 7c (RULE-FO-09) and 7d (RULE-FO-10), security rules.
 - **Slice 7c (in review, stacked on 7b):** RULE-FO-09 via Identity's `IFieldSigners` (the tablet's unlock rule), R-13 mitigated; the security-rules check constraint is built from the catalogue (migration `SignerRule`).
 - **Slice 7d (in review, stacked on 7c):** RULE-FO-10 (start without its operator's checklist of the machine in the 60 min before, where the version in force is required), a late checklist closes the flag; R-14 mitigated (migration `ChecklistRule`). Mutant without the operator filter caught.
 - **Lesson:** checklist templates are append-only even for the database owner: publish test versions with a fixed `TimeProvider`, never backdate them with SQL.
 - **Slice 7e (in review, stacked on 7d):** security review in ADR-0036 (accepted), threat model T-04 verified, review log.
-- **Merge order:** #218 (needs the owner's `openapi-diff` change), then #219, #220, #221 and the 7e PR; retarget each to `main` after the one below merges, and empty `tools/ci/oasdiff-err-ignore.txt` in the next PR.
 - **Next:** P2.8 (controller verification console), per the Phase 2 sub-phases.
 
 ### 2026-11-19 — P2.6 close-out; P2.7 slices 1–5a (agent)
