@@ -1383,5 +1383,6 @@
   "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils",
   "permissions.verification.items.read": "Voir les saisies à vérifier de vos sites",
   "permissions.verification.items.review": "Valider ou rejeter les saisies de vos sites (jamais les vôtres)",
-  "permissions.verification.items.second-approve": "Valider une correction importante faite par une autre personne (second approbateur)"
+  "permissions.verification.items.second-approve": "Valider une correction importante faite par une autre personne (second approbateur)",
+  "permissions.verification.policies.manage": "Définir les politiques de vérification : validation automatique, seuils de double validation, délais"
 }

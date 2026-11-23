@@ -664,7 +664,7 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         {
             CorrectionOutcome? outcome = null;
             await InTransactionAsync(TenantA, async (scope, connection, transaction) =>
-                outcome = await scope.GetServices<IReviewableRecords>().Single().CorrectAsync(connection, transaction, root, version, fields, "Photo shows 110.0", "ctl-1", Ct));
+                outcome = await scope.GetServices<IReviewableRecords>().Single().CorrectAsync(connection, transaction, root, version, fields, "Photo shows 110.0", "ctl-1", new CorrectionThresholds(2m, 0.05m), Ct));
             return outcome!;
         }
 

@@ -641,7 +641,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
     /// Parameters that name a catalogue entry shared by every tenant (an import kind), not a resource of A: B gets its own
     /// answer (200), and the body check below still proves none of A's values are in it.
     /// </summary>
-    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind", "assetType", "rule" };
+    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind", "assetType", "rule", "recordType" };
 
     /// <summary>The body as text; a workbook (a zip) is unpacked so the marker check sees its cells and lists.</summary>
     private static async Task<string> ReadBodyAsync(HttpResponseMessage response)
@@ -678,6 +678,8 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "entryId" => host.AEntry.ToString(),
         "holdId" => host.AHold.ToString(),
         "itemId" => host.AReviewItem.ToString(),
+        // A record type of the catalogue: B reads and publishes its own policy of it, never A's (ReviewPoliciesTests).
+        "recordType" when template.StartsWith("/api/v1/verification/", StringComparison.Ordinal) => "fieldops.shift_entry",
         // A meter event photo of A (the seeded event names it): B never reads it.
         "sha256" => new string('a', 64),
         // A catalogue value, as an import kind: B gets its own checklist of that type, never A's.

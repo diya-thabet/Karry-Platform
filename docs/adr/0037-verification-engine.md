@@ -159,6 +159,18 @@ new version's item is approved by the corrector, or `awaiting_second` when mater
 never the corrector: `403 verification.sod_own_correction`), ledgered `verification.review_item_second_approved.v1`.
 A second refusal is a later slice.
 
+As built (slice 5): `review_policies` keeps every published version per record type (append-only, RLS, one row per
+version: two administrators publishing at once, one wins). `PUT /api/v1/verification/policies/{recordType}`
+(`verification.policies.manage`, privileged: Tenant Admin, a recent sign-in) publishes the next version from now or a
+later date, never earlier: auto-approval, the four-eyes hours (0 to 24, one decimal) and share (0 to 1, two decimals),
+the SLA hours (1 to 168) and the escalation role (site manager, tenant administrator, executive); ledgered
+`verification.review_policy_published.v1`. `GET /api/v1/verification/policies` (everyone who reads the queue) gives
+the version in force and the history; without one, version 0, the defaults (no auto-approval, 2 h and 5 %, 24 h, the
+site manager). Every item pins the version in force when it is created and its due time; an unflagged item under an
+auto-approving policy is approved at once by `policy:<version>`, ledgered `verification.review_item_auto_approved.v1`
+with the version and the person who published it (threat T-13). A correction is judged against the thresholds of the
+item's own version, which Verification passes to the record type (`CorrectionThresholds`). The portal page is slice 5b.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of

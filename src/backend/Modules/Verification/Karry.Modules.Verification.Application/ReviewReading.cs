@@ -25,6 +25,7 @@ public static class VerificationPermissions
         new(ItemsRead, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Executive, Roles.Controller, Roles.SiteManager),
         new(ItemsReview, ScopeKind.Site, privileged: false, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager),
         new(ItemsSecondApprove, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.SiteManager),
+        new(ReviewPolicyPermissions.Manage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
     ];
 }
 

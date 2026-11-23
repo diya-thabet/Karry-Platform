@@ -16,7 +16,7 @@ namespace Karry.Modules.Verification.Infrastructure;
 /// Puts record versions up for review for the other modules (ADR-0037 §1), joined to their transaction: the version,
 /// its review item and the item's ledger entry commit together.
 /// </summary>
-internal sealed class ReviewIntake(VerificationDbContext db, ITenantContext tenant, TimeProvider clock) : IReviewIntake
+internal sealed class ReviewIntake(VerificationDbContext db, ITenantContext tenant, IReviewPolicyStore policies, TimeProvider clock) : IReviewIntake
 {
     public async Task SubmitAsync(DbConnection connection, DbTransaction transaction, ReviewSubmission submission, CancellationToken cancellationToken)
     {
@@ -31,9 +31,18 @@ internal sealed class ReviewIntake(VerificationDbContext db, ITenantContext tena
             return;
         }
 
-        db.Items.Add(ReviewItem.Submit(
+        var item = ReviewItem.Submit(
             clock, company, submission.RecordType, submission.RecordId, submission.RecordVersion, submission.RecordHash, submission.SiteId,
-            submission.ProducedBy, submission.AssetId, submission.CoveredFrom, submission.CoveredTo, submission.Flags));
+            submission.ProducedBy, submission.AssetId, submission.CoveredFrom, submission.CoveredTo, submission.Flags);
+
+        // The policy in force now is the item's for good (TC-P2-VER-007); it may approve the item at once (TC-P2-VER-006).
+        var policy = await policies.InForceAsync(submission.RecordType, item.CreatedAt, cancellationToken).ConfigureAwait(false);
+        db.Items.Add(item);
+        if (item.Pin(clock, policy) is { } approved)
+        {
+            db.Actions.Add(approved);
+        }
+
         await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
     }
 
@@ -73,6 +82,41 @@ internal sealed class ReviewItemStore(VerificationDbContext db) : IReviewItemSto
             return true;
         }
         catch (DbUpdateConcurrencyException)
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+}
+
+internal sealed class ReviewPolicyStore(VerificationDbContext db) : IReviewPolicyStore
+{
+    public async Task<EffectivePolicy> InForceAsync(string recordType, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        var policy = await db.Policies.AsNoTracking().Where(p => p.RecordType == recordType && p.EffectiveFrom <= at)
+            .OrderByDescending(p => p.Version).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return policy is null ? EffectivePolicy.Defaults : new EffectivePolicy(policy.Version, policy.Terms, policy.PublishedBy);
+    }
+
+    public async Task<EffectivePolicy> VersionAsync(string recordType, int version, CancellationToken cancellationToken)
+    {
+        var policy = version == 0 ? null : await db.Policies.AsNoTracking().SingleOrDefaultAsync(p => p.RecordType == recordType && p.Version == version, cancellationToken)
+            .ConfigureAwait(false);
+        return policy is null ? EffectivePolicy.Defaults : new EffectivePolicy(policy.Version, policy.Terms, policy.PublishedBy);
+    }
+
+    public async Task<IReadOnlyList<ReviewPolicy>> ListAsync(CancellationToken cancellationToken) =>
+        await db.Policies.AsNoTracking().OrderBy(p => p.RecordType).ThenBy(p => p.Version).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<bool> TryAddAsync(ReviewPolicy policy, CancellationToken cancellationToken)
+    {
+        db.Policies.Add(policy);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
         {
             db.ChangeTracker.Clear();
             return false;
@@ -127,6 +171,8 @@ public static class VerificationInfrastructure
         services.AddScoped<IReviewItemStore, ReviewItemStore>();
         services.AddScoped<ReviewDecisions>();
         services.AddScoped<ISyncSource, ReviewOutcomesSync>();
+        services.AddScoped<IReviewPolicyStore, ReviewPolicyStore>();
+        services.AddScoped<ReviewPolicies>();
         return services;
     }
 }

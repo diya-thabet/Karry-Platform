@@ -46,6 +46,18 @@ public sealed class VerificationModule : IModule
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName("SearchReviewItems");
 
+        endpoints.MapGet("/policies", ListPoliciesAsync)
+            .RequirePermission(VerificationPermissions.ItemsRead)
+            .WithName("ListReviewPolicies");
+
+        endpoints.MapPut("/policies/{recordType}", PublishPolicyAsync)
+            .RequirePermission(ReviewPolicyPermissions.Manage)
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status409Conflict)
+            .WithName("PublishReviewPolicy");
+
         endpoints.MapPost("/items/approve", ApproveManyAsync)
             .RequirePermission(VerificationPermissions.ItemsReview)
             .ProducesProblem(StatusCodes.Status400BadRequest)
@@ -169,6 +181,34 @@ public sealed class VerificationModule : IModule
             : expected.Error.ToProblem();
     }
 
+    /// <summary>
+    /// The review policy of every record type as the company runs it (US-P2-VER-05): the version in force (0 and the
+    /// defaults when none was published) and every version published, oldest first.
+    /// </summary>
+    private static async Task<Ok<ReviewPolicyListResponse>> ListPoliciesAsync([FromServices] ReviewPolicies policies, CancellationToken cancellationToken)
+    {
+        var published = await policies.ListAsync(cancellationToken).ConfigureAwait(false);
+        var now = DateTimeOffset.UtcNow;
+        return TypedResults.Ok(new ReviewPolicyListResponse([.. ReviewPolicies.RecordTypes.Select(type =>
+        {
+            var versions = published.Where(p => p.RecordType == type).ToList();
+            var current = versions.Where(p => p.EffectiveFrom <= now).MaxBy(p => p.Version);
+            return new ReviewPolicyResponse(type, current is null ? ReviewPolicyVersionResponse.Defaults : ReviewPolicyVersionResponse.From(current),
+                [.. versions.Select(ReviewPolicyVersionResponse.From)]);
+        })]));
+    }
+
+    /// <summary>
+    /// Publishes a new version of a record type's policy (US-P2-VER-05 AC2): effective now or from a later date, never
+    /// before; ledgered; items already created keep the version they started under (TC-P2-VER-007).
+    /// </summary>
+    private static async Task<Results<Ok<ReviewPolicyVersionResponse>, ProblemHttpResult>> PublishPolicyAsync(
+        string recordType, PublishPolicy request, [FromServices] ReviewPolicies policies, CancellationToken cancellationToken)
+    {
+        var result = await policies.PublishAsync(recordType, request, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(ReviewPolicyVersionResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
     private static Results<Ok<ReviewItemResponse>, ProblemHttpResult> Decided(Result<ReviewItem> result, HttpResponse response)
     {
         if (!result.IsSuccess)
@@ -194,6 +234,28 @@ public sealed class VerificationModule : IModule
     }
 }
 
+/// <summary>The review policy of every record type.</summary>
+public sealed record ReviewPolicyListResponse(IReadOnlyList<ReviewPolicyResponse> Items);
+
+/// <summary>A record type's policy: the version in force and every published version.</summary>
+public sealed record ReviewPolicyResponse(string RecordType, ReviewPolicyVersionResponse Current, IReadOnlyList<ReviewPolicyVersionResponse> Versions);
+
+/// <summary>One policy version (0: the defaults, never published).</summary>
+public sealed record ReviewPolicyVersionResponse(
+    int Version, DateTimeOffset? EffectiveFrom, bool AutoApprove, decimal FourEyesHours, decimal FourEyesShare, int SlaHours, string EscalateTo,
+    DateTimeOffset? PublishedAt, string? PublishedBy)
+{
+    public static ReviewPolicyVersionResponse Defaults { get; } = new(
+        0, null, PolicyTerms.Defaults.AutoApprove, PolicyTerms.Defaults.FourEyesHours, PolicyTerms.Defaults.FourEyesShare, PolicyTerms.Defaults.SlaHours,
+        PolicyTerms.Defaults.EscalateTo, null, null);
+
+    public static ReviewPolicyVersionResponse From(ReviewPolicy p)
+    {
+        ArgumentNullException.ThrowIfNull(p);
+        return new(p.Version, p.EffectiveFrom, p.AutoApprove, p.FourEyesHours, p.FourEyesShare, p.SlaHours, p.EscalateTo, p.PublishedAt, p.PublishedBy);
+    }
+}
+
 /// <summary>A correction: the item corrected and the item of the new version (approved, or awaiting a second approver).</summary>
 public sealed record CorrectionResponse(ReviewItemResponse Corrected, ReviewItemResponse Next);
 
@@ -215,12 +277,13 @@ public sealed record ReviewItemListResponse(IReadOnlyList<ReviewItemResponse> It
 /// </summary>
 public sealed record ReviewItemResponse(
     Guid Id, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, Guid ProducedBy, Guid? AssetId,
-    DateTimeOffset CoveredFrom, DateTimeOffset? CoveredTo, IReadOnlyList<string> Flags, string Status, DateTimeOffset CreatedAt, string Version, string? CorrectedBy)
+    DateTimeOffset CoveredFrom, DateTimeOffset? CoveredTo, IReadOnlyList<string> Flags, string Status, DateTimeOffset CreatedAt, string Version, string? CorrectedBy,
+    int PolicyVersion, DateTimeOffset DueAt)
 {
     public static ReviewItemResponse From(ReviewItem i)
     {
         ArgumentNullException.ThrowIfNull(i);
         return new(i.Id.Value, i.RecordType, i.RecordId, i.RecordVersion, i.RecordHash, i.SiteId, i.ProducedBy, i.AssetId, i.CoveredFrom, i.CoveredTo,
-            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version), i.CorrectedBy);
+            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version), i.CorrectedBy, i.PolicyVersion, i.DueAt);
     }
 }

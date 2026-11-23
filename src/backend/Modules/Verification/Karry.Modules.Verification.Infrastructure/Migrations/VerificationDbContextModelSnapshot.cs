@@ -176,7 +176,7 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
 
                     b.ToTable("review_actions", "verification", t =>
                         {
-                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject', 'correct', 'second_approve')");
+                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject', 'correct', 'second_approve', 'auto_approve')");
 
                             t.HasCheckConstraint("ck_review_actions_reason", "reason_code IS NULL OR reason_code IN ('wrong_reading', 'photo_unreadable', 'wrong_machine', 'wrong_shift', 'duplicate', 'other')");
                         });
@@ -250,10 +250,18 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset>("DueAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("due_at");
+
                     b.Property<string>("Flags")
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("flags");
+
+                    b.Property<int>("PolicyVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("policy_version");
 
                     b.Property<Guid>("ProducedBy")
                         .HasColumnType("uuid")
@@ -305,6 +313,9 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_review_items_tenant_id");
 
+                    b.HasIndex("TenantId", "Status", "DueAt")
+                        .HasDatabaseName("ix_review_items_tenant_id_status_due_at");
+
                     b.HasIndex("TenantId", "RecordType", "RecordId", "RecordVersion")
                         .IsUnique()
                         .HasDatabaseName("ix_review_items_tenant_id_record_type_record_id_record_version");
@@ -317,6 +328,81 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                             t.HasCheckConstraint("ck_review_items_status", "status IN ('pending', 'approved', 'rejected', 'corrected', 'awaiting_second')");
 
                             t.HasCheckConstraint("ck_review_items_version", "record_version >= 1");
+                        });
+                });
+
+            modelBuilder.Entity("Karry.Modules.Verification.Domain.ReviewPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutoApprove")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_approve");
+
+                    b.Property<DateTimeOffset>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("effective_from");
+
+                    b.Property<string>("EscalateTo")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("escalate_to");
+
+                    b.Property<decimal>("FourEyesHours")
+                        .HasPrecision(4, 1)
+                        .HasColumnType("numeric(4,1)")
+                        .HasColumnName("four_eyes_hours");
+
+                    b.Property<decimal>("FourEyesShare")
+                        .HasPrecision(3, 2)
+                        .HasColumnType("numeric(3,2)")
+                        .HasColumnName("four_eyes_share");
+
+                    b.Property<DateTimeOffset>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("published_at");
+
+                    b.Property<string>("PublishedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("published_by");
+
+                    b.Property<string>("RecordType")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("record_type");
+
+                    b.Property<int>("SlaHours")
+                        .HasColumnType("integer")
+                        .HasColumnName("sla_hours");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id")
+                        .HasName("pk_review_policies");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_review_policies_tenant_id");
+
+                    b.HasIndex("TenantId", "RecordType", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_review_policies_tenant_id_record_type_version");
+
+                    b.ToTable("review_policies", "verification", t =>
+                        {
+                            t.HasCheckConstraint("ck_review_policies_terms", "four_eyes_hours BETWEEN 0 AND 24 AND four_eyes_share BETWEEN 0 AND 1 AND sla_hours BETWEEN 1 AND 168");
+
+                            t.HasCheckConstraint("ck_review_policies_version", "version >= 1");
                         });
                 });
 #pragma warning restore 612, 618
