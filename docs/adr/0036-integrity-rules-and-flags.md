@@ -4,7 +4,7 @@ area: adr
 tags: [adr, phase-2, p2-7, integrity, rules, flags, continuity, meter-events]
 source: "P2.7 planning (sub-phases.md §P2.7, §Decisions), US-P2-FO-07, US-P2-AST-01, US-P2-AST-02, US-P2-INT-01, ADR-0034"
 status: proposed
-last_updated: 2026-11-19
+last_updated: 2026-11-20
 ---
 
 # ADR-0036: Integrity rules and flags
@@ -144,6 +144,16 @@ of work (`SyncAsync` joins the transaction before reading them). RULE-FO-02's In
 tolerance; the entry's own flag (what the tablet shows offline, shared vectors) keeps the catalogue's 0.5 h, so the two
 may differ for a company that changed it. The portal page (Settings › Integrity rules) explains each rule in the five
 languages; the flag list of slice 7 reuses those texts.
+
+As built (slice 7a): the portal lists the flags of the caller's sites at Machines › Integrity flags (read-only; a
+controller settles them in P2.8): open by default, closed or all, by site and rule, fifty a page. Each flag is
+explained in words from the values it carries (`details`), numbers in the reader's locale; a flag without the values
+its explanation names falls back to what the rule checks. A flag closed by re-evaluation says it no longer holds. The
+OpenAPI schemas of the list were renamed (`IntegrityFlagListResponse`, `IntegrityFlagResponse`,
+`IntegrityFlagSubjectResponse`): the feature flags' `FlagResponse` had the same name, so the contract described the
+integrity list with the feature flags' shape. The same collision hid FieldOps' `ShiftResponse` and `LocationResponse`
+behind Organization's (now `EntryShiftResponse`, `EntryLocationResponse`). The JSON on the wire did not change; an
+architecture rule now fails on two request or response types of one name.
 
 ## Options considered
 

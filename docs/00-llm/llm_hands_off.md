@@ -10,7 +10,7 @@
 | Repository | `github.com/diya-thabet/Karry-Platform` |
 | Default branch | `main` |
 | Current phase | **Phase 1 in progress** (sub-phases P1.0–P1.14 and P1.16 ✅; P1.15 field app built, waiting on the owner's real-tablet run; frontend in fr, en, ar, emk, nqo since 2026-10-29 (drafts for native review); next: P1.17 when hosting is decided, P1.18). **Phase 2 in progress** (D56): P2.0–P2.4 ✅, next P2.5 (field capture flows on the tablet) ([tracker](../04-phases/phase-02-field-operations/tracker.md), [sub-phases](../04-phases/phase-02-field-operations/sub-phases.md)). Phase 0 human work packages continue with the owner. Live status: [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md), [Phase 0 tracker](../04-phases/phase-00-discovery/tracker.md) |
-| Last updated | 2026-11-19 |
+| Last updated | 2026-11-20 |
 | Last updated by | Claude (Opus 5.5) acting as software architect |
 
 ---
@@ -175,6 +175,8 @@ Do **not** implement these as written in the codex. Use the corrected version.
 | 2026-10-27 | `AddOutboxDispatcher` registered the event serializer with `TryAdd`, so in a host with several modules only the first module's event types were known and every later module's events were dead-lettered as "unknown event type" (silent: only Tenancy had a subscriber). Found when the Imports runner never ran | Fixed in BuildingBlocks (every registered module's assemblies, regression test). **A shared singleton built from per-module options must collect every module's part; `TryAdd` keeps only the first.** Test a new subscriber through the real dispatcher in a host with another module registered first |
 | 2026-10-23 | A P1.6 test used a fixed fake date against a real S3 server: it broke the next day | Fake clocks that reach a real server start at the real time (tracker finding 35) |
 
+| 2026-11-20 | The integrity flag list's OpenAPI described the feature flags' `FlagResponse` (two modules had a `FlagResponse`; ASP.NET names schemas by the type alone and keeps one), so the generated client typed the list wrong; FieldOps' `ShiftResponse` and `LocationResponse` were hidden the same way behind Organization's. Found only when a screen first used the list | Name every API record with its module's noun; `TypeRules.ApiSchemaNamesAreUnique` now fails on a duplicate. **Read the generated `schema.ts` type of an endpoint before building a screen on it.** |
+
 > Add every new mistake here, including small ones. The next agent benefits most from this section.
 
 ---
@@ -274,7 +276,7 @@ Karry-Platform/
 |---|---|
 | P0 Discovery | **In progress**: see [tracker](../04-phases/phase-00-discovery/tracker.md) |
 | P1 Foundation | **P1.0–P1.14, P1.16 and P1.18a ✅** ([exit review draft](../04-phases/phase-01-platform-foundation/exit-review.md); P1.17, P1.18b and M1 wait for the hosting provider), P1.15 built (owner's tablet run) (P1.16: #104–#120; P1.13: #77–#82; P1.12: #73–#76; P1.11: #66–#71 merged, close-out PR; P1.10: #58–#64, close-out #65; P1.9: #50–#55, close-out #56; owner: Renovate app pending; e-mail sender domain and SMS provider pending; no GitHub Pro → merge guard is permanent): see [Phase 1 tracker](../04-phases/phase-01-platform-foundation/tracker.md) and [sub-phases](../04-phases/phase-01-platform-foundation/sub-phases.md) |
-| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slices 1 Integrity module (#208), 2 continuity engine (#209), 3a meter events (#210), 3b portal meter events (#212) and 4 failed-meter mode (#213) merged, slice 5a security rules in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
+| P2 Field operations | **P2.0–P2.6 ✅** (#147–#206; P2.5 9b, the usability test and demo, is the owner's; P2.6 [ADR-0035](../adr/0035-pre-start-checklists-and-safety-holds.md) accepted), **P2.7 integrity flags in progress**: slices 1 Integrity module (#208), 2 continuity engine (#209), 3a meter events (#210), 3b portal meter events (#212) and 4 failed-meter mode (#213) merged, slices 5a (#215), 5b (#216) and 6 rule settings (#217) merged, slice 7a portal flag list in review ([slice plan](../04-phases/phase-02-field-operations/p2.7-integrity-plan.md), [ADR-0036](../adr/0036-integrity-rules-and-flags.md) proposed) |
 | P3–P11 | Not started |
 
 ---
@@ -347,6 +349,11 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 ---
 
 ## 10. Session Log (newest first)
+
+### 2026-11-20 — P2.7 slice 7a: portal flag list (agent)
+- **Done:** slice 6 merged (#217), main green. Slice 7a (in review): Machines › Integrity flags (`/assets/integrity`, `integrity.flags.read`): status, site and rule filters, cursor paging (50), each flag in words from its `details` (`flagExplanation`, fallback to the rule's description), severity chip, evidence count, close reason; 32 keys in five languages (N'Ko generated). **Bug found:** duplicate OpenAPI schema names (`FlagResponse`, `ShiftResponse`, `LocationResponse`) gave the client the wrong shapes; integrity and FieldOps records renamed (wire JSON unchanged), architecture rule `ApiSchemaNamesAreUnique` added.
+- **Verification:** portal 249/249, field 305/305, Integrity 21/21, FieldOps 177/177, architecture 34/34, `tsc`/ESLint clean, `check:catalogs` 0 problems, N'Ko `--check` 0, `dotnet format` clean. `openapi-diff` may report the renamed schemas' changed shapes (the old contract was wrong, the wire is the same): check its output on the PR.
+- **Next:** slice 7b: anomaly generator end to end, security review, ADR-0036 accepted.
 
 ### 2026-11-19 — P2.6 close-out; P2.7 slices 1–5a (agent)
 - **Done:** P2.6 slice 6 merged (#204) and close-out (#206: demo checklists, browser E2E `field-checklist.spec.ts`, security review, ADR-0035 accepted, threat R-14). P2.7 plan and ADR-0036 proposed (#207). Slice 1 (#208): Integrity module (`integrity.flags`, open → closed only, never deleted, ledgered `integrity.flag_opened.v1`/`flag_closed.v1`; `IIntegrityFlags.SyncAsync` in the caller's transaction; `GET /api/v1/integrity/flags` with `integrity.flags.read`). Slice 2 (in review): `Continuity.Find` (pure, CsCheck property, manual mutation check: 8 mutants killed); start and end raise and close RULE-FO-01 on the meter and the end RULE-FO-02 on the entry (TC-P2-FO-007, 008); `Finding.SiteId`; `ModuleDbContext.JoinAsync` idempotent for the same transaction. Slice 2 merged (#209). Slice 3a (in review): `assets.meter_events` (REPLACED/RESET with offsets, FAILED/REPAIRED; append-only, ledgered), `POST`/`GET /assets/{id}/meters/{meterId}/events`, `IMeterEvents` and `IMeterEventSubscriber` (Assets outbox fan-out) in Assets contracts; the continuity engine reads events in time order (TC-P2-FO-009); hand mutation check 11/11 killed (a surviving "events not sorted" mutant led to a chained-events case in the generator).

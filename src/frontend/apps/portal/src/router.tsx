@@ -14,6 +14,7 @@ import { sections } from "./shell/sections";
 import { RoleEditorPage, RolesPage } from "./settings/RolesPages";
 import { Shell, ShellNotFound } from "./shell/Shell";
 import { CompanyPage } from "./settings/CompanyPage";
+import { FlagsPage } from "./integrity/FlagsPage";
 import { RulesPage } from "./integrity/RulesPage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SupportPage } from "./settings/SupportPage";
@@ -121,6 +122,7 @@ const site = createRoute({
 
 const assets = createRoute({ getParentRoute: () => company, path: "/assets", component: AssetsPage });
 const holds = createRoute({ getParentRoute: () => company, path: "/assets/holds", component: HoldsPage });
+const integrityFlags = createRoute({ getParentRoute: () => company, path: "/assets/integrity", component: FlagsPage });
 const newAsset = createRoute({ getParentRoute: () => company, path: "/assets/new", component: () => <AssetPage /> });
 const asset = createRoute({
   getParentRoute: () => company,
@@ -135,7 +137,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, newAsset, asset,
+        home, ...routes, audit, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),

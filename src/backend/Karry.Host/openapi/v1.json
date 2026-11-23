@@ -7926,7 +7926,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FlagListResponse"
+                  "$ref": "#/components/schemas/IntegrityFlagListResponse"
                 }
               }
             }
@@ -9884,6 +9884,68 @@
         },
         "description": "What the company may use now: plan, state, feature codes and limits (tenant-wide totals; a limit not listed is\nunlimited). The apps show or lock features with it; the API checks every call."
       },
+      "EntryLocationResponse": {
+        "required": [
+          "latitude",
+          "longitude",
+          "accuracyM"
+        ],
+        "type": "object",
+        "properties": {
+          "latitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "longitude": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "accuracyM": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          }
+        },
+        "description": "Where the tablet was (WGS 84 degrees, accuracy in metres); null when location access was refused."
+      },
+      "EntryShiftResponse": {
+        "required": [
+          "date",
+          "code",
+          "startsAt",
+          "endsAt"
+        ],
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "code": {
+            "type": "string"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The shift an entry was resolved to when its start arrived (ADR-0034 §2)."
+      },
       "EnvelopeCheck": {
         "required": [
           "name",
@@ -10014,29 +10076,6 @@
             }
           }
         }
-      },
-      "FlagListResponse": {
-        "required": [
-          "items",
-          "nextCursor"
-        ],
-        "type": "object",
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/FlagResponse"
-            }
-          },
-          "nextCursor": {
-            "type": [
-              "null",
-              "string"
-            ],
-            "format": "uuid"
-          }
-        },
-        "description": "A page of flags, newest first; `nextCursor` when more follow."
       },
       "FlagResponse": {
         "required": [
@@ -10492,6 +10531,124 @@
           }
         },
         "description": "A row of the preview: `action` is `create`, `update` or `unchanged`."
+      },
+      "IntegrityFlagListResponse": {
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrityFlagResponse"
+            }
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A page of flags, newest first; `nextCursor` when more follow."
+      },
+      "IntegrityFlagResponse": {
+        "required": [
+          "id",
+          "rule",
+          "severity",
+          "subject",
+          "key",
+          "siteId",
+          "related",
+          "evidence",
+          "details",
+          "openedAt",
+          "closedAt",
+          "closeReason"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "subject": {
+            "$ref": "#/components/schemas/IntegrityFlagSubjectResponse"
+          },
+          "key": {
+            "type": "string"
+          },
+          "siteId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "related": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IntegrityFlagSubjectResponse"
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "details": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "openedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "closedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "closeReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A flag (ADR-0036 §2): the rule and its severity, what it is about and linked to, the evidence and the values its\nexplanation names; `closedAt` and `closeReason` once it no longer holds or was settled."
+      },
+      "IntegrityFlagSubjectResponse": {
+        "required": [
+          "type",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "description": "An entity a flag is about or linked to."
       },
       "InviteUser": {
         "required": [
@@ -12433,7 +12590,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/ShiftResponse"
+                "$ref": "#/components/schemas/EntryShiftResponse"
               }
             ]
           },
@@ -12466,7 +12623,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/LocationResponse"
+                "$ref": "#/components/schemas/EntryLocationResponse"
               }
             ]
           },
@@ -12516,7 +12673,7 @@
                 "type": "null"
               },
               {
-                "$ref": "#/components/schemas/LocationResponse"
+                "$ref": "#/components/schemas/EntryLocationResponse"
               }
             ]
           },

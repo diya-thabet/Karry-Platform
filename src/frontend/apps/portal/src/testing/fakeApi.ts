@@ -10,6 +10,7 @@ type NonWorkingDay = components["schemas"]["NonWorkingDayResponse"];
 type ShiftInstance = components["schemas"]["ShiftInstanceResponse"];
 type Material = components["schemas"]["MaterialResponse"];
 type IntegrityRule = components["schemas"]["RuleResponse"];
+type IntegrityFlag = components["schemas"]["IntegrityFlagResponse"];
 type MaterialInput = components["schemas"]["MaterialInput"];
 type DensityVersion = components["schemas"]["DensityVersionResponse"];
 type DensityInput = components["schemas"]["DensityInput"];
@@ -92,6 +93,8 @@ export function fakeApi(options: {
   materials?: Material[];
   /** The company's integrity rules (default: the catalogue with its defaults, `integrityCatalog()`). */
   integrityRules?: IntegrityRule[];
+  /** Integrity flags of `GET /integrity/flags`, newest first (default: none). */
+  integrityFlags?: IntegrityFlag[];
   /** Safety holds, open or released (default: none). */
   holds?: Hold[];
   /** Every published checklist version, any machine type (default: none). */
@@ -144,6 +147,7 @@ export function fakeApi(options: {
   const assets: Asset[] = [...(options.assets ?? [])];
   const checklists: Checklist[] = [...(options.checklists ?? [])];
   const holds: Hold[] = [...(options.holds ?? [])];
+  const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
   const readings: Record<string, Reading[]> = { ...options.readings };
   const meterEvents: Record<string, unknown[]> = {};
@@ -321,6 +325,20 @@ export function fakeApi(options: {
     const organization = organizationRoute(request.method, url, body, request.headers.get("If-Match"));
     if (organization) {
       return organization;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/integrity/flags") {
+      // Open by default, closed or all; by site and rule; a page of `limit` after the `cursor` flag (ADR-0036 §2).
+      const status = url.searchParams.get("status") ?? "open";
+      const site = url.searchParams.get("siteId");
+      const code = url.searchParams.get("rule");
+      const limit = Number(url.searchParams.get("limit") ?? "50");
+      const matching = integrityFlags.filter((f) => (status === "all" || (status === "open") === (f.closedAt === null))
+        && (!site || f.siteId === site) && (!code || f.rule === code));
+      const cursor = url.searchParams.get("cursor");
+      const from = cursor ? matching.findIndex((f) => f.id === cursor) + 1 : 0;
+      const page = matching.slice(from, from + limit);
+      return json(200, { items: page, nextCursor: from + limit < matching.length ? (page.at(-1)?.id ?? null) : null });
     }
 
     const ruleMatch = /^\/api\/v1\/integrity\/rules(?:\/([^/]+))?$/.exec(url.pathname);
@@ -1050,6 +1068,17 @@ export function hold(overrides: Partial<Hold> = {}): Hold {
     id: "0192f0c1-0000-7000-8000-000000009001", assetId: "0192f0c1-0000-7000-8000-000000007001", assetCode: "PEL-01", siteId: "0192f0c1-0000-7000-8000-000000005001",
     submissionId: "0192f0c1-0000-7000-8000-000000009101", items: ["brakes"], openedAt: "2026-11-19T06:10:00Z", openedBy: "0192f0c1-0000-7000-8000-000000000501",
     release: null, ...overrides,
+  };
+}
+
+/** An open RULE-FO-01 flag on a shift entry of the first site: started at 1250 h where the last shift ended at 1242.5 h. */
+export function integrityFlag(overrides: Partial<IntegrityFlag> = {}): IntegrityFlag {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000a001", rule: "RULE-FO-01", severity: "high",
+    subject: { type: "shift_entry", id: "0192f0c1-0000-7000-8000-00000000a101" }, key: "continuity", siteId: "0192f0c1-0000-7000-8000-000000005001",
+    related: [{ type: "meter", id: "0192f0c1-0000-7000-8000-00000000a201" }], evidence: ["sha256:aa", "sha256:bb"],
+    details: { meterKind: "hours", expectedValue: "1242.5", foundValue: "1250", difference: "7.5" },
+    openedAt: "2026-11-19T06:10:00Z", closedAt: null, closeReason: null, ...overrides,
   };
 }
 
