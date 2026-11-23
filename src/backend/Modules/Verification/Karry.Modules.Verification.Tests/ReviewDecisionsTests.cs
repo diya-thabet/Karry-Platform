@@ -173,13 +173,72 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         delta.Upserts.Should().HaveCount(2, "the pending item is not decided, the other site's and the old one are out of scope");
     }
 
+    [Fact]
+    [Trait("TestCase", "TC-P2-VER-002")]
+    public async Task A_bulk_approval_is_one_decision_with_one_ledger_entry_listing_every_hash()
+    {
+        var tenant = await ProvisionAsync();
+        var items = new[] { await PendingItemAsync(tenant), await PendingItemAsync(tenant), await PendingItemAsync(tenant) };
+
+        using var response = await BulkAsync(tenant, items);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        body.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("status").GetString()).Should().Equal("approved", "approved", "approved");
+        var batch = body.GetProperty("batchId").GetGuid();
+        (await RowsAsync($"SELECT (payload::jsonb->>'batchId') || '|' || jsonb_array_length(payload::jsonb->'itemIds') || '|' || jsonb_array_length(payload::jsonb->'recordHashes') "
+            + $"FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'verification.review_items_bulk_approved.v1'")).Should().Equal($"{batch}|3|3");
+        (await RowsAsync($"SELECT count(*)::text FROM audit.ledger_entries WHERE tenant_id = '{tenant}' AND event_type = 'verification.review_item_approved.v1'"))
+            .Should().Equal(["0"], "one ledger entry for the whole decision");
+        (await RowsAsync($"SELECT batch_id::text FROM verification.review_actions WHERE tenant_id = '{tenant}'")).Should().Equal(batch.ToString(), batch.ToString(), batch.ToString());
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P2-VER-002")]
+    public async Task A_bulk_approval_with_a_flagged_decided_or_own_entry_approves_nothing()
+    {
+        var tenant = await ProvisionAsync();
+        var producer = Guid.CreateVersion7();
+        var clean = await PendingItemAsync(tenant);
+        var flagged = await PendingItemAsync(tenant, flags: ["RULE-FO-02"]);
+        var decided = await PendingItemAsync(tenant);
+        (await DecideAsync(tenant, decided, "approve", null)).Dispose();
+        var own = await PendingItemAsync(tenant, producer: producer);
+        host.People.FieldAccountOf["bulk-self"] = producer;
+
+        using var withFlag = await BulkAsync(tenant, [clean, flagged]);
+        using var withDecided = await BulkAsync(tenant, [clean, decided]);
+        using var withOwn = await BulkAsync(tenant, [clean, own], TestTokens.ForTenant(tenant, "bulk-self"));
+        using var empty = await BulkAsync(tenant, []);
+        using var twice = await BulkAsync(tenant, [clean, clean]);
+
+        withFlag.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await CodeAsync(withFlag)).Should().Be("verification.bulk_flagged");
+        (await CodeAsync(withDecided)).Should().Be("request.version_conflict", "deciding it moved its version: the batch was made from an older screen");
+        (await CodeAsync(withOwn)).Should().Be("verification.sod_own_record");
+        (await CodeAsync(empty)).Should().Be("verification.bulk_size");
+        (await CodeAsync(twice)).Should().Be("verification.bulk_size");
+        (await RowsAsync($"SELECT status FROM verification.review_items WHERE id IN ('{clean.Id}', '{flagged.Id}', '{own.Id}')")).Should().Equal("pending", "pending", "pending");
+    }
+
+    private Task<HttpResponseMessage> BulkAsync(Guid tenant, Pending[] items, string? token = null)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/v1/verification/items/approve")
+        {
+            Content = JsonContent.Create(new { items = items.Select(i => new { id = i.Id, version = "\"" + i.Version + "\"" }) }),
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token ?? TestTokens.ForTenant(tenant, "admin-1"));
+        return host.Client.SendAsync(request, Ct);
+    }
+
     private sealed record Pending(Guid Id, string Version);
 
-    private async Task<Pending> PendingItemAsync(Guid tenant, Guid? site = null, Guid? producer = null, Guid? asset = null, DateTimeOffset? from = null)
+    private async Task<Pending> PendingItemAsync(
+        Guid tenant, Guid? site = null, Guid? producer = null, Guid? asset = null, DateTimeOffset? from = null, IReadOnlyList<string>? flags = null)
     {
         var start = from ?? Morning;
         var submission = new ReviewSubmission(ReviewRecordTypes.ShiftEntry, Guid.CreateVersion7(), 2, Hash, site ?? Guid.CreateVersion7(), producer ?? Guid.CreateVersion7(),
-            asset ?? Guid.CreateVersion7(), start, start.AddHours(8), []);
+            asset ?? Guid.CreateVersion7(), start, start.AddHours(8), flags ?? []);
         await using (var scope = host.Services.CreateAsyncScope())
         {
             scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));

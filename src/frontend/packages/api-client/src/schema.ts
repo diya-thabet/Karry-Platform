@@ -1668,6 +1668,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/verification/items/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ApproveReviewItems"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/verification/items/{itemId}/approve": {
         parameters: {
             query?: never;
@@ -1731,6 +1747,16 @@ export interface components {
             invited: boolean;
             delivered: boolean;
             error: null | string;
+        };
+        /** @description An entry of a bulk approval: the item and the `version` the reviewer saw. */
+        ApproveItem: {
+            /** Format: uuid */
+            id: string;
+            version: null | string;
+        };
+        /** @description The entries to approve at once. */
+        ApproveItems: {
+            items: null | components["schemas"]["ApproveItem"][];
         };
         /** @description New details of an asset (the code never changes; the site and status have their own operations). */
         AssetChangeInput: {
@@ -1894,6 +1920,12 @@ export interface components {
             };
             /** Format: date-time */
             expiresAt: null | string;
+        };
+        /** @description A bulk approval: its batch (the one ledger entry) and the items, now approved. */
+        BulkApprovalResponse: {
+            /** Format: uuid */
+            batchId: string;
+            items: components["schemas"]["ReviewItemResponse"][];
         };
         /** @description Replaces a role's field levels (a field left out gets the catalogue default of a default role, its fallback otherwise). */
         ChangeFieldLevels: {
@@ -9572,6 +9604,66 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ApproveReviewItems: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApproveItems"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkApprovalResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

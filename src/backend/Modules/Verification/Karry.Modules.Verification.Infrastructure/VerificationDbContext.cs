@@ -22,6 +22,8 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
 
     public DbSet<ReviewAction> Actions => Set<ReviewAction>();
 
+    public DbSet<ReviewBatch> Batches => Set<ReviewBatch>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -60,8 +62,33 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             action.Property(a => a.ReasonCode).HasMaxLength(30);
             action.Property(a => a.Comment).HasMaxLength(ReviewRules.CommentMaxLength);
             action.Property(a => a.RecordHash).HasMaxLength(80);
+            action.Property(a => a.BatchId).HasConversion(new ValueConverter<ReviewBatchId, Guid>(id => id.Value, value => new ReviewBatchId(value)));
             action.HasIndex(a => new { a.TenantId, a.ItemId, a.At });
         });
+
+        modelBuilder.Entity<ReviewBatch>(batch =>
+        {
+            batch.ToTable("review_batches");
+            batch.HasKey(b => b.Id);
+            batch.Ignore(b => b.DomainEvents);
+            batch.Property(b => b.Id).HasConversion(id => id.Value, value => new ReviewBatchId(value)).ValueGeneratedNever();
+            batch.Property(b => b.Actor).HasMaxLength(200);
+            batch.Property(b => b.ItemIds).HasColumnType("jsonb").HasConversion(JsonGuids.Converter, JsonGuids.Comparer);
+            batch.Property(b => b.RecordHashes).HasColumnType("jsonb").HasConversion(JsonList.Converter, JsonList.Comparer);
+            batch.HasIndex(b => new { b.TenantId, b.At });
+        });
+    }
+
+    private static class JsonGuids
+    {
+        public static readonly ValueConverter<IReadOnlyList<Guid>, string> Converter = new(
+            value => JsonSerializer.Serialize(value, JsonSerializerOptions.Web),
+            json => JsonSerializer.Deserialize<IReadOnlyList<Guid>>(json, JsonSerializerOptions.Web)!);
+
+        public static readonly ValueComparer<IReadOnlyList<Guid>> Comparer = new(
+            (a, b) => a!.SequenceEqual(b!),
+            value => value.Count,
+            value => value.ToList());
     }
 
     private static class JsonList
