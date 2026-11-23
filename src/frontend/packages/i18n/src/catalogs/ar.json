@@ -1383,5 +1383,6 @@
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها",
   "permissions.verification.items.read": "عرض الإدخالات المنتظرة للمراجعة في مواقعك",
   "permissions.verification.items.review": "اعتماد إدخالات مواقعك أو رفضها (وليس إدخالاتك أبدًا)",
-  "permissions.verification.items.second-approve": "اعتماد تصحيح كبير أجراه شخص آخر (المعتمِد الثاني)"
+  "permissions.verification.items.second-approve": "اعتماد تصحيح كبير أجراه شخص آخر (المعتمِد الثاني)",
+  "permissions.verification.policies.manage": "تحديد سياسات المراجعة: الاعتماد التلقائي وحدود الاعتماد الثاني ومهل المراجعة"
 }

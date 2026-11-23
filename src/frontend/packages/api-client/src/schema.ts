@@ -1668,6 +1668,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/verification/policies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListReviewPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/verification/policies/{recordType}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["PublishReviewPolicy"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/verification/items/approve": {
         parameters: {
             query?: never;
@@ -2802,6 +2834,19 @@ export interface components {
             };
             prices: null | components["schemas"]["PlanPriceDto"][];
         };
+        /** @description A policy version to publish (US-P2-VER-05 AC1); `EffectiveFrom` now when absent. */
+        PublishPolicy: {
+            autoApprove: boolean;
+            /** Format: double */
+            fourEyesHours: number | string;
+            /** Format: double */
+            fourEyesShare: number | string;
+            /** Format: int32 */
+            slaHours: number | string;
+            escalateTo: null | string;
+            /** Format: date-time */
+            effectiveFrom: null | string;
+        };
         /** @description A quantity as the API receives it: `{value, unit, state}`. */
         QuantityInput: {
             /** Format: double */
@@ -2894,6 +2939,38 @@ export interface components {
             createdAt: string;
             version: string;
             correctedBy: null | string;
+            /** Format: int32 */
+            policyVersion: number | string;
+            /** Format: date-time */
+            dueAt: string;
+        };
+        /** @description The review policy of every record type. */
+        ReviewPolicyListResponse: {
+            items: components["schemas"]["ReviewPolicyResponse"][];
+        };
+        /** @description A record type's policy: the version in force and every published version. */
+        ReviewPolicyResponse: {
+            recordType: string;
+            current: components["schemas"]["ReviewPolicyVersionResponse"];
+            versions: components["schemas"]["ReviewPolicyVersionResponse"][];
+        };
+        /** @description One policy version (0: the defaults, never published). */
+        ReviewPolicyVersionResponse: {
+            /** Format: int32 */
+            version: number | string;
+            /** Format: date-time */
+            effectiveFrom: null | string;
+            autoApprove: boolean;
+            /** Format: double */
+            fourEyesHours: number | string;
+            /** Format: double */
+            fourEyesShare: number | string;
+            /** Format: int32 */
+            slaHours: number | string;
+            escalateTo: string;
+            /** Format: date-time */
+            publishedAt: null | string;
+            publishedBy: null | string;
         };
         /** @description A role held tenant-wide (Guid? RoleAssignment.SiteId null) or on one site (US-P1-IAM-03 AC1, US-P1-IAM-06). */
         RoleAssignment: {
@@ -9649,6 +9726,88 @@ export interface operations {
             };
             /** @description Bad Request */
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListReviewPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPolicyListResponse"];
+                };
+            };
+        };
+    };
+    PublishReviewPolicy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                recordType: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PublishPolicy"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPolicyVersionResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

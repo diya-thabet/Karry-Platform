@@ -8209,6 +8209,106 @@
         }
       }
     },
+    "/api/v1/verification/policies": {
+      "get": {
+        "tags": [
+          "VerificationModule"
+        ],
+        "operationId": "ListReviewPolicies",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPolicyListResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/verification/policies/{recordType}": {
+      "put": {
+        "tags": [
+          "VerificationModule"
+        ],
+        "operationId": "PublishReviewPolicy",
+        "parameters": [
+          {
+            "name": "recordType",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublishPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPolicyVersionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/verification/items/approve": {
       "post": {
         "tags": [
@@ -12701,6 +12801,60 @@
         },
         "description": "A new version of a plan (or its first): the full content, nothing carried over implicitly."
       },
+      "PublishPolicy": {
+        "required": [
+          "autoApprove",
+          "fourEyesHours",
+          "fourEyesShare",
+          "slaHours",
+          "escalateTo",
+          "effectiveFrom"
+        ],
+        "type": "object",
+        "properties": {
+          "autoApprove": {
+            "type": "boolean"
+          },
+          "fourEyesHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "fourEyesShare": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "slaHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "escalateTo": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "effectiveFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        },
+        "description": "A policy version to publish (US-P2-VER-05 AC1); `EffectiveFrom` now when absent."
+      },
       "QuantityInput": {
         "required": [
           "value",
@@ -12958,7 +13112,9 @@
           "status",
           "createdAt",
           "version",
-          "correctedBy"
+          "correctedBy",
+          "policyVersion",
+          "dueAt"
         ],
         "type": "object",
         "properties": {
@@ -13031,9 +13187,134 @@
               "null",
               "string"
             ]
+          },
+          "policyVersion": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "dueAt": {
+            "type": "string",
+            "format": "date-time"
           }
         },
         "description": "A review item (ADR-0037 §2): the record version it is about, the hash it was signed with, who produced it, the asset\nand time it covers, its flags when submitted, where it stands, and its `version` for `If-Match`."
+      },
+      "ReviewPolicyListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewPolicyResponse"
+            }
+          }
+        },
+        "description": "The review policy of every record type."
+      },
+      "ReviewPolicyResponse": {
+        "required": [
+          "recordType",
+          "current",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "recordType": {
+            "type": "string"
+          },
+          "current": {
+            "$ref": "#/components/schemas/ReviewPolicyVersionResponse"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewPolicyVersionResponse"
+            }
+          }
+        },
+        "description": "A record type's policy: the version in force and every published version."
+      },
+      "ReviewPolicyVersionResponse": {
+        "required": [
+          "version",
+          "effectiveFrom",
+          "autoApprove",
+          "fourEyesHours",
+          "fourEyesShare",
+          "slaHours",
+          "escalateTo",
+          "publishedAt",
+          "publishedBy"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "effectiveFrom": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "autoApprove": {
+            "type": "boolean"
+          },
+          "fourEyesHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "fourEyesShare": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "slaHours": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "format": "int32"
+          },
+          "escalateTo": {
+            "type": "string"
+          },
+          "publishedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "publishedBy": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "One policy version (0: the defaults, never published)."
       },
       "RoleAssignment": {
         "required": [

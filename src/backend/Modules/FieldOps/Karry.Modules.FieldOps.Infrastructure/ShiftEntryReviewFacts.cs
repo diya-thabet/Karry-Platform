@@ -23,12 +23,6 @@ internal sealed class ShiftEntryReviewFacts(
     /// <summary>The fields a controller may correct (US-P2-VER-04 AC1): the meter values and the fuel levels.</summary>
     public static readonly IReadOnlyList<string> Correctable = ["startValue", "endValue", "fuelStartPercent", "fuelEndPercent"];
 
-    /// <summary>A corrected Δ beyond this many hours of the signed one needs a second approver (US-P2-VER-04 AC3).</summary>
-    public const decimal FourEyesHours = 2m;
-
-    /// <summary>… or beyond this share of the signed Δ.</summary>
-    public const decimal FourEyesShare = 0.05m;
-
     public string RecordType => ReviewRecordTypes.ShiftEntry;
 
     public async Task<bool> OperatedAsync(Guid person, Guid assetId, DateTimeOffset from, DateTimeOffset? to, CancellationToken cancellationToken)
@@ -47,9 +41,10 @@ internal sealed class ShiftEntryReviewFacts(
 
     public async Task<CorrectionOutcome> CorrectAsync(
         DbConnection connection, DbTransaction transaction, Guid recordId, int version, IReadOnlyDictionary<string, string> fields, string reason, string? actor,
-        CancellationToken cancellationToken)
+        CorrectionThresholds thresholds, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(fields);
+        ArgumentNullException.ThrowIfNull(thresholds);
         var joined = new Joined(connection, transaction);
         await store.JoinAsync(joined, cancellationToken).ConfigureAwait(false);
         var latest = await store.LatestAsync(recordId, cancellationToken).ConfigureAwait(false);
@@ -120,25 +115,26 @@ internal sealed class ShiftEntryReviewFacts(
                 IntegrityFindings.Delta(corrected, tolerance), cancellationToken).ConfigureAwait(false);
         }
 
-        return new CorrectionOutcome.Corrected(corrected.Version, Hash(corrected), changes, Material(latest, corrected));
+        return new CorrectionOutcome.Corrected(corrected.Version, Hash(corrected), changes, Material(latest, corrected, thresholds));
     }
 
     /// <summary>
-    /// Beyond the four-eyes thresholds (US-P2-VER-04 AC3): the entry's Δ moves by more than <see cref="FourEyesHours"/>
-    /// on an hour meter, or by more than <see cref="FourEyesShare"/> of the signed Δ on any meter.
+    /// Beyond the four-eyes thresholds of the item's policy (US-P2-VER-04 AC3): the entry's Δ moves by more than the
+    /// hours on an hour meter, or by more than the share of the signed Δ on any meter.
     /// </summary>
-    public static bool Material(ShiftEntryVersion signed, ShiftEntryVersion corrected)
+    public static bool Material(ShiftEntryVersion signed, ShiftEntryVersion corrected, CorrectionThresholds thresholds)
     {
         ArgumentNullException.ThrowIfNull(signed);
         ArgumentNullException.ThrowIfNull(corrected);
+        ArgumentNullException.ThrowIfNull(thresholds);
         if (signed.EndValue is not { } signedEnd || corrected.EndValue is not { } correctedEnd)
         {
-            return signed.StartValue != corrected.StartValue && Math.Abs(signed.StartValue - corrected.StartValue) > (signed.MeterKind == "hours" ? FourEyesHours : 0m);
+            return signed.StartValue != corrected.StartValue && Math.Abs(signed.StartValue - corrected.StartValue) > (signed.MeterKind == "hours" ? thresholds.Hours : 0m);
         }
 
         var signedDelta = signedEnd - signed.StartValue;
         var moved = Math.Abs(correctedEnd - corrected.StartValue - signedDelta);
-        return (signed.MeterKind == "hours" && moved > FourEyesHours) || moved > Math.Abs(signedDelta) * FourEyesShare;
+        return (signed.MeterKind == "hours" && moved > thresholds.Hours) || moved > Math.Abs(signedDelta) * thresholds.Share;
     }
 
     private ShiftEntryVersion Copy(

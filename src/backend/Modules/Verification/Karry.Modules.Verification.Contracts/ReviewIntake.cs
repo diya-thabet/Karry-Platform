@@ -40,8 +40,14 @@ public interface IReviewableRecords
     /// </summary>
     Task<CorrectionOutcome> CorrectAsync(
         DbConnection connection, DbTransaction transaction, Guid recordId, int version, IReadOnlyDictionary<string, string> fields, string reason, string? actor,
-        CancellationToken cancellationToken);
+        CorrectionThresholds thresholds, CancellationToken cancellationToken);
 }
+
+/// <summary>
+/// The four-eyes thresholds of the item's review policy (US-P2-VER-04 AC3, ADR-0037 §5): a correction beyond either
+/// needs a second approver; how a record type measures them is its module's business.
+/// </summary>
+public sealed record CorrectionThresholds(decimal Hours, decimal Share);
 
 /// <summary>One field changed by a correction, before and after, as the records write them.</summary>
 public sealed record FieldChange(string Field, string? Before, string? After);

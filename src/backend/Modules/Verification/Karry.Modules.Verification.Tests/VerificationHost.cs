@@ -115,7 +115,7 @@ public sealed class OperatedAssets : IReviewableRecords
 
     public Task<CorrectionOutcome> CorrectAsync(
         System.Data.Common.DbConnection connection, System.Data.Common.DbTransaction transaction, Guid recordId, int version, IReadOnlyDictionary<string, string> fields,
-        string reason, string? actor, CancellationToken cancellationToken)
+        string reason, string? actor, CorrectionThresholds thresholds, CancellationToken cancellationToken)
     {
         Corrections.Enqueue((recordId, version, fields));
         return Task.FromResult(NextCorrection);

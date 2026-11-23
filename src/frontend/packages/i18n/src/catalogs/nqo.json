@@ -1383,5 +1383,6 @@
   "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ",
   "permissions.verification.items.read": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ ߓߊ߯ߙߊ ߛߍߓߍ߲ ߡߌ߲ߣߎ ߓߍ ߟߊߖߍߟߌ ߡߊߞߐߣߐ߸ ߏߟߎ ߦߋ",
   "permissions.verification.items.review": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ ߓߊ߯ߙߊ ߛߍߓߍ߲ߟߎ ߛߐ߲ ߥߊߟߌߡߊ ߞߎ ߓߊ߲ (ߌ ߦߍߙߍ ߕߊ ߕߍ)",
-  "permissions.verification.items.second-approve": "ߡߐߜ߭ߐ ߥߍߙߍ ߞߊ ߟߊߕߌߟߋ߲ߣߌ ߓߊ ߛߐ߲ (ߛߐ߲ߓߊߜ߭ߊ ߝߌߟߊߣߊ߲)"
+  "permissions.verification.items.second-approve": "ߡߐߜ߭ߐ ߥߍߙߍ ߞߊ ߟߊߕߌߟߋ߲ߣߌ ߓߊ ߛߐ߲ (ߛߐ߲ߓߊߜ߭ߊ ߝߌߟߊߣߊ߲)",
+  "permissions.verification.policies.manage": "ߟߊߖߍߟߌ ߛߊߙߌߦߊߟߎ ߛߌߜ߭ߌ: ߦߍߙߍ ߡߊ ߛߐ߲ߣߌ߸ ߛߐ߲ߣߌ ߝߌߟߊߣߊ߲ ߘߊ߲ߗߍߟߎ߸ ߟߊߖߍߟߌ ߥߊ߯ߕߌ"
 }

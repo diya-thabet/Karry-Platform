@@ -46,7 +46,7 @@ public sealed record RejectEntry(string? ReasonCode, string? Comment);
 /// record version's hash.
 /// </summary>
 public sealed class ReviewDecisions(
-    IReviewItemStore store, ICallerAccess caller, IReviewers reviewers, IEnumerable<IReviewableRecords> records, TimeProvider clock)
+    IReviewItemStore store, ICallerAccess caller, IReviewers reviewers, IEnumerable<IReviewableRecords> records, IReviewPolicyStore policies, TimeProvider clock)
 {
     public static readonly Error NotFound = Error.NotFound("verification.item_not_found", "No such entry to review.");
 
@@ -172,9 +172,11 @@ public sealed class ReviewDecisions(
             return ReviewRules.NotCorrectable;
         }
 
+        var policy = await policies.VersionAsync(item.RecordType, item.PolicyVersion, cancellationToken).ConfigureAwait(false);
         var (connection, transaction) = await store.BeginAsync(cancellationToken).ConfigureAwait(false);
         var outcome = await owner.CorrectAsync(
-            connection, transaction, item.RecordId, item.RecordVersion, command.Fields ?? new Dictionary<string, string>(), reason, caller.Subject, cancellationToken)
+            connection, transaction, item.RecordId, item.RecordVersion, command.Fields ?? new Dictionary<string, string>(), reason, caller.Subject,
+            new CorrectionThresholds(policy.Terms.FourEyesHours, policy.Terms.FourEyesShare), cancellationToken)
             .ConfigureAwait(false);
         if (outcome is not CorrectionOutcome.Corrected corrected)
         {

@@ -24,6 +24,8 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
 
     public DbSet<ReviewBatch> Batches => Set<ReviewBatch>();
 
+    public DbSet<ReviewPolicy> Policies => Set<ReviewPolicy>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -41,6 +43,7 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             item.Property(i => i.RecordHash).HasMaxLength(80);
             item.Property(i => i.Status).HasMaxLength(20);
             item.Property(i => i.CorrectedBy).HasMaxLength(200);
+            item.HasIndex(i => new { i.TenantId, i.Status, i.DueAt });
             item.Property(i => i.Flags).HasColumnType("jsonb").HasConversion(JsonList.Converter, JsonList.Comparer);
             item.Property(i => i.Version).IsRecordVersion();
             // One item per record version: a version submitted again (an upload retried) changes nothing.
@@ -65,6 +68,27 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             action.Property(a => a.RecordHash).HasMaxLength(80);
             action.Property(a => a.BatchId).HasConversion(new ValueConverter<ReviewBatchId, Guid>(id => id.Value, value => new ReviewBatchId(value)));
             action.HasIndex(a => new { a.TenantId, a.ItemId, a.At });
+        });
+
+        modelBuilder.Entity<ReviewPolicy>(policy =>
+        {
+            policy.ToTable("review_policies", t =>
+            {
+                t.HasCheckConstraint("ck_review_policies_version", "version >= 1");
+                t.HasCheckConstraint("ck_review_policies_terms",
+                    "four_eyes_hours BETWEEN 0 AND 24 AND four_eyes_share BETWEEN 0 AND 1 AND sla_hours BETWEEN 1 AND 168");
+            });
+            policy.HasKey(p => p.Id);
+            policy.Ignore(p => p.DomainEvents);
+            policy.Ignore(p => p.Terms);
+            policy.Property(p => p.Id).HasConversion(id => id.Value, value => new ReviewPolicyId(value)).ValueGeneratedNever();
+            policy.Property(p => p.RecordType).HasMaxLength(60);
+            policy.Property(p => p.EscalateTo).HasMaxLength(40);
+            policy.Property(p => p.PublishedBy).HasMaxLength(200);
+            policy.Property(p => p.FourEyesHours).HasPrecision(4, 1);
+            policy.Property(p => p.FourEyesShare).HasPrecision(3, 2);
+            // One row per version and record type: two administrators publishing at once, one wins.
+            policy.HasIndex(p => new { p.TenantId, p.RecordType, p.Version }).IsUnique();
         });
 
         modelBuilder.Entity<ReviewBatch>(batch =>
