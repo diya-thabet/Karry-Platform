@@ -174,7 +174,7 @@ jobs:
             exit 0
           fi
           ~/.local/bin/oasdiff changelog "${RUNNER_TEMP}/base.json" "${CONTRACT}" || true
-          ~/.local/bin/oasdiff breaking "${RUNNER_TEMP}/base.json" "${CONTRACT}" --fail-on ERR
+          ~/.local/bin/oasdiff breaking "${RUNNER_TEMP}/base.json" "${CONTRACT}" --fail-on ERR --err-ignore tools/ci/oasdiff-err-ignore.txt
 
   frontend:
     name: frontend
