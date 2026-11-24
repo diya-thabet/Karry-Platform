@@ -92,6 +92,38 @@ public sealed class ReviewPoliciesTests(VerificationHost host) : IClassFixture<V
         (second.GetProperty("dueAt").GetDateTimeOffset() - second.GetProperty("createdAt").GetDateTimeOffset()).Should().Be(TimeSpan.FromHours(4));
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-VER-06")]
+    [Trait("TestCase", "TC-P2-VER-005")]
+    public async Task An_entry_waiting_past_its_due_time_escalates_once_to_the_policys_role_and_a_decided_one_does_not()
+    {
+        var tenant = await ProvisionAsync();
+        (await PublishAsync(tenant, Terms(slaHours: 2, escalateTo: "executive"))).Dispose();
+        var waiting = await SubmitAsync(tenant, []);
+        var decided = await SubmitAsync(tenant, []);
+        var decidedItem = (await ItemsAsync(tenant)).Single(i => i.GetProperty("recordId").GetGuid() == decided);
+        using (var approve = new HttpRequestMessage(HttpMethod.Post, $"/api/v1/verification/items/{decidedItem.GetProperty("id").GetGuid()}/approve"))
+        {
+            approve.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant(tenant, "admin-1"));
+            (await host.Client.SendAsync(approve, Ct)).StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        var escalate = host.Services.GetRequiredService<Application.EscalateOverdueReviews>();
+        var early = await escalate.RunAtAsync(DateTimeOffset.UtcNow.AddHours(1), Ct);
+        var due = await escalate.RunAtAsync(DateTimeOffset.UtcNow.AddHours(3), Ct);
+        var again = await escalate.RunAtAsync(DateTimeOffset.UtcNow.AddHours(4), Ct);
+
+        early.Escalated.Should().Be(0, "not due yet");
+        due.Escalated.Should().BeGreaterThanOrEqualTo(1);
+        again.FailedTenants.Should().Be(0);
+        var items = await ItemsAsync(tenant);
+        items.Single(i => i.GetProperty("recordId").GetGuid() == waiting).GetProperty("escalatedAt").ValueKind.Should().NotBe(JsonValueKind.Null);
+        items.Single(i => i.GetProperty("recordId").GetGuid() == decided).GetProperty("escalatedAt").ValueKind.Should().Be(JsonValueKind.Null);
+        (await ListAsync(tenant, "/api/v1/verification/items?overdue=true")).Select(i => i.GetProperty("recordId").GetGuid()).Should().Equal(waiting);
+        (await RowsAsync($"SELECT (payload::jsonb->>'escalateTo') || '|' || (payload::jsonb->>'policyVersion') FROM audit.ledger_entries WHERE tenant_id = '{tenant}' "
+            + "AND event_type = 'verification.review_item_escalated.v1'")).Should().Equal(["executive|1"], "escalated once, to the role of the policy it started under");
+    }
+
     private static string Status(List<JsonElement> items, Guid record) =>
         items.Single(i => i.GetProperty("recordId").GetGuid() == record).GetProperty("status").GetString()!;
 

@@ -8183,6 +8183,13 @@
               ],
               "format": "int32"
             }
+          },
+          {
+            "name": "overdue",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -13114,7 +13121,8 @@
           "version",
           "correctedBy",
           "policyVersion",
-          "dueAt"
+          "dueAt",
+          "escalatedAt"
         ],
         "type": "object",
         "properties": {
@@ -13198,6 +13206,13 @@
           },
           "dueAt": {
             "type": "string",
+            "format": "date-time"
+          },
+          "escalatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
             "format": "date-time"
           }
         },

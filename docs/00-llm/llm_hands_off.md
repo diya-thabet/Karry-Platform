@@ -362,7 +362,8 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 - **Slice 3 merged (#230). Slice 4 (in review):** corrections as FieldOps versions without envelope (`corrected_by`, `correction_reason`), flags re-evaluated, material beyond 2 h / 5 % of Δ waits for `verification.items.second-approve` (never the corrector).
 - **Slice 4 merged (#231). Slice 5 (in review):** review policies (append-only versions, pinned per item with `dueAt`), auto-approval by `policy:<version>` naming the publisher, corrections judged on the item's thresholds.
 - **Slice 5 merged (#232). Slice 5b (in review):** Settings › Review policies (form checked like the API, history, step-up).
-- **Next:** slice 6 (SLA escalation job in Workers).
+- **Slice 5b merged (#233). Slice 6 (in review):** `ReviewEscalationJob` every 5 min, escalation once per item to its policy's role, `?overdue=true`.
+- **Next:** slice 7 (continuity exceptions settled with a reason, RULE-FO-11), then 8 (close-out).
 
 ### 2026-11-20 — P2.7 slice 7a: portal flag list (agent)
 - **Done:** slice 6 merged (#217), main green. Slice 7a (in review): Machines › Integrity flags (`/assets/integrity`, `integrity.flags.read`): status, site and rule filters, cursor paging (50), each flag in words from its `details` (`flagExplanation`, fallback to the rule's description), severity chip, evidence count, close reason; 32 keys in five languages (N'Ko generated). **Bug found:** duplicate OpenAPI schema names (`FlagResponse`, `ShiftResponse`, `LocationResponse`) gave the client the wrong shapes; integrity and FieldOps records renamed (wire JSON unchanged), architecture rule `ApiSchemaNamesAreUnique` added.

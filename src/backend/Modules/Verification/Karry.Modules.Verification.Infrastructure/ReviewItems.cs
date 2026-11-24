@@ -74,6 +74,13 @@ internal sealed class ReviewItemStore(VerificationDbContext db) : IReviewItemSto
 
     public Task CommitAsync(CancellationToken cancellationToken) => db.Database.CommitTransactionAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<ReviewItem>> OverdueAsync(DateTimeOffset now, int take, CancellationToken cancellationToken)
+    {
+        string[] waiting = [ReviewStatuses.Pending, ReviewStatuses.AwaitingSecond];
+        return await db.Items.Where(i => waiting.Contains(i.Status) && i.EscalatedAt == null && i.DueAt <= now)
+            .OrderBy(i => i.DueAt).Take(take).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
     {
         try
@@ -148,6 +155,11 @@ internal sealed class ReviewItemReader(VerificationDbContext db) : IReviewItemRe
             items = items.Where(i => i.RecordType == type);
         }
 
+        if (query.OverdueOnly)
+        {
+            items = items.Where(i => i.EscalatedAt != null);
+        }
+
         if (query.After is { } after)
         {
             var cursor = new ReviewItemId(after);
@@ -173,6 +185,7 @@ public static class VerificationInfrastructure
         services.AddScoped<ISyncSource, ReviewOutcomesSync>();
         services.AddScoped<IReviewPolicyStore, ReviewPolicyStore>();
         services.AddScoped<ReviewPolicies>();
+        services.AddSingleton<EscalateOverdueReviews>();
         return services;
     }
 }

@@ -26,6 +26,9 @@ public interface IReviewItemStore
 
     Task CommitAsync(CancellationToken cancellationToken);
 
+    /// <summary>Items waiting for a decision whose due time has passed by <paramref name="now"/> and not yet escalated, oldest first.</summary>
+    Task<IReadOnlyList<ReviewItem>> OverdueAsync(DateTimeOffset now, int take, CancellationToken cancellationToken);
+
     /// <summary>False when someone else decided on the item first (its version moved): nothing is saved.</summary>
     Task<bool> TrySaveAsync(CancellationToken cancellationToken);
 }
