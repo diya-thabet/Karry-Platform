@@ -35,6 +35,8 @@ public sealed class IntegrityDbContext(DbContextOptions<IntegrityDbContext> opti
             {
                 t.HasCheckConstraint("ck_flags_severity", "severity IN ('low', 'medium', 'high', 'critical')");
                 t.HasCheckConstraint("ck_flags_closed", "(closed_at IS NULL) = (close_reason IS NULL)");
+                t.HasCheckConstraint("ck_flags_settlement",
+                    "(settlement_reason IS NULL) = (settlement_proposed_at IS NULL) AND (settlement_reason IS NULL) = (settlement_comment IS NULL)");
             });
             flag.HasKey(f => f.Id);
             flag.Ignore(f => f.DomainEvents);
@@ -46,12 +48,18 @@ public sealed class IntegrityDbContext(DbContextOptions<IntegrityDbContext> opti
             flag.Property(f => f.Key).HasMaxLength(100);
             flag.Property(f => f.CloseReason).HasMaxLength(100);
             flag.Property(f => f.ClosedBy).HasMaxLength(200);
+            flag.Property(f => f.SettlementReason).HasMaxLength(40);
+            flag.Property(f => f.SettlementComment).HasMaxLength(SettlementErrors.CommentMax);
+            flag.Property(f => f.SettlementProposedBy).HasMaxLength(200);
+            flag.Property(f => f.Version).IsRecordVersion();
             flag.Property(f => f.Related).HasColumnType("jsonb").HasConversion(Json<IReadOnlyList<SubjectRef>>.Converter, Json<IReadOnlyList<SubjectRef>>.Comparer);
             flag.Property(f => f.Evidence).HasColumnType("jsonb").HasConversion(Json<IReadOnlyList<string>>.Converter, Json<IReadOnlyList<string>>.Comparer);
             flag.Property(f => f.Details).HasColumnType("jsonb").HasConversion(Json<IReadOnlyDictionary<string, string>>.Converter, Json<IReadOnlyDictionary<string, string>>.Comparer);
             // One open flag per subject, rule and key; closed ones accumulate.
             flag.HasIndex(f => new { f.TenantId, f.SubjectType, f.SubjectId, f.Rule, f.Key }).IsUnique().HasFilter("closed_at IS NULL");
             flag.HasIndex(f => new { f.TenantId, f.SiteId, f.OpenedAt });
+            // The 48 h run's search: open continuity gaps with no RULE-FO-11 yet (ADR-0037 §7).
+            flag.HasIndex(f => new { f.TenantId, f.Rule, f.OpenedAt }).HasFilter("closed_at IS NULL AND fraud_suspected_at IS NULL");
         });
 
         modelBuilder.Entity<RuleSetting>(setting =>

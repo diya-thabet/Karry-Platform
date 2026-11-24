@@ -45,6 +45,15 @@ export function thresholdText(text: string, threshold: RuleThreshold): string | 
   return number >= Number(threshold.min) && number <= Number(threshold.max) ? value : null;
 }
 
+/** Why a flag closed, in words: no longer found by a new check, or settled by a person with a reason (ADR-0037 §7). */
+export function closeReason(t: TFunction, reason: string): string {
+  if (reason === "re-evaluated") {
+    return t("portal.integrity.flags.reevaluated");
+  }
+
+  return reason.startsWith("settled:") ? t("portal.integrity.flags.settled", { reason: reason.slice("settled:".length) }) : reason;
+}
+
 /** The values each rule's explanation names (the details the server keeps on the flag, ADR-0036 §2). */
 const explained: Record<string, readonly string[]> = {
   "RULE-FO-01": ["meterKind", "expectedValue", "foundValue", "difference"],
@@ -56,6 +65,7 @@ const explained: Record<string, readonly string[]> = {
   "RULE-FO-07": ["type"],
   "RULE-FO-09": ["part", "reason"],
   "RULE-FO-10": ["validMinutes"],
+  "RULE-FO-11": ["cause"],
 };
 
 /**
@@ -93,6 +103,8 @@ export function flagExplanation(t: TFunction, flag: IntegrityFlag): string {
       return t("portal.integrity.flag.RULE-FO-09", { part, reason: d.reason ?? "", deactivatedAt: new Date(d.deactivatedAt ?? 0) });
     case "RULE-FO-10":
       return t("portal.integrity.flag.RULE-FO-10", { minutes: n("validMinutes") });
+    case "RULE-FO-11":
+      return t("portal.integrity.flag.RULE-FO-11", { cause: d.cause ?? "" });
     default:
       return t("portal.integrity.flag.RULE-FO-07", { type: d.type ?? "" });
   }

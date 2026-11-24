@@ -5,7 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, integrityFlag, site } from "../testing/fakeApi";
-import { flagExplanation, type IntegrityFlag } from "./api";
+import { closeReason, flagExplanation, type IntegrityFlag } from "./api";
 
 const controller = ["integrity.flags.read", "assets.registry.read", "organization.sites.read"];
 const admin = [...controller, "integrity.rules.manage"];
@@ -131,10 +131,22 @@ describe("what a flag found, in words (US-P2-INT-01 AC2)", () => {
       "The end was signed by a person deactivated on Nov 20, 2026."],
     [{ rule: "RULE-FO-10", details: { part: "start", assetType: "excavator", templateVersion: "2", validMinutes: "60" } },
       "The machine was started without the operator's pre-start checklist of the last 60 min, which its type requires."],
+    [{ rule: "RULE-FO-11", details: { cause: "unexplained", gapOpenedAt: "2026-11-19T06:00:00Z" } }, "A continuity gap on this meter was settled as unexplained."],
+    [{ rule: "RULE-FO-11", details: { cause: "unsettled_48h" } }, "A continuity gap on this meter was left unsettled for more than 48 hours."],
     [{ rule: "RULE-FO-02", details: { meterKind: "hours" } },
       "The meter does not go back, and an hour meter does not run longer than the shift plus the allowed margin."],
   ])("%j", async (flag, words) => {
     expect(await explain(flag)).toBe(words);
+  });
+
+  it.each([
+    ["re-evaluated", "No longer holds after a new check"],
+    ["settled:meter_replaced", "Settled: meter replaced"],
+    ["settled:unexplained", "Settled: unexplained"],
+    ["settled:something_new", "Settled: another reason"],
+  ])("says why a flag closed: %s", async (reason, words) => {
+    const i18n = await createI18n({ language: "en", pseudo: false });
+    expect(closeReason(i18n.t.bind(i18n), reason)).toBe(words);
   });
 
   it("formats the values the way the reader writes numbers", async () => {

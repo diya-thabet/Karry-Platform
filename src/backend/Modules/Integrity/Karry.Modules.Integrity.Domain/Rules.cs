@@ -37,6 +37,7 @@ public static class RuleCatalog
         new("RULE-FO-07", "critical", true, []),
         new("RULE-FO-09", "critical", true, []),
         new("RULE-FO-10", "high", true, []),
+        new("RULE-FO-11", "critical", true, []),
     ];
 
     public static RuleDefinition? Find(string rule) => All.SingleOrDefault(r => string.Equals(r.Code, rule, StringComparison.Ordinal));

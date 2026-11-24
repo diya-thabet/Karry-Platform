@@ -6,11 +6,11 @@ import { Button, DataTable, EmptyState, ErrorState, PageHeader, SelectField, Sta
 import { useAccess, useApi } from "../app/api";
 import { useSiteNames } from "../assets/api";
 import { Trail } from "../shell/Trail";
-import { FlagsReadPermission, flagExplanation, flagsKey, RulesManagePermission, severityStatus, type IntegrityFlag } from "./api";
+import { closeReason, FlagsReadPermission, flagExplanation, flagsKey, RulesManagePermission, severityStatus, type IntegrityFlag } from "./api";
 
 const statuses = ["open", "closed", "all"] as const;
 type FlagStatus = (typeof statuses)[number];
-const rules = ["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-09", "RULE-FO-10"] as const;
+const rules = ["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-09", "RULE-FO-10", "RULE-FO-11"] as const;
 const subjects = ["shift_entry", "meter", "sync_command"] as const;
 const any = "any";
 const pageSize = 50;
@@ -119,7 +119,7 @@ export function FlagsPage() {
                       <StatusChip status="ok">{t("portal.integrity.flags.closedAt", { at: new Date(flag.closedAt) })}</StatusChip>
                       {flag.closeReason && (
                         <span className="text-sm text-text-muted">
-                          {flag.closeReason === "re-evaluated" ? t("portal.integrity.flags.reevaluated") : flag.closeReason}
+                          {closeReason(t, flag.closeReason)}
                         </span>
                       )}
                     </span>

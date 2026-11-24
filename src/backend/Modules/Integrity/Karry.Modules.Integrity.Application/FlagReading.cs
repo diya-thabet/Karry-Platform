@@ -9,8 +9,14 @@ namespace Karry.Modules.Integrity.Application;
 /// <summary>Integrity permissions (ADR-0036). Site-scoped: a site role reads the flags of its sites only.</summary>
 public static class IntegrityPermissions
 {
-    /// <summary>Read the integrity flags of the caller's sites (P2.7; settling them is P2.8's controller console).</summary>
+    /// <summary>Read the integrity flags of the caller's sites (P2.7).</summary>
     public const string FlagsRead = "integrity.flags.read";
+
+    /// <summary>
+    /// Settle a continuity gap of the caller's sites with a reason, or approve or decline another person's settlement
+    /// (US-P2-FO-08, ADR-0037 §7). Settling closes a fraud signal, so it takes a second factor and a recent sign-in.
+    /// </summary>
+    public const string FlagsSettle = "integrity.flags.settle";
 
     /// <summary>
     /// Switch the company's non-security rules on or off and set their thresholds (ADR-0036 §1): it decides what gets
@@ -22,6 +28,7 @@ public static class IntegrityPermissions
     [
         new(FlagsRead, ScopeKind.Site, privileged: false,
             Roles.TenantAdmin, Roles.Executive, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner),
+        new(FlagsSettle, ScopeKind.Site, privileged: true, Roles.TenantAdmin, Roles.Controller, Roles.SiteManager),
         new(RulesManage, ScopeKind.Tenant, privileged: true, Roles.TenantAdmin),
     ];
 }
