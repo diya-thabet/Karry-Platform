@@ -109,6 +109,17 @@ refreshes the queue, without the error dialog; the other refusals (separation of
 take) show their words from `errors.verification.*`. Zooming a photo is not built: 160 px with the value beside it
 reads a meter; the usability test (slice 8) decides whether a zoom is needed.
 
+As built (slice 5): the keys are read by one pure function (`shortcutOf`): A, R, C, J, K and ? in either case;
+nothing with Ctrl, Alt or Cmd, nothing from a text field, a list or an editable area, nothing while a dialog or the
+review panel is open (TC-P2-VER-011). J and K move a highlighted row (the table's selected row) and stop at the ends
+of the page; the browser's focus follows, so Enter opens it and a screen reader reads it. A approves the highlighted
+entry when it is pending (flagged too: one by one is allowed); R and C open its panel on the rejection or the
+correction. Entries without a flag carry a checkbox; "Choose every entry without a flag" and "Approve N entries"
+send one bulk approval (all or nothing, each at its version). On a touch screen, `DataTable.onSwipe` reports a
+mostly horizontal swipe of 80 px or more toward the end or the start of the reading direction (mirrored in Arabic and
+N'Ko): toward the end approves an entry without a flag, toward the start opens it. Swipe never approves a flagged
+entry, so a stray gesture cannot pass one that needs a look.
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the

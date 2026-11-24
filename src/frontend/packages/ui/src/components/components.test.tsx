@@ -208,6 +208,25 @@ describe("DataTable", () => {
     expect(within(table).getByText("EX-01").closest("tr")).toHaveAttribute("aria-selected", "true");
   });
 
+  it("reports a finger's sideways swipe on a row, toward the end or the start, and nothing else", () => {
+    const swiped = vi.fn();
+    render(<DataTable caption="Machines" columns={[{ key: "n", header: "Name", cell: (r) => r.name }]} rows={rows} rowKey={(r) => r.id} onSwipe={swiped} empty={null} />);
+    const row = within(screen.getByRole("table", { name: "Machines" })).getByText("DT-07").closest("tr");
+    if (!row) throw new Error("row not rendered");
+    const swipe = (pointerType: string, from: [number, number], to: [number, number]) => {
+      fireEvent.pointerDown(row, { pointerType, clientX: from[0], clientY: from[1] });
+      fireEvent.pointerUp(row, { pointerType, clientX: to[0], clientY: to[1] });
+    };
+
+    swipe("touch", [10, 10], [130, 20]);
+    swipe("touch", [200, 10], [60, 5]);
+    swipe("touch", [10, 10], [50, 10]);
+    swipe("touch", [10, 10], [100, 200]);
+    swipe("mouse", [10, 10], [200, 10]);
+
+    expect(swiped.mock.calls).toEqual([[rows[1], "end"], [rows[1], "start"]]);
+  });
+
   it("shows the empty state instead of an empty table", () => {
     render(<DataTable caption="Machines" columns={[]} rows={[]} rowKey={() => ""} empty={<EmptyState title="No machines" />} />);
 

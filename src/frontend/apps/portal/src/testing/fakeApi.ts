@@ -414,6 +414,24 @@ export function fakeApi(options: {
       return json(200, { entry, versions: [entry], previousOnMeter: previous });
     }
 
+    if (request.method === "POST" && url.pathname === "/api/v1/verification/items/approve") {
+      // Bulk approval, all or nothing: every item at the version the reviewer saw (ADR-0037 §2).
+      const wanted = ((body as { items?: { id: string; version: string }[] } | null)?.items ?? []);
+      decisions.push({ action: "approve-many", ifMatch: null, body });
+      if (wanted.some((w) => reviewItems.find((i) => i.id === w.id)?.version !== w.version)) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const approved = wanted.map((w) => {
+        const index = reviewItems.findIndex((i) => i.id === w.id);
+        const found = reviewItems[index];
+        const decided = { ...(found ?? reviewItem()), status: "approved", version: nextVersion(found?.version ?? '"1"') };
+        reviewItems[index] = decided;
+        return decided;
+      });
+      return json(200, { batchId: "0192f0c1-0000-7000-8000-00000000eb01", items: approved });
+    }
+
     const decisionMatch = /^\/api\/v1\/verification\/items\/([^/]+)\/(approve|reject|correct|second-approve)$/.exec(url.pathname);
     if (request.method === "POST" && decisionMatch) {
       // A decision on the version the reviewer saw (If-Match), else 409 (ADR-0037 §2).

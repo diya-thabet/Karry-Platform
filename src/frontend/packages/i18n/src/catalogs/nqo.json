@@ -1495,5 +1495,19 @@
   "errors.verification.reason_invalid": "ߞߎ߲ ߘߐ ߛߎߜ߭ߊ߲ߘߌ ߟߌߛߌ ߞߐߣߐ.",
   "errors.verification.field_not_correctable": "ߞߏ߲ߕߍߙߌ ߤߊߞߍߟߎ ߣߌ ߕߊ߯ ߤߊߞߍߟߎ ߘߐߙߐ߲ ߘߋ ߓߍ ߟߊߕߌߟߋ߲ ߦߊ߲.",
   "errors.verification.value_invalid": "ߤߊߞߍ ߘߐ ߕߍ ߛߋ ߞߊ ߞߍ ߣߌ߲ ߛߍߓߍ߲ߣߌ ߕߊ ߦߋ.",
-  "errors.verification.nothing_corrected": "ߤߊߞߍ ߓߏߟߏߣߐߓߌߟߊߟߋ߲ߥ ߘߋ ߘߏ߲: ߝߏߦߌ ߕߍ ߟߊߕߌߟߋ߲."
+  "errors.verification.nothing_corrected": "ߤߊߞߍ ߓߏߟߏߣߐߓߌߟߊߟߋ߲ߥ ߘߋ ߘߏ߲: ߝߏߦߌ ߕߍ ߟߊߕߌߟߋ߲.",
+  "portal.review.keys.title": "ߞߌߟߊߓߏߟߏ ߕߋߟߌߦߊߟߎ",
+  "portal.review.keys.description": "ߎ ߓߍ ߓߊ߯ߙߊ ߛߍߓߍ߲ߣߌ ߖߌߙߊߟߋ߲ ߞߊ߲߸ ߎ ߕߍ ߓߊ߯ߙߊ ߊߓߊߘߊ ߣߌ ߌ ߓߍ ߛߍߓߍ߲ߣߌ ߞߍ ߥߊߟߌߡߊ ߝߌߣߍߕߌߙߌ ߘߐ ߘߊߦߍߟߍߟߋ߲ ߘߏ߲.",
+  "portal.review.keys.next": "ߛߍߓߍ߲ߣߌ ߣߊߕߊ",
+  "portal.review.keys.previous": "ߛߍߓߍ߲ߣߌ ߕߍߡߍߣߋ߲",
+  "portal.review.keys.open": "ߛߍߓߍ߲ߣߌ ߘߊߦߍߟߍ",
+  "portal.review.keys.approve": "ߛߐ߲",
+  "portal.review.keys.reject": "ߓߊ߲",
+  "portal.review.keys.correct": "ߟߊߕߌߟߋ߲",
+  "portal.review.keys.help": "ߣߌ߲ ߕߋߟߌߦߊߟߎ ߖߌߙߊ",
+  "portal.review.selectHeader": "ߛߎߜ߭ߊ߲ߘߌ",
+  "portal.review.select": "{machine} ߞߊ ߛߍߓߍ߲ߣߌ ߛߎߜ߭ߊ߲ߘߌ",
+  "portal.review.selectAll": "ߛߍߓߍ߲ߣߌ ߓߍ߯ ߛߎߜ߭ߊ߲ߘߌ ߡߌ߲ߣߎ ߟߊߛߐߡߌߣߌ ߕߍ",
+  "portal.review.approveSelected": "{count, plural, =0 {ߛߍߓߍ߲ߣߌ ߛߎߜ߭ߊ߲ߘߌߟߋ߲ߟߎ ߛߐ߲} one {ߛߍߓߍ߲ߣߌ # ߛߐ߲} other {ߛߍߓߍ߲ߣߌ # ߛߐ߲}}",
+  "portal.review.approvedMany": "{count, plural, one {ߛߍߓߍ߲ߣߌ # ߛߐ߲ߣߊ} other {ߛߍߓߍ߲ߣߌ # ߛߐ߲ߣߊ}}"
 }

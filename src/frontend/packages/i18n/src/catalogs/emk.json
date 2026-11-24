@@ -1495,5 +1495,19 @@
   "errors.verification.reason_invalid": "Kun dɔ sugandi lisi kɔnɔ.",
   "errors.verification.field_not_correctable": "Kontɛri hakɛlu ni taa hakɛlu dɔrɔn de bɛ latilen yan.",
   "errors.verification.value_invalid": "Hakɛ dɔ tɛ se ka kɛ nin sɛbɛnni ta ye.",
-  "errors.verification.nothing_corrected": "Hakɛ bolonɔbilalenw de don: foyi tɛ latilen."
+  "errors.verification.nothing_corrected": "Hakɛ bolonɔbilalenw de don: foyi tɛ latilen.",
+  "portal.review.keys.title": "Kilabolo teliyalu",
+  "portal.review.keys.description": "U bɛ baara sɛbɛnni jiralen kan, u tɛ baara abada ni i bɛ sɛbɛnni kɛ walima finɛtiri dɔ dayɛlɛlen don.",
+  "portal.review.keys.next": "Sɛbɛnni nata",
+  "portal.review.keys.previous": "Sɛbɛnni tɛmɛnen",
+  "portal.review.keys.open": "Sɛbɛnni dayɛlɛ",
+  "portal.review.keys.approve": "Sɔn",
+  "portal.review.keys.reject": "Ban",
+  "portal.review.keys.correct": "Latilen",
+  "portal.review.keys.help": "Nin teliyalu jira",
+  "portal.review.selectHeader": "Sugandi",
+  "portal.review.select": "{machine} ka sɛbɛnni sugandi",
+  "portal.review.selectAll": "Sɛbɛnni bɛɛ sugandi minnu lasɔmini tɛ",
+  "portal.review.approveSelected": "{count, plural, =0 {Sɛbɛnni sugandilenlu sɔn} one {Sɛbɛnni # sɔn} other {Sɛbɛnni # sɔn}}",
+  "portal.review.approvedMany": "{count, plural, one {Sɛbɛnni # sɔnna} other {Sɛbɛnni # sɔnna}}"
 }

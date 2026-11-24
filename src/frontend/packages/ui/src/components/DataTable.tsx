@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import { useTranslation } from "@karry/i18n";
 import { Skeleton } from "./Skeleton";
 
@@ -16,6 +16,9 @@ export interface Column<T> {
  * that some browsers drop when a table is not displayed as one. While the rows load, skeleton rows keep the table's
  * shape (UX-12): the empty state is only for a list that is really empty.
  */
+/** How far a finger must travel sideways for a swipe (px). */
+const swipeDistance = 80;
+
 export function DataTable<T>(props: {
   caption: string;
   columns: Column<T>[];
@@ -26,8 +29,14 @@ export function DataTable<T>(props: {
   onSelect?: ((row: T) => void) | undefined;
   /** The first page of rows is on its way: skeleton rows instead of the empty state. */
   loading?: boolean | undefined;
+  /**
+   * A finger swiped a row sideways (touch only: at least 80 px, mostly horizontal): toward the end of the reading
+   * direction (right in English, left in Arabic) or toward its start.
+   */
+  onSwipe?: ((row: T, direction: "end" | "start") => void) | undefined;
 }) {
   const { t } = useTranslation();
+  const swipe = useRef<{ key: string; x: number; y: number } | null>(null);
   const loading = props.loading === true && props.rows.length === 0;
   if (props.rows.length === 0 && !loading) {
     return <>{props.empty}</>;
@@ -66,6 +75,16 @@ export function DataTable<T>(props: {
                 tabIndex={props.onSelect ? 0 : undefined}
                 onClick={props.onSelect ? () => { props.onSelect?.(row); } : undefined}
                 onKeyDown={props.onSelect ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onSelect?.(row); } } : undefined}
+                onPointerDown={props.onSwipe ? (event) => { if (event.pointerType === "touch") swipe.current = { key, x: event.clientX, y: event.clientY }; } : undefined}
+                onPointerUp={props.onSwipe ? (event) => {
+                  const start = swipe.current;
+                  swipe.current = null;
+                  if (start?.key !== key) return;
+                  const dx = event.clientX - start.x;
+                  if (Math.abs(dx) < swipeDistance || Math.abs(dx) < 2 * Math.abs(event.clientY - start.y)) return;
+                  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+                  props.onSwipe?.(row, (dx > 0) !== rtl ? "end" : "start");
+                } : undefined}
                 className={`border-t-[length:var(--karry-border-width)] border-divider transition-colors max-sm:block max-sm:rounded-xl max-sm:border-[length:var(--karry-border-width)] max-sm:bg-surface max-sm:px-4 max-sm:py-3 max-sm:shadow-[var(--karry-card-shadow)] ${props.onSelect ? "cursor-pointer hover:bg-surface-muted" : ""} ${selected ? "bg-primary-soft font-medium max-sm:bg-primary-soft" : ""}`}
               >
                 {props.columns.map((column) => (
