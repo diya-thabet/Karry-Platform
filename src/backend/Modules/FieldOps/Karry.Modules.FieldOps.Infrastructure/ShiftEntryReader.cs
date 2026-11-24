@@ -62,4 +62,11 @@ internal sealed class ShiftEntryReader(FieldOpsDbContext db) : IShiftEntryReader
 
     public async Task<IReadOnlyList<ShiftEntryVersion>> VersionsAsync(Guid rootId, CancellationToken cancellationToken) =>
         await db.ShiftEntries.AsNoTracking().Where(e => e.RootId == rootId).OrderBy(e => e.Version).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    // A correction changes values, never the start time: every version of an entry starts at the same instant.
+    public async Task<Guid?> PreviousOnMeterAsync(Guid meterId, DateTimeOffset before, Guid rootId, CancellationToken cancellationToken) =>
+        await db.ShiftEntries.AsNoTracking()
+            .Where(e => e.MeterId == meterId && e.StartedAt < before && e.RootId != rootId)
+            .OrderByDescending(e => e.StartedAt).ThenByDescending(e => e.RootId)
+            .Select(e => (Guid?)e.RootId).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false);
 }

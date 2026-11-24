@@ -31,6 +31,12 @@ public interface IEvidenceStore
 
     /// <summary>A pre-signed <c>PUT</c> for <paramref name="key"/>, only for content of this SHA-256 (base64) and type.</summary>
     PresignedPut PresignPut(string key, string sha256, string contentType, DateTimeOffset expiresAt);
+
+    /// <summary>
+    /// The object under <paramref name="key"/> and its type, or null when there is none: read by the server for a person
+    /// it checked (ADR-0038 §2); no URL to it ever leaves the server.
+    /// </summary>
+    Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken);
 }
 
 public static class EvidenceKeys
@@ -108,6 +114,8 @@ internal sealed class UnavailableEvidenceStore : IEvidenceStore
 
     public PresignedPut PresignPut(string key, string sha256, string contentType, DateTimeOffset expiresAt) => throw Unavailable();
 
+    public Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken) => throw Unavailable();
+
     private static InvalidOperationException Unavailable() => new($"{EvidenceStoreOptions.Section}:Bucket is not configured.");
 }
 
@@ -152,6 +160,23 @@ public sealed class S3EvidenceStore : IEvidenceStore, IDisposable
             catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 return (BlobHead?)null;
+            }
+        }, cancellationToken);
+
+    public Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken) =>
+        S3ObjectStore.CallAsync(async token =>
+        {
+            await EnsureBucketAsync(token).ConfigureAwait(false);
+            try
+            {
+                using var response = await client.GetObjectAsync(bucket, key, token).ConfigureAwait(false);
+                using var content = new MemoryStream();
+                await response.ResponseStream.CopyToAsync(content, token).ConfigureAwait(false);
+                return new StoredObject(content.ToArray(), response.Headers.ContentType);
+            }
+            catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return (StoredObject?)null;
             }
         }, cancellationToken);
 

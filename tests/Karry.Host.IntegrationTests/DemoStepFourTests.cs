@@ -5,7 +5,6 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Tenancy;
-using Karry.Modules.Trust.Contracts;
 using Karry.Testing;
 using Npgsql;
 
@@ -26,7 +25,7 @@ public sealed class DemoStepFourTests(SyncHost host) : IClassFixture<SyncHost>
     public async Task A_correction_beyond_the_threshold_is_approved_by_a_second_person_and_the_ledger_shows_the_diff()
     {
         var company = await host.CompanyAsync("demo4");
-        await SeedShiftsAsync(company);
+        await SignedEntries.SeedShiftsAsync(host, company);
         var approver = $"approver-{company.Slug}";
         await host.ExecuteAsync(
             """
@@ -41,14 +40,14 @@ public sealed class DemoStepFourTests(SyncHost host) : IClassFixture<SyncHost>
         {
             commands = new[]
             {
-                Command(tablet, 1, "fieldops.shift_entry.start.v1", 1, company.Operator, new JsonObject
+                SignedEntries.Command(tablet, 1, "fieldops.shift_entry.start.v1", 1, company.Operator, new JsonObject
                 {
                     ["rootId"] = root.ToString(), ["version"] = 1, ["assetId"] = company.Excavator.ToString(), ["meterId"] = company.Meter.ToString(),
-                    ["startedAt"] = Instant(startedAt), ["startValue"] = "10.0", ["fuelStartPercent"] = 80, ["startPhoto"] = "sha256:" + new string('1', 64),
+                    ["startedAt"] = SignedEntries.Instant(startedAt), ["startValue"] = "10.0", ["fuelStartPercent"] = 80, ["startPhoto"] = "sha256:" + new string('1', 64),
                 }),
-                Command(tablet, 2, "fieldops.shift_entry.end.v1", 2, company.Operator, new JsonObject
+                SignedEntries.Command(tablet, 2, "fieldops.shift_entry.end.v1", 2, company.Operator, new JsonObject
                 {
-                    ["rootId"] = root.ToString(), ["version"] = 2, ["endedAt"] = Instant(startedAt.AddHours(8)), ["endValue"] = "18.0",
+                    ["rootId"] = root.ToString(), ["version"] = 2, ["endedAt"] = SignedEntries.Instant(startedAt.AddHours(8)), ["endValue"] = "18.0",
                     ["fuelEndPercent"] = 35, ["endPhoto"] = "sha256:" + new string('2', 64),
                 }),
             },
@@ -109,36 +108,5 @@ public sealed class DemoStepFourTests(SyncHost host) : IClassFixture<SyncHost>
         await using var command = new NpgsqlCommand(sql, connection);
         command.Parameters.AddWithValue(tenant);
         return (string)(await command.ExecuteScalarAsync(Ct))!;
-    }
-
-    /// <summary>Three eights on the north site from today, so the entry falls in a shift.</summary>
-    private async Task SeedShiftsAsync(Company company) =>
-        await host.ExecuteAsync(
-            """
-            INSERT INTO organization.shift_patterns (id, tenant_id, site_id, effective_from, shifts, created_at, changed_at)
-            VALUES (gen_random_uuid(), $1, $2, $3, '[{"Code":"M","Name":"Matin","Start":"06:00","End":"14:00","Days":["mon","tue","wed","thu","fri","sat","sun"]},
-              {"Code":"A","Name":"Après-midi","Start":"14:00","End":"22:00","Days":["mon","tue","wed","thu","fri","sat","sun"]},
-              {"Code":"N","Name":"Nuit","Start":"22:00","End":"06:00","Days":["mon","tue","wed","thu","fri","sat","sun"]}]', now(), now())
-            """, company.Id, company.North, DateOnly.FromDateTime(host.Clock.GetUtcNow().UtcDateTime).AddDays(-1));
-
-    private static string Instant(DateTimeOffset at) => at.UtcDateTime.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", CultureInfo.InvariantCulture);
-
-    /// <summary>A sync command whose payload is the record, its envelope and the tablet's signature over the envelope (ADR-0034 §5).</summary>
-    private static JsonObject Command(TestTablet tablet, int sequence, string type, int version, Guid signer, JsonObject record)
-    {
-        using var recordDocument = JsonDocument.Parse(record.ToJsonString());
-        var envelope = new JsonObject
-        {
-            ["v"] = 1,
-            ["envelopeId"] = Guid.CreateVersion7().ToString(),
-            ["recordType"] = "fieldops.shift_entry",
-            ["recordId"] = record["rootId"]!.GetValue<string>(),
-            ["recordVersion"] = version,
-            ["payloadHash"] = SignatureEnvelopes.PayloadHash(recordDocument.RootElement),
-            ["signer"] = new JsonObject { ["userId"] = signer.ToString(), ["role"] = "operator", ["deviceId"] = tablet.Id.ToString() },
-            ["context"] = new JsonObject { ["deviceTime"] = "2026-11-09T06:02:11.250+00:00", ["appVersion"] = "1.4.0" },
-        };
-        var signature = tablet.SignEnvelope(envelope);
-        return tablet.Command(sequence, new JsonObject { ["record"] = record, ["envelope"] = envelope, ["deviceSignature"] = signature }, type: type);
     }
 }

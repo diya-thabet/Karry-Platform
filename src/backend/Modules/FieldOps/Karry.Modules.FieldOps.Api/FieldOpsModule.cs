@@ -1,6 +1,7 @@
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Storage;
 using Karry.Modules.FieldOps.Application;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.FieldOps.Infrastructure;
@@ -36,6 +37,8 @@ public sealed class FieldOpsModule : IModule
         }
 
         services.AddFieldOpsInfrastructure(connectionString);
+        // The entries' photos are read for the portal (ADR-0038 §2); the same store as Sync's, registered once.
+        services.AddEvidenceStore(configuration);
     }
 
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
@@ -49,6 +52,13 @@ public sealed class FieldOpsModule : IModule
             .RequirePermission(FieldOpsPermissions.EntriesRead)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetShiftEntry");
+
+        endpoints.MapGet("/entries/{entryId:guid}/photos/{sha256}", GetEntryPhotoAsync)
+            .RequirePermission(FieldOpsPermissions.EntriesRead)
+            .Produces(StatusCodes.Status200OK, contentType: "image/webp")
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .ProducesProblem(StatusCodes.Status422UnprocessableEntity)
+            .WithName("GetShiftEntryPhoto");
 
         endpoints.MapGet("/checklists", ListChecklistsAsync)
             .RequirePermission(FieldOpsPermissions.ChecklistsRead)
@@ -127,18 +137,48 @@ public sealed class FieldOpsModule : IModule
     private static async Task<Results<Ok<ShiftEntryDetailResponse>, ProblemHttpResult>> GetEntryAsync(
         Guid entryId, [FromServices] EntryReading entries, CancellationToken cancellationToken)
     {
-        var result = await entries.GetAsync(entryId, cancellationToken).ConfigureAwait(false);
+        var result = await entries.DetailAsync(entryId, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess
-            ? TypedResults.Ok(new ShiftEntryDetailResponse(ShiftEntryResponse.From(result.Value[^1]), [.. result.Value.Select(ShiftEntryResponse.From)]))
+            ? TypedResults.Ok(new ShiftEntryDetailResponse(ShiftEntryResponse.From(result.Value.Versions[^1]), [.. result.Value.Versions.Select(ShiftEntryResponse.From)])
+            {
+                PreviousOnMeter = result.Value.PreviousOnMeter is { } previous ? ShiftEntryResponse.From(previous) : null,
+            })
             : result.Error.ToProblem();
+    }
+
+    /// <summary>
+    /// A photo the entry names (its start or end photo; <c>sha256</c> with or without the <c>sha256:</c> prefix), for a
+    /// person who sees the entry (ADR-0038 §2). The portal fetches it with the person's token and shows it as a
+    /// <c>blob:</c> URL.
+    /// </summary>
+    private static async Task<IResult> GetEntryPhotoAsync(
+        Guid entryId, string sha256, HttpContext context, [FromServices] EntryReading entries, CancellationToken cancellationToken)
+    {
+        var result = await entries.PhotoAsync(entryId, sha256, cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        // An image only, as the meter photos of Assets: never sniffed into something else, private to the caller, never changes.
+        context.Response.Headers.CacheControl = "private, max-age=86400, immutable";
+        context.Response.Headers.ContentSecurityPolicy = "default-src 'none'";
+        context.Response.Headers.XContentTypeOptions = "nosniff";
+        return TypedResults.File(result.Value.Content, result.Value.ContentType);
     }
 }
 
 /// <summary>A page of shift entries (current versions), newest first; <c>nextCursor</c> asks for the next page.</summary>
 public sealed record ShiftEntryListResponse(IReadOnlyList<ShiftEntryResponse> Items, Guid? NextCursor);
 
-/// <summary>An entry as it stands (<c>entry</c>) and every version it went through, oldest first.</summary>
-public sealed record ShiftEntryDetailResponse(ShiftEntryResponse Entry, IReadOnlyList<ShiftEntryResponse> Versions);
+/// <summary>
+/// An entry as it stands (<c>entry</c>) and every version it went through, oldest first; <c>previousOnMeter</c> is the
+/// segment before it on the same meter as it stands, when the caller sees its site.
+/// </summary>
+public sealed record ShiftEntryDetailResponse(ShiftEntryResponse Entry, IReadOnlyList<ShiftEntryResponse> Versions)
+{
+    public ShiftEntryResponse? PreviousOnMeter { get; init; }
+}
 
 /// <summary>The shift an entry was resolved to when its start arrived (ADR-0034 §2).</summary>
 public sealed record EntryShiftResponse(DateOnly Date, string Code, DateTimeOffset StartsAt, DateTimeOffset EndsAt);

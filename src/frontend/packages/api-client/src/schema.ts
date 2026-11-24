@@ -1540,6 +1540,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/fieldops/entries/{entryId}/photos/{sha256}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetShiftEntryPhoto"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/fieldops/checklists": {
         parameters: {
             query?: never;
@@ -3113,10 +3129,14 @@ export interface components {
             reason: string;
             comment: null | string;
         };
-        /** @description An entry as it stands (`entry`) and every version it went through, oldest first. */
+        /**
+         * @description An entry as it stands (`entry`) and every version it went through, oldest first; `previousOnMeter` is the
+         *     segment before it on the same meter as it stands, when the caller sees its site.
+         */
         ShiftEntryDetailResponse: {
             entry: components["schemas"]["ShiftEntryResponse"];
             versions: components["schemas"]["ShiftEntryResponse"][];
+            previousOnMeter?: null | components["schemas"]["ShiftEntryResponse"];
         };
         /** @description A page of shift entries (current versions), newest first; `nextCursor` asks for the next page. */
         ShiftEntryListResponse: {
@@ -9473,6 +9493,45 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetShiftEntryPhoto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                entryId: string;
+                sha256: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Unprocessable Entity */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
