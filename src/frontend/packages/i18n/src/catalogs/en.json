@@ -1495,5 +1495,19 @@
   "errors.verification.reason_invalid": "Choose a reason from the list.",
   "errors.verification.field_not_correctable": "Only the meter values and the fuel levels are corrected here.",
   "errors.verification.value_invalid": "One of the values is not one this entry can take.",
-  "errors.verification.nothing_corrected": "The values are the ones already signed: nothing to correct."
+  "errors.verification.nothing_corrected": "The values are the ones already signed: nothing to correct.",
+  "portal.review.keys.title": "Keyboard shortcuts",
+  "portal.review.keys.description": "They work on the highlighted entry, never while you type or with a window open.",
+  "portal.review.keys.next": "Next entry",
+  "portal.review.keys.previous": "Previous entry",
+  "portal.review.keys.open": "Open the entry",
+  "portal.review.keys.approve": "Approve",
+  "portal.review.keys.reject": "Reject",
+  "portal.review.keys.correct": "Correct",
+  "portal.review.keys.help": "Show these shortcuts",
+  "portal.review.selectHeader": "Choose",
+  "portal.review.select": "Choose the entry of {machine}",
+  "portal.review.selectAll": "Choose every entry without a flag",
+  "portal.review.approveSelected": "{count, plural, =0 {Approve the chosen entries} one {Approve # entry} other {Approve # entries}}",
+  "portal.review.approvedMany": "{count, plural, one {# entry approved} other {# entries approved}}"
 }

@@ -1495,5 +1495,19 @@
   "errors.verification.reason_invalid": "اختر سببًا من القائمة.",
   "errors.verification.field_not_correctable": "لا تُصحَّح هنا إلا قيم العدّاد ومستويات الوقود.",
   "errors.verification.value_invalid": "إحدى القيم ليست ممكنة لهذا الإدخال.",
-  "errors.verification.nothing_corrected": "هذه هي القيم الموقّعة بالفعل: لا شيء للتصحيح."
+  "errors.verification.nothing_corrected": "هذه هي القيم الموقّعة بالفعل: لا شيء للتصحيح.",
+  "portal.review.keys.title": "اختصارات لوحة المفاتيح",
+  "portal.review.keys.description": "تعمل على الإدخال المحدّد، ولا تعمل أبدًا أثناء الكتابة أو مع نافذة مفتوحة.",
+  "portal.review.keys.next": "الإدخال التالي",
+  "portal.review.keys.previous": "الإدخال السابق",
+  "portal.review.keys.open": "فتح الإدخال",
+  "portal.review.keys.approve": "موافقة",
+  "portal.review.keys.reject": "رفض",
+  "portal.review.keys.correct": "تصحيح",
+  "portal.review.keys.help": "عرض هذه الاختصارات",
+  "portal.review.selectHeader": "اختيار",
+  "portal.review.select": "اختيار إدخال {machine}",
+  "portal.review.selectAll": "اختيار كل الإدخالات بلا تنبيه",
+  "portal.review.approveSelected": "{count, plural, =0 {الموافقة على الإدخالات المختارة} one {الموافقة على إدخال واحد} other {الموافقة على # إدخالات}}",
+  "portal.review.approvedMany": "{count, plural, one {تمت الموافقة على إدخال واحد} other {تمت الموافقة على # إدخالات}}"
 }

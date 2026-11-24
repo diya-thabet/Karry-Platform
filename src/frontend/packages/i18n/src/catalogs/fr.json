@@ -1495,5 +1495,19 @@
   "errors.verification.reason_invalid": "Choisissez un motif dans la liste.",
   "errors.verification.field_not_correctable": "Seuls les valeurs du compteur et les niveaux de carburant se corrigent ici.",
   "errors.verification.value_invalid": "Une des valeurs n’est pas possible pour cette saisie.",
-  "errors.verification.nothing_corrected": "Ce sont les valeurs déjà signées : rien à corriger."
+  "errors.verification.nothing_corrected": "Ce sont les valeurs déjà signées : rien à corriger.",
+  "portal.review.keys.title": "Raccourcis clavier",
+  "portal.review.keys.description": "Ils agissent sur la saisie en surbrillance, jamais pendant la frappe ni avec une fenêtre ouverte.",
+  "portal.review.keys.next": "Saisie suivante",
+  "portal.review.keys.previous": "Saisie précédente",
+  "portal.review.keys.open": "Ouvrir la saisie",
+  "portal.review.keys.approve": "Approuver",
+  "portal.review.keys.reject": "Refuser",
+  "portal.review.keys.correct": "Corriger",
+  "portal.review.keys.help": "Afficher ces raccourcis",
+  "portal.review.selectHeader": "Choisir",
+  "portal.review.select": "Choisir la saisie de {machine}",
+  "portal.review.selectAll": "Choisir toutes les saisies sans alerte",
+  "portal.review.approveSelected": "{count, plural, =0 {Approuver les saisies choisies} one {Approuver # saisie} other {Approuver # saisies}}",
+  "portal.review.approvedMany": "{count, plural, one {# saisie approuvée} other {# saisies approuvées}}"
 }

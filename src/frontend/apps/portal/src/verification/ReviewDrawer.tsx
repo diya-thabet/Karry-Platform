@@ -16,16 +16,16 @@ import { EntriesReadPermission, flagKey, queueKey, type QueueRow, type ShiftEntr
  * reject with a reason, correct (before → after, with a reason) or give the second approval. A decision the server
  * refuses for a change meanwhile (409) closes the panel and the queue shows the entry as it now is.
  */
-export function ReviewDrawer({ row, onClose }: { row: QueueRow | null; onClose: () => void }) {
+export function ReviewDrawer({ row, initial = null, onClose }: { row: QueueRow | null; initial?: "reject" | "correct" | null; onClose: () => void }) {
   const { t } = useTranslation();
   return (
     <Drawer open={row !== null} onOpenChange={(open) => { if (!open) onClose(); }} title={t("portal.review.detail.title")} closeLabel={t("common.close")}>
-      {row && <ReviewDetail key={row.item.id} row={row} onClose={onClose} />}
+      {row && <ReviewDetail key={row.item.id} row={row} initial={initial} onClose={onClose} />}
     </Drawer>
   );
 }
 
-function ReviewDetail({ row, onClose }: { row: QueueRow; onClose: () => void }) {
+function ReviewDetail({ row, initial, onClose }: { row: QueueRow; initial: "reject" | "correct" | null; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const api = useApi();
   const { can } = useAccess();
@@ -33,7 +33,8 @@ function ReviewDetail({ row, onClose }: { row: QueueRow; onClose: () => void }) 
   const queryClient = useQueryClient();
   const withStepUp = useWithStepUp();
   const { item } = row;
-  const [dialog, setDialog] = useState<"reject" | "correct" | null>(null);
+  // R and C in the queue open the panel straight on the rejection or the correction (ADR-0038 §4).
+  const [dialog, setDialog] = useState<"reject" | "correct" | null>(initial);
   const locale = intlLocale(i18n.language);
   const number = (value: number | string | null | undefined) =>
     (value === null || value === undefined ? "—" : new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(Number(value)));
