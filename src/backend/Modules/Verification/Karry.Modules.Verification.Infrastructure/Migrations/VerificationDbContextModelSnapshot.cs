@@ -176,7 +176,7 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
 
                     b.ToTable("review_actions", "verification", t =>
                         {
-                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject', 'correct', 'second_approve', 'auto_approve')");
+                            t.HasCheckConstraint("ck_review_actions_kind", "kind IN ('approve', 'reject', 'correct', 'second_approve', 'auto_approve', 'escalate')");
 
                             t.HasCheckConstraint("ck_review_actions_reason", "reason_code IS NULL OR reason_code IN ('wrong_reading', 'photo_unreadable', 'wrong_machine', 'wrong_shift', 'duplicate', 'other')");
                         });
@@ -253,6 +253,10 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                     b.Property<DateTimeOffset>("DueAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("due_at");
+
+                    b.Property<DateTimeOffset?>("EscalatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("escalated_at");
 
                     b.Property<string>("Flags")
                         .IsRequired()

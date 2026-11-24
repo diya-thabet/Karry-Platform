@@ -30,7 +30,7 @@ public static class VerificationPermissions
 }
 
 /// <summary>A checked search of review items; <c>Sites</c> null means every site of the company.</summary>
-public sealed record ReviewQuery(IReadOnlySet<Guid>? Sites, Guid? SiteId, IReadOnlyList<string> Statuses, string? RecordType, Guid? After, int Take);
+public sealed record ReviewQuery(IReadOnlySet<Guid>? Sites, Guid? SiteId, IReadOnlyList<string> Statuses, string? RecordType, Guid? After, int Take, bool OverdueOnly = false);
 
 /// <summary>Reads review items for the queue (RLS: the current company only).</summary>
 public interface IReviewItemReader
@@ -56,7 +56,8 @@ public sealed class ReviewReading(IReviewItemReader reader, ICallerAccess caller
     /// Items of the caller's sites: <c>status</c> pending (default: waiting for a decision, pending or awaiting a second
     /// approval), reviewed (decided) or all; by site and record type; <c>cursor</c> is the last item ID of the previous page.
     /// </summary>
-    public async Task<Result<ReviewPage>> SearchAsync(Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, CancellationToken cancellationToken)
+    public async Task<Result<ReviewPage>> SearchAsync(
+        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, CancellationToken cancellationToken, bool overdue = false)
     {
         var take = limit ?? DefaultLimit;
         if (take is < 1 or > MaxLimit)
@@ -78,7 +79,7 @@ public sealed class ReviewReading(IReviewItemReader reader, ICallerAccess caller
 
         var scope = caller.Current.ScopeOf(VerificationPermissions.ItemsRead);
         var found = await reader.SearchAsync(
-            new ReviewQuery(scope.TenantWide ? null : scope.Sites, siteId, statuses, recordType, cursor, take + 1), cancellationToken).ConfigureAwait(false);
+            new ReviewQuery(scope.TenantWide ? null : scope.Sites, siteId, statuses, recordType, cursor, take + 1, overdue), cancellationToken).ConfigureAwait(false);
         return found.Count > take ? new ReviewPage([.. found.Take(take)], found[take - 1].Id.Value) : new ReviewPage(found, null);
     }
 }

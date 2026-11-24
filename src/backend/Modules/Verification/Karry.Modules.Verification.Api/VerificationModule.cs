@@ -222,12 +222,13 @@ public sealed class VerificationModule : IModule
 
     /// <summary>
     /// Review items of the caller's sites, oldest first: <c>status</c> pending (default), reviewed or all; by site and
-    /// record type; <c>cursor</c> is the last item ID of the previous page.
+    /// record type; <c>overdue</c> only the items escalated for waiting past their due time; <c>cursor</c> is the last
+    /// item ID of the previous page.
     /// </summary>
     private static async Task<Results<Ok<ReviewItemListResponse>, ProblemHttpResult>> SearchItemsAsync(
-        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, [FromServices] ReviewReading items, CancellationToken cancellationToken)
+        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, bool? overdue, [FromServices] ReviewReading items, CancellationToken cancellationToken)
     {
-        var result = await items.SearchAsync(siteId, status, recordType, cursor, limit, cancellationToken).ConfigureAwait(false);
+        var result = await items.SearchAsync(siteId, status, recordType, cursor, limit, cancellationToken, overdue ?? false).ConfigureAwait(false);
         return result.IsSuccess
             ? TypedResults.Ok(new ReviewItemListResponse([.. result.Value.Items.Select(ReviewItemResponse.From)], result.Value.NextCursor))
             : result.Error.ToProblem();
@@ -278,12 +279,12 @@ public sealed record ReviewItemListResponse(IReadOnlyList<ReviewItemResponse> It
 public sealed record ReviewItemResponse(
     Guid Id, string RecordType, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, Guid ProducedBy, Guid? AssetId,
     DateTimeOffset CoveredFrom, DateTimeOffset? CoveredTo, IReadOnlyList<string> Flags, string Status, DateTimeOffset CreatedAt, string Version, string? CorrectedBy,
-    int PolicyVersion, DateTimeOffset DueAt)
+    int PolicyVersion, DateTimeOffset DueAt, DateTimeOffset? EscalatedAt)
 {
     public static ReviewItemResponse From(ReviewItem i)
     {
         ArgumentNullException.ThrowIfNull(i);
         return new(i.Id.Value, i.RecordType, i.RecordId, i.RecordVersion, i.RecordHash, i.SiteId, i.ProducedBy, i.AssetId, i.CoveredFrom, i.CoveredTo,
-            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version), i.CorrectedBy, i.PolicyVersion, i.DueAt);
+            i.Flags, i.Status, i.CreatedAt, RecordVersionHttp.ETag(i.Version), i.CorrectedBy, i.PolicyVersion, i.DueAt, i.EscalatedAt);
     }
 }

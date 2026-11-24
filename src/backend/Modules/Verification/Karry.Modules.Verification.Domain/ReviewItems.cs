@@ -48,8 +48,9 @@ public static class ReviewActionKinds
     public const string Correct = "correct";
     public const string SecondApprove = "second_approve";
     public const string AutoApprove = "auto_approve";
+    public const string Escalate = "escalate";
 
-    public static IReadOnlyList<string> All { get; } = [Approve, Reject, Correct, SecondApprove, AutoApprove];
+    public static IReadOnlyList<string> All { get; } = [Approve, Reject, Correct, SecondApprove, AutoApprove, Escalate];
 }
 
 /// <summary>Why an entry is rejected (US-P2-VER-03 AC1); the comment says the rest.</summary>
@@ -90,6 +91,14 @@ public sealed record CorrectionChange(string Field, string? Before, string? Afte
 [AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
 public sealed record ReviewItemAutoApproved(Guid ItemId, Guid RecordId, int RecordVersion, string RecordHash, Guid SiteId, int PolicyVersion, string? PolicyPublishedBy)
     : DomainEvent;
+
+/// <summary>
+/// An item still waiting after its due time (US-P2-VER-06 AC1, TC-P2-VER-005): escalated once to the policy's role, for
+/// the notifications of P2.10 and the console of P2.9.
+/// </summary>
+[EventType("verification.review_item_escalated.v1")]
+[AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
+public sealed record ReviewItemEscalated(Guid ItemId, Guid RecordId, int RecordVersion, Guid SiteId, DateTimeOffset DueAt, string EscalateTo, int PolicyVersion) : DomainEvent;
 
 [EventType("verification.review_item_second_approved.v1")]
 [AuditSubject("review_item", nameof(ItemId), Site = nameof(SiteId))]
@@ -188,6 +197,9 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
     /// <summary>When a decision is due (creation plus the policy's SLA); an item still waiting then escalates (slice 6).</summary>
     public DateTimeOffset DueAt { get; private set; }
 
+    /// <summary>When the item was escalated for waiting past <see cref="DueAt"/>, or null; it escalates once.</summary>
+    public DateTimeOffset? EscalatedAt { get; private set; }
+
     /// <summary>The row version (<c>xmin</c>, H-C1): two reviewers acting at once, one wins (TC-P2-VER-008).</summary>
     public uint Version { get; private set; }
 
@@ -239,6 +251,23 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
         Status = ReviewStatuses.Approved;
         Raise(new ReviewItemAutoApproved(Id.Value, RecordId, RecordVersion, RecordHash, SiteId, policy.Version, policy.PublishedBy) { OccurredAt = at });
         return Action(clock, ReviewActionKinds.AutoApprove, policy.Actor, null, null, at);
+    }
+
+    /// <summary>
+    /// Escalates an item still waiting for a decision after its due time (US-P2-VER-06 AC1), once; null when it is not
+    /// due, already decided or already escalated.
+    /// </summary>
+    public ReviewAction? Escalate(TimeProvider clock, DateTimeOffset now, string escalateTo)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (EscalatedAt is not null || now < DueAt || (Status != ReviewStatuses.Pending && Status != ReviewStatuses.AwaitingSecond))
+        {
+            return null;
+        }
+
+        EscalatedAt = now;
+        Raise(new ReviewItemEscalated(Id.Value, RecordId, RecordVersion, SiteId, DueAt, escalateTo, PolicyVersion) { OccurredAt = now });
+        return Action(clock, ReviewActionKinds.Escalate, "sla", null, escalateTo, now);
     }
 
     /// <summary>Approves a pending item (US-P2-VER-02); who may is the caller's business (permissions, separation of duties).</summary>

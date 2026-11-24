@@ -176,6 +176,14 @@ its date and publisher, a form (auto-approval, second approval beyond hours and 
 review within hours, escalation role) checked as the API checks it, and the history of published versions. Publishing
 asks the person to confirm their identity and applies from now; someone who reads the queue sees it read-only.
 
+As built (slice 6): `ReviewEscalationJob` (Workers, Quartz, every 5 minutes, one run at a time) runs
+`EscalateOverdueReviews` company by company (a failing company is logged, event 7302, and the others run): an item
+still pending or awaiting a second approval after its `dueAt` is escalated once, an `escalate` action by `sla` and
+`verification.review_item_escalated.v1` naming the role of the policy version it started under. The due time is an
+instant (creation plus the SLA hours), so the site's time zone does not change it; working hours are not counted (an
+owner question if wanted). The queue carries `escalatedAt` and filters `?overdue=true`; it keeps paging by creation
+order, so the console (P2.9) shows overdue items first through the filter rather than a re-sorted page.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of
