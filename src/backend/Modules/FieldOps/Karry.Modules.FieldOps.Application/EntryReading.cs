@@ -45,12 +45,19 @@ public static class FieldOpsPermissions
 /// </summary>
 public sealed record EntrySearch(
     Guid? SiteId = null, DateOnly? ShiftDate = null, string? ShiftCode = null, Guid? AssetId = null, Guid? OperatorId = null,
-    string? Status = null, bool? Flagged = null, Guid? Cursor = null, int? Limit = null);
+    string? Status = null, bool? Flagged = null, Guid? Cursor = null, int? Limit = null)
+{
+    /// <summary>Only these entries (root IDs, at most <see cref="EntryReading.MaxLimit"/>): the review queue's page at once (ADR-0038).</summary>
+    public IReadOnlyList<Guid>? Ids { get; init; }
+}
 
 /// <summary>A checked search for the reader; <c>Sites</c> null means every site of the company.</summary>
 public sealed record EntryQuery(
     IReadOnlySet<Guid>? Sites, Guid? SiteId, DateOnly? ShiftDate, string? ShiftCode, Guid? AssetId, Guid? OperatorId,
-    ShiftEntryStatus? Status, bool? Flagged, Guid? After, int Take);
+    ShiftEntryStatus? Status, bool? Flagged, Guid? After, int Take)
+{
+    public IReadOnlyList<Guid>? Ids { get; init; }
+}
 
 /// <summary>A page of entries (their current versions), newest first.</summary>
 public sealed record EntryPage(IReadOnlyList<ShiftEntryVersion> Items, Guid? NextCursor);
@@ -96,6 +103,8 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
 
     public static readonly Error StatusInvalid = Error.Validation("fieldops.status_invalid", "The status is open or closed.");
 
+    public static readonly Error IdsInvalid = Error.Validation("fieldops.ids_invalid", $"Ask for at most {MaxLimit} entries by ID.");
+
     public async Task<Result<EntryPage>> SearchAsync(EntrySearch search, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(search);
@@ -103,6 +112,11 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
         if (take is < 1 or > MaxLimit)
         {
             return LimitInvalid;
+        }
+
+        if (search.Ids is { Count: > MaxLimit })
+        {
+            return IdsInvalid;
         }
 
         ShiftEntryStatus? status = null;
@@ -119,7 +133,8 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
         var scope = caller.Current.ScopeOf(FieldOpsPermissions.EntriesRead);
         var found = await reader.SearchAsync(
             new EntryQuery(scope.TenantWide ? null : scope.Sites, search.SiteId, search.ShiftDate, search.ShiftCode, search.AssetId, search.OperatorId,
-                status, search.Flagged, search.Cursor, take + 1),
+                status, search.Flagged, search.Cursor, take + 1)
+            { Ids = search.Ids },
             cancellationToken).ConfigureAwait(false);
         return found.Count > take ? new EntryPage([.. found.Take(take)], found[take - 1].RootId) : new EntryPage(found, null);
     }

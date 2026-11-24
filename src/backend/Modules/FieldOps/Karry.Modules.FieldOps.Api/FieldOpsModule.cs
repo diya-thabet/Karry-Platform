@@ -125,10 +125,10 @@ public sealed class FieldOpsModule : IModule
     private static async Task<Results<Ok<ShiftEntryListResponse>, ProblemHttpResult>> SearchEntriesAsync(
         [FromServices] EntryReading entries, CancellationToken cancellationToken,
         Guid? siteId = null, DateOnly? shiftDate = null, string? shiftCode = null, Guid? assetId = null, Guid? operatorId = null,
-        string? status = null, bool? flagged = null, Guid? cursor = null, int? limit = null)
+        string? status = null, bool? flagged = null, Guid? cursor = null, int? limit = null, Guid[]? ids = null)
     {
         var result = await entries.SearchAsync(
-            new EntrySearch(siteId, shiftDate, shiftCode, assetId, operatorId, status, flagged, cursor, limit), cancellationToken).ConfigureAwait(false);
+            new EntrySearch(siteId, shiftDate, shiftCode, assetId, operatorId, status, flagged, cursor, limit) { Ids = ids is { Length: > 0 } ? ids : null }, cancellationToken).ConfigureAwait(false);
         return result.IsSuccess
             ? TypedResults.Ok(new ShiftEntryListResponse([.. result.Value.Items.Select(ShiftEntryResponse.From)], result.Value.NextCursor))
             : result.Error.ToProblem();

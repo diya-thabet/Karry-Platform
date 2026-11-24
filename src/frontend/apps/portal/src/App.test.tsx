@@ -28,7 +28,7 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
 
     expect(screen.getByText("Portail Karry")).toBeInTheDocument();
     const nav = screen.getByRole("navigation", { name: "Navigation principale" });
-    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Accueil", "Sites", "Engins", "Audit", "Paramètres"]);
+    expect(within(nav).getAllByRole("link").map((link) => link.textContent)).toEqual(["Accueil", "Sites", "Engins", "Contrôle", "Audit", "Paramètres"]);
     expect(within(nav).getByRole("link", { name: "Accueil" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("main")).toBeInTheDocument();
   });
@@ -54,7 +54,7 @@ describe("portal shell (US-P1-OFF-05/06, TC-P1-PLT-015)", () => {
 
     await vi.waitFor(() => { expect([document.documentElement.lang, document.documentElement.dir]).toEqual(["ar", "rtl"]); }); // the catalog loads first
     expect(within(screen.getByRole("navigation", { name: "التنقل الرئيسي" })).getAllByRole("link").map((link) => link.textContent))
-      .toEqual(["الرئيسية", "المواقع", "الآلات", "التدقيق", "الإعدادات"]);
+      .toEqual(["الرئيسية", "المواقع", "الآلات", "المراجعة", "التدقيق", "الإعدادات"]);
     expect(localStorage.getItem("karry.language")).toBe("ar");
     fireEvent.keyDown(screen.getByRole("button", { name: /^مسجّل الدخول باسم/ }), { key: "Enter" });
     expect(await screen.findByRole("menu")).toHaveAttribute("dir", "rtl"); // menus and selects follow the direction

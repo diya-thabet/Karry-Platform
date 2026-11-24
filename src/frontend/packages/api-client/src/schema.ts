@@ -9444,6 +9444,7 @@ export interface operations {
                 flagged?: boolean;
                 cursor?: string;
                 limit?: number | string;
+                ids?: string[];
             };
             header?: never;
             path?: never;

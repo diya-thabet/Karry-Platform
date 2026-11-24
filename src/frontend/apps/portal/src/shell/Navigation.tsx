@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Home, MapPinned, Settings, ShieldCheck, Truck, type LucideIcon } from "lucide-react";
+import { ClipboardCheck, Home, MapPinned, Settings, ShieldCheck, Truck, type LucideIcon } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { cn } from "@karry/ui";
 import { sections, type SectionKey } from "./sections";
@@ -8,6 +8,7 @@ const icons: Record<SectionKey, LucideIcon> = {
   "portal.nav.home": Home,
   "portal.nav.sites": MapPinned,
   "portal.nav.assets": Truck,
+  "portal.nav.review": ClipboardCheck,
   "portal.nav.audit": ShieldCheck,
   "portal.nav.settings": Settings,
 };

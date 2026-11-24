@@ -34,6 +34,8 @@ type Invoice = components["schemas"]["InvoiceResponse"];
 type Checklist = components["schemas"]["ChecklistResponse"];
 type PublishChecklist = components["schemas"]["PublishChecklist"];
 type Hold = components["schemas"]["HoldResponse"];
+type ReviewItem = components["schemas"]["ReviewItemResponse"];
+type ShiftEntry = components["schemas"]["ShiftEntryResponse"];
 
 export interface Sent {
   method: string;
@@ -100,6 +102,10 @@ export function fakeApi(options: {
   integrityFlags?: IntegrityFlag[];
   /** Safety holds, open or released (default: none). */
   holds?: Hold[];
+  /** Review items of `GET /verification/items`, in creation order (default: none); the fake sorts them by risk. */
+  reviewItems?: ReviewItem[];
+  /** Shift entries as they stand, for `GET /fieldops/entries?ids=` and their photos (default: none). */
+  entries?: ShiftEntry[];
   /** Every published checklist version, any machine type (default: none). */
   checklists?: Checklist[];
   /** Machines of `GET /assets` (default: none). */
@@ -150,6 +156,9 @@ export function fakeApi(options: {
   const assets: Asset[] = [...(options.assets ?? [])];
   const checklists: Checklist[] = [...(options.checklists ?? [])];
   const holds: Hold[] = [...(options.holds ?? [])];
+  const reviewItems: ReviewItem[] = [...(options.reviewItems ?? [])];
+  const entries: ShiftEntry[] = [...(options.entries ?? [])];
+  const queueCalls: { query: Record<string, string>; ifNoneMatch: string | null }[] = [];
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
@@ -348,6 +357,43 @@ export function fakeApi(options: {
       };
       policyVersions.push(published);
       return json(200, published);
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/verification/items") {
+      // The queue (ADR-0038 §1, §3): pending by default; by site, flag, overdue; by risk (overdue, flagged, oldest);
+      // an ETag of the page and a 304 when the caller already has it.
+      queueCalls.push({ query: Object.fromEntries(url.searchParams), ifNoneMatch: request.headers.get("If-None-Match") });
+      const site = url.searchParams.get("siteId");
+      const flag = url.searchParams.get("flag");
+      const overdue = url.searchParams.get("overdue") === "true";
+      const risk = (item: ReviewItem) => (item.escalatedAt ? 2 : item.flags.length > 0 ? 1 : 0);
+      const matching = reviewItems
+        .filter((item) => (item.status === "pending" || item.status === "awaiting_second") && (!site || item.siteId === site)
+          && (!flag || item.flags.includes(flag)) && (!overdue || item.escalatedAt !== null))
+        .map((item, index) => ({ item, index }))
+        .sort((a, b) => (url.searchParams.get("sort") === "risk" ? risk(b.item) - risk(a.item) : 0) || a.index - b.index)
+        .map(({ item }) => item)
+        .slice(0, Number(url.searchParams.get("limit") ?? "50"));
+      const tag = `"${String(matching.map((item) => `${item.id}.${item.version}`).join(";").length)}-${matching.map((item) => item.id.slice(-4)).join("")}"`;
+      if (request.headers.get("If-None-Match") === tag) {
+        return new Response(null, { status: 304, headers: { ETag: tag } });
+      }
+
+      return new Response(JSON.stringify({ items: matching, nextCursor: null }), { status: 200, headers: { "Content-Type": "application/json", ETag: tag } });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/fieldops/entries") {
+      const ids = url.searchParams.getAll("ids");
+      return json(200, { items: entries.filter((entry) => ids.length === 0 || ids.includes(entry.id)), nextCursor: null });
+    }
+
+    const photoMatch = /^\/api\/v1\/fieldops\/entries\/([^/]+)\/photos\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && photoMatch) {
+      const entry = entries.find((e) => e.id === photoMatch[1]);
+      const reference = `sha256:${photoMatch[2] ?? ""}`;
+      return entry && (entry.startPhoto === reference || entry.endPhoto === reference)
+        ? new Response(new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: "image/jpeg" }), { status: 200, headers: { "Content-Type": "image/jpeg" } })
+        : problem(404, "fieldops.photo_not_found");
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/integrity/flags") {
@@ -1029,6 +1075,15 @@ export function fakeApi(options: {
     auditCalls,
     /** Every path asked, in order (reads included). */
     requested,
+    /** Every ask of the review queue with its query and `If-None-Match`. */
+    queueCalls,
+    /** An entry ends on a tablet and syncs: its review item joins the queue. */
+    addReviewItem: (item: ReviewItem, entry?: ShiftEntry) => {
+      reviewItems.push(item);
+      if (entry) {
+        entries.push(entry);
+      }
+    },
     /** Every call with its `Karry-Support-Session` header (null without one). */
     supportCalls,
     /** The company ends a session (Settings › Support access): its next call is refused. */
@@ -1098,6 +1153,30 @@ export function fakeApi(options: {
     },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
+  };
+}
+
+/** A pending review item of a shift entry on the north site (default: unflagged, due tomorrow). */
+export function reviewItem(overrides: Partial<ReviewItem> = {}): ReviewItem {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000e001", recordType: "fieldops.shift_entry", recordId: "0192f0c1-0000-7000-8000-00000000e101", recordVersion: 2,
+    recordHash: `sha256:${"c".repeat(64)}`, siteId: "0192f0c1-0000-7000-8000-000000005001", producedBy: "0192f0c1-0000-7000-8000-000000000501",
+    assetId: "0192f0c1-0000-7000-8000-000000007001", coveredFrom: "2026-11-23T06:00:00Z", coveredTo: "2026-11-23T14:00:00Z", flags: [], status: "pending",
+    createdAt: "2026-11-23T14:05:00Z", version: '"1"', correctedBy: null, policyVersion: 0, dueAt: "2026-11-24T14:05:00Z", escalatedAt: null, ...overrides,
+  };
+}
+
+/** A shift entry as it stands: the excavator's hour meter from 1 242.5 to 1 250 h on the morning shift. */
+export function shiftEntry(overrides: Partial<ShiftEntry> = {}): ShiftEntry {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000e101", version: 2, status: "closed", siteId: "0192f0c1-0000-7000-8000-000000005001",
+    assetId: "0192f0c1-0000-7000-8000-000000007001", meterId: "0192f0c1-0000-7000-8000-00000000a201", meterKind: "hours", unit: "h",
+    operatorId: "0192f0c1-0000-7000-8000-000000000501", segmentNo: 1, previousEntryId: null,
+    shift: { date: "2026-11-23", code: "M", startsAt: "2026-11-23T06:00:00Z", endsAt: "2026-11-23T14:00:00Z" },
+    startedAt: "2026-11-23T06:02:00Z", startValue: 1242.5, fuelStartPercent: 80, startPhoto: `sha256:${"1".repeat(64)}`, startLocation: null,
+    endedAt: "2026-11-23T13:58:00Z", endValue: 1250, usage: 7.5, fuelEndPercent: 35, endPhoto: `sha256:${"2".repeat(64)}`, endLocation: null,
+    stoppages: [], remarks: null, estimated: false, flags: [], envelopeId: "0192f0c1-0000-7000-8000-00000000e201", deviceId: "0192f0c1-0000-7000-8000-00000000e301",
+    receivedAt: "2026-11-23T14:00:00Z", ...overrides,
   };
 }
 

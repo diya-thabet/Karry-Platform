@@ -71,6 +71,12 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
         (await Find("status=open")).Should().Equal(flagged, elsewhere, plain);
         (await Find("flagged=true")).Should().Equal(flagged);
         (await Find("flagged=false")).Should().Equal(night, elsewhere, plain);
+        (await Find($"ids={plain}&ids={night}")).Should().Equal(night, plain);
+        (await Json(await GetAsync($"/api/v1/fieldops/entries?ids={night}", Admin(tenant)))).GetProperty("items")[0].GetProperty("version").GetInt32()
+            .Should().Be(2, "by ID too, an entry as it stands");
+        var tooMany = await GetAsync("/api/v1/fieldops/entries?" + string.Join('&', Enumerable.Range(0, 201).Select(_ => $"ids={Guid.CreateVersion7()}")), Admin(tenant));
+        tooMany.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        (await Json(tooMany)).GetProperty("code").GetString().Should().Be("fieldops.ids_invalid");
     }
 
     [Fact]
