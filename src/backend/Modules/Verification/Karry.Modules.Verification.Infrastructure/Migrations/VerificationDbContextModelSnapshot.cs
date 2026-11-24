@@ -291,6 +291,10 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("record_version");
 
+                    b.Property<int>("Risk")
+                        .HasColumnType("integer")
+                        .HasColumnName("risk");
+
                     b.Property<Guid>("SiteId")
                         .HasColumnType("uuid")
                         .HasColumnName("site_id");
@@ -326,6 +330,9 @@ namespace Karry.Modules.Verification.Infrastructure.Migrations
 
                     b.HasIndex("TenantId", "SiteId", "Status", "CreatedAt")
                         .HasDatabaseName("ix_review_items_tenant_id_site_id_status_created_at");
+
+                    b.HasIndex("TenantId", "Status", "Risk", "Id")
+                        .HasDatabaseName("ix_review_items_tenant_id_status_risk_id");
 
                     b.ToTable("review_items", "verification", t =>
                         {

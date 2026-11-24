@@ -9998,8 +9998,16 @@ export interface operations {
                 cursor?: string;
                 limit?: number | string;
                 overdue?: boolean;
+                sort?: string;
+                assetId?: string;
+                producedBy?: string;
+                flag?: string;
+                coveredFrom?: string;
+                coveredBefore?: string;
             };
-            header?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10013,6 +10021,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ReviewItemListResponse"];
                 };
+            };
+            /** @description Not Modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

@@ -41,6 +41,17 @@ public readonly record struct ReviewActionId(Guid Value) : IEntityId<ReviewActio
 }
 
 /// <summary>What a reviewer did on an item (ADR-0037 §2).</summary>
+/// <summary>
+/// How urgently an item needs a look (ADR-0038 §1): escalated for waiting past its due time, then flagged by a rule, then
+/// the rest. The queue sorts by it, highest first, then oldest first.
+/// </summary>
+public static class ReviewRisk
+{
+    public const int None = 0;
+    public const int Flagged = 1;
+    public const int Overdue = 2;
+}
+
 public static class ReviewActionKinds
 {
     public const string Approve = "approve";
@@ -200,6 +211,9 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
     /// <summary>When the item was escalated for waiting past <see cref="DueAt"/>, or null; it escalates once.</summary>
     public DateTimeOffset? EscalatedAt { get; private set; }
 
+    /// <summary>The queue's risk order (ADR-0038 §1): <see cref="ReviewRisk"/>, highest first.</summary>
+    public int Risk { get; private set; }
+
     /// <summary>The row version (<c>xmin</c>, H-C1): two reviewers acting at once, one wins (TC-P2-VER-008).</summary>
     public uint Version { get; private set; }
 
@@ -226,6 +240,7 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
             CoveredFrom = coveredFrom,
             CoveredTo = coveredTo,
             Flags = [.. flags],
+            Risk = flags.Count > 0 ? ReviewRisk.Flagged : ReviewRisk.None,
             CreatedAt = at,
         };
         item.Raise(new ReviewItemCreated(item.Id.Value, recordType, recordId, recordVersion, recordHash, siteId) { OccurredAt = at });
@@ -266,6 +281,7 @@ public sealed class ReviewItem : AggregateRoot<ReviewItemId>, ITenantOwned
         }
 
         EscalatedAt = now;
+        Risk = ReviewRisk.Overdue;
         Raise(new ReviewItemEscalated(Id.Value, RecordId, RecordVersion, SiteId, DueAt, escalateTo, PolicyVersion) { OccurredAt = now });
         return Action(clock, ReviewActionKinds.Escalate, "sla", null, escalateTo, now);
     }

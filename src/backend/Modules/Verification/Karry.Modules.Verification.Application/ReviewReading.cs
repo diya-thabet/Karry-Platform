@@ -30,12 +30,59 @@ public static class VerificationPermissions
 }
 
 /// <summary>A checked search of review items; <c>Sites</c> null means every site of the company.</summary>
-public sealed record ReviewQuery(IReadOnlySet<Guid>? Sites, Guid? SiteId, IReadOnlyList<string> Statuses, string? RecordType, Guid? After, int Take, bool OverdueOnly = false);
+public sealed record ReviewQuery(IReadOnlySet<Guid>? Sites, Guid? SiteId, IReadOnlyList<string> Statuses, string? RecordType, Guid? After, int Take, bool OverdueOnly = false)
+{
+    /// <summary>Risk first (overdue, flagged, the rest), then oldest first; otherwise oldest first (ADR-0038 §1).</summary>
+    public bool ByRisk { get; init; }
+
+    public Guid? AssetId { get; init; }
+
+    public Guid? ProducedBy { get; init; }
+
+    /// <summary>Items carrying this flag code.</summary>
+    public string? Flag { get; init; }
+
+    /// <summary>Items whose covered time starts at or after this instant.</summary>
+    public DateTimeOffset? CoveredFrom { get; init; }
+
+    /// <summary>Items whose covered time starts before this instant.</summary>
+    public DateTimeOffset? CoveredBefore { get; init; }
+}
+
+/// <summary>What the queue is asked for (ADR-0038 §1): every field optional, checked by <see cref="ReviewReading"/>.</summary>
+public sealed record ReviewSearch
+{
+    public Guid? SiteId { get; init; }
+
+    /// <summary><c>pending</c> (default), <c>reviewed</c> or <c>all</c>.</summary>
+    public string? Status { get; init; }
+
+    public string? RecordType { get; init; }
+
+    public Guid? Cursor { get; init; }
+
+    public int? Limit { get; init; }
+
+    public bool Overdue { get; init; }
+
+    /// <summary><c>created</c> (default: oldest first) or <c>risk</c>.</summary>
+    public string? Sort { get; init; }
+
+    public Guid? AssetId { get; init; }
+
+    public Guid? ProducedBy { get; init; }
+
+    public string? Flag { get; init; }
+
+    public DateTimeOffset? CoveredFrom { get; init; }
+
+    public DateTimeOffset? CoveredBefore { get; init; }
+}
 
 /// <summary>Reads review items for the queue (RLS: the current company only).</summary>
 public interface IReviewItemReader
 {
-    /// <summary>Items matching the query, oldest first (UUIDv7 order): the longest-waiting entry comes first.</summary>
+    /// <summary>Items matching the query, oldest first (UUIDv7 order), or by risk then oldest first (<see cref="ReviewQuery.ByRisk"/>).</summary>
     Task<IReadOnlyList<ReviewItem>> SearchAsync(ReviewQuery query, CancellationToken cancellationToken);
 }
 
@@ -52,13 +99,43 @@ public sealed class ReviewReading(IReviewItemReader reader, ICallerAccess caller
 
     public static readonly Error StatusInvalid = Error.Validation("verification.status_invalid", "The status is pending, reviewed or all.");
 
+    public static readonly Error SortInvalid = Error.Validation("verification.sort_invalid", "The order is created or risk.");
+
+    public static readonly Error FlagInvalid = Error.Validation("verification.flag_invalid", "A flag code is 1 to 60 letters, digits, '_' or '-'.");
+
+    public static readonly Error RangeInvalid = Error.Validation("verification.range_invalid", "The covered time range ends after it starts.");
+
     /// <summary>
     /// Items of the caller's sites: <c>status</c> pending (default: waiting for a decision, pending or awaiting a second
     /// approval), reviewed (decided) or all; by site and record type; <c>cursor</c> is the last item ID of the previous page.
     /// </summary>
-    public async Task<Result<ReviewPage>> SearchAsync(
-        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, CancellationToken cancellationToken, bool overdue = false)
+    public Task<Result<ReviewPage>> SearchAsync(
+        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, CancellationToken cancellationToken, bool overdue = false) =>
+        SearchAsync(new ReviewSearch { SiteId = siteId, Status = status, RecordType = recordType, Cursor = cursor, Limit = limit, Overdue = overdue }, cancellationToken);
+
+    /// <summary>
+    /// The queue (US-P2-VER-01): the items of the caller's sites matching <paramref name="search"/>, by risk or by age;
+    /// <c>Cursor</c> is the last item ID of the previous page (by risk, its current risk places the next page).
+    /// </summary>
+    public async Task<Result<ReviewPage>> SearchAsync(ReviewSearch search, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(search);
+        var (siteId, status, recordType, cursor, limit, overdue) = (search.SiteId, search.Status, search.RecordType, search.Cursor, search.Limit, search.Overdue);
+        if (search.Sort is not (null or "created" or "risk"))
+        {
+            return SortInvalid;
+        }
+
+        if (search.Flag is { } flag && (flag.Length is 0 or > 60 || !flag.All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '-')))
+        {
+            return FlagInvalid;
+        }
+
+        if (search.CoveredFrom is { } from && search.CoveredBefore is { } before && before <= from)
+        {
+            return RangeInvalid;
+        }
+
         var take = limit ?? DefaultLimit;
         if (take is < 1 or > MaxLimit)
         {
@@ -78,8 +155,16 @@ public sealed class ReviewReading(IReviewItemReader reader, ICallerAccess caller
         }
 
         var scope = caller.Current.ScopeOf(VerificationPermissions.ItemsRead);
-        var found = await reader.SearchAsync(
-            new ReviewQuery(scope.TenantWide ? null : scope.Sites, siteId, statuses, recordType, cursor, take + 1, overdue), cancellationToken).ConfigureAwait(false);
+        var query = new ReviewQuery(scope.TenantWide ? null : scope.Sites, siteId, statuses, recordType, cursor, take + 1, overdue)
+        {
+            ByRisk = search.Sort == "risk",
+            AssetId = search.AssetId,
+            ProducedBy = search.ProducedBy,
+            Flag = search.Flag,
+            CoveredFrom = search.CoveredFrom,
+            CoveredBefore = search.CoveredBefore,
+        };
+        var found = await reader.SearchAsync(query, cancellationToken).ConfigureAwait(false);
         return found.Count > take ? new ReviewPage([.. found.Take(take)], found[take - 1].Id.Value) : new ReviewPage(found, null);
     }
 }
