@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { intlLocale, useTranslation } from "@karry/i18n";
-import { Checkbox, DataTable, EmptyState, ErrorState, PageHeader, SelectField, StatusChip } from "@karry/ui";
+import { Button, Checkbox, DataTable, EmptyState, ErrorState, PageHeader, SelectField, StatusChip } from "@karry/ui";
 import { useSiteNames } from "../assets/api";
 import { EntryPhoto } from "./EntryPhoto";
+import { ReviewDrawer } from "./ReviewDrawer";
 import { entryFlags, flagKey, queueSize, useMachineCodes, useReviewQueue, type QueueFilters, type QueueRow } from "./queue";
 
 const any = "any";
@@ -18,6 +19,7 @@ export function QueuePage() {
   const code = useMachineCodes();
   const [filters, setFilters] = useState<QueueFilters>({ siteId: "", flag: "", overdue: false });
   const queue = useReviewQueue(filters);
+  const [open, setOpen] = useState<QueueRow | null>(null);
   const rows = queue.data ?? [];
   const locale = intlLocale(i18n.language);
   const at = (value: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
@@ -107,9 +109,19 @@ export function QueuePage() {
                 </span>
               ),
             },
+            {
+              key: "open",
+              header: t("portal.review.decide"),
+              cell: (row) => (
+                <Button variant="secondary" aria-label={t("portal.review.openEntry", { machine: code(row.item.assetId) })} onClick={() => { setOpen(row); }}>
+                  {t("portal.review.open")}
+                </Button>
+              ),
+            },
           ]}
         />
       )}
+      <ReviewDrawer row={open} onClose={() => { setOpen(null); }} />
       {rows.length === queueSize && <p className="text-sm text-text-muted">{t("portal.review.firstPage", { count: queueSize })}</p>}
     </div>
   );
