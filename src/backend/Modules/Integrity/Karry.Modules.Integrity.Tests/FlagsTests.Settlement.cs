@@ -88,6 +88,31 @@ public sealed partial class FlagsTests
 
     [Fact]
     [Trait("Story", "US-P2-FO-08")]
+    public async Task A_person_who_signed_one_of_the_gaps_entries_neither_settles_nor_approves_it()
+    {
+        var tenant = await ProvisionAsync();
+        var (driver, secondDriver, earlier, later) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        host.FieldAccountOf["controller-driver"] = driver;
+        host.FieldAccountOf["controller-second"] = secondDriver;
+        host.SignedBy[earlier] = driver;
+        host.SignedBy[later] = secondDriver;
+        await SyncAsync(tenant, new FlagSubject("meter", Guid.CreateVersion7()), Guid.CreateVersion7(), [Gap("a>b", earlier, later)]);
+        var gap = (await ListAsync(tenant, "")).Single();
+        var body = new { reason = "towing", comment = "Moved on a low-loader." };
+
+        using var own = await SettleAsync(tenant, gap, "settle", "controller-driver", body);
+        using var proposed = await SettleAsync(tenant, gap, "settle", "admin-1", body);
+        using var ownApproval = await SettleAsync(tenant, await proposed.Content.ReadFromJsonAsync<JsonElement>(Ct), "settlement/approve", "controller-second");
+
+        own.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await CodeAsync(own)).Should().Be("integrity.sod_own_gap");
+        proposed.StatusCode.Should().Be(HttpStatusCode.OK, "an office account with no field account signed nothing");
+        ownApproval.StatusCode.Should().Be(HttpStatusCode.Forbidden, "the driver of the later segment does not approve it either");
+        (await ListAsync(tenant, "")).Single().GetProperty("closedAt").ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-08")]
     public async Task Unexplained_raises_fraud_suspected_at_once_and_declining_keeps_the_gap_open()
     {
         var tenant = await ProvisionAsync();

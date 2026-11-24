@@ -1,6 +1,8 @@
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Identity.Contracts;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Integrity.Domain;
 using Karry.Modules.Tenancy.Contracts;
 using Karry.SharedKernel.Results;
@@ -33,16 +35,18 @@ public sealed record SettlementDeclineInput(string? Comment);
 /// <summary>
 /// Continuity gaps settled with a reason (US-P2-FO-08, ADR-0037 §7): one person proposes, another approves, each with
 /// <see cref="IntegrityPermissions.FlagsSettle"/> on the flag's site and a recent sign-in. "Unexplained" raises
-/// RULE-FO-11 at once: suspicion does not wait for the second person. Every step is ledgered under the person.
+/// RULE-FO-11 at once: suspicion does not wait for the second person. Every step is ledgered under the person. Neither
+/// the proposer nor the approver may have signed one of the gap's entries (their linked field account, ADR-0037 §4).
 /// </summary>
-public sealed class FlagSettlements(IFlagStore store, ICallerAccess caller, TimeProvider clock)
+public sealed class FlagSettlements(
+    IFlagStore store, ICallerAccess caller, IReviewers reviewers, IEnumerable<IFlagParticipants> participants, TimeProvider clock)
 {
     public static readonly Error NotFound = Error.NotFound("integrity.flag_not_found", "No such flag.");
 
     public Task<Result<IntegrityFlag>> ProposeAsync(Guid flagId, SettlementInput input, uint? expectedVersion, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return ActAsync(flagId, expectedVersion, stepUp: true, flag =>
+        return ActAsync(flagId, expectedVersion, decides: true, flag =>
         {
             if (flag.ProposeSettlement(clock, input.Reason, input.Comment, caller.Subject) is { } refused)
             {
@@ -59,17 +63,18 @@ public sealed class FlagSettlements(IFlagStore store, ICallerAccess caller, Time
     }
 
     public Task<Result<IntegrityFlag>> ConfirmAsync(Guid flagId, uint? expectedVersion, CancellationToken cancellationToken) =>
-        ActAsync(flagId, expectedVersion, stepUp: true, flag => flag.ConfirmSettlement(clock, caller.Subject), cancellationToken);
+        ActAsync(flagId, expectedVersion, decides: true, flag => flag.ConfirmSettlement(clock, caller.Subject), cancellationToken);
 
     /// <summary>Declining keeps the gap open: no recent sign-in needed, nothing is hidden by it.</summary>
     public Task<Result<IntegrityFlag>> DeclineAsync(Guid flagId, SettlementDeclineInput input, uint? expectedVersion, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(input);
-        return ActAsync(flagId, expectedVersion, stepUp: false, flag => flag.DeclineSettlement(clock, input.Comment, caller.Subject), cancellationToken);
+        return ActAsync(flagId, expectedVersion, decides: false, flag => flag.DeclineSettlement(clock, input.Comment, caller.Subject), cancellationToken);
     }
 
+    /// <summary><paramref name="decides"/>: the step settles the gap (propose, approve): separation of duties and a recent sign-in.</summary>
     private async Task<Result<IntegrityFlag>> ActAsync(
-        Guid flagId, uint? expectedVersion, bool stepUp, Func<IntegrityFlag, Error?> act, CancellationToken cancellationToken)
+        Guid flagId, uint? expectedVersion, bool decides, Func<IntegrityFlag, Error?> act, CancellationToken cancellationToken)
     {
         // The flag first: outside the caller's sites (or company) it does not exist, whatever the request says. A flag
         // without a site belongs to the company: only a company-wide scope settles it.
@@ -85,7 +90,12 @@ public sealed class FlagSettlements(IFlagStore store, ICallerAccess caller, Time
             return RecordVersions.Conflict;
         }
 
-        if (stepUp && StepUp.Check(caller, clock) is { } required)
+        if (decides && await TookPartAsync(flag, cancellationToken).ConfigureAwait(false))
+        {
+            return SettlementErrors.OwnGap;
+        }
+
+        if (decides && StepUp.Check(caller, clock) is { } required)
         {
             return required;
         }
@@ -96,6 +106,26 @@ public sealed class FlagSettlements(IFlagStore store, ICallerAccess caller, Time
         }
 
         return await store.TrySaveAsync(cancellationToken).ConfigureAwait(false) ? flag : RecordVersions.Conflict;
+    }
+
+    /// <summary>The caller as a person (their linked field account) against the people who signed the gap's entries.</summary>
+    private async Task<bool> TookPartAsync(IntegrityFlag flag, CancellationToken cancellationToken)
+    {
+        if (caller.Subject is not { } subject || await reviewers.FieldAccountOfAsync(subject, cancellationToken).ConfigureAwait(false) is not { } person)
+        {
+            return false; // an office account with no field account signed nothing
+        }
+
+        var related = flag.Related.Select(r => new FlagSubject(r.Type, r.Id)).ToList();
+        foreach (var source in participants)
+        {
+            if (await source.TookPartAsync(person, related, cancellationToken).ConfigureAwait(false))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 

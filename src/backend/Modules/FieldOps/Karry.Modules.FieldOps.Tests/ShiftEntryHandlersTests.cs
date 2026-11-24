@@ -12,6 +12,7 @@ using Karry.Modules.FieldOps.Application;
 using Karry.Modules.FieldOps.Domain;
 using Karry.Modules.FieldOps.Infrastructure;
 using Karry.Modules.Identity.Contracts;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Trust.Contracts;
@@ -707,6 +708,26 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
         (await Drove(driver, Asset, ShiftStart.AddDays(1).AddHours(3), ShiftStart.AddDays(1).AddHours(4))).Should().BeTrue("a running segment still holds the machine");
         (await Drove(driver, otherAsset, ShiftStart.AddHours(7), ShiftStart.AddHours(9))).Should().BeFalse("another machine");
         (await Drove(Guid.CreateVersion7(), Asset, ShiftStart.AddHours(7), ShiftStart.AddHours(9))).Should().BeFalse("another person");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-FO-08")]
+    public async Task Who_signed_a_gaps_entries_is_any_version_s_operator_of_this_company_only()
+    {
+        var (driver, entry) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(entry, ShiftStart, "100.0", meter: FreshMeter(), signer: driver));
+
+        async Task<bool> TookPart(Guid tenant, Guid person, params FlagSubject[] related)
+        {
+            await using var scope = services.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+            return await scope.ServiceProvider.GetRequiredService<IFlagParticipants>().TookPartAsync(person, related, Ct);
+        }
+
+        (await TookPart(TenantA, driver, new FlagSubject("shift_entry", Guid.CreateVersion7()), new FlagSubject("shift_entry", entry))).Should().BeTrue();
+        (await TookPart(TenantA, Guid.CreateVersion7(), new FlagSubject("shift_entry", entry))).Should().BeFalse("another person");
+        (await TookPart(TenantA, driver, new FlagSubject("meter", entry))).Should().BeFalse("not an entry");
+        (await TookPart(TenantB, driver, new FlagSubject("shift_entry", entry))).Should().BeFalse("another company never sees the entry");
     }
 
     [Fact]

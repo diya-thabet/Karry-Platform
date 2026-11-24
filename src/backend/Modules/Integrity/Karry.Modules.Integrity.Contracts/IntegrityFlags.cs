@@ -33,6 +33,16 @@ public interface IIntegrityFlags
     Task SyncAsync(DbConnection connection, DbTransaction transaction, FlagSubject subject, string rule, Guid? siteId, IReadOnlyList<Finding> findings, CancellationToken cancellationToken);
 }
 
+/// <summary>
+/// Who took part in what a flag is linked to (ADR-0037 §7): the owning module answers whether a person produced one of
+/// the related entities (for a continuity gap: signed one of its two segments). A person never settles
+/// a gap they took part in.
+/// </summary>
+public interface IFlagParticipants
+{
+    Task<bool> TookPartAsync(Guid person, IReadOnlyList<FlagSubject> related, CancellationToken cancellationToken);
+}
+
 /// <summary>The rule codes of the detection catalogue that P2.7 implements (detection-rules.md).</summary>
 public static class IntegrityRules
 {
