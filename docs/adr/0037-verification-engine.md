@@ -3,7 +3,7 @@ title: "ADR-0037: Verification engine"
 area: adr
 tags: [adr, phase-2, p2-8, verification, review, separation-of-duties, four-eyes, sla, policies]
 source: "P2.8 planning (sub-phases.md §P2.8, §Decisions), US-P2-VER-02 … 06, US-P2-FO-08, ADR-0033, ADR-0034, ADR-0035, ADR-0036"
-status: proposed
+status: accepted
 last_updated: 2026-11-24
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-24
 
 > [Docs index](../README.md) › [ADRs](README.md) · [P2.8 slice plan](../04-phases/phase-02-field-operations/p2.8-verification-plan.md)
 
-- **Status:** Proposed (2026-11-23, P2.8 planning)
+- **Status:** Accepted (2026-11-24, P2.8 close-out; security review in §9)
 - **Date:** 2026-11-23
 
 ## Context
@@ -204,8 +204,29 @@ approving need a recent sign-in, declining does not (it hides nothing). Decision
 - The flag row's trigger now lets an open flag change its closing, settlement and `fraud_suspected_at` (once) fields
   only; a closed flag still never changes. Flags carry `xmin` as their version: a save that loses a race is a 409, and
   an upload closing the same flag at the same moment fails and is retried by the tablet.
-- Separation of duties against the gap's own operators (the settler drove one of the two segments) is not checked
-  yet: two people are required, and the close-out security review (slice 8) decides whether Integrity asks FieldOps.
+- Separation of duties against the gap's own operators was left to the close-out; slice 8 added it (below).
+
+
+As built (slice 8, close-out): neither the person who proposes a settlement nor the one who approves it may have
+signed one of the gap's entries. Integrity asks Identity's `IReviewers` for the caller's linked field account and the
+new `IFlagParticipants` contract (FieldOps: any version of the entries the flag relates to) whether that person
+signed one (403 `integrity.sod_own_gap`). Demo step 4 runs end to end in `DemoStepFourTests` (host): a shift signed on
+an enrolled tablet, synced, queued, corrected beyond the threshold, refused to the corrector, approved by a site
+manager, and the ledger's before → after with both hashes; the entry's third version names the corrector.
+
+## 9. Security review (P2.8 close-out, 2026-11-24)
+
+| Threat | What P2.8 does | Evidence |
+|---|---|---|
+| T-07 repudiation | Every decision is an append-only `review_actions` row and a ledger entry under the authenticated person (`actor`), bound to the record's version and hash; a correction ledgers each field's before → after and both hashes; bulk approval ledgers one batch naming every item and hash; auto-approval names the policy version and its publisher; settlements ledger proposal, approval or decline with the person. No device-like signature for portal users (§3, option 3): the hash-chained ledger is the proof | `ReviewDecisionsTests`, `ReviewPoliciesTests`, `DemoStepFourTests`, `FlagsTests.Settlement` |
+| T-13 own entries | SoD on the server at action time, never from the client: the reviewer as a person (office account → linked field account) against the record's producer and anyone who drove the asset during the entry (approve, reject, correct, bulk: each item); the corrector never second-approves; a settler or approver of a gap never signed one of its entries; the proposer never approves their own settlement | TC-P2-VER-001, 002, 003, 009; `A_person_who_signed_one_of_the_gaps_entries_neither_settles_nor_approves_it` |
+| T-13 permission removed | Permissions and site scopes are read on each request (TC-P2-VER-009): a reviewer who loses the role or the site gets 403/404 at the next action | `ReviewDecisionsTests` |
+| T-13 privileged edits | Second approval, review policies, field-account links and settlements are privileged permissions (second factor) with a recent sign-in inside the handler, after the scope check, so another company's item is a 404 and not a 401; policies are versions, never edited, each ledgered with its publisher; a link change is ledgered | `ReviewPoliciesTests` (TC-P2-VER-007), Identity `LinkFieldAccount` tests, isolation suite |
+| Bulk | All or nothing: 1–100 distinct items, each in scope, at its version, pending and unflagged; flagged entries are decided one by one | TC-P2-VER-002 |
+| Hiding a gap | Two people for every reason; a data-entry error is corrected, not settled; "unexplained" or 48 h raises RULE-FO-11 (security rule, cannot be switched off, never closed by a check); a settled key is not raised again but every step is in the ledger | `FlagsTests.Settlement` |
+| T-09/T-11 isolation | RLS on every Verification and Integrity table; the isolation suite attacks `itemId`, `recordType` and `flagId` with tenant A's values and looks for A's hashes and IDs | `TenantIsolationSuite` (549/549) |
+| Concurrency | Items and flags are versioned (`xmin`, `If-Match`): two reviewers at once, one wins, the other gets 409 | TC-P2-VER-008 |
+| Residual | SoD sees a controller who also drives only when the company links the two accounts (§4); an unlinked controller could approve their own field work. Recorded as **R-15**; the users page shows the link and P2.9's console warns when a reviewer of a site has no link while a field account with the same name exists. Approve and reject need no recent sign-in (a session is enough); the ledger binds them to the person | threat model R-15 |
 
 ## Options considered
 

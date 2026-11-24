@@ -4,7 +4,7 @@ area: phases
 tags: [phase-2, sub-phases, execution-plan, sequencing, sync, signatures, verification, field-ops, continuity, notifications, definition-of-done]
 source: "Phase 2 plan (plan.md) broken into executable steps; architect review 2026-11-04"
 status: draft
-last_updated: 2026-11-23
+last_updated: 2026-11-24
 ---
 
 # Phase 2 Execution Plan: Sub-Phases P2.0 – P2.12
@@ -593,7 +593,10 @@ a board of the current shift.
   polling with ETag, ≤ 10 s), item detail (values, Δ, flags with explanations, previous/current photo side by side with
   zoom, verification badge, history of versions), correction dialog (before → after, reason), keyboard shortcuts
   (A, R, C, J/K; shown in a help overlay; never fire inside text fields), swipe actions on tablets, shift board (planned
-  / started / ended / missing end / pending / flags), "missing end" (RULE-FO-08) 1 h after shift end.
+  / started / ended / missing end / pending / flags), "missing end" (RULE-FO-08) 1 h after shift end. From P2.8:
+  overdue items first (`?overdue=true`), the continuity-gap settlement dialog (reason, what happened, approve or
+  decline another person's), and a warning when a reviewer of a site has no linked field account while a field
+  account with the same name exists (residual R-15, ADR-0037 §9).
 - **UX validation:** a controller (or proxy) reviews 50 unflagged entries in < 5 min (usability protocol).
 - **Tests:** TC-P2-VER-010 *(new)* (queue shows a new synced entry within 10 s, E2E), TC-P2-VER-011 *(new)*
   (shortcuts do nothing while typing in the correction dialog), accessibility check (axe) on queue and detail.

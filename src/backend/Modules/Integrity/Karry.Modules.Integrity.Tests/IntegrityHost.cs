@@ -3,13 +3,16 @@ using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Api;
+using Karry.Modules.Integrity.Contracts;
 using Karry.Modules.Tenancy.Api;
 using Karry.SharedKernel.Authorization;
 using Karry.Testing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Karry.Modules.Integrity.Tests;
 
@@ -31,6 +34,12 @@ public sealed class IntegrityHost : IAsyncLifetime
     /// <summary>The site of a site role (a subject not listed holds its role across the company).</summary>
     public ConcurrentDictionary<string, Guid> SiteOf { get; } = new();
 
+    /// <summary>Office accounts linked to a field account (Identity's answer, ADR-0037 §4).</summary>
+    public ConcurrentDictionary<string, Guid> FieldAccountOf { get; } = new();
+
+    /// <summary>Who signed which entry (FieldOps' answer): entry root ID → field account.</summary>
+    public ConcurrentDictionary<Guid, Guid> SignedBy { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -51,6 +60,8 @@ public sealed class IntegrityHost : IAsyncLifetime
         builder.Services.TrustTestIssuer();
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IntegrityModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
+        builder.Services.AddSingleton<IReviewers>(new Linked(FieldAccountOf));
+        builder.Services.AddSingleton<IFlagParticipants>(new Signers(SignedBy));
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -74,4 +85,16 @@ public sealed class IntegrityHost : IAsyncLifetime
             await server.DisposeAsync();
         }
     }
+}
+
+internal sealed class Linked(ConcurrentDictionary<string, Guid> links) : IReviewers
+{
+    public Task<Guid?> FieldAccountOfAsync(string subject, CancellationToken cancellationToken) =>
+        Task.FromResult(links.TryGetValue(subject, out var field) ? field : (Guid?)null);
+}
+
+internal sealed class Signers(ConcurrentDictionary<Guid, Guid> signedBy) : IFlagParticipants
+{
+    public Task<bool> TookPartAsync(Guid person, IReadOnlyList<FlagSubject> related, CancellationToken cancellationToken) =>
+        Task.FromResult(related.Any(r => signedBy.TryGetValue(r.Id, out var signer) && signer == person));
 }

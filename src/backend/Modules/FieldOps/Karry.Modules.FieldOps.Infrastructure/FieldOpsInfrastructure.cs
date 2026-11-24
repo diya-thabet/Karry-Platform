@@ -24,6 +24,7 @@ public static class FieldOpsInfrastructure
         services.AddScoped<DemoChecklistsSeeder>();
         services.AddScoped<Assets.Contracts.IMeterEventSubscriber, MeterEventContinuity>();
         services.AddScoped<Verification.Contracts.IReviewableRecords, ShiftEntryReviewFacts>();
+        services.AddScoped<Integrity.Contracts.IFlagParticipants, FlagParticipants>();
         services.AddScoped<ISyncSource, MeterStatesSync>();
         services.AddScoped<ISyncSource, ChecklistsSync>();
         services.AddSyncCommandHandler<StartShiftEntry>(StartShiftEntry.Name);

@@ -79,6 +79,8 @@ public static class SettlementErrors
     public static readonly Error NothingProposed = Error.Conflict("integrity.no_settlement_pending", "No settlement of this gap is waiting for approval.");
 
     public static readonly Error OwnProposal = Error.Forbidden("integrity.sod_own_settlement", "Another person approves the settlement you proposed.");
+
+    public static readonly Error OwnGap = Error.Forbidden("integrity.sod_own_gap", "You signed one of the entries of this gap: another person settles it.");
 }
 
 /// <summary>
