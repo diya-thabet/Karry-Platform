@@ -3,6 +3,7 @@ export const sections = [
   { path: "/", key: "portal.nav.home", group: "operations" },
   { path: "/sites", key: "portal.nav.sites", group: "operations" },
   { path: "/assets", key: "portal.nav.assets", group: "operations" },
+  { path: "/review", key: "portal.nav.review", group: "operations" },
   { path: "/audit", key: "portal.nav.audit", group: "administration" },
   { path: "/settings", key: "portal.nav.settings", group: "administration" },
 ] as const;

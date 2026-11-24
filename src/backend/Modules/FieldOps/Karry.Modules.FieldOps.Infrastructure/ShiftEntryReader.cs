@@ -52,6 +52,12 @@ internal sealed class ShiftEntryReader(FieldOpsDbContext db) : IShiftEntryReader
             entries = flagged ? entries.Where(e => e.Flags != NoFlags) : entries.Where(e => e.Flags == NoFlags);
         }
 
+        if (query.Ids is { } ids)
+        {
+            var wanted = ids.ToList();
+            entries = entries.Where(e => wanted.Contains(e.RootId));
+        }
+
         if (query.After is { } after)
         {
             entries = entries.Where(e => e.RootId.CompareTo(after) < 0);

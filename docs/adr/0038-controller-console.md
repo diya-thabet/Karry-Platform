@@ -86,6 +86,17 @@ photos. FieldOps registers the evidence store itself (`TryAdd`, the same as Sync
 starts. `GET /fieldops/entries/{id}` gains `previousOnMeter`: the entry that started last before it on the same
 meter (any version: a correction never changes a start time), as it stands, only when the caller sees its site.
 
+As built (slice 3): the sidebar's Operations group gains **Review** (`/review`). The page asks the queue in risk
+order (50 items) and, when the person may read entries, those entries in one request
+(`GET /fieldops/entries?ids=…`, up to 200 IDs; no IDs is no filter), never one request per row. Each row: the
+machine's code, the shift (date and code) and site; start → end with the unit and Δ; the start and end photos
+(fetched with the token, shown from `blob:` URLs, kept for the session); the entry's flags in words; overdue or due
+time, and "waiting for a second approval". Filters: site, flag, overdue only. The query asks again every 5 s while
+the tab is visible (TanStack Query stops in the background) with the last page's `ETag`; a 304 keeps the rows.
+The API client throws on every non-2xx, so the queue's own fetch treats a 304 as "unchanged" before it reaches the
+error dialog. Machine codes come from the company's first 200 machines (a larger fleet shows a dash beyond them
+until the detail view of slice 4 reads the machine itself).
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the

@@ -7646,6 +7646,17 @@
               ],
               "format": "int32"
             }
+          },
+          {
+            "name": "ids",
+            "in": "query",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              }
+            }
           }
         ],
         "responses": {
