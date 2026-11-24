@@ -97,6 +97,18 @@ The API client throws on every non-2xx, so the queue's own fetch treats a 304 as
 error dialog. Machine codes come from the company's first 200 machines (a larger fleet shows a dash beyond them
 until the detail view of slice 4 reads the machine itself).
 
+As built (slice 4): each queue row opens a panel (`ReviewDrawer`). It shows the previous end on the same meter
+(`previousOnMeter` of the entry's detail) beside this entry's start and end, each photo at 160 px with its value,
+Δ and the fuel levels, the flags in words, the signature's verification badge (for people who may verify), and the
+versions when there are several. Decisions send the item's version as `If-Match`: approve; reject with a reason code
+and 10–500 characters (the operator reads them on the tablet); correct with the values that changed only (a meter
+value with at most one decimal, a fuel level 0–100, as typed with a comma or a dot) and a reason, behind the
+recent-sign-in prompt, saying when the correction waits for another person; the second approval of a correction,
+for whom may give it, behind the same prompt. A 409 (someone decided meanwhile) closes the panel, says so and
+refreshes the queue, without the error dialog; the other refusals (separation of duties, a value the entry cannot
+take) show their words from `errors.verification.*`. Zooming a photo is not built: 160 px with the value beside it
+reads a meter; the usability test (slice 8) decides whether a zoom is needed.
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the

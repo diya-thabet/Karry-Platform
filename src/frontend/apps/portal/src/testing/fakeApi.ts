@@ -106,6 +106,8 @@ export function fakeApi(options: {
   reviewItems?: ReviewItem[];
   /** Shift entries as they stand, for `GET /fieldops/entries?ids=` and their photos (default: none). */
   entries?: ShiftEntry[];
+  /** A correction is beyond the four-eyes thresholds: its next item waits for a second approval (default: no). */
+  correctionWaits?: boolean;
   /** Every published checklist version, any machine type (default: none). */
   checklists?: Checklist[];
   /** Machines of `GET /assets` (default: none). */
@@ -159,6 +161,8 @@ export function fakeApi(options: {
   const reviewItems: ReviewItem[] = [...(options.reviewItems ?? [])];
   const entries: ShiftEntry[] = [...(options.entries ?? [])];
   const queueCalls: { query: Record<string, string>; ifNoneMatch: string | null }[] = [];
+  const decisions: { action: string; ifMatch: string | null; body: unknown }[] = [];
+  const correctionWaits = options.correctionWaits ?? false;
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
@@ -394,6 +398,46 @@ export function fakeApi(options: {
       return entry && (entry.startPhoto === reference || entry.endPhoto === reference)
         ? new Response(new Blob([new Uint8Array([0xff, 0xd8, 0xff, 0xd9])], { type: "image/jpeg" }), { status: 200, headers: { "Content-Type": "image/jpeg" } })
         : problem(404, "fieldops.photo_not_found");
+    }
+
+    const entryMatch = /^\/api\/v1\/fieldops\/entries\/([^/]+)$/.exec(url.pathname);
+    if (request.method === "GET" && entryMatch) {
+      // The entry as it stands, its versions, and the entry before it on the same meter (ADR-0038 §2).
+      const entry = entries.find((e) => e.id === entryMatch[1]);
+      if (!entry) {
+        return problem(404, "fieldops.entry_not_found");
+      }
+
+      const previous = entries
+        .filter((e) => e.meterId === entry.meterId && e.startedAt < entry.startedAt)
+        .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null;
+      return json(200, { entry, versions: [entry], previousOnMeter: previous });
+    }
+
+    const decisionMatch = /^\/api\/v1\/verification\/items\/([^/]+)\/(approve|reject|correct|second-approve)$/.exec(url.pathname);
+    if (request.method === "POST" && decisionMatch) {
+      // A decision on the version the reviewer saw (If-Match), else 409 (ADR-0037 §2).
+      const index = reviewItems.findIndex((i) => i.id === decisionMatch[1]);
+      const item = reviewItems[index];
+      if (!item) {
+        return problem(404, "verification.item_not_found");
+      }
+
+      decisions.push({ action: decisionMatch[2] ?? "", ifMatch: request.headers.get("If-Match"), body });
+      if (request.headers.get("If-Match") !== item.version) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const status = { approve: "approved", reject: "rejected", correct: "corrected", "second-approve": "approved" }[decisionMatch[2] ?? "approve"] ?? "approved";
+      const decided = { ...item, status, version: nextVersion(item.version) };
+      reviewItems[index] = decided;
+      if (decisionMatch[2] === "correct") {
+        const next = { ...item, id: `${item.id.slice(0, -4)}ffff`, recordVersion: Number(item.recordVersion) + 1, status: correctionWaits ? "awaiting_second" : "approved" };
+        reviewItems.push(next);
+        return json(200, { corrected: decided, next });
+      }
+
+      return json(200, decided);
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/integrity/flags") {
@@ -1077,6 +1121,16 @@ export function fakeApi(options: {
     requested,
     /** Every ask of the review queue with its query and `If-None-Match`. */
     queueCalls,
+    /** Every decision on a review item: approve, reject, correct or second-approve, with its `If-Match` and body. */
+    decisions,
+    /** Someone else decides on the item meanwhile: the version the open panel holds is out of date. */
+    changeReviewItemElsewhere: (id: string) => {
+      const index = reviewItems.findIndex((i) => i.id === id);
+      const found = reviewItems[index];
+      if (found) {
+        reviewItems[index] = { ...found, version: nextVersion(found.version) };
+      }
+    },
     /** An entry ends on a tablet and syncs: its review item joins the queue. */
     addReviewItem: (item: ReviewItem, entry?: ShiftEntry) => {
       reviewItems.push(item);
