@@ -49,6 +49,8 @@ public sealed class VerificationDbContext(DbContextOptions<VerificationDbContext
             // One item per record version: a version submitted again (an upload retried) changes nothing.
             item.HasIndex(i => new { i.TenantId, i.RecordType, i.RecordId, i.RecordVersion }).IsUnique();
             item.HasIndex(i => new { i.TenantId, i.SiteId, i.Status, i.CreatedAt });
+            // The queue in risk order (ADR-0038 §1).
+            item.HasIndex(i => new { i.TenantId, i.Status, i.Risk, i.Id });
         });
 
         modelBuilder.Entity<ReviewAction>(action =>

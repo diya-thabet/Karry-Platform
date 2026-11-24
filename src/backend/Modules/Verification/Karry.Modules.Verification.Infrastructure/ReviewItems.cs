@@ -136,7 +136,10 @@ internal sealed class ReviewItemReader(VerificationDbContext db) : IReviewItemRe
     public async Task<IReadOnlyList<ReviewItem>> SearchAsync(ReviewQuery query, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(query);
-        var items = db.Items.AsNoTracking();
+        // A flag is an element of the jsonb array: no LINQ for it behind the value converter (RLS still applies).
+        var items = query.Flag is { } flag
+            ? db.Items.FromSql($"SELECT i.*, i.xmin FROM verification.review_items i WHERE jsonb_exists(i.flags, {flag})").AsNoTracking()
+            : db.Items.AsNoTracking();
         if (query.Sites is { } sites)
         {
             var allowed = sites.ToList();
@@ -160,13 +163,38 @@ internal sealed class ReviewItemReader(VerificationDbContext db) : IReviewItemRe
             items = items.Where(i => i.EscalatedAt != null);
         }
 
+        if (query.AssetId is { } asset)
+        {
+            items = items.Where(i => i.AssetId == asset);
+        }
+
+        if (query.ProducedBy is { } producer)
+        {
+            items = items.Where(i => i.ProducedBy == producer);
+        }
+
+        if (query.CoveredFrom is { } from)
+        {
+            items = items.Where(i => i.CoveredFrom >= from);
+        }
+
+        if (query.CoveredBefore is { } before)
+        {
+            items = items.Where(i => i.CoveredFrom < before);
+        }
+
         if (query.After is { } after)
         {
             var cursor = new ReviewItemId(after);
-            items = items.Where(i => i.Id > cursor);
+            // By risk, the next page starts after the cursor item as it ranks now (an item escalated meanwhile moves up).
+            var risk = query.ByRisk
+                ? await db.Items.AsNoTracking().Where(i => i.Id == cursor).Select(i => (int?)i.Risk).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false)
+                : null;
+            items = risk is { } rank ? items.Where(i => i.Risk < rank || (i.Risk == rank && i.Id > cursor)) : items.Where(i => i.Id > cursor);
         }
 
-        return await items.OrderBy(i => i.Id).Take(query.Take).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var ordered = query.ByRisk ? items.OrderByDescending(i => i.Risk).ThenBy(i => i.Id) : items.OrderBy(i => i.Id);
+        return await ordered.Take(query.Take).ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 }
 

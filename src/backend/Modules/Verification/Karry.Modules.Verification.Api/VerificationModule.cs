@@ -43,6 +43,7 @@ public sealed class VerificationModule : IModule
     {
         endpoints.MapGet("/items", SearchItemsAsync)
             .RequirePermission(VerificationPermissions.ItemsRead)
+            .Produces(StatusCodes.Status304NotModified)
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .WithName("SearchReviewItems");
 
@@ -221,17 +222,52 @@ public sealed class VerificationModule : IModule
     }
 
     /// <summary>
-    /// Review items of the caller's sites, oldest first: <c>status</c> pending (default), reviewed or all; by site and
-    /// record type; <c>overdue</c> only the items escalated for waiting past their due time; <c>cursor</c> is the last
-    /// item ID of the previous page.
+    /// The review queue of the caller's sites (US-P2-VER-01): <c>status</c> pending (default), reviewed or all; by site,
+    /// record type, asset, producer (<c>producedBy</c>), flag code and covered time (<c>coveredFrom</c> inclusive,
+    /// <c>coveredBefore</c> exclusive); <c>overdue</c> only the items escalated for waiting past their due time;
+    /// <c>sort</c> <c>created</c> (default, oldest first) or <c>risk</c> (overdue, then flagged, then oldest; ADR-0038 §1);
+    /// <c>cursor</c> is the last item ID of the previous page. The page carries an <c>ETag</c>: with
+    /// <c>If-None-Match</c> an unchanged page is a 304 without a body (the console polls, ADR-0038 §3).
     /// </summary>
-    private static async Task<Results<Ok<ReviewItemListResponse>, ProblemHttpResult>> SearchItemsAsync(
-        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, bool? overdue, [FromServices] ReviewReading items, CancellationToken cancellationToken)
+    private static async Task<Results<Ok<ReviewItemListResponse>, StatusCodeHttpResult, ProblemHttpResult>> SearchItemsAsync(
+        Guid? siteId, string? status, string? recordType, Guid? cursor, int? limit, bool? overdue, string? sort, Guid? assetId, Guid? producedBy, string? flag,
+        DateTimeOffset? coveredFrom, DateTimeOffset? coveredBefore, [FromHeader(Name = "If-None-Match")] string? ifNoneMatch, HttpResponse response,
+        [FromServices] ReviewReading items, CancellationToken cancellationToken)
     {
-        var result = await items.SearchAsync(siteId, status, recordType, cursor, limit, cancellationToken, overdue ?? false).ConfigureAwait(false);
-        return result.IsSuccess
-            ? TypedResults.Ok(new ReviewItemListResponse([.. result.Value.Items.Select(ReviewItemResponse.From)], result.Value.NextCursor))
-            : result.Error.ToProblem();
+        var search = new ReviewSearch
+        {
+            SiteId = siteId,
+            Status = status,
+            RecordType = recordType,
+            Cursor = cursor,
+            Limit = limit,
+            Overdue = overdue ?? false,
+            Sort = sort,
+            AssetId = assetId,
+            ProducedBy = producedBy,
+            Flag = flag,
+            CoveredFrom = coveredFrom,
+            CoveredBefore = coveredBefore,
+        };
+        var result = await items.SearchAsync(search, cancellationToken).ConfigureAwait(false);
+        if (!result.IsSuccess)
+        {
+            return result.Error.ToProblem();
+        }
+
+        var tag = PageTag(result.Value);
+        response.Headers.ETag = tag;
+        response.Headers.CacheControl = "private, no-cache";
+        return string.Equals(ifNoneMatch, tag, StringComparison.Ordinal)
+            ? TypedResults.StatusCode(StatusCodes.Status304NotModified)
+            : TypedResults.Ok(new ReviewItemListResponse([.. result.Value.Items.Select(ReviewItemResponse.From)], result.Value.NextCursor));
+    }
+
+    /// <summary>The page as it is now: each item and its row version, and where the next page starts.</summary>
+    private static string PageTag(ReviewPage page)
+    {
+        var text = string.Join(';', page.Items.Select(i => $"{i.Id.Value:N}.{i.Version}")) + "|" + page.NextCursor?.ToString("N");
+        return $"\"{Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(text)))[..32]}\"";
     }
 }
 

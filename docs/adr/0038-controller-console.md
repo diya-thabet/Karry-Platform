@@ -65,6 +65,17 @@ RULE-FO-08: a segment with no end one hour after its shift ended raises a flag o
 end arrives. The Workers run it every 5 minutes per company, like the SLA job. The shift board reads planned shifts,
 entries and open flags; it adds no table of its own.
 
+## As built
+
+As built (slice 1): review items carry `risk` (0 none, 1 flagged at submission, 2 escalated), kept by the domain and
+backfilled by the migration, indexed with the status and ID. `GET /verification/items?sort=risk` orders by risk then
+ID (UUIDv7, so oldest first); the cursor stays the last item's ID and the server reads that item's current risk to
+place the next page, so the API's cursor did not change type (no breaking change). Filters: `assetId`, `producedBy`,
+`flag` (jsonb element, letters, digits, `_` and `-` only), `coveredFrom` (inclusive), `coveredBefore` (exclusive).
+The page's `ETag` is a hash of each item's ID and row version and of the next cursor; `If-None-Match` with it is a 304
+without a body; the answer is `private, no-cache`. An item escalated while someone pages moves up and may be seen
+twice or not at all on that pass: the next poll from the first page shows it.
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the
