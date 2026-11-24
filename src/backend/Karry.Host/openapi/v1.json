@@ -7713,6 +7713,58 @@
         }
       }
     },
+    "/api/v1/fieldops/entries/{entryId}/photos/{sha256}": {
+      "get": {
+        "tags": [
+          "FieldOpsModule"
+        ],
+        "operationId": "GetShiftEntryPhoto",
+        "parameters": [
+          {
+            "name": "entryId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Entity",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/fieldops/checklists": {
       "get": {
         "tags": [
@@ -14036,9 +14088,19 @@
             "items": {
               "$ref": "#/components/schemas/ShiftEntryResponse"
             }
+          },
+          "previousOnMeter": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ShiftEntryResponse"
+              }
+            ]
           }
         },
-        "description": "An entry as it stands (`entry`) and every version it went through, oldest first."
+        "description": "An entry as it stands (`entry`) and every version it went through, oldest first; `previousOnMeter` is the\nsegment before it on the same meter as it stands, when the caller sees its site."
       },
       "ShiftEntryListResponse": {
         "required": [

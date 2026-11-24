@@ -1,5 +1,6 @@
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
+using Karry.BuildingBlocks.Storage;
 using Karry.Modules.Assets.Infrastructure;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Billing.Infrastructure;
@@ -54,6 +55,8 @@ builder.Services.AddSyncInfrastructure(connectionString);
 // FieldOps and Integrity: a meter event dispatched by the Assets outbox re-evaluates the meter's continuity here
 // (IMeterEventSubscriber, ADR-0036 §4), raising and closing integrity flags in the dispatcher's transaction.
 builder.Services.AddFieldOpsInfrastructure(connectionString);
+// FieldOps' reading of entries reads their photos (ADR-0038 §2): the evidence store, unavailable without configuration.
+builder.Services.AddEvidenceStore(builder.Configuration);
 builder.Services.AddIntegrityInfrastructure(connectionString);
 
 // Verification: the FieldOps handlers submit ended entries for review in their transaction (ADR-0037 §1); the SLA job

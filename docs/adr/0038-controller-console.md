@@ -76,6 +76,16 @@ The page's `ETag` is a hash of each item's ID and row version and of the next cu
 without a body; the answer is `private, no-cache`. An item escalated while someone pages moves up and may be seen
 twice or not at all on that pass: the next poll from the first page shows it.
 
+As built (slice 2): `IEvidenceStore.GetAsync` reads an object (the S3 store with the same retries as the object
+store). `GET /api/v1/fieldops/entries/{entryId}/photos/{sha256}` (with or without the `sha256:` prefix, lower-case
+hex only) loads the entry for a caller with `fieldops.entries.read` on its site (else 404), looks for the first
+version that names the photo as its start or end and was sent by a tablet (a correction names none), and reads the
+blob under that tablet's key: the end may come from another tablet than the start. A photo of the same company that
+the entry does not name is a 404, never served. No store configured: 422 `fieldops.photos_unavailable`, as for asset
+photos. FieldOps registers the evidence store itself (`TryAdd`, the same as Sync's), so a host without Sync still
+starts. `GET /fieldops/entries/{id}` gains `previousOnMeter`: the entry that started last before it on the same
+meter (any version: a correction never changes a start time), as it stands, only when the caller sees its site.
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the

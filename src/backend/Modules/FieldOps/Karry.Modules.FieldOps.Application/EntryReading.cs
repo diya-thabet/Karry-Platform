@@ -1,4 +1,6 @@
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Storage;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.FieldOps.Domain;
 using Karry.SharedKernel.Authorization;
 using Karry.SharedKernel.Results;
@@ -61,11 +63,21 @@ public interface IShiftEntryReader
 
     /// <summary>Every version of an entry, oldest first; empty when the entry is unknown.</summary>
     Task<IReadOnlyList<ShiftEntryVersion>> VersionsAsync(Guid rootId, CancellationToken cancellationToken);
+
+    /// <summary>The entry that started last on the meter before <paramref name="before"/>, other than <paramref name="rootId"/>, or null.</summary>
+    Task<Guid?> PreviousOnMeterAsync(Guid meterId, DateTimeOffset before, Guid rootId, CancellationToken cancellationToken);
 }
 
+/// <summary>An entry with every version, oldest first, and the segment before it on the same meter when the caller sees it.</summary>
+public sealed record EntryDetail(IReadOnlyList<ShiftEntryVersion> Versions, ShiftEntryVersion? PreviousOnMeter);
+
 /// <summary>The portal's reading of shift entries (ADR-0034 §7), limited to the caller's sites (ADR-0022).</summary>
-public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller)
+public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller, IEvidenceStore evidence, ITenantContext tenant)
 {
+    public static readonly Error PhotoNotFound = Error.NotFound("fieldops.photo_not_found", "This entry has no such photo.");
+
+    public static readonly Error PhotosUnavailable = Error.BusinessRule("fieldops.photos_unavailable", "Photo storage is not configured on this server.");
+
     public const int DefaultLimit = 50;
     public const int MaxLimit = 200;
 
@@ -119,5 +131,58 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller)
         return versions.Count > 0 && caller.Current.ScopeOf(FieldOpsPermissions.EntriesRead).CoversSite(versions[^1].SiteId)
             ? Result.Success(versions)
             : NotFound;
+    }
+
+    /// <summary>
+    /// The entry and the segment before it on the same meter (the console shows the previous end photo beside this start,
+    /// ADR-0038 §2); the previous one only when the caller sees its site (a machine moves between sites).
+    /// </summary>
+    public async Task<Result<EntryDetail>> DetailAsync(Guid rootId, CancellationToken cancellationToken)
+    {
+        var versions = await GetAsync(rootId, cancellationToken).ConfigureAwait(false);
+        if (!versions.IsSuccess)
+        {
+            return versions.Error;
+        }
+
+        var current = versions.Value[^1];
+        var previousRoot = await reader.PreviousOnMeterAsync(current.MeterId, current.StartedAt, rootId, cancellationToken).ConfigureAwait(false);
+        if (previousRoot is not { } root)
+        {
+            return new EntryDetail(versions.Value, null);
+        }
+
+        var previous = await GetAsync(root, cancellationToken).ConfigureAwait(false);
+        return new EntryDetail(versions.Value, previous.IsSuccess ? previous.Value[^1] : null);
+    }
+
+    /// <summary>
+    /// A photo the entry names (its start or end photo, ADR-0038 §2), read from the evidence bucket under the key of the
+    /// tablet that first sent it (a correction names no tablet); for a caller who sees the entry, never another.
+    /// </summary>
+    public async Task<Result<StoredObject>> PhotoAsync(Guid rootId, string sha256, CancellationToken cancellationToken)
+    {
+        var versions = await GetAsync(rootId, cancellationToken).ConfigureAwait(false);
+        if (!versions.IsSuccess)
+        {
+            return versions.Error;
+        }
+
+        var reference = sha256.StartsWith("sha256:", StringComparison.Ordinal) ? sha256 : "sha256:" + sha256;
+        var hex = reference["sha256:".Length..];
+        var sentBy = versions.Value.FirstOrDefault(v => v.DeviceId != Guid.Empty && (v.StartPhoto == reference || v.EndPhoto == reference));
+        if (hex.Length != 64 || !hex.All(char.IsAsciiHexDigitLower) || sentBy is null)
+        {
+            return PhotoNotFound;
+        }
+
+        if (!evidence.Available)
+        {
+            return PhotosUnavailable;
+        }
+
+        var company = tenant.Current ?? throw new InvalidOperationException("Photos belong to a tenant.");
+        var photo = await evidence.GetAsync(EvidenceKeys.For(company.Value, sentBy.DeviceId, hex), cancellationToken).ConfigureAwait(false);
+        return photo is null ? PhotoNotFound : photo;
     }
 }
