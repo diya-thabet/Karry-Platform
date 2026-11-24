@@ -4,7 +4,7 @@ area: domain
 tags: [roles, permissions, rbac]
 source: "PHASES_DETAILED_PLAN.md §23"
 status: baseline
-last_updated: 2026-11-23
+last_updated: 2026-11-24
 ---
 
 # Default Role & Permission Matrix
@@ -66,7 +66,8 @@ The matrix above is the target for the whole product. In code it is the union of
 | `fieldops.checklists.read` | tenant | no | Tenant Admin, Controller, Site Manager, Maintenance Planner | Pre-start checklist templates and every published version (ADR-0035 §2; P2.6). Tablets get the newest version through sync |
 | `fieldops.checklists.manage` | tenant | no | Tenant Admin, Site Manager, Maintenance Planner | Publish the next version of an asset type's checklist; company-wide, so a site assignment alone does not grant it (ADR-0035 §2; P2.6) |
 | `fieldops.holds.release` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Release a machine held as unsafe by a critical Not OK, with a reason of 10 to 500 characters; ledgered under the person's name (ADR-0035 §5; P2.6) |
-| `integrity.flags.read` | site | no | Tenant Admin, Executive, Controller, Site Manager, Maintenance Planner | Integrity flags of the caller's sites, open and closed (ADR-0036; P2.7). Settling them is the controller console (P2.8). Also reads the company's rule settings |
+| `integrity.flags.read` | site | no | Tenant Admin, Executive, Controller, Site Manager, Maintenance Planner | Integrity flags of the caller's sites, open and closed (ADR-0036; P2.7). Also reads the company's rule settings |
+| `integrity.flags.settle` | site | yes | Tenant Admin, Controller, Site Manager | Settle a continuity gap (RULE-FO-01) of the caller's sites with a reason, approve another person's settlement (never one's own) or decline it; proposing and approving need a recent sign-in; ledgered (ADR-0037 §7; P2.8) |
 | `integrity.rules.manage` | tenant | yes | Tenant Admin | Switch the company's integrity rules on or off and set their thresholds, with a recent sign-in; the security rules (RULE-FO-05, 06, 07) cannot be switched off; ledgered (ADR-0036 §1; P2.7) |
 | `verification.items.read` | site | no | Tenant Admin, Executive, Controller, Site Manager | The review items of the caller's sites: the queue of entries waiting for a decision, and decided ones (ADR-0037; P2.8). Deciding on them comes with P2.8 slice 2 |
 | `verification.items.review` | site | no | Tenant Admin, Controller, Site Manager | Approve or reject the entries of the caller's sites (ADR-0037; P2.8 slice 2): never one's own entry or a machine one drove in the time it covers, as a person through the office ↔ field account link; `If-Match` on the item's version |

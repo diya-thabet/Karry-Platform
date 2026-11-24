@@ -23,7 +23,8 @@ public sealed record RuleSettings(string Rule, bool Enabled, IReadOnlyDictionary
 /// <summary>
 /// How modules raise and close integrity flags (ADR-0036 §3), in their own transaction so a fact and its flags commit
 /// together. <c>SyncAsync</c> gives every finding that holds now for a subject and rule: missing flags are opened, open
-/// flags no longer found are closed with the reason <c>re-evaluated</c>. A switched-off rule opens nothing.
+/// flags no longer found are closed with the reason <c>re-evaluated</c>; a key a person settled is never raised again
+/// (ADR-0037 §7). A switched-off rule opens nothing.
 /// </summary>
 public interface IIntegrityFlags
 {
@@ -48,4 +49,7 @@ public static class IntegrityRules
 
     /// <summary>A start without a recent pre-start checklist where the machine type requires one (threat R-14).</summary>
     public const string MissingChecklist = "RULE-FO-10";
+
+    /// <summary>A continuity gap settled as unexplained, or left unsettled beyond 48 h (US-P2-FO-08 AC2, ADR-0037 §7).</summary>
+    public const string FraudSuspected = "RULE-FO-11";
 }

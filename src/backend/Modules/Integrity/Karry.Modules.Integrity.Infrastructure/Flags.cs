@@ -53,7 +53,12 @@ internal sealed class FlagWriter(IntegrityDbContext db, ITenantContext tenant, T
         var open = await db.Flags
             .Where(f => f.SubjectType == subject.Type && f.SubjectId == subject.Id && f.Rule == rule && f.ClosedAt == null)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
-        var found = findings.GroupBy(f => f.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+        // A key a person settled is never raised again, though the gap still holds (ADR-0037 §7).
+        var settled = await db.Flags
+            .Where(f => f.SubjectType == subject.Type && f.SubjectId == subject.Id && f.Rule == rule && f.CloseReason != null && f.CloseReason.StartsWith(SettlementReasons.ClosePrefix))
+            .Select(f => f.Key).ToListAsync(cancellationToken).ConfigureAwait(false);
+        var found = findings.Where(f => !settled.Contains(f.Key, StringComparer.Ordinal))
+            .GroupBy(f => f.Key, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         foreach (var flag in open.Where(f => !found.ContainsKey(f.Key)))
         {
             flag.Close(clock, IntegrityFlag.Reevaluated, actor: null);
@@ -87,6 +92,33 @@ internal sealed class RuleSettingStore(IntegrityDbContext db) : IRuleSettingStor
             db.RuleSettings.Add(setting);
         }
 
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+}
+
+internal sealed class FlagStore(IntegrityDbContext db) : IFlagStore
+{
+    public Task<IntegrityFlag?> FindAsync(IntegrityFlagId id, CancellationToken cancellationToken) =>
+        db.Flags.SingleOrDefaultAsync(f => f.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<IntegrityFlag>> UnsettledGapsAsync(DateTimeOffset openedBy, int take, CancellationToken cancellationToken) =>
+        await db.Flags
+            .Where(f => f.Rule == IntegrityFlag.ContinuityRule && f.ClosedAt == null && f.FraudSuspectedAt == null && f.OpenedAt <= openedBy)
+            .OrderBy(f => f.OpenedAt).Take(take).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(IntegrityFlag flag) => db.Flags.Add(flag);
+
+    public async Task<bool> TrySaveAsync(CancellationToken cancellationToken)
+    {
         try
         {
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
@@ -157,6 +189,9 @@ public static class IntegrityInfrastructure
         services.AddScoped<IIntegrityFlags, FlagWriter>();
         services.AddScoped<IFlagReader, FlagReader>();
         services.AddScoped<FlagReading>();
+        services.AddScoped<IFlagStore, FlagStore>();
+        services.AddScoped<FlagSettlements>();
+        services.AddSingleton<RaiseUnsettledGaps>();
         services.AddScoped<IRuleSettingStore, RuleSettingStore>();
         services.AddScoped<RuleSettingOperations>();
         return services;

@@ -109,6 +109,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-23 | `portal.users.fieldAccount*` (5 keys) | ar, emk, nqo | P2.8 office ↔ field account link ("compte terrain") |
 | 2026-11-23 | `permissions.verification.items.review` | ar, emk, nqo | P2.8 approve/reject permission ("valider ou rejeter") |
 | 2026-11-23 | `permissions.verification.items.read` | ar, emk, nqo | P2.8 review queue permission ("saisies à vérifier") |
+| 2026-11-24 | `portal.integrity.rule.RULE-FO-11.*`, `portal.integrity.flag.RULE-FO-11`, `portal.integrity.flags.settled`, `permissions.integrity.flags.settle` | ar, emk, nqo | P2.8 RULE-FO-11 (fraud suspected: a gap settled as unexplained or unsettled beyond 48 h) and the settled close reasons (ICU `select`); "réglé", "latigɛ" |
 | 2026-11-20 | `portal.integrity.rule.RULE-FO-10.*`, `portal.integrity.flag.RULE-FO-10` | ar, emk, nqo | P2.7 RULE-FO-10: start without the pre-start checklist; "contrôle avant démarrage" as on the tablet |
 | 2026-11-20 | `portal.integrity.rule.RULE-FO-09.*`, `portal.integrity.flag.RULE-FO-09` | ar, emk, nqo | P2.7 RULE-FO-09: who signed, with the reason (ICU `select` with a nested date); "signataire" |
 | 2026-11-20 | `portal.integrity.flags.*`, `portal.integrity.flag.*` (32 keys) | ar, emk, nqo | P2.7 integrity flag list: what each rule found with its values (ICU `select` for start/end, ahead/behind; plurals), "alertes d’intégrité", "lasɔmini" |

@@ -1036,7 +1036,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Integrity.Contracts": "[1.0.0, )",
-          "Karry.Modules.Integrity.Domain": "[1.0.0, )"
+          "Karry.Modules.Integrity.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.integrity.contracts": {

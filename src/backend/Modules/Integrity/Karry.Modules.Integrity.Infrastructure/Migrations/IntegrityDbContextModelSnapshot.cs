@@ -146,6 +146,10 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("evidence");
 
+                    b.Property<DateTimeOffset?>("FraudSuspectedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fraud_suspected_at");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -166,6 +170,25 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("rule");
+
+                    b.Property<string>("SettlementComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("settlement_comment");
+
+                    b.Property<DateTimeOffset?>("SettlementProposedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("settlement_proposed_at");
+
+                    b.Property<string>("SettlementProposedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("settlement_proposed_by");
+
+                    b.Property<string>("SettlementReason")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("settlement_reason");
 
                     b.Property<string>("Severity")
                         .IsRequired()
@@ -191,11 +214,21 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("tenant_id");
 
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id")
                         .HasName("pk_flags");
 
                     b.HasIndex("TenantId")
                         .HasDatabaseName("ix_flags_tenant_id");
+
+                    b.HasIndex("TenantId", "Rule", "OpenedAt")
+                        .HasDatabaseName("ix_flags_tenant_id_rule_opened_at")
+                        .HasFilter("closed_at IS NULL AND fraud_suspected_at IS NULL");
 
                     b.HasIndex("TenantId", "SiteId", "OpenedAt")
                         .HasDatabaseName("ix_flags_tenant_id_site_id_opened_at");
@@ -208,6 +241,8 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
                     b.ToTable("flags", "integrity", t =>
                         {
                             t.HasCheckConstraint("ck_flags_closed", "(closed_at IS NULL) = (close_reason IS NULL)");
+
+                            t.HasCheckConstraint("ck_flags_settlement", "(settlement_reason IS NULL) = (settlement_proposed_at IS NULL) AND (settlement_reason IS NULL) = (settlement_comment IS NULL)");
 
                             t.HasCheckConstraint("ck_flags_severity", "severity IN ('low', 'medium', 'high', 'critical')");
                         });
@@ -265,7 +300,7 @@ namespace Karry.Modules.Integrity.Infrastructure.Migrations
 
                     b.ToTable("rule_settings", "integrity", t =>
                         {
-                            t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07', 'RULE-FO-09', 'RULE-FO-10')");
+                            t.HasCheckConstraint("ck_rule_settings_security_on", "enabled OR rule NOT IN ('RULE-FO-05', 'RULE-FO-06', 'RULE-FO-07', 'RULE-FO-09', 'RULE-FO-10', 'RULE-FO-11')");
                         });
                 });
 #pragma warning restore 612, 618

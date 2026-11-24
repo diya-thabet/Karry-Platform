@@ -17,7 +17,7 @@ namespace Karry.Modules.Integrity.Tests;
 /// flags of its sites, never another company's.
 /// </summary>
 [Trait("Story", "US-P2-INT-01")]
-public sealed class FlagsTests(IntegrityHost host) : IClassFixture<IntegrityHost>
+public sealed partial class FlagsTests(IntegrityHost host) : IClassFixture<IntegrityHost>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

@@ -184,6 +184,29 @@ instant (creation plus the SLA hours), so the site's time zone does not change i
 owner question if wanted). The queue carries `escalatedAt` and filters `?overdue=true`; it keeps paging by creation
 order, so the console (P2.9) shows overdue items first through the filter rather than a re-sorted page.
 
+As built (slice 7): settling is a flag's own lifecycle in Integrity. `POST /api/v1/integrity/flags/{id}/settle`
+(reason and what happened, 1 to 500 characters) records a proposal on an open RULE-FO-01 flag
+(`integrity.flag_settlement_proposed.v1`); `…/settlement/approve` by another person closes it as
+`settled:<reason>` with `closedBy`; `…/settlement/decline` (anyone with the permission, the proposer withdrawing
+included) clears the proposal and keeps the gap open (`integrity.flag_settlement_declined.v1`). All three need
+`integrity.flags.settle` (site, privileged: Tenant Admin, Controller, Site Manager) and `If-Match`; proposing and
+approving need a recent sign-in, declining does not (it hides nothing). Decisions taken while building:
+- **Every reason needs the second person.** A data-entry error is not settled by hand: `settle` refuses it
+  (422 `integrity.correct_the_entry`) and the entry is corrected through the review (§1), which runs continuity again
+  and closes the flag as `re-evaluated`. Otherwise one person could hide a real gap by calling it a typing error.
+- **A settled gap is never raised again.** `IIntegrityFlags.SyncAsync` skips a key whose flag was closed as
+  `settled:…`, though the gap still holds; a new gap is a new key.
+- **"Unexplained" raises RULE-FO-11 at the proposal**, not at the approval: suspicion does not wait for the second
+  person, and declining does not withdraw it. RULE-FO-11 is critical, a security rule (cannot be switched off), on the
+  gap's meter, keyed by the gap's flag ID (`cause`: `unexplained` or `unsettled_48h`), and is never closed by a check.
+- **48 h:** `UnsettledGapsJob` (Workers, every 15 minutes) raises RULE-FO-11 on every gap still open 48 h after it
+  was opened, a proposal waiting or not; `fraud_suspected_at` on the gap makes it once per gap.
+- The flag row's trigger now lets an open flag change its closing, settlement and `fraud_suspected_at` (once) fields
+  only; a closed flag still never changes. Flags carry `xmin` as their version: a save that loses a race is a 409, and
+  an upload closing the same flag at the same moment fails and is retried by the tablet.
+- Separation of duties against the gap's own operators (the settler drove one of the two segments) is not checked
+  yet: two people are required, and the close-out security review (slice 8) decides whether Integrity asks FieldOps.
+
 ## Options considered
 
 1. **A generic Verification module with a record contract (chosen).** One review engine for every record type of
