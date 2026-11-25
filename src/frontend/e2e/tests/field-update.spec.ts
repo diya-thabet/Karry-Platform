@@ -32,7 +32,9 @@ test.describe("a new version while entries wait (P2.5, US-P1-OFF-01 AC2, ADR-003
       await expect(offer).toContainText("Une nouvelle version de Karry Terrain est prête.", { timeout: 60_000 });
       await offer.getByRole("button", { name: "Mettre à jour" }).click();
 
-      // The new version reloads the app (locked again); the signed entries are still in the outbox.
+      // The new version reloads the app (locked again); the signed entries are still in the outbox. Wait for the lock
+      // screen of the reloaded page first: an action begun on the old page can hang across the reload (CI, #253).
+      await expect(tablet.getByRole("heading", { name: "Déverrouiller la tablette" })).toBeVisible({ timeout: 30_000 });
       await unlock(tablet);
       await expect(tablet.getByRole("region", { name: "Envoi des saisies" })).toContainText("2 saisies en attente d’envoi");
       await context.unroute("**/api/v1/sync/batches");
