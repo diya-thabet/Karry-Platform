@@ -502,6 +502,12 @@
           "Karry.SharedKernel": "[1.0.0, )"
         }
       },
+      "karry.modules.notifications.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
       "karry.modules.organization.contracts": {
         "type": "Project",
         "dependencies": {

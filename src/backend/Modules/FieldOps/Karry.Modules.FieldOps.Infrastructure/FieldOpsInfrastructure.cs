@@ -1,3 +1,4 @@
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Sync;
 using Karry.Modules.FieldOps.Application;
@@ -13,10 +14,13 @@ public static class FieldOpsInfrastructure
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddModuleDbContext<FieldOpsDbContext>(connectionString);
+        // Its events reach other modules (notices, ADR-0039): dispatched by the Workers.
+        services.AddOutboxDispatcher<FieldOpsDbContext>(eventAssemblies: typeof(Domain.ShiftEntryVersion).Assembly);
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
         services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
         services.AddScoped<EntryReading>();
         services.AddScoped<IOpenSegments, OpenSegments>();
+        services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<Domain.AssetMarkedUnsafe>, HoldNotices>();
         services.AddScoped<MissingEndCheck>();
         services.AddSingleton<RaiseMissingEnds>();
         services.AddScoped<IChecklistTemplateStore, ChecklistTemplateStore>();

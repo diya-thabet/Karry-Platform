@@ -24,6 +24,11 @@
     <Project Path="src/backend/Modules/Integrity/Karry.Modules.Integrity.Contracts/Karry.Modules.Integrity.Contracts.csproj" />
     <Project Path="src/backend/Modules/Integrity/Karry.Modules.Integrity.Domain/Karry.Modules.Integrity.Domain.csproj" />
     <Project Path="src/backend/Modules/Integrity/Karry.Modules.Integrity.Infrastructure/Karry.Modules.Integrity.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Api/Karry.Modules.Notifications.Api.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Application/Karry.Modules.Notifications.Application.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Contracts/Karry.Modules.Notifications.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Domain/Karry.Modules.Notifications.Domain.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Infrastructure/Karry.Modules.Notifications.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Verification/Karry.Modules.Verification.Api/Karry.Modules.Verification.Api.csproj" />
     <Project Path="src/backend/Modules/Verification/Karry.Modules.Verification.Application/Karry.Modules.Verification.Application.csproj" />
     <Project Path="src/backend/Modules/Verification/Karry.Modules.Verification.Contracts/Karry.Modules.Verification.Contracts.csproj" />
@@ -75,6 +80,7 @@
     <Project Path="src/backend/Modules/Billing/Karry.Modules.Billing.Tests/Karry.Modules.Billing.Tests.csproj" />
     <Project Path="src/backend/Modules/FieldOps/Karry.Modules.FieldOps.Tests/Karry.Modules.FieldOps.Tests.csproj" />
     <Project Path="src/backend/Modules/Integrity/Karry.Modules.Integrity.Tests/Karry.Modules.Integrity.Tests.csproj" />
+    <Project Path="src/backend/Modules/Notifications/Karry.Modules.Notifications.Tests/Karry.Modules.Notifications.Tests.csproj" />
     <Project Path="src/backend/Modules/Verification/Karry.Modules.Verification.Tests/Karry.Modules.Verification.Tests.csproj" />
     <Project Path="src/backend/Modules/Flags/Karry.Modules.Flags.Tests/Karry.Modules.Flags.Tests.csproj" />
     <Project Path="src/backend/Modules/Identity/Karry.Modules.Identity.Tests/Karry.Modules.Identity.Tests.csproj" />

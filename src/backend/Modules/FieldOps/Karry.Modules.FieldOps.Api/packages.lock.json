@@ -163,7 +163,8 @@
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.FieldOps.Application": "[1.0.0, )",
-          "Karry.Modules.FieldOps.Domain": "[1.0.0, )"
+          "Karry.Modules.FieldOps.Domain": "[1.0.0, )",
+          "Karry.Modules.Notifications.Contracts": "[1.0.0, )"
         }
       },
       "karry.modules.identity.contracts": {
@@ -173,6 +174,12 @@
         }
       },
       "karry.modules.integrity.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.notifications.contracts": {
         "type": "Project",
         "dependencies": {
           "Karry.SharedKernel": "[1.0.0, )"

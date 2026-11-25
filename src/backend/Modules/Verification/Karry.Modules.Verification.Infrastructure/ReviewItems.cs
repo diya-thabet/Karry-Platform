@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
@@ -205,9 +206,14 @@ public static class VerificationInfrastructure
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddModuleDbContext<VerificationDbContext>(connectionString);
+        // Its events reach other modules (notices, ADR-0039): dispatched by the Workers.
+        services.AddOutboxDispatcher<VerificationDbContext>(eventAssemblies: typeof(Domain.ReviewItem).Assembly);
         services.AddScoped<IReviewIntake, ReviewIntake>();
         services.AddScoped<IReviewItemReader, ReviewItemReader>();
         services.AddScoped<ReviewReading>();
+        services.AddScoped<ReviewNotices>();
+        services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<Domain.ReviewItemRejected>>(sp => sp.GetRequiredService<ReviewNotices>());
+        services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<Domain.ReviewItemEscalated>>(sp => sp.GetRequiredService<ReviewNotices>());
         services.AddScoped<IReviewItemStore, ReviewItemStore>();
         services.AddScoped<ReviewDecisions>();
         services.AddScoped<ISyncSource, ReviewOutcomesSync>();

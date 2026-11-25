@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Notifications and their rules (ADR-0039). No EF Core, ASP.NET or infrastructure dependencies. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../Karry.SharedKernel/Karry.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Public surface of the Notifications module: how other modules hand over a notice. The ONLY project other modules may reference. -->
+  <ItemGroup>
+    <ProjectReference Include="../../../Karry.SharedKernel/Karry.SharedKernel.csproj" />
+  </ItemGroup>
+
+</Project>

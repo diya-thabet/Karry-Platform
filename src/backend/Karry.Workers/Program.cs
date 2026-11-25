@@ -12,6 +12,7 @@ using Karry.Modules.Imports.Application;
 using Karry.Modules.Imports.Infrastructure;
 using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Materials.Infrastructure;
+using Karry.Modules.Notifications.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
 using Karry.Modules.Sync.Application;
@@ -62,6 +63,8 @@ builder.Services.AddIntegrityInfrastructure(connectionString);
 // Verification: the FieldOps handlers submit ended entries for review in their transaction (ADR-0037 §1); the SLA job
 // of P2.8 runs here too.
 builder.Services.AddVerificationInfrastructure(connectionString);
+// Notifications (ADR-0039): the FieldOps, Verification and Integrity outboxes hand their notices to it.
+builder.Services.AddNotificationsInfrastructure(connectionString);
 
 // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
 // The runner rebuilds the requester's access, so this host knows every module's permissions.
@@ -99,6 +102,10 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<AssetsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<ImportsDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FieldOpsDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<VerificationDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<IntegrityDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<NotificationsDbContext>>()).ConfigureAwait(false);
     Console.WriteLine($"outbox: {left} message(s) left for a retry");
     return left == 0 ? 0 : 1;
 }
@@ -176,6 +183,10 @@ builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
 builder.Services.AddOutboxDispatcherService<AssetsDbContext>();
 builder.Services.AddOutboxDispatcherService<ImportsDbContext>();
 builder.Services.AddOutboxDispatcherService<TrustDbContext>();
+builder.Services.AddOutboxDispatcherService<FieldOpsDbContext>();
+builder.Services.AddOutboxDispatcherService<VerificationDbContext>();
+builder.Services.AddOutboxDispatcherService<IntegrityDbContext>();
+builder.Services.AddOutboxDispatcherService<NotificationsDbContext>();
 
 builder.Services.AddQuartz(quartz =>
 {
