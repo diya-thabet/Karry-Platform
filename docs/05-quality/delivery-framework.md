@@ -42,7 +42,7 @@ last_updated: 2026-10-29
 
 - [ ] All AC pass, verified by QA on the `dev` environment.
 - [ ] Cross-cutting AC ([§5](cross-cutting-acceptance-criteria.md)) satisfied.
-- [ ] Unit tests written; domain/math coverage ≥ 80 % for touched modules; property tests for formulas.
+- [ ] Unit tests written; coverage gate holds (every production assembly ≥ 90 %, all together ≥ 95 %; [guidelines §7.2](../00-llm/llm_guidelines.md#72-test-pyramid--targets)); property tests for formulas; real-world scenarios of the sub-phase tested.
 - [ ] Integration tests for persistence and API (Testcontainers).
 - [ ] E2E test added or updated for user-facing critical journeys.
 - [ ] Tenant-isolation test auto-generated for any new endpoint (passes).

@@ -81,6 +81,62 @@ class SolutionCoverageTests(unittest.TestCase):
         sln = self.solution("Karry.Host", "Karry.BuildingBlocks")
         self.assertEqual(coverage_gate.main(["--solution", sln, report("Karry.Host", {1: 0})]), 0)
 
+    def test_a_project_is_expected_under_its_assembly_name(self) -> None:
+        # tools/ledger-verifier builds karry-ledger: the report names the assembly, not the project file.
+        directory = tempfile.mkdtemp()
+        project = os.path.join(directory, "tools", "Karry.LedgerVerifier")
+        os.makedirs(project)
+        with open(os.path.join(project, "Karry.LedgerVerifier.csproj"), "w", encoding="utf-8") as fh:
+            fh.write("<Project><PropertyGroup><AssemblyName>karry-ledger</AssemblyName></PropertyGroup></Project>")
+        sln = os.path.join(directory, "K.slnx")
+        with open(sln, "w", encoding="utf-8") as fh:
+            fh.write('<Solution><Project Path="tools/Karry.LedgerVerifier/Karry.LedgerVerifier.csproj" /></Solution>')
+        gate = ["--pattern", r"^(Karry\.|karry-ledger$)", "--threshold", "90", "--solution", sln]
+
+        self.assertEqual(coverage_gate.solution_projects(sln, coverage_gate.re.compile(".")), ["karry-ledger"])
+        self.assertEqual(coverage_gate.main([*gate, report("karry-ledger", {1: 1})]), 0)
+        self.assertEqual(coverage_gate.main([*gate, report("Karry.Other", {1: 1})]), 1, "karry-ledger is not in any report")
+
+
+class GeneratedCodeTests(unittest.TestCase):
+    """Only what people wrote counts: the OpenAPI generator's file alone took Api assemblies from ~100 % to ~40 %."""
+
+    def test_generated_files_are_left_out_by_default(self) -> None:
+        written = report("Karry.Modules.Fuel.Api", {1: 1, 2: 1}, filename="/src/Karry.Modules.Fuel.Api/FuelModule.cs")
+        generated = [
+            report("Karry.Modules.Fuel.Api", {n: 0 for n in range(1, 50)}, filename=name)
+            for name in (
+                "/src/Karry.Modules.Fuel.Api/obj/Release/net10.0/OpenApiXmlCommentSupport.generated.cs",
+                "/src/Karry.Modules.Fuel.Api/Regexes.g.cs",
+                "C:\\src\\Karry.Modules.Fuel.Api\\obj\\Debug\\Logging.cs",
+                "/src/Karry.Modules.Fuel.Api/Migrations/20261101000000_Initial.Designer.cs",
+            )
+        ]
+        gate = ["--pattern", r"\.Api$", "--threshold", "90"]
+
+        self.assertEqual(coverage_gate.main([*gate, written, *generated]), 0)
+        self.assertEqual(coverage_gate.main([*gate, "--exclude-files", "", written, *generated]), 1, "kept on request")
+
+    def test_a_hand_written_file_named_like_obj_is_kept(self) -> None:
+        path = report("Karry.Modules.Fuel.Domain", {1: 0}, filename="/src/Karry.Modules.Fuel.Domain/objects/Order.cs")
+        self.assertEqual(coverage_gate.main([path]), 1)
+
+
+class TotalThresholdTests(unittest.TestCase):
+    def test_every_assembly_above_its_floor_but_the_total_below_fails(self) -> None:
+        a = report("Karry.A", {n: (1 if n <= 9 else 0) for n in range(1, 11)})  # 90 %
+        b = report("Karry.B", {n: (1 if n <= 9 else 0) for n in range(1, 11)})  # 90 %
+        gate = ["--pattern", r"^Karry\.", "--threshold", "90"]
+
+        self.assertEqual(coverage_gate.main([*gate, a, b]), 0)
+        self.assertEqual(coverage_gate.main([*gate, "--total-threshold", "90", a, b]), 0)
+        self.assertEqual(coverage_gate.main([*gate, "--total-threshold", "95", a, b]), 1)
+
+    def test_the_total_weighs_assemblies_by_their_lines(self) -> None:
+        big = report("Karry.Big", {n: 1 for n in range(1, 100)} | {100: 0})  # 99 of 100
+        small = report("Karry.Small", {1: 0, 2: 1})  # 1 of 2
+        self.assertEqual(coverage_gate.main(["--pattern", r"^Karry\.", "--threshold", "0", "--total-threshold", "97", big, small]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

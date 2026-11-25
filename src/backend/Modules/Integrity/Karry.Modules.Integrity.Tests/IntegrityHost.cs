@@ -40,6 +40,9 @@ public sealed class IntegrityHost : IAsyncLifetime
     /// <summary>Who signed which entry (FieldOps' answer): entry root ID → field account.</summary>
     public ConcurrentDictionary<Guid, Guid> SignedBy { get; } = new();
 
+    /// <summary>The notices handed to the Notifications module (its inbox, ADR-0039 §1), with the transaction they came in.</summary>
+    public CapturingNotices Notices { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -62,6 +65,7 @@ public sealed class IntegrityHost : IAsyncLifetime
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         builder.Services.AddSingleton<IReviewers>(new Linked(FieldAccountOf));
         builder.Services.AddSingleton<IFlagParticipants>(new Signers(SignedBy));
+        builder.Services.AddSingleton<Notifications.Contracts.INotices>(Notices);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -91,6 +95,18 @@ internal sealed class Linked(ConcurrentDictionary<string, Guid> links) : IReview
 {
     public Task<Guid?> FieldAccountOfAsync(string subject, CancellationToken cancellationToken) =>
         Task.FromResult(links.TryGetValue(subject, out var field) ? field : (Guid?)null);
+}
+
+public sealed class CapturingNotices : Notifications.Contracts.INotices
+{
+    public ConcurrentQueue<Notifications.Contracts.Notice> Published { get; } = new();
+
+    public Task PublishAsync(System.Data.Common.DbConnection connection, System.Data.Common.DbTransaction transaction, Notifications.Contracts.Notice notice, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(transaction); // in the dispatcher's transaction, never outside one
+        Published.Enqueue(notice);
+        return Task.CompletedTask;
+    }
 }
 
 internal sealed class Signers(ConcurrentDictionary<Guid, Guid> signedBy) : IFlagParticipants

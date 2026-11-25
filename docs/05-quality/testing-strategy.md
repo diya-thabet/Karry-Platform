@@ -13,7 +13,8 @@ last_updated: 2026-11-09
 
 | Level | Tooling | Scope / Rules |
 |---|---|---|
-| Unit | xUnit, Vitest | All domain logic; ≥ 80 % coverage in Domain projects |
+| Unit | xUnit, Vitest | All domain logic; CI coverage gate: every production assembly ≥ 90 % lines, all together ≥ 95 %, generated code and migrations left out ([guidelines §7.2](../00-llm/llm_guidelines.md#72-test-pyramid--targets)) |
+| **Host start-up** | xUnit + Testcontainers | Each host as deployed: its container validated as in Development, every command's exit code, every scheduled job on a fresh database, migrate + seed twice (`WorkersStartupTests`, `FreshDeploymentTests`) |
 | **Property-based** | FsCheck | Every formula: unit round-trips (`t→m³→t`), mass conservation in plant graph (Σin = Σout at steady state), RUL monotonicity, DSCR invariants |
 | **Mutation** | Stryker.NET | Math & trust modules, mutation score ≥ 70 % |
 | **Golden datasets** | Domain-expert spreadsheets | Real quarry cases recomputed by engines must match to tolerance |
