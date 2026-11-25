@@ -1538,5 +1538,9 @@
   "errors.integrity.no_settlement_pending": "No settlement of this gap waits for approval.",
   "errors.integrity.sod_own_settlement": "You proposed this settlement: another person approves it.",
   "errors.integrity.sod_own_gap": "You signed one of the entries of this gap: another person settles it.",
-  "errors.integrity.flag_not_found": "This flag is not on your sites."
+  "errors.integrity.flag_not_found": "This flag is not on your sites.",
+  "portal.integrity.rule.RULE-FO-08.title": "Missing end",
+  "portal.integrity.rule.RULE-FO-08.description": "A shift that started gets its end signed soon after the shift is over.",
+  "portal.integrity.flag.RULE-FO-08": "No end was signed for this shift, which ended on {endedAt, date, medium}, {endedAt, time, short}, {minutes, number} min ago or more.",
+  "portal.integrity.threshold.graceMinutes": "Time allowed after the shift"
 }

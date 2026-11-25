@@ -711,6 +711,54 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
     }
 
     [Fact]
+    [Trait("Story", "US-P2-VER-08")]
+    public async Task A_segment_still_open_an_hour_after_its_shift_ended_is_flagged_once_and_its_end_closes_the_flag()
+    {
+        var root = Guid.CreateVersion7();
+        await HandleAsync(TenantA, StartShiftEntry.Name, Start(root, ShiftStart.AddMinutes(5), "100.0", meter: FreshMeter()));
+        var shiftEnd = ShiftStart.AddHours(8);
+
+        async Task<int> Check(DateTimeOffset now)
+        {
+            await using var scope = services.CreateAsyncScope();
+            scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantA));
+            return await scope.ServiceProvider.GetRequiredService<MissingEndCheck>().RunAsync(now, Ct);
+        }
+
+        async Task<List<string>> Flags() => await RowsAsync(TenantA,
+            $"SELECT key || '|' || coalesce(close_reason, 'open') || '|' || (details->>'graceMinutes') FROM integrity.flags WHERE rule = 'RULE-FO-08' AND subject_id = '{root}'");
+
+        var early = await Check(shiftEnd.AddMinutes(59));
+        var flaggedNow = await Check(shiftEnd.AddMinutes(61));
+        await Check(shiftEnd.AddMinutes(90));
+        var raised = await Flags();
+        await HandleAsync(TenantA, EndShiftEntry.Name, End(root, 2, shiftEnd.AddMinutes(95), "108.0"));
+
+        early.Should().Be(0, "within the hour of grace");
+        flaggedNow.Should().Be(1);
+        raised.Should().Equal(["missing_end|open|60"], "raised once, however often the check runs");
+        (await Flags()).Should().Equal(["missing_end|re-evaluated|60"], "the end arrived");
+        (await Check(shiftEnd.AddHours(3))).Should().Be(0, "an ended segment is not looked at");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-08")]
+    public async Task A_company_that_switched_the_missing_end_rule_off_gets_no_flag()
+    {
+        var root = Guid.CreateVersion7();
+        await HandleAsync(TenantB, StartShiftEntry.Name, Start(root, ShiftStart.AddMinutes(5), "100.0", meter: FreshMeter()));
+        await ExecuteAsAdminAsync(
+            $"INSERT INTO integrity.rule_settings (id, tenant_id, rule, enabled, thresholds, changed_at, changed_by) VALUES (gen_random_uuid(), '{TenantB}', 'RULE-FO-08', false, '{{}}', now(), 'admin')");
+
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantB));
+        var checkedCount = await scope.ServiceProvider.GetRequiredService<MissingEndCheck>().RunAsync(ShiftStart.AddHours(10), Ct);
+
+        checkedCount.Should().Be(0);
+        (await ScalarAsync<long>(database.Admin, $"SELECT count(*) FROM integrity.flags WHERE rule = 'RULE-FO-08' AND tenant_id = '{TenantB}'")).Should().Be(0);
+    }
+
+    [Fact]
     [Trait("Story", "US-P2-FO-08")]
     public async Task Who_signed_a_gaps_entries_is_any_version_s_operator_of_this_company_only()
     {
@@ -1121,6 +1169,14 @@ public sealed class ShiftEntryHandlersTests(FieldOpsDatabase postgres) : IClassF
 
         await transaction.CommitAsync(Ct);
         return rows;
+    }
+
+    private async Task ExecuteAsAdminAsync(string sql)
+    {
+        await using var connection = new NpgsqlConnection(database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync(Ct);
     }
 
     private static async Task<T> ScalarAsync<T>(string connectionString, string sql)

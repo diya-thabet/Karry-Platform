@@ -1399,6 +1399,7 @@ export function integrityCatalog(): IntegrityRule[] {
     rule("RULE-FO-05", "high", true),
     rule("RULE-FO-06", "high", true),
     rule("RULE-FO-07", "critical", true),
+    rule("RULE-FO-08", "low", false, [{ name: "graceMinutes", value: 60, default: 60, min: 15, max: 720, decimals: 0, unit: "min" }]),
     rule("RULE-FO-09", "critical", true),
     rule("RULE-FO-10", "high", true),
     rule("RULE-FO-11", "critical", true),

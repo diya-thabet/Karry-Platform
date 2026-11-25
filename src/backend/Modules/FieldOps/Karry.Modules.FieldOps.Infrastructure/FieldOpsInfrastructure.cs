@@ -16,6 +16,9 @@ public static class FieldOpsInfrastructure
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
         services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
         services.AddScoped<EntryReading>();
+        services.AddScoped<IOpenSegments, OpenSegments>();
+        services.AddScoped<MissingEndCheck>();
+        services.AddSingleton<RaiseMissingEnds>();
         services.AddScoped<IChecklistTemplateStore, ChecklistTemplateStore>();
         services.AddScoped<ChecklistTemplates>();
         services.AddScoped<IChecklistSubmissionStore, ChecklistSubmissionStore>();

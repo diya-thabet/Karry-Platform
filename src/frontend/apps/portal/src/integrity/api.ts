@@ -76,6 +76,7 @@ const explained: Record<string, readonly string[]> = {
   "RULE-FO-05": ["part"],
   "RULE-FO-06": ["part", "otherEntries"],
   "RULE-FO-07": ["type"],
+  "RULE-FO-08": ["shiftEndsAt", "graceMinutes"],
   "RULE-FO-09": ["part", "reason"],
   "RULE-FO-10": ["validMinutes"],
   "RULE-FO-11": ["cause"],
@@ -112,6 +113,8 @@ export function flagExplanation(t: TFunction, flag: IntegrityFlag): string {
       return d.sameAsStart === "true"
         ? t("portal.integrity.flag.RULE-FO-06.sameAsStart")
         : t("portal.integrity.flag.RULE-FO-06", { part, others: n("otherEntries") });
+    case "RULE-FO-08":
+      return t("portal.integrity.flag.RULE-FO-08", { endedAt: new Date(d.shiftEndsAt ?? 0), minutes: n("graceMinutes") });
     case "RULE-FO-09":
       return t("portal.integrity.flag.RULE-FO-09", { part, reason: d.reason ?? "", deactivatedAt: new Date(d.deactivatedAt ?? 0) });
     case "RULE-FO-10":

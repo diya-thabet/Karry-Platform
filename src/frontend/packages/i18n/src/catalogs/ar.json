@@ -1538,5 +1538,9 @@
   "errors.integrity.no_settlement_pending": "لا تنتظر أي تسوية لهذه الفجوة الموافقة.",
   "errors.integrity.sod_own_settlement": "أنت من اقترح هذه التسوية: يوافق عليها شخص آخر.",
   "errors.integrity.sod_own_gap": "وقّعت أحد إدخالات هذه الفجوة: يسوّيها شخص آخر.",
-  "errors.integrity.flag_not_found": "هذا التنبيه ليس في مواقعك."
+  "errors.integrity.flag_not_found": "هذا التنبيه ليس في مواقعك.",
+  "portal.integrity.rule.RULE-FO-08.title": "نهاية مفقودة",
+  "portal.integrity.rule.RULE-FO-08.description": "الوردية التي بدأت تُوقَّع نهايتها بعد انتهاء الوردية بوقت قصير.",
+  "portal.integrity.flag.RULE-FO-08": "لم تُوقَّع نهاية لهذه الوردية التي انتهت في {endedAt, date, medium}، {endedAt, time, short}، منذ {minutes, number} دقيقة أو أكثر.",
+  "portal.integrity.threshold.graceMinutes": "المهلة المسموح بها بعد الوردية"
 }

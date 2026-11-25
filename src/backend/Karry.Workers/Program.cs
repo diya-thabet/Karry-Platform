@@ -186,6 +186,7 @@ builder.Services.AddQuartz(quartz =>
     Schedule<SyncGapJob>(quartz, "sync-gaps", SyncGapJob.Schedule);
     Schedule<ReviewEscalationJob>(quartz, "review-escalation", ReviewEscalationJob.Schedule);
     Schedule<UnsettledGapsJob>(quartz, "unsettled-gaps", UnsettledGapsJob.Schedule);
+    Schedule<MissingEndJob>(quartz, "missing-ends", MissingEndJob.Schedule);
     Schedule<CountersignJob>(quartz, "countersign", CountersignJob.Schedule);
     if (anchoring)
     {

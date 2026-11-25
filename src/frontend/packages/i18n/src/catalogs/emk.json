@@ -1538,5 +1538,9 @@
   "errors.integrity.no_settlement_pending": "Nin fili latigɛli si tɛ sɔnni makɔnɔ.",
   "errors.integrity.sod_own_settlement": "I de ye nin latigɛli jira: mɔgɔ wɛrɛ de b'a sɔn.",
   "errors.integrity.sod_own_gap": "I ye nin fili sɛbɛnni dɔ bolonɔ bila: mɔgɔ wɛrɛ de b'a latigɛ.",
-  "errors.integrity.flag_not_found": "Nin lasɔmini tɛ i ka sigiyɔrɔlu kan."
+  "errors.integrity.flag_not_found": "Nin lasɔmini tɛ i ka sigiyɔrɔlu kan.",
+  "portal.integrity.rule.RULE-FO-08.title": "Laban tɛ yen",
+  "portal.integrity.rule.RULE-FO-08.description": "Baara waati min daminɛna, a laban bɛ bolonɔ bila baara waati banni kɔfɛ joona.",
+  "portal.integrity.flag.RULE-FO-08": "Laban si ma bolonɔ bila nin baara waati in na, a bannen don {endedAt, date, medium}, {endedAt, time, short}, a bɛ miniti {minutes, number} bɔ walima ka tɛmɛ o kan.",
+  "portal.integrity.threshold.graceMinutes": "Waati min dira baara waati kɔfɛ"
 }
