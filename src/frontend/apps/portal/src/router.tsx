@@ -17,6 +17,7 @@ import { CompanyPage } from "./settings/CompanyPage";
 import { FlagsPage } from "./integrity/FlagsPage";
 import { RulesPage } from "./integrity/RulesPage";
 import { PoliciesPage } from "./verification/PoliciesPage";
+import { BoardPage } from "./verification/BoardPage";
 import { QueuePage } from "./verification/QueuePage";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SupportPage } from "./settings/SupportPage";
@@ -74,6 +75,7 @@ const routes = sections
 const home = createRoute({ getParentRoute: () => company, path: "/", component: HomePage });
 const audit = createRoute({ getParentRoute: () => company, path: "/audit", component: AuditPage });
 const review = createRoute({ getParentRoute: () => company, path: "/review", component: QueuePage });
+const board = createRoute({ getParentRoute: () => company, path: "/review/board", component: BoardPage });
 const settings = createRoute({ getParentRoute: () => company, path: "/settings", component: SettingsPage });
 const roles = createRoute({ getParentRoute: () => company, path: "/settings/roles", component: RolesPage });
 const newRole = createRoute({ getParentRoute: () => company, path: "/settings/roles/new", component: () => <RoleEditorPage /> });
@@ -141,7 +143,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, review, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
+        home, ...routes, audit, review, board, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),

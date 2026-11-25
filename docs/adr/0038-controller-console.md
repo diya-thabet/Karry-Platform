@@ -139,6 +139,14 @@ closes it as re-evaluated. A switched-off rule raises nothing. `RaiseMissingEnds
 Workers' `MissingEndJob` (every 5 minutes, offset by 2 from the other jobs). The portal shows the flag in words ("no
 end was signed for this shift, which ended on …") and the threshold on the rules page.
 
+As built (slice 7b): the shift board (`/review/board`, linked from the queue) adds no API. For one site and day it
+reads the shift instances of that day, the site's machines, the entries resolved to that day and the review items
+covered from the day before to the day after, and computes the board in one pure function (`boardOf`): per shift,
+every machine in service is not started, running, missing its end (still open an hour after the shift ended, the
+rule's default grace) or ended (all its segments of the shift ended; a handover's segments count together), with its
+review state and flag count, and the shift's counts. Entries and review items are read again every 30 s. A company
+with more than 200 machines or entries on one site and day sees the first 200 (noted for the close-out review).
+
 ## Options considered
 
 1. **Pre-signed `GET` URLs for photos.** Less load on the API, but a bearer URL outlives the check and widens the
