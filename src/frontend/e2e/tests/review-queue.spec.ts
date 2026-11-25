@@ -46,11 +46,21 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
       await page.getByRole("row").filter({ hasText: shownAs(second) }).count(),
     ];
     const [firstBefore = 0, secondBefore = 0] = await shown();
+    // The page holds the first 50 items in risk order (queueSize): once the other specs have filled it, an unflagged
+    // entry ranks below them and is not on the first page, while the flagged one ranks above. Count the room left.
+    const rowsBefore = Math.max(0, (await queue.getByRole("row").count()) - 1);
+    const roomForBoth = rowsBefore + 2 <= 50;
 
     await context.setOffline(false);
     await expect(tablet.getByRole("region", { name: "Envoi des saisies" }).getByText("Tout est envoyé")).toBeVisible({ timeout: 60_000 });
-    // TC-P2-VER-010: both entries appear without reloading, within 10 s of the upload (the page asks every 5 s).
-    await expect.poll(shown, { timeout: 10_000, intervals: [500] }).toEqual([firstBefore + 1, secondBefore + 1]);
+    // TC-P2-VER-010: the entries appear without reloading, within 10 s of the upload (the page asks every 5 s): the
+    // flagged one always (it ranks first), the unflagged one when the first page still has room for it. On a full page
+    // the lowest unflagged rows leave it as new ones come, so only the flagged count is checked then.
+    const counted = async () => {
+      const [firstNow, secondNow] = await shown();
+      return roomForBoth ? [firstNow, secondNow] : [secondNow];
+    };
+    await expect.poll(counted, { timeout: 10_000, intervals: [500] }).toEqual(roomForBoth ? [firstBefore + 1, secondBefore + 1] : [secondBefore + 1]);
 
     // Demo step 3: the second entry starts above the first's end: the gap, with the previous end beside this start.
     const gap = queue.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();

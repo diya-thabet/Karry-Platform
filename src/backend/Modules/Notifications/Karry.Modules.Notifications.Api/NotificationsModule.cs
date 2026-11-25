@@ -25,7 +25,7 @@ public sealed class NotificationsModule : IModule
 {
     public string Name => "notifications";
 
-    public IReadOnlyList<PermissionDefinition> Permissions => [];
+    public IReadOnlyList<PermissionDefinition> Permissions => NotificationsPermissions.All;
 
     public void AddServices(IServiceCollection services, IConfiguration configuration)
     {
@@ -56,6 +56,59 @@ public sealed class NotificationsModule : IModule
         endpoints.MapPost("/read-all", MarkAllReadAsync)
             .AllowAnyTenantMember()
             .WithName("MarkAllNotificationsRead");
+
+        endpoints.MapGet("/preferences", MyPreferencesAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("GetMyNotificationPreferences");
+
+        endpoints.MapPut("/preferences/{noticeType}/{channel}", SetMyPreferenceAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("SetMyNotificationPreference");
+
+        endpoints.MapGet("/rules", ListRulesAsync)
+            .RequirePermission(NotificationsPermissions.RulesManage)
+            .WithName("ListNotificationRules");
+
+        endpoints.MapPut("/rules/{noticeType}", SwitchRuleAsync)
+            .RequirePermission(NotificationsPermissions.RulesManage)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("SwitchNotificationRule");
+    }
+
+    /// <summary>The caller's channel choices: for each notice type, the channels they may turn off (digest, push).</summary>
+    private static async Task<Results<Ok<IReadOnlyList<NoticePreferenceResponse>>, ProblemHttpResult>> MyPreferencesAsync(
+        [FromServices] NoticeSettings settings, CancellationToken cancellationToken)
+    {
+        var result = await settings.MineAsync(cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(NoticePreferenceResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    /// <summary>Turns one of the caller's channels on or off for a notice type; the in-app centre is always on.</summary>
+    private static async Task<Results<Ok<IReadOnlyList<NoticePreferenceResponse>>, ProblemHttpResult>> SetMyPreferenceAsync(
+        string noticeType, string channel, SwitchRequest request, [FromServices] NoticeSettings settings, CancellationToken cancellationToken)
+    {
+        var result = await settings.SetMineAsync(noticeType, channel, request.Enabled, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(NoticePreferenceResponse.From(result.Value)) : result.Error.ToProblem();
+    }
+
+    /// <summary>The company's notice rules: each type, whether it is on, its channels and who switched it last.</summary>
+    private static async Task<Ok<IReadOnlyList<NoticeRuleView>>> ListRulesAsync([FromServices] NoticeSettings settings, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await settings.RulesAsync(cancellationToken).ConfigureAwait(false));
+
+    /// <summary>
+    /// Switches a rule for the whole company (ledgered). Switching one off silences an alert, so it needs a sign-in
+    /// within the last 5 minutes (401 <c>auth.step_up_required</c> otherwise).
+    /// </summary>
+    private static async Task<Results<Ok<NoticeRuleView>, ProblemHttpResult>> SwitchRuleAsync(
+        string noticeType, SwitchRequest request, [FromServices] NoticeSettings settings, CancellationToken cancellationToken)
+    {
+        var result = await settings.SwitchAsync(noticeType, request.Enabled, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(result.Value) : result.Error.ToProblem();
     }
 
     /// <summary>
@@ -117,3 +170,16 @@ public sealed record NotificationResponse(
 
 /// <summary>How many notifications were marked read.</summary>
 public sealed record MarkedReadResponse(int Count);
+
+/// <summary>On or off.</summary>
+public sealed record SwitchRequest(bool Enabled);
+
+/// <summary>A person's choice for one notice type: whether the company sends it at all, and each channel they may turn off.</summary>
+public sealed record NoticePreferenceResponse(string Type, bool RuleEnabled, IReadOnlyDictionary<string, bool> Channels)
+{
+    public static IReadOnlyList<NoticePreferenceResponse> From(IReadOnlyList<NoticePreferenceView> views)
+    {
+        ArgumentNullException.ThrowIfNull(views);
+        return [.. views.Select(v => new NoticePreferenceResponse(v.Type, v.RuleEnabled, v.Channels))];
+    }
+}

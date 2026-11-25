@@ -17,7 +17,7 @@ namespace Karry.Modules.Notifications.Tests;
 /// company's.
 /// </summary>
 [Trait("Story", "US-P2-NOT-01")]
-public sealed class NotificationsTests(NotificationsHost host) : IClassFixture<NotificationsHost>
+public sealed partial class NotificationsTests(NotificationsHost host) : IClassFixture<NotificationsHost>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
 

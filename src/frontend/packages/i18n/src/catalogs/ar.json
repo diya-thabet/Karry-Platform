@@ -1414,6 +1414,7 @@
   "portal.integrity.flag.RULE-FO-11": "{cause, select, unexplained {سُوّيت فجوة في استمرارية هذا العدّاد على أنها غير مفسَّرة.} other {تُركت فجوة في استمرارية هذا العدّاد دون تسوية أكثر من 48 ساعة.}}",
   "portal.integrity.flags.settled": "سُوّيت: {reason, select, meter_replaced {استُبدل العدّاد} meter_reset {أُعيد ضبط العدّاد أو أكمل دورته} maintenance_run {تشغيل للصيانة بين الورديات} towing {قَطر أو نقل} unexplained {غير مفسَّرة} other {سبب آخر}}",
   "permissions.integrity.rules.manage": "تفعيل قواعد النزاهة أو تعطيلها وضبط حدودها",
+  "permissions.notifications.rules.manage": "تفعيل قواعد الإشعارات الخاصة بالشركة أو تعطيلها",
   "permissions.verification.items.read": "عرض الإدخالات المنتظرة للمراجعة في مواقعك",
   "permissions.verification.items.review": "اعتماد إدخالات مواقعك أو رفضها (وليس إدخالاتك أبدًا)",
   "permissions.verification.items.second-approve": "اعتماد تصحيح كبير أجراه شخص آخر (المعتمِد الثاني)",

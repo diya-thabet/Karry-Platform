@@ -44,6 +44,19 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
 
     public void Add(Notification notification) => db.Notifications.Add(notification);
 
+    public async Task<IReadOnlyList<NoticeRuleSetting>> RuleSettingsAsync(CancellationToken cancellationToken) =>
+        await db.RuleSettings.AsNoTracking().ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<NoticeRuleSetting?> RuleSettingAsync(string type, CancellationToken cancellationToken) =>
+        db.RuleSettings.SingleOrDefaultAsync(s => s.Type == type, cancellationToken);
+
+    public void Add(NoticeRuleSetting setting) => db.RuleSettings.Add(setting);
+
+    public async Task<IReadOnlyList<NoticePreference>> PreferencesOfAsync(Guid user, CancellationToken cancellationToken) =>
+        await db.Preferences.Where(p => p.UserId == user).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(NoticePreference preference) => db.Preferences.Add(preference);
+
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
 }
 
@@ -76,6 +89,7 @@ public static class NotificationsInfrastructure
         services.AddScoped<NoticeDelivery>();
         services.AddScoped<INotices, NoticeInbox>();
         services.AddScoped<NotificationReading>();
+        services.AddScoped<NoticeSettings>();
         // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
         services.AddScoped<ISyncSource, NoticesSync>();
         return services;

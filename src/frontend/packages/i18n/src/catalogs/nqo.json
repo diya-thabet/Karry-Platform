@@ -1414,6 +1414,7 @@
   "portal.integrity.flag.RULE-FO-11": "{cause, select, unexplained {ߣߌ߲ ߞߏ߲ߕߍߙߌ ߕߎߜ߭ߎ߲ ߝߌߟߌ ߟߊߕߌߜ߭ߍߙߊ ߞߏ ߊ ߞߎ߲ ߕߍ ߘߐ߲.} other {ߣߌ߲ ߞߏ߲ߕߍߙߌ ߕߎߜ߭ߎ߲ ߝߌߟߌ ߡߊ ߟߊߕߌߜ߭ߍ ߟߍߙߍ ߄߈ ߞߐߣߐ.}}",
   "portal.integrity.flags.settled": "ߊ ߟߊߕߌߜ߭ߍߙߊ: {reason, select, meter_replaced {ߞߏ߲ߕߍߙߌ ߝߊߟߋ߲ߣߊ} meter_reset {ߞߏ߲ߕߍߙߌ ߛߋߜ߭ߌ߲ߣߊ ߊ ߘߊߡߌߣߍ ߡߊ} maintenance_run {ߡߊߛߌ߲ ߓߏߟߌߟߊ ߟߊߓߍ߲ߣߌ ߞߊߡߊ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߝߌߟߊ ߗߍ} towing {ߊ ߛߊߡߊߣߊ ߥߊߟߌߡߊ ߊ ߕߊ߯ߙߊ} unexplained {ߊ ߞߎ߲ ߕߍ ߘߐ߲} other {ߞߎ߲ ߥߍߙߍ}}",
   "permissions.integrity.rules.manage": "ߕߌߢߍߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ߸ ߊߣߌ ߎ ߘߊ߲ߗߍߟߎ ߛߌߜ߭ߌ",
+  "permissions.notifications.rules.manage": "ߞߎ߲ߣߊߝߏߣߌ ߛߊߙߌߦߊߟߎ ߘߊߡߌߣߍ ߥߊߟߌߡߊ ߎ ߘߊߓߌߟߊ",
   "permissions.verification.items.read": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ ߓߊ߯ߙߊ ߛߍߓߍ߲ ߡߌ߲ߣߎ ߓߍ ߟߊߖߍߟߌ ߡߊߞߐߣߐ߸ ߏߟߎ ߦߋ",
   "permissions.verification.items.review": "ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ ߓߊ߯ߙߊ ߛߍߓߍ߲ߟߎ ߛߐ߲ ߥߊߟߌߡߊ ߞߎ ߓߊ߲ (ߌ ߦߍߙߍ ߕߊ ߕߍ)",
   "permissions.verification.items.second-approve": "ߡߐߜ߭ߐ ߥߍߙߍ ߞߊ ߟߊߕߌߟߋ߲ߣߌ ߓߊ ߛߐ߲ (ߛߐ߲ߓߊߜ߭ߊ ߝߌߟߊߣߊ߲)",

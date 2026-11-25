@@ -106,6 +106,18 @@ the unlocked person theirs on the home screen ("For you", newest first, the reas
 again stays read there. The tablet holds the site's rejections of every operator, as it already holds the site's
 decided entries with their reasons (`reviewOutcomes`); it shows each person only theirs.
 
+As built (slice 4, API): each rule names its channels (§2 table) and the only parameters its notices may carry
+(`NoticeRules`): identifiers and codes (letters, digits, `_ . : , + -`, at most 200 characters). `NoticeDelivery`
+drops anything else before storing, whatever the producer sent: a price, a reading, a note or a name never reaches a
+notice (§6, TC-P2-NOT-004). A company switches a rule off or on with `PUT /notifications/rules/{noticeType}`
+(`notifications.rules.manage`, tenant administrator, privileged): off silences an alert for everyone, so it needs a
+recent sign-in; on does not. Each switch is a `notifications.rule_switched.v1` ledger entry with who made it; a type
+without a row is on; notices already delivered stay. A person reads and sets their own channel choices with
+`GET /notifications/preferences` and `PUT /notifications/preferences/{noticeType}/{channel}` (any member, their own
+only): only the optional channels a rule uses (digest, push) can be turned off; the in-app centre cannot (it is where
+every notice is kept). Preferences are personal, not business facts: not ledgered. They are honoured by the digest and
+push slices.
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the
