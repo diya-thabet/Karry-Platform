@@ -375,7 +375,7 @@ export function fakeApi(options: {
       const overdue = url.searchParams.get("overdue") === "true";
       const risk = (item: ReviewItem) => (item.escalatedAt ? 2 : item.flags.length > 0 ? 1 : 0);
       const matching = reviewItems
-        .filter((item) => (item.status === "pending" || item.status === "awaiting_second") && (!site || item.siteId === site)
+        .filter((item) => (url.searchParams.get("status") === "all" || item.status === "pending" || item.status === "awaiting_second") && (!site || item.siteId === site)
           && (!flag || item.flags.includes(flag)) && (!overdue || item.escalatedAt !== null))
         .map((item, index) => ({ item, index }))
         .sort((a, b) => (url.searchParams.get("sort") === "risk" ? risk(b.item) - risk(a.item) : 0) || a.index - b.index)
@@ -391,7 +391,12 @@ export function fakeApi(options: {
 
     if (request.method === "GET" && url.pathname === "/api/v1/fieldops/entries") {
       const ids = url.searchParams.getAll("ids");
-      return json(200, { items: entries.filter((entry) => ids.length === 0 || ids.includes(entry.id)), nextCursor: null });
+      const site = url.searchParams.get("siteId");
+      const day = url.searchParams.get("shiftDate");
+      return json(200, {
+        items: entries.filter((entry) => (ids.length === 0 || ids.includes(entry.id)) && (!site || entry.siteId === site) && (!day || entry.shift?.date === day)),
+        nextCursor: null,
+      });
     }
 
     const photoMatch = /^\/api\/v1\/fieldops\/entries\/([^/]+)\/photos\/([^/]+)$/.exec(url.pathname);

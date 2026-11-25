@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@karry/api-client";
 import { intlLocale, useTranslation } from "@karry/i18n";
@@ -122,7 +123,12 @@ export function QueuePage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader title={t("portal.review.title")} description={t("portal.review.description")}
-        actions={<Button variant="secondary" onClick={() => { setHelp(true); }}>{t("portal.review.keys.title")}</Button>} />
+        actions={(
+          <span className="flex flex-wrap gap-2">
+            <Button variant="secondary" asChild><Link to="/review/board">{t("portal.board.title")}</Link></Button>
+            <Button variant="secondary" onClick={() => { setHelp(true); }}>{t("portal.review.keys.title")}</Button>
+          </span>
+        )} />
       {unlinked && (
         <div role="status" className="rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm">
           {t("portal.review.unlinkedFieldAccount")}

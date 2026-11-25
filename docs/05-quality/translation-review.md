@@ -109,6 +109,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-23 | `portal.users.fieldAccount*` (5 keys) | ar, emk, nqo | P2.8 office ↔ field account link ("compte terrain") |
 | 2026-11-23 | `permissions.verification.items.review` | ar, emk, nqo | P2.8 approve/reject permission ("valider ou rejeter") |
 | 2026-11-23 | `permissions.verification.items.read` | ar, emk, nqo | P2.8 review queue permission ("saisies à vérifier") |
+| 2026-11-25 | `portal.board.*` (23 keys) | ar, emk, nqo | P2.9 shift board: machines not started, running, end missing, ended; reviews to do; "tableau des postes" |
 | 2026-11-25 | `portal.integrity.rule.RULE-FO-08.*`, `portal.integrity.flag.RULE-FO-08`, `portal.integrity.threshold.graceMinutes` | ar, emk, nqo | P2.9 RULE-FO-08 missing end (date and time of the shift's end, minutes allowed); "fin manquante" |
 | 2026-11-25 | `portal.integrity.settle.*`, `portal.review.unlinkedFieldAccount`, `errors.integrity.*` (30 keys) | ar, emk, nqo | P2.9 settling a continuity gap (reasons, proposal, approval), the R-15 banner; "régler"/"règlement" for settle, "latigɛ" |
 | 2026-11-24 | `portal.review.keys.*`, `portal.review.select*`, `portal.review.approve*Many/Selected` (14 keys) | ar, emk, nqo | P2.9 keyboard shortcuts overlay and bulk approval (ICU plurals: Arabic gives `one` and `other`, a native reviewer may add `two`/`few`/`many`) |
