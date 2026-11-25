@@ -1414,6 +1414,7 @@
   "portal.integrity.flag.RULE-FO-11": "{cause, select, unexplained {Un écart de continuité de ce compteur a été réglé comme inexpliqué.} other {Un écart de continuité de ce compteur est resté sans règlement plus de 48 heures.}}",
   "portal.integrity.flags.settled": "Réglé : {reason, select, meter_replaced {compteur remplacé} meter_reset {compteur remis à zéro ou bouclé} maintenance_run {marche de maintenance entre les postes} towing {remorquage ou transport} unexplained {inexpliqué} other {autre raison}}",
   "permissions.integrity.rules.manage": "Activer ou désactiver les règles d’intégrité et régler leurs seuils",
+  "permissions.notifications.rules.manage": "Activer ou désactiver les règles de notification de l’entreprise",
   "permissions.verification.items.read": "Voir les saisies à vérifier de vos sites",
   "permissions.verification.items.review": "Valider ou rejeter les saisies de vos sites (jamais les vôtres)",
   "permissions.verification.items.second-approve": "Valider une correction importante faite par une autre personne (second approbateur)",

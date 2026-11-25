@@ -1414,6 +1414,7 @@
   "portal.integrity.flag.RULE-FO-11": "{cause, select, unexplained {A continuity gap on this meter was settled as unexplained.} other {A continuity gap on this meter was left unsettled for more than 48 hours.}}",
   "portal.integrity.flags.settled": "Settled: {reason, select, meter_replaced {meter replaced} meter_reset {meter reset or rollover} maintenance_run {maintenance run between shifts} towing {towing or transport} unexplained {unexplained} other {another reason}}",
   "permissions.integrity.rules.manage": "Switch integrity rules on or off and set their thresholds",
+  "permissions.notifications.rules.manage": "Switch the company's notification rules on or off",
   "permissions.verification.items.read": "See the entries waiting for review on your sites",
   "permissions.verification.items.review": "Approve or reject the entries of your sites (never your own)",
   "permissions.verification.items.second-approve": "Approve a large correction made by someone else (second approver)",

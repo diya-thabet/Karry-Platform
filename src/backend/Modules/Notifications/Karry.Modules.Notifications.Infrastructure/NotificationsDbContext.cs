@@ -8,7 +8,10 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Karry.Modules.Notifications.Infrastructure;
 
-/// <summary>Schema <c>notifications</c> (tenant-owned, RLS): one row per notice and person (ADR-0039 §1).</summary>
+/// <summary>
+/// Schema <c>notifications</c> (tenant-owned, RLS): one row per notice and person (ADR-0039 §1), the company's rule
+/// switches and each person's channel choices (§2).
+/// </summary>
 public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbContext> options) : ModuleDbContext(options)
 {
     public const string SchemaName = "notifications";
@@ -16,6 +19,10 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
     public override string Schema => SchemaName;
 
     public DbSet<Notification> Notifications => Set<Notification>();
+
+    public DbSet<NoticeRuleSetting> RuleSettings => Set<NoticeRuleSetting>();
+
+    public DbSet<NoticePreference> Preferences => Set<NoticePreference>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -34,6 +41,27 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
             notification.HasIndex(n => new { n.TenantId, n.RecipientId, n.Id });
             notification.HasIndex(n => new { n.TenantId, n.RecipientId, n.ReadAt });
             notification.HasIndex(n => new { n.TenantId, n.CreatedAt });
+        });
+
+        // A company's switch of a default rule (ADR-0039 §2): one row per type, only once it was switched.
+        modelBuilder.Entity<NoticeRuleSetting>(setting =>
+        {
+            setting.ToTable("rule_settings");
+            setting.HasKey(s => s.Id);
+            setting.Ignore(s => s.DomainEvents);
+            setting.Property(s => s.Id).HasConversion(id => id.Value, value => new NoticeRuleSettingId(value)).ValueGeneratedNever();
+            setting.Property(s => s.Type).HasMaxLength(60);
+            setting.Property(s => s.ChangedBy).HasMaxLength(200);
+            setting.HasIndex(s => new { s.TenantId, s.Type }).IsUnique();
+        });
+
+        // A person's channel choice for a type (ADR-0039 §2): one row per person, type and channel.
+        modelBuilder.Entity<NoticePreference>(preference =>
+        {
+            preference.ToTable("preferences");
+            preference.HasKey(p => new { p.TenantId, p.UserId, p.Type, p.Channel });
+            preference.Property(p => p.Type).HasMaxLength(60);
+            preference.Property(p => p.Channel).HasMaxLength(20);
         });
     }
 

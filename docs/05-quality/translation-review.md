@@ -103,6 +103,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-19 | `field.estimated`, `field.start.failedMeter`, `field.end.failedMeter`, `field.end.operatingTime`, `field.end.distance`, `field.end.operatingHelp`, `field.end.estimatedEnd` | ar, emk, nqo | P2.7 failed-meter mode on the tablet ("temps de marche", "estimé") |
 | 2026-11-19 | `portal.holds.*` (25 keys) | ar, emk, nqo | P2.6 portal list of held machines and the release dialog ("lever l’immobilisation" in French) |
 | 2026-11-24 | `portal.reviewPolicies.*` (27 keys), `portal.settings.reviewPoliciesHint` | ar, emk, nqo | P2.8 review policies page ("double validation", "escalader") |
+| 2026-11-25 | `permissions.notifications.rules.manage` | ar, emk, nqo | P2.10 switch of the company's notice rules ("règles de notification") |
 | 2026-11-23 | `permissions.verification.policies.manage` | ar, emk, nqo | P2.8 review policies permission ("politiques de vérification") |
 | 2026-11-23 | `permissions.verification.items.second-approve` | ar, emk, nqo | P2.8 second approver of a large correction |
 | 2026-11-23 | `field.history.status.approved`, `field.history.status.refused`, `field.history.reason.*` (6), `field.history.comment` | ar, emk, nqo | P2.8 a controller's decision on the tablet ("validée", "rejetée par le contrôleur") |

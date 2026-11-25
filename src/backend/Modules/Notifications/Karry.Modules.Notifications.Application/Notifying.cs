@@ -24,6 +24,18 @@ public interface INotificationStore
 
     void Add(Notification notification);
 
+    /// <summary>The company's switched rules (a type with no row is on).</summary>
+    Task<IReadOnlyList<NoticeRuleSetting>> RuleSettingsAsync(CancellationToken cancellationToken);
+
+    Task<NoticeRuleSetting?> RuleSettingAsync(string type, CancellationToken cancellationToken);
+
+    void Add(NoticeRuleSetting setting);
+
+    /// <summary>A person's channel choices (a type and channel with no row is on).</summary>
+    Task<IReadOnlyList<NoticePreference>> PreferencesOfAsync(Guid user, CancellationToken cancellationToken);
+
+    void Add(NoticePreference preference);
+
     Task SaveAsync(CancellationToken cancellationToken);
 }
 
@@ -41,6 +53,15 @@ public sealed class NoticeDelivery(INotificationStore store, INoticeAudiences au
         {
             return 0;
         }
+
+        // A company may switch a default rule off (ADR-0039 §2): no new notice of that type for anyone.
+        if (await store.RuleSettingAsync(notice.Type, cancellationToken).ConfigureAwait(false) is { Enabled: false })
+        {
+            return 0;
+        }
+
+        // Only what every reader may see is kept (ADR-0039 §6, TC-P2-NOT-004), whatever the producer sent.
+        var parameters = NoticeRules.Mask(rule, notice.Parameters);
 
         var recipients = new HashSet<Guid>();
         if (rule.Person && notice.Person is { } person)
@@ -72,7 +93,7 @@ public sealed class NoticeDelivery(INotificationStore store, INoticeAudiences au
         var reached = 0;
         foreach (var recipient in recipients.Where(r => !already.Contains(r)))
         {
-            store.Add(Notification.For(clock, tenant, recipient, notice.Type, notice.Parameters, notice.Link, notice.SiteId, notice.SourceEventId));
+            store.Add(Notification.For(clock, tenant, recipient, notice.Type, parameters, notice.Link, notice.SiteId, notice.SourceEventId));
             reached++;
         }
 

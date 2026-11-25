@@ -116,6 +116,85 @@ namespace Karry.Modules.Notifications.Infrastructure.Migrations
                     b.ToTable("processed_messages", "notifications");
                 });
 
+            modelBuilder.Entity("Karry.Modules.Notifications.Domain.NoticePreference", b =>
+                {
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("user_id");
+
+                    b.Property<string>("Type")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("type");
+
+                    b.Property<string>("Channel")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.HasKey("TenantId", "UserId", "Type", "Channel")
+                        .HasName("pk_preferences");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_preferences_tenant_id");
+
+                    b.ToTable("preferences", "notifications");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Notifications.Domain.NoticeRuleSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<string>("ChangedBy")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("changed_by");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("enabled");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id")
+                        .HasName("pk_rule_settings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_rule_settings_tenant_id");
+
+                    b.HasIndex("TenantId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("ix_rule_settings_tenant_id_type");
+
+                    b.ToTable("rule_settings", "notifications");
+                });
+
             modelBuilder.Entity("Karry.Modules.Notifications.Domain.Notification", b =>
                 {
                     b.Property<Guid>("Id")

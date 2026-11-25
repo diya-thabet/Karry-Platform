@@ -668,7 +668,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
     /// Parameters that name a catalogue entry shared by every tenant (an import kind), not a resource of A: B gets its own
     /// answer (200), and the body check below still proves none of A's values are in it.
     /// </summary>
-    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind", "assetType", "rule", "recordType" };
+    private static readonly HashSet<string> CatalogueParameters = new(StringComparer.Ordinal) { "kind", "assetType", "rule", "recordType", "noticeType", "channel" };
 
     /// <summary>The body as text; a workbook (a zip) is unpacked so the marker check sees its cells and lists.</summary>
     private static async Task<string> ReadBodyAsync(HttpResponseMessage response)
@@ -715,6 +715,9 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "assetType" => IsolationHost.AChecklistType,
         // A rule of the catalogue: B reads and sets its own settings of it, never A's (RuleSettingsApiTests checks A's stay).
         "rule" when template.StartsWith("/api/v1/integrity/", StringComparison.Ordinal) => "RULE-FO-04",
+        // A notice type and channel of the catalogue: B sets its own rule switch and its own person's choice, never A's.
+        "noticeType" when template.StartsWith("/api/v1/notifications/", StringComparison.Ordinal) => "asset.unsafe",
+        "channel" when template.StartsWith("/api/v1/notifications/", StringComparison.Ordinal) => "push",
         "label" => "KRY1:" + IsolationHost.ALabelToken,
         // A template lists the caller's own values (e.g. site codes): B gets its own, never A's (see CatalogueParameters).
         "kind" when template.StartsWith("/api/v1/imports/", StringComparison.Ordinal) => "assets",
