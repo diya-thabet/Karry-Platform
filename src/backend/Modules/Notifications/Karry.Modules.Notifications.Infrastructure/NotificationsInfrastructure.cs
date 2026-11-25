@@ -76,6 +76,8 @@ public static class NotificationsInfrastructure
         services.AddScoped<NoticeDelivery>();
         services.AddScoped<INotices, NoticeInbox>();
         services.AddScoped<NotificationReading>();
+        // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
+        services.AddScoped<ISyncSource, NoticesSync>();
         return services;
     }
 }

@@ -121,6 +121,36 @@ public sealed class NotificationsTests(NotificationsHost host) : IClassFixture<N
         (await changed.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("unread").GetInt32().Should().Be(2);
     }
 
+    [Fact]
+    [Trait("TestCase", "TC-P2-NOT-001")]
+    public async Task A_tablet_pulls_its_sites_rejection_notices_of_the_last_14_days_and_nothing_else()
+    {
+        var tenant = await ProvisionAsync();
+        var (site, elsewhere, driver) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        host.People.Holders[("site-manager", site)] = [Guid.CreateVersion7()];
+        var mine = new Notice(Guid.CreateVersion7(), NoticeTypes.ReviewRejected, new Dictionary<string, string> { ["reasonCode"] = "photo_unreadable" }, "/history", site) { Person = driver };
+        var old = new Notice(Guid.CreateVersion7(), NoticeTypes.ReviewRejected, new Dictionary<string, string>(), "/history", site) { Person = driver };
+        await PublishAsync(tenant, mine);
+        await PublishAsync(tenant, old);
+        await PublishAsync(tenant, new Notice(Guid.CreateVersion7(), NoticeTypes.ReviewRejected, new Dictionary<string, string>(), "/history", elsewhere) { Person = driver });
+        await PublishAsync(tenant, new Notice(Guid.CreateVersion7(), NoticeTypes.MissingEnd, new Dictionary<string, string>(), "/assets/integrity", site));
+        await using (var admin = new NpgsqlConnection(host.Database.Admin))
+        {
+            await admin.OpenAsync(Ct);
+            await using var age = new NpgsqlCommand($"UPDATE notifications.notifications SET created_at = now() - interval '15 days' WHERE source_event_id = '{old.SourceEventId}'", admin);
+            await age.ExecuteNonQueryAsync(Ct);
+        }
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var delta = (await scope.ServiceProvider.GetServices<Karry.BuildingBlocks.Sync.ISyncSource>().Single().ChangesAsync(new(Guid.CreateVersion7(), site), null, Ct)).Single();
+
+        (delta.Name, delta.Replace).Should().Be(("notices", true));
+        var rows = JsonSerializer.Serialize(delta.Upserts, JsonSerializerOptions.Web);
+        delta.Upserts.Should().HaveCount(1, "the other site's, the manager's and the old one stay off the tablet");
+        rows.Should().Contain($"\"recipientId\":\"{driver}\"").And.Contain("\"type\":\"review.rejected\"").And.Contain("\"reasonCode\":\"photo_unreadable\"");
+    }
+
     /// <summary>A module handing over a notice in its own transaction, as the outbox dispatch does (ADR-0039 §1).</summary>
     private async Task PublishAsync(Guid tenant, Notice notice)
     {

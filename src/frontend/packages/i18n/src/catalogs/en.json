@@ -1576,5 +1576,10 @@
   "portal.notice.asset.unsafe": "A machine was held as unsafe after its pre-start checklist.",
   "portal.notice.integrity.fraud_suspected": "A meter's continuity gap raised a fraud suspicion.",
   "portal.notice.integrity.missing_end": "A shift has no end signed.",
-  "portal.notice.other": "Something needs a look."
+  "portal.notice.other": "Something needs a look.",
+  "field.notices.label": "For you",
+  "field.notices.rejected": "One of your entries was rejected: {reason}. See My history.",
+  "field.notices.ok": "OK",
+  "field.notices.read": "OK, I have read: {text}",
+  "field.notices.other": "Something needs a look."
 }

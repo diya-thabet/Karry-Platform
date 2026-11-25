@@ -15,7 +15,7 @@ const allCollections = (overrides: Partial<ChangeSet["changes"]> = {}): ChangeSe
   sites: { upserts: [{ id: site, code: "CAR-NORD", name: "Carrière Nord", type: "quarry", timeZone: "Africa/Tunis" }], removes: [] },
   shiftPatterns: { upserts: [], removes: [] }, assets: { upserts: [], removes: [] }, meters: { upserts: [], removes: [] },
   materials: { upserts: [], removes: [] }, users: { upserts: [], removes: [] }, meterStates: { upserts: [], removes: [] }, nonWorkingDays: { upserts: [], removes: [] },
-  checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true }, reviewOutcomes: { upserts: [], removes: [], replace: true },
+  checklistTemplates: { upserts: [], removes: [], replace: true }, safetyHolds: { upserts: [], removes: [], replace: true }, reviewOutcomes: { upserts: [], removes: [], replace: true }, notices: { upserts: [], removes: [], replace: true },
   ...overrides,
 });
 
@@ -142,7 +142,9 @@ describe("schema upgrade (P2.5, P2.6, P2.8: schemas v3 to v7)", () => {
     expect(await upgraded.checklistTemplates.count()).toBe(0);
     expect(await upgraded.safetyHolds.count()).toBe(0);
     expect(await upgraded.reviewOutcomes.count()).toBe(0);
-    expect(upgraded.verno).toBe(7);
+    expect(await upgraded.notices.count()).toBe(0);
+    expect(await upgraded.noticeReads.count()).toBe(0);
+    expect(upgraded.verno).toBe(8);
     await upgraded.delete();
   });
 });

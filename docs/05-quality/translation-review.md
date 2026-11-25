@@ -109,6 +109,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-23 | `portal.users.fieldAccount*` (5 keys) | ar, emk, nqo | P2.8 office ↔ field account link ("compte terrain") |
 | 2026-11-23 | `permissions.verification.items.review` | ar, emk, nqo | P2.8 approve/reject permission ("valider ou rejeter") |
 | 2026-11-23 | `permissions.verification.items.read` | ar, emk, nqo | P2.8 review queue permission ("saisies à vérifier") |
+| 2026-11-25 | `field.notices.*` (5 keys) | ar, emk, nqo | P2.10 the tablet's "For you": a rejected entry with its reason (reuses `field.history.reason.*`), "OK, I have read" |
 | 2026-11-25 | `portal.notices.*`, `portal.notice.*` (15 keys) | ar, emk, nqo | P2.10 notification centre: the bell's name with the count (ICU plural), each notice type in words; "kunnafoni" for notification |
 | 2026-11-25 | `portal.board.*` (23 keys) | ar, emk, nqo | P2.9 shift board: machines not started, running, end missing, ended; reviews to do; "tableau des postes" |
 | 2026-11-25 | `portal.integrity.rule.RULE-FO-08.*`, `portal.integrity.flag.RULE-FO-08`, `portal.integrity.threshold.graceMinutes` | ar, emk, nqo | P2.9 RULE-FO-08 missing end (date and time of the shift's end, minutes allowed); "fin manquante" |

@@ -1576,5 +1576,10 @@
   "portal.notice.asset.unsafe": "Masin dɔ jɔra iko a tɛ lafiya a daminɛ ɲɛ lajɛli kɔfɛ.",
   "portal.notice.integrity.fraud_suspected": "Kontɛri dɔ tugun fili ye nanbara sigiya wuli.",
   "portal.notice.integrity.missing_end": "Baara waati dɔ laban ma bolonɔ bila.",
-  "portal.notice.other": "Fɛn dɔ bɛ lajɛli ɲini."
+  "portal.notice.other": "Fɛn dɔ bɛ lajɛli ɲini.",
+  "field.notices.label": "I ta",
+  "field.notices.rejected": "I ka sɛbɛnni dɔ banna: {reason}. N ka tariku lajɛ.",
+  "field.notices.ok": "Awɔ",
+  "field.notices.read": "Awɔ, n y'a kalan: {text}",
+  "field.notices.other": "Fɛn dɔ bɛ lajɛli ɲini."
 }
