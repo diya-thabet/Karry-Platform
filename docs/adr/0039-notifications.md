@@ -118,6 +118,13 @@ only): only the optional channels a rule uses (digest, push) can be turned off; 
 every notice is kept). Preferences are personal, not business facts: not ledgered. They are honoured by the digest and
 push slices.
 
+As built (slice 4, portal): the notification centre ends with "How you are told": for each kind of notice, the
+optional channels its rule uses (daily e-mail, push), each saved as soon as it is changed; the in-app list is never
+offered; a kind the company switched off says so and keeps the person's choices. Settings › Notification rules (only
+with `notifications.rules.manage`) lists each kind with who hears of it and by which channels, and a switch: off asks
+for the password again (step-up, then the call is retried), on does not; the card says when and by whom it last
+changed. Named "Notification rules", not "Notifications", which is the header bell's name.
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

@@ -4,10 +4,12 @@ import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, EmptyState, ErrorState, PageHeader, StatusChip } from "@karry/ui";
 import { useApi } from "../app/api";
 import { noticesKey, noticeText, portalLink, useMyNotices, type Notice } from "./api";
+import { NoticeChoices } from "./NoticeChoices";
 
 /**
  * The person's notifications (US-P2-NOT-01 AC1, ADR-0039): newest first, unread marked, each in the reader's words;
- * opening one marks it read and goes where it points in the portal; all can be marked read at once.
+ * opening one marks it read and goes where it points in the portal; all can be marked read at once. Below, how the
+ * person is told: the channels they may turn off (ADR-0039 §2).
  */
 export function NotificationsPage() {
   const { t, i18n } = useTranslation();
@@ -65,6 +67,7 @@ export function NotificationsPage() {
           ))}
         </ul>
       )}
+      <NoticeChoices />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { FlagsPage } from "./integrity/FlagsPage";
 import { RulesPage } from "./integrity/RulesPage";
 import { PoliciesPage } from "./verification/PoliciesPage";
 import { NotificationsPage } from "./notifications/NotificationsPage";
+import { NoticeRulesPage } from "./notifications/RulesPage";
 import { BoardPage } from "./verification/BoardPage";
 import { QueuePage } from "./verification/QueuePage";
 import { SettingsPage } from "./settings/SettingsPage";
@@ -97,6 +98,7 @@ const support = createRoute({ getParentRoute: () => company, path: "/settings/su
 const companySettings = createRoute({ getParentRoute: () => company, path: "/settings/company", component: CompanyPage });
 const integrityRules = createRoute({ getParentRoute: () => company, path: "/settings/integrity", component: RulesPage });
 const reviewPolicies = createRoute({ getParentRoute: () => company, path: "/settings/review-policies", component: PoliciesPage });
+const noticeRules = createRoute({ getParentRoute: () => company, path: "/settings/notifications", component: NoticeRulesPage });
 const materials = createRoute({ getParentRoute: () => company, path: "/settings/materials", component: MaterialsPage });
 const newMaterial = createRoute({ getParentRoute: () => company, path: "/settings/materials/new", component: () => <MaterialPage /> });
 const material = createRoute({
@@ -145,7 +147,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, review, board, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
+        home, ...routes, audit, review, board, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, noticeRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),
