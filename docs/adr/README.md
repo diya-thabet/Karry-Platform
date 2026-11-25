@@ -4,7 +4,7 @@ area: adr
 tags: [adr, decisions]
 source: "MASTER_PLAN.md §24"
 status: baseline
-last_updated: 2026-11-24
+last_updated: 2026-11-25
 ---
 
 # Architecture Decision Records (ADR) Index
@@ -94,4 +94,4 @@ Added in Phase 2 sub-phase P2.0 (they shape P2.1–P2.3; proposed, accepted when
 | [0035](0035-pre-start-checklists-and-safety-holds.md) | Pre-start checklists and safety holds: FieldOps owns versioned templates, signed submissions and holds; a critical Not OK opens a hold in the same transaction; the tablet blocks, the server flags; a manager releases with a reason, ledgered | Accepted |
 | [0036](0036-integrity-rules-and-flags.md) | Integrity rules and flags: rules in the owning modules, settings and flags in an Integrity module; flags open and close (ledgered), never vanish; continuity in shift-time order (pure, property-tested); meter events are manager decisions | Accepted |
 | [0037](0037-verification-engine.md) | Verification engine: a Verification module reviews any record type through a contract; one review item per record version, pinned to a policy version; decisions ledgered with the hashes they cover; SoD by person (office ↔ field account link); SLA job; continuity gaps settled with a reason | Accepted |
-| [0038](0038-controller-console.md) | Controller console: the queue sorted by risk on the server, entry photos streamed by the API after a check on every request, polling with ETag, keyboard first, RULE-FO-08 missing end in the Workers | Proposed |
+| [0038](0038-controller-console.md) | Controller console: the queue sorted by risk on the server, entry photos streamed by the API after a check on every request, polling with ETag, keyboard first, RULE-FO-08 missing end in the Workers | Accepted |
