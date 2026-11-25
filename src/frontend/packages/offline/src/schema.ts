@@ -62,10 +62,20 @@ export interface SafetyHoldRow { id: string; assetId: string; items: string[]; o
  */
 export interface ReviewOutcomeRow { id: string; recordId: string; recordVersion: number; status: string; reasonCode: string | null; comment: string | null }
 
+/**
+ * A notice for someone who works on this site's tablets (P2.10, Notifications `notices`, ADR-0039 §3): a rejected
+ * entry, for whom, with the values its words name. The site's last 14 days, whole at each pull; the tablet shows each
+ * person only theirs.
+ */
+export interface NoticeRow { id: string; recipientId: string; type: string; parameters: Record<string, string>; createdAt: string }
+
+/** A notice its person marked read on this tablet (kept on the tablet only: the tablet pulls as a device). */
+export interface NoticeReadRecord { id: string; readAt: string }
+
 /** An asset as stored: with the normalized words of its code, name, make, model, serial and plate (search index). */
 export type StoredAsset = AssetRow & { words: string[] };
 
-export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays", "checklistTemplates", "safetyHolds", "reviewOutcomes"] as const;
+export const collections = ["sites", "shiftPatterns", "assets", "meters", "materials", "users", "meterStates", "nonWorkingDays", "checklistTemplates", "safetyHolds", "reviewOutcomes", "notices"] as const;
 export type Collection = (typeof collections)[number];
 
 export interface SyncStateRecord {
@@ -156,6 +166,8 @@ export type KarryOfflineDb = Dexie & {
   checklistTemplates: EntityTable<ChecklistTemplateRow, "id">;
   safetyHolds: EntityTable<SafetyHoldRow, "id">;
   reviewOutcomes: EntityTable<ReviewOutcomeRow, "id">;
+  notices: EntityTable<NoticeRow, "id">;
+  noticeReads: EntityTable<NoticeReadRecord, "id">;
   drafts: EntityTable<DraftRecord, "id">;
   syncState: EntityTable<SyncStateRecord, "collection">;
   unlocks: EntityTable<UnlockRecord, "userId">;
@@ -164,7 +176,7 @@ export type KarryOfflineDb = Dexie & {
 };
 
 /**
- * Opens the tablet's database, schema v7 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5; v6 the checklists and safety holds of P2.6; v7 the review outcomes of P2.8). Indexes serve the offline screens: machines by code, label
+ * Opens the tablet's database, schema v8 (ADR-0028 §5; v2 adds the evidence blobs of P2.2, ADR-0032; v3 the meter states, v4 the non-working days and v5 the drafts of P2.5; v6 the checklists and safety holds of P2.6; v7 the review outcomes of P2.8; v8 the notices of P2.10). Indexes serve the offline screens: machines by code, label
  * code, site and words (multi-entry); users by employee ID; meters by machine; the outbox by sequence.
  */
 export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
@@ -207,6 +219,11 @@ export function openOfflineDb(name = "karry-field"): KarryOfflineDb {
   // v7 (P2.8): controllers' decisions on the site's entries, by entry; filled by the next pull.
   db.version(7).stores({
     reviewOutcomes: "id, recordId",
+  });
+  // v8 (P2.10): notices for the site's tablet people, by person, and which ones were read here.
+  db.version(8).stores({
+    notices: "id, recipientId",
+    noticeReads: "id",
   });
   return db;
 }

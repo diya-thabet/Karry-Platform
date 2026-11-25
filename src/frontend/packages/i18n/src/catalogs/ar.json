@@ -1576,5 +1576,10 @@
   "portal.notice.asset.unsafe": "أُوقفت آلة لأنها غير آمنة بعد فحص ما قبل التشغيل.",
   "portal.notice.integrity.fraud_suspected": "أثارت فجوة في استمرارية عدّاد اشتباهًا في احتيال.",
   "portal.notice.integrity.missing_end": "وردية بلا نهاية موقّعة.",
-  "portal.notice.other": "شيء ما يحتاج إلى نظرة."
+  "portal.notice.other": "شيء ما يحتاج إلى نظرة.",
+  "field.notices.label": "لك",
+  "field.notices.rejected": "رُفض أحد إدخالاتك: {reason}. انظر سجلّي.",
+  "field.notices.ok": "حسنًا",
+  "field.notices.read": "حسنًا، قرأت: {text}",
+  "field.notices.other": "شيء ما يحتاج إلى نظرة."
 }

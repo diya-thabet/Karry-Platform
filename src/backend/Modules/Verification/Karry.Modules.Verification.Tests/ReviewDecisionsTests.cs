@@ -164,7 +164,7 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
 
         await using var scope = host.Services.CreateAsyncScope();
         scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
-        var delta = (await scope.ServiceProvider.GetServices<Karry.BuildingBlocks.Sync.ISyncSource>().Single().ChangesAsync(new(Guid.CreateVersion7(), site), null, Ct)).Single();
+        var delta = (await scope.ServiceProvider.GetServices<Karry.BuildingBlocks.Sync.ISyncSource>().Single(source => source.GetType().Name == "ReviewOutcomesSync").ChangesAsync(new(Guid.CreateVersion7(), site), null, Ct)).Single();
 
         delta.Name.Should().Be("reviewOutcomes");
         delta.Replace.Should().BeTrue();

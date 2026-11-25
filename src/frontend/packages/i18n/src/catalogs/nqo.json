@@ -1576,5 +1576,10 @@
   "portal.notice.asset.unsafe": "ߡߊߛߌ߲ ߘߐ ߖߐߙߊ ߌߞߏ ߊ ߕߍ ߟߊߝߌߦߊ ߊ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߞߐߝߍ.",
   "portal.notice.integrity.fraud_suspected": "ߞߏ߲ߕߍߙߌ ߘߐ ߕߎߜ߭ߎ߲ ߝߌߟߌ ߦߋ ߣߊ߲ߓߊߙߊ ߛߌߜ߭ߌߦߊ ߥߎߟߌ.",
   "portal.notice.integrity.missing_end": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߘߐ ߟߊߓߊ߲ ߡߊ ߓߏߟߏߣߐ ߓߌߟߊ.",
-  "portal.notice.other": "ߝߍ߲ ߘߐ ߓߍ ߟߊߖߍߟߌ ߢߌߣߌ."
+  "portal.notice.other": "ߝߍ߲ ߘߐ ߓߍ ߟߊߖߍߟߌ ߢߌߣߌ.",
+  "field.notices.label": "ߌ ߕߊ",
+  "field.notices.rejected": "ߌ ߞߊ ߛߍߓߍ߲ߣߌ ߘߐ ߓߊ߲ߣߊ: {reason}. ߒ ߞߊ ߕߊߙߌߞߎ ߟߊߖߍ.",
+  "field.notices.ok": "ߊߥߐ",
+  "field.notices.read": "ߊߥߐ߸ ߒ ߦߊ ߞߊߟߊ߲: {text}",
+  "field.notices.other": "ߝߍ߲ ߘߐ ߓߍ ߟߊߖߍߟߌ ߢߌߣߌ."
 }

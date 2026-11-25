@@ -36,8 +36,25 @@ export function useUpdateAvailable(updates: AppUpdates): boolean {
  * Applies a waiting version and reloads once it controls the page. The plugin's own reload only happens when the page
  * was already controlled when it loaded: a tablet that kept the app open since its first install (enrollment) would
  * press "Update" and see nothing happen (found by the P2.5 browser E2E, TC-P2-SYNC-007).
+ *
+ * The new version only takes over once the old one has finished the requests it is serving, so a slow or hanging
+ * request can hold the switch back indefinitely. After `graceMs` the page reloads anyway: the new version is told to
+ * skip waiting and takes over as soon as the old one is idle, and the outbox lives in IndexedDB, so nothing is lost.
  */
-export async function applyAndReload(skipWaiting: () => Promise<void>, container: Pick<ServiceWorkerContainer, "addEventListener"> | undefined, reload: () => void): Promise<void> {
-  container?.addEventListener("controllerchange", () => { reload(); }, { once: true });
+export async function applyAndReload(
+  skipWaiting: () => Promise<void>,
+  container: Pick<ServiceWorkerContainer, "addEventListener"> | undefined,
+  reload: () => void,
+  graceMs = 10_000,
+): Promise<void> {
+  let reloaded = false;
+  const once = () => {
+    if (!reloaded) {
+      reloaded = true;
+      reload();
+    }
+  };
+  container?.addEventListener("controllerchange", once, { once: true });
   await skipWaiting();
+  setTimeout(once, graceMs);
 }

@@ -13,6 +13,7 @@ import type { Position } from "./signShiftEntry";
 import { findActiveShift, type ActiveShift } from "./endRules";
 import { EndShift } from "./EndShift";
 import { History } from "./History";
+import { Notices } from "./Notices";
 import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
@@ -160,6 +161,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
           {t(saved === "started" ? "field.start.saved" : "field.end.saved")}
         </p>
       )}
+      <Notices db={environment.db} userId={session.userId} />
       {active
         ? (
             <section aria-label={t("field.active.label")} className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-primary bg-surface p-4">

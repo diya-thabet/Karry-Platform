@@ -98,6 +98,14 @@ last `ETag` (a 304 keeps the list). Each notice is written in the reader's langu
 `/assets/holds`, `/assets/integrity`); a tablet's link (`/history`) is not followed in the portal, the notice is only
 marked read. "Mark all read" clears the bell.
 
+As built (slice 3): the pull gains the `notices` collection (Notifications' `NoticesSync`, replace): the notices of
+the tablet's site of the types a tablet shows (a rejected entry), over the operator history's 14 days, with their
+person, type and parameters. The tablet keeps them in the offline database (schema v8, `notices` by person) and shows
+the unlocked person theirs on the home screen ("For you", newest first, the reason in words); "OK" marks one read in
+`noticeReads`, kept on the tablet only (it pulls as a device, not as the person), so a notice the next pull brings
+again stays read there. The tablet holds the site's rejections of every operator, as it already holds the site's
+decided entries with their reasons (`reviewOutcomes`); it shows each person only theirs.
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the
