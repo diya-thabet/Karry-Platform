@@ -54,6 +54,9 @@ public static class IntegrityRules
     public const string PhotoReused = "RULE-FO-06";
     public const string RevokedDevice = "RULE-FO-07";
 
+    /// <summary>A segment still open some time after its shift ended (US-P2-VER-08 AC2, ADR-0038 §5).</summary>
+    public const string MissingEnd = "RULE-FO-08";
+
     /// <summary>A fact signed by someone who may not sign on the site's tablets (threat R-13).</summary>
     public const string UnknownSigner = "RULE-FO-09";
 

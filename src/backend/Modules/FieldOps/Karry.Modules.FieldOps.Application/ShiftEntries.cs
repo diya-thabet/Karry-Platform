@@ -545,6 +545,9 @@ public sealed class EndShiftEntry(
         await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
             IntegrityFindings.Delta(ended, (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"]),
             cancellationToken).ConfigureAwait(false);
+        // The end arrived: a "missing end" raised meanwhile no longer holds (ADR-0038 §5).
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.MissingEnd, start.SiteId,
+            [], cancellationToken).ConfigureAwait(false);
 
         // The ended version is what a controller decides on (ADR-0037 §1): submitted in this transaction, bound to the
         // hash the operator signed.

@@ -35,6 +35,7 @@ public static class RuleCatalog
         new("RULE-FO-05", "high", true, []),
         new("RULE-FO-06", "high", true, []),
         new("RULE-FO-07", "critical", true, []),
+        new("RULE-FO-08", "low", false, [new("graceMinutes", 60m, 15m, 720m, 0, "min")]),
         new("RULE-FO-09", "critical", true, []),
         new("RULE-FO-10", "high", true, []),
         new("RULE-FO-11", "critical", true, []),

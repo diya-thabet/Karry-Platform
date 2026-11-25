@@ -1538,5 +1538,9 @@
   "errors.integrity.no_settlement_pending": "ߣߌ߲ ߝߌߟߌ ߟߊߕߌߜ߭ߍߟߌ ߛߌ ߕߍ ߛߐ߲ߣߌ ߡߊߞߐߣߐ.",
   "errors.integrity.sod_own_settlement": "ߌ ߘߋ ߦߋ ߣߌ߲ ߟߊߕߌߜ߭ߍߟߌ ߖߌߙߊ: ߡߐߜ߭ߐ ߥߍߙߍ ߘߋ ߓߊ ߛߐ߲.",
   "errors.integrity.sod_own_gap": "ߌ ߦߋ ߣߌ߲ ߝߌߟߌ ߛߍߓߍ߲ߣߌ ߘߐ ߓߏߟߏߣߐ ߓߌߟߊ: ߡߐߜ߭ߐ ߥߍߙߍ ߘߋ ߓߊ ߟߊߕߌߜ߭ߍ.",
-  "errors.integrity.flag_not_found": "ߣߌ߲ ߟߊߛߐߡߌߣߌ ߕߍ ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ߲."
+  "errors.integrity.flag_not_found": "ߣߌ߲ ߟߊߛߐߡߌߣߌ ߕߍ ߌ ߞߊ ߛߌߜ߭ߌߦߐߙߐߟߎ ߞߊ߲.",
+  "portal.integrity.rule.RULE-FO-08.title": "ߟߊߓߊ߲ ߕߍ ߦߋ߲",
+  "portal.integrity.rule.RULE-FO-08.description": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ min ߘߊߡߌߣߍߣߊ߸ ߊ ߟߊߓߊ߲ ߓߍ ߓߏߟߏߣߐ ߓߌߟߊ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߓߊ߲ߣߌ ߞߐߝߍ ߖߏ߯ߣߊ.",
+  "portal.integrity.flag.RULE-FO-08": "ߟߊߓߊ߲ ߛߌ ߡߊ ߓߏߟߏߣߐ ߓߌߟߊ ߣߌ߲ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߌ߲ ߣߊ߸ ߊ ߓߊ߲ߣߋ߲ ߘߏ߲ {endedAt, date, medium}߸ {endedAt, time, short}߸ ߊ ߓߍ ߡߌߣߌߕߌ {minutes, number} ߓߐ ߥߊߟߌߡߊ ߞߊ ߕߍߡߍ ߏ ߞߊ߲.",
+  "portal.integrity.threshold.graceMinutes": "ߥߊ߯ߕߌ min ߘߌߙߊ ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߞߐߝߍ"
 }

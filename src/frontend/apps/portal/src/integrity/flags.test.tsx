@@ -149,6 +149,11 @@ describe("what a flag found, in words (US-P2-INT-01 AC2)", () => {
     expect(closeReason(i18n.t.bind(i18n), reason)).toBe(words);
   });
 
+  it("says when the shift of a missing end ended and the time allowed (the hour depends on the reader's time zone)", async () => {
+    expect(await explain({ rule: "RULE-FO-08", details: { shiftEndsAt: "2026-11-23T12:00:00Z", graceMinutes: "60" } }))
+      .toMatch(/^No end was signed for this shift, which ended on Nov 23, 2026, .+, 60 min ago or more\.$/u);
+  });
+
   it("formats the values the way the reader writes numbers", async () => {
     expect((await explain({}, "fr")).replace(/\s/gu, " ")).toBe("Le poste a commencé à 1 250 h, mais le dernier poste sur ce compteur s’est terminé à 1 242,5 h (écart de 7,5 h).");
   });

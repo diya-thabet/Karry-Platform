@@ -61,8 +61,8 @@ actions for approve and reject only.
 
 ### 5. "Missing end" is an Integrity rule run by the Workers
 
-RULE-FO-08: a segment with no end one hour after its shift ended raises a flag on the entry (high), closed when the
-end arrives. The Workers run it every 5 minutes per company, like the SLA job. The shift board reads planned shifts,
+RULE-FO-08: a segment with no end one hour after its shift ended raises a flag on the entry (low, as the detection
+catalogue says), closed when the end arrives. The Workers run it every 5 minutes per company, like the SLA job. The shift board reads planned shifts,
 entries and open flags; it adds no table of its own.
 
 ## As built
@@ -130,6 +130,14 @@ words (`errors.integrity.*`). For residual R-15, Identity answers `GET /identity
 themselves only: `linked`, and `unlinkedNamesake` when a field user not deactivated has the person's first and last
 name (case ignored, matched literally) and no office account links it. The review queue shows a warning then; a
 failure of that call shows nothing (the server checks separation of duties on every decision anyway).
+
+As built (slice 7a): RULE-FO-08 is in the catalogue (low, not a security rule, `graceMinutes` 60, 15–720 min). Its
+logic is FieldOps' (`MissingEndCheck`): the current versions still open whose shift ended between 14 days and the
+grace ago, the most recent first, 500 a run, each synced on the entry (key `missing_end`, details `shiftEndsAt` and
+`graceMinutes`) in one transaction on the FieldOps connection; the end handler syncs the rule with no finding, which
+closes it as re-evaluated. A switched-off rule raises nothing. `RaiseMissingEnds` runs it company by company from the
+Workers' `MissingEndJob` (every 5 minutes, offset by 2 from the other jobs). The portal shows the flag in words ("no
+end was signed for this shift, which ended on …") and the threshold on the rules page.
 
 ## Options considered
 
