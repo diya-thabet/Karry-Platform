@@ -26,28 +26,34 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
     const context = await browser.newContext({ locale: "fr-FR", permissions: ["camera"] });
     const tablet = await enrolledTablet(context, code);
 
-    // Offline, two shifts on PEL-01: the second starts an hour above where the first ended, a continuity gap (RULE-FO-01).
+    // Offline, two shifts on PEL-01: the second starts a tenth of an hour above where the first ended, a continuity gap
+    // (RULE-FO-01). A tenth only: the meter must stay below where the specs of the next minutes start (meterNow).
     await context.setOffline(true);
     const first = meterNow();
+    const second = plus(first, 0.1);
     await startAndEnd(tablet, first);
-    await startAndEnd(tablet, plus(first, 1));
+    await startAndEnd(tablet, second);
 
-    // The site manager has the queue open before the tablet is back online.
+    // The site manager has the queue open before the tablet is back online. Other specs of the same minutes signed
+    // entries at the same values: count what is there once the page has loaded, then expect one more of each.
     await page.goto(`${portal("demo-carriere-b")}/review`);
     const queue = page.getByRole("table", { name: "Saisies à contrôler" });
     const empty = page.getByText("Rien à contrôler : chaque saisie de vos sites a une décision.");
     await expect(queue.or(empty)).toBeVisible();
-    const second = plus(first, 1);
-    const ours = page.getByRole("row").filter({ hasText: shownAs(first) }).or(page.getByRole("row").filter({ hasText: shownAs(second) }));
-    await expect(ours).toHaveCount(0);
+    await expect(page.locator("table[aria-busy=true]")).toHaveCount(0);
+    const shown = async () => [
+      await page.getByRole("row").filter({ hasText: shownAs(first) }).count(),
+      await page.getByRole("row").filter({ hasText: shownAs(second) }).count(),
+    ];
+    const [firstBefore = 0, secondBefore = 0] = await shown();
 
     await context.setOffline(false);
     await expect(tablet.getByRole("region", { name: "Envoi des saisies" }).getByText("Tout est envoyé")).toBeVisible({ timeout: 60_000 });
     // TC-P2-VER-010: both entries appear without reloading, within 10 s of the upload (the page asks every 5 s).
-    await expect(ours).toHaveCount(2, { timeout: 10_000 });
+    await expect.poll(shown, { timeout: 10_000, intervals: [500] }).toEqual([firstBefore + 1, secondBefore + 1]);
 
     // Demo step 3: the second entry starts above the first's end: the gap, with the previous end beside this start.
-    const gap = queue.getByRole("row").filter({ hasText: shownAs(second) });
+    const gap = queue.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
     await expect(gap).toContainText("Le début diffère de la fin précédente sur ce compteur");
     await gap.getByRole("button", { name: "Contrôler la saisie de PEL-01" }).click();
     const panel = page.getByRole("dialog", { name: "Contrôler une saisie" });

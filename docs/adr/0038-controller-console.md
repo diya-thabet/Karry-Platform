@@ -148,7 +148,7 @@ review state and flag count, and the shift's counts. Entries and review items ar
 with more than 200 machines or entries on one site and day sees the first 200 (noted for the close-out review).
 
 As built (slice 8, close-out): browser E2E `review-queue.spec.ts` (TC-P2-VER-010 and demo step 3): with the queue open
-in the portal, a tablet signs two shifts offline on PEL-01 (the second starting an hour above the first's end, a
+in the portal, a tablet signs two shifts offline on PEL-01 (the second starting a tenth of an hour above the first's end, a
 continuity gap), comes back online, and both entries appear in the queue within 10 s without a reload; the gap's
 panel shows the previous end photo beside this start and the flag in words. The speed target (US-P2-VER-07 AC3) has a
 proxy: 50 entries without a flag are approved in two actions (choose all, approve), one bulk request naming each at
