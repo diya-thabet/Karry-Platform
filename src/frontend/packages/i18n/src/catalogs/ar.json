@@ -1562,5 +1562,19 @@
   "portal.board.state.ended": "انتهت",
   "portal.board.review.pending": "للمراجعة",
   "portal.board.review.decided": "تم القرار",
-  "portal.board.flags": "{count, plural, one {تنبيه واحد} other {# تنبيهات}}"
+  "portal.board.flags": "{count, plural, one {تنبيه واحد} other {# تنبيهات}}",
+  "portal.notices.title": "الإشعارات",
+  "portal.notices.description": "ما يخصّك، الأحدث أولًا.",
+  "portal.notices.readAll": "تعليم الكل كمقروء",
+  "portal.notices.none": "لا إشعارات.",
+  "portal.notices.unread": "جديد",
+  "portal.notices.open": "فتح",
+  "portal.notices.markRead": "تعليم كمقروء",
+  "portal.notices.bell": "{count, plural, =0 {الإشعارات} one {الإشعارات، واحد جديد} other {الإشعارات، # جديدة}}",
+  "portal.notice.review.rejected": "رُفض أحد إدخالاتك: {reason}.",
+  "portal.notice.review.escalated": "إدخال ينتظر بعد موعده ({dueAt, date, medium} {dueAt, time, short}).",
+  "portal.notice.asset.unsafe": "أُوقفت آلة لأنها غير آمنة بعد فحص ما قبل التشغيل.",
+  "portal.notice.integrity.fraud_suspected": "أثارت فجوة في استمرارية عدّاد اشتباهًا في احتيال.",
+  "portal.notice.integrity.missing_end": "وردية بلا نهاية موقّعة.",
+  "portal.notice.other": "شيء ما يحتاج إلى نظرة."
 }

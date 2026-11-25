@@ -91,6 +91,13 @@ The API: `GET /api/v1/notifications/mine` (newest first, `unread`, the unread co
 `POST /api/v1/notifications/{id}/read` (another's is a 404) and `POST /api/v1/notifications/read-all`, open to every
 member about themselves only (reviewed list of the authorization suite).
 
+As built (slice 2): the portal's header carries a bell, a link to `/notifications` whose name says how many notices
+are unread (a badge shows the number too). The bell and the list share one query, asked again every 30 s with the
+last `ETag` (a 304 keeps the list). Each notice is written in the reader's language from its type and parameters
+(`noticeText`); opening one marks it read and goes to its page when the link is one of the portal's own (`/review`,
+`/assets/holds`, `/assets/integrity`); a tablet's link (`/history`) is not followed in the portal, the notice is only
+marked read. "Mark all read" clears the bell.
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

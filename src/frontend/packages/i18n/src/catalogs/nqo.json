@@ -1562,5 +1562,19 @@
   "portal.board.state.ended": "ߊ ߓߊ߲ߣߋ߲ ߘߏ߲",
   "portal.board.review.pending": "ߞߊ ߟߊߖߍ",
   "portal.board.review.decided": "ߊ ߟߊߕߌߜ߭ߍߙߊ",
-  "portal.board.flags": "{count, plural, one {ߟߊߛߐߡߌߣߌ #} other {ߟߊߛߐߡߌߣߌ #}}"
+  "portal.board.flags": "{count, plural, one {ߟߊߛߐߡߌߣߌ #} other {ߟߊߛߐߡߌߣߌ #}}",
+  "portal.notices.title": "ߞߎ߲ߣߊߝߏߣߌߟߎ",
+  "portal.notices.description": "Min ߓߍ ߌ ߟߊߖߍ߸ ߞߎߙߊߟߎ ߝߐߟߐ.",
+  "portal.notices.readAll": "ߓߍ߯ ߕߊ߯ߡߊߛߌߦߍ߲ ߞߏ ߊ ߞߊߟߊ߲ߣߊ",
+  "portal.notices.none": "ߞߎ߲ߣߊߝߏߣߌ ߛߌ ߕߍ.",
+  "portal.notices.unread": "ߞߎߙߊ",
+  "portal.notices.open": "ߘߊߦߍߟߍ",
+  "portal.notices.markRead": "ߊ ߕߊ߯ߡߊߛߌߦߍ߲ ߞߏ ߊ ߞߊߟߊ߲ߣߊ",
+  "portal.notices.bell": "{count, plural, =0 {ߞߎ߲ߣߊߝߏߣߌߟߎ} one {ߞߎ߲ߣߊߝߏߣߌߟߎ߸ ߞߎߙߊ #} other {ߞߎ߲ߣߊߝߏߣߌߟߎ߸ ߞߎߙߊ #}}",
+  "portal.notice.review.rejected": "ߌ ߞߊ ߛߍߓߍ߲ߣߌ ߘߐ ߓߊ߲ߣߊ: {reason}.",
+  "portal.notice.review.escalated": "ߛߍߓߍ߲ߣߌ ߘߐ ߓߍ ߡߊߞߐߣߐ ߞߊ ߕߍߡߍ ߊ ߥߊ߯ߕߌ ߞߊ߲ ({dueAt, date, medium} {dueAt, time, short}).",
+  "portal.notice.asset.unsafe": "ߡߊߛߌ߲ ߘߐ ߖߐߙߊ ߌߞߏ ߊ ߕߍ ߟߊߝߌߦߊ ߊ ߘߊߡߌߣߍ ߢߍ ߟߊߖߍߟߌ ߞߐߝߍ.",
+  "portal.notice.integrity.fraud_suspected": "ߞߏ߲ߕߍߙߌ ߘߐ ߕߎߜ߭ߎ߲ ߝߌߟߌ ߦߋ ߣߊ߲ߓߊߙߊ ߛߌߜ߭ߌߦߊ ߥߎߟߌ.",
+  "portal.notice.integrity.missing_end": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߘߐ ߟߊߓߊ߲ ߡߊ ߓߏߟߏߣߐ ߓߌߟߊ.",
+  "portal.notice.other": "ߝߍ߲ ߘߐ ߓߍ ߟߊߖߍߟߌ ߢߌߣߌ."
 }

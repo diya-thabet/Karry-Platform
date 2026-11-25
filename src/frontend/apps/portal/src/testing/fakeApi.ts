@@ -36,6 +36,7 @@ type PublishChecklist = components["schemas"]["PublishChecklist"];
 type Hold = components["schemas"]["HoldResponse"];
 type ReviewItem = components["schemas"]["ReviewItemResponse"];
 type ShiftEntry = components["schemas"]["ShiftEntryResponse"];
+type Notice = components["schemas"]["NotificationResponse"];
 
 export interface Sent {
   method: string;
@@ -108,6 +109,8 @@ export function fakeApi(options: {
   entries?: ShiftEntry[];
   /** A correction is beyond the four-eyes thresholds: its next item waits for a second approval (default: no). */
   correctionWaits?: boolean;
+  /** The signed-in person's notifications, newest first (default: none). */
+  notices?: Notice[];
   /** What `GET /identity/me/field-account` answers (default: linked, no namesake). */
   fieldAccount?: { linked: boolean; unlinkedNamesake: boolean };
   /** Every published checklist version, any machine type (default: none). */
@@ -166,6 +169,7 @@ export function fakeApi(options: {
   const decisions: { action: string; ifMatch: string | null; body: unknown }[] = [];
   const correctionWaits = options.correctionWaits ?? false;
   const settlements: { action: string; ifMatch: string | null; body: unknown }[] = [];
+  const notices: Notice[] = [...(options.notices ?? [])];
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
@@ -420,6 +424,33 @@ export function fakeApi(options: {
         .filter((e) => e.meterId === entry.meterId && e.startedAt < entry.startedAt)
         .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null;
       return json(200, { entry, versions: [entry], previousOnMeter: previous });
+    }
+
+    if (url.pathname.startsWith("/api/v1/notifications/")) {
+      // The person's own notifications (ADR-0039 §3): the list with an ETag and a 304, mark one, mark all.
+      if (request.method === "GET" && url.pathname === "/api/v1/notifications/mine") {
+        const unread = notices.filter((n) => n.readAt === null).length;
+        const tag = `"${notices.map((n) => `${n.id}.${n.readAt === null ? "0" : "1"}`).join(";")}|${String(unread)}"`;
+        return request.headers.get("If-None-Match") === tag
+          ? new Response(null, { status: 304, headers: { ETag: tag } })
+          : new Response(JSON.stringify({ items: notices, unread }), { status: 200, headers: { "Content-Type": "application/json", ETag: tag } });
+      }
+
+      if (request.method === "POST" && url.pathname === "/api/v1/notifications/read-all") {
+        const count = notices.filter((n) => n.readAt === null).length;
+        notices.forEach((n, index) => { notices[index] = { ...n, readAt: n.readAt ?? "2026-11-25T10:00:00Z" }; });
+        return json(200, { count });
+      }
+
+      const readMatch = /^\/api\/v1\/notifications\/([^/]+)\/read$/.exec(url.pathname);
+      const index = notices.findIndex((n) => n.id === readMatch?.[1]);
+      const found = notices[index];
+      if (request.method === "POST" && found) {
+        notices[index] = { ...found, readAt: found.readAt ?? "2026-11-25T10:00:00Z" };
+        return json(200, notices[index]);
+      }
+
+      return problem(404, "notifications.not_found");
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/identity/me/field-account") {
@@ -1271,6 +1302,14 @@ export function fakeApi(options: {
     },
     /** Changes sent (a conversion is a POST but stores nothing). */
     writes: () => sent.filter((s) => s.method !== "GET" && !s.path.endsWith("/conversions")),
+  };
+}
+
+/** A notification of the signed-in person (default: an unread escalation of a review on the north site). */
+export function notice(overrides: Partial<Notice> = {}): Notice {
+  return {
+    id: "0192f0c1-0000-7000-8000-00000000c001", type: "review.escalated", parameters: { dueAt: "2026-11-24T14:05:00Z", entryId: "0192f0c1-0000-7000-8000-00000000e101" },
+    link: "/review", siteId: "0192f0c1-0000-7000-8000-000000005001", createdAt: "2026-11-24T14:10:00Z", readAt: null, ...overrides,
   };
 }
 
