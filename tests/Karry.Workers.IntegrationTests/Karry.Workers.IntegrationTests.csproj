@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/backend/Karry.Workers/Karry.Workers.csproj" />
+    <ProjectReference Include="../Karry.Testing/Karry.Testing.csproj" />
+  </ItemGroup>
+</Project>

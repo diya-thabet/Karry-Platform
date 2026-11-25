@@ -25,4 +25,4 @@ last_updated: 2026-10-29
 | **i18n / l10n** | French & English at launch; **Arabic (MSA, right to left) and Malinké in Latin and N'Ko (right to left) in the apps since 2026-10-29**, drafts until reviewed ([ADR-0030](../adr/0030-arabic-and-malinke-languages.md)); locale-aware numbers/dates, metric + imperial units, multi-currency. |
 | **Accessibility** | WCAG 2.2 AA for desktop apps; field UI: large touch targets (≥ 48 px), high-contrast outdoor mode, glove-friendly. |
 | **Auditability** | Every state change attributable to user, device, time (device + server), location where captured. |
-| **Maintainability** | Module boundaries enforced by architecture tests; ≥ 80 % coverage on domain/math code; ADRs for decisions. |
+| **Maintainability** | Module boundaries enforced by architecture tests; ≥ 90 % line coverage on every production assembly and ≥ 95 % in total, hand-written code only ([guidelines §7.2](../00-llm/llm_guidelines.md#72-test-pyramid--targets)); ADRs for decisions. |

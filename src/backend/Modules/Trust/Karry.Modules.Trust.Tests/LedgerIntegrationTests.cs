@@ -327,6 +327,35 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
         (await CliAsync(args)).Exit.Should().Be(2);
 
     [Fact]
+    [Trait("Story", "US-P1-AUD-03")]
+    public async Task Without_a_connection_nor_its_environment_variable_the_auditor_is_told_how_to_give_one()
+    {
+        Environment.GetEnvironmentVariable(Karry.Tools.LedgerVerifier.LedgerVerifierCli.ConnectionVariable).Should().BeNull("the test runs without it");
+
+        var (exit, output) = await CliAsync("verify", "--tenant", TenantA.ToString());
+
+        exit.Should().Be(2);
+        output.Should().Contain("--connection").And.Contain(Karry.Tools.LedgerVerifier.LedgerVerifierCli.ConnectionVariable);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P1-AUD-03")]
+    public async Task The_shipped_executable_prints_its_usage_and_exits_2_on_a_wrong_command()
+    {
+        var entry = typeof(Karry.Tools.LedgerVerifier.LedgerVerifierCli).Assembly.EntryPoint!;
+        string[] args = ["check"];
+
+        var exit = await Task.Run(() => entry.Invoke(null, [args]) switch
+        {
+            int code => code,
+            Task<int> task => task.GetAwaiter().GetResult(),
+            var other => throw new InvalidOperationException($"Unexpected entry point result {other}."),
+        });
+
+        exit.Should().Be(2, "karry-ledger runs the same CLI as the tests");
+    }
+
+    [Fact]
     [Trait("Story", "US-P1-AUD-04")]
     public async Task Every_entry_is_indexed_by_its_subject_in_the_same_transaction()
     {

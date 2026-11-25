@@ -1,6 +1,5 @@
 using Karry.BuildingBlocks.Observability;
 using Karry.BuildingBlocks.Outbox;
-using Karry.BuildingBlocks.Storage;
 using Karry.Modules.Assets.Infrastructure;
 using Karry.Modules.Billing.Application;
 using Karry.Modules.Billing.Infrastructure;
@@ -16,62 +15,16 @@ using Karry.Modules.Notifications.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
 using Karry.Modules.Sync.Application;
-using Karry.Modules.Sync.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
-using Karry.Modules.Trust.Infrastructure;
 using Karry.Modules.Verification.Infrastructure;
 using Karry.Workers;
-using Quartz;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddKarryObservability("karry-workers");
+builder.Services.AddWorkerModules(builder.Configuration);
 
-var connectionString = builder.Configuration.GetConnectionString("Karry")
-    ?? throw new InvalidOperationException("ConnectionStrings:Karry is required.");
-builder.Services.AddTenancyInfrastructure(connectionString);
-builder.Services.AddTrustInfrastructure(connectionString);
-builder.Services.AddTrustAnchoring(builder.Configuration);
-builder.Services.AddTrustServerSigning(builder.Configuration); // countersigning (ADR-0033 §4)
-builder.Services.AddIdentityInfrastructure(builder.Configuration, connectionString);
-
-// Billing subscribes to tenant provisioning (the trial subscription) and runs the subscription lifecycle.
-builder.Services.AddBillingInfrastructure(connectionString);
-
-// Flags: delivers its events (company flag changes); the evaluation itself runs in the API.
-builder.Services.AddFlagsInfrastructure(connectionString);
-
-// Organization: delivers its events (site and shift changes) and generates the shift instances (daily job).
-builder.Services.AddOrganizationInfrastructure(connectionString);
-
-// Materials: delivers its events (material and density changes).
-builder.Services.AddMaterialsInfrastructure(connectionString);
-
-// Assets: delivers its events (asset registrations, changes, moves).
-builder.Services.AddAssetsInfrastructure(connectionString, builder.Configuration);
-
-// Sync: measures the sequence gaps of tablets (5-minute job, alert KarrySyncGapOpen).
-builder.Services.AddSyncInfrastructure(connectionString);
-
-// FieldOps and Integrity: a meter event dispatched by the Assets outbox re-evaluates the meter's continuity here
-// (IMeterEventSubscriber, ADR-0036 §4), raising and closing integrity flags in the dispatcher's transaction.
-builder.Services.AddFieldOpsInfrastructure(connectionString);
-// FieldOps' reading of entries reads their photos (ADR-0038 §2): the evidence store, unavailable without configuration.
-builder.Services.AddEvidenceStore(builder.Configuration);
-builder.Services.AddIntegrityInfrastructure(connectionString);
-
-// Verification: the FieldOps handlers submit ended entries for review in their transaction (ADR-0037 §1); the SLA job
-// of P2.8 runs here too.
-builder.Services.AddVerificationInfrastructure(connectionString);
-// Notifications (ADR-0039): the FieldOps, Verification and Integrity outboxes hand their notices to it.
-builder.Services.AddNotificationsInfrastructure(connectionString);
-
-// Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
-// The runner rebuilds the requester's access, so this host knows every module's permissions.
-builder.Services.AddSingleton(WorkerModules.Catalog);
-builder.Services.AddImportsInfrastructure(connectionString, builder.Configuration);
-
-var anchoring = builder.Services.Any(s => s.ServiceType == typeof(AnchorLedgers));
+var anchoring = builder.Services.HasAnchoring();
 
 // `Karry.Workers anchor-now`: one anchoring run, then exit (manual catch-up, smoke test). Exit 1 if a tenant failed.
 if (args is ["anchor-now", ..])
@@ -157,10 +110,9 @@ if (args is ["delete-import-files", ..])
 }
 
 // `Karry.Workers import-sign-ins`: one import of Keycloak's failed sign-ins into the ledgers, then exit (smoke test).
-var keycloak = !string.IsNullOrWhiteSpace(builder.Configuration["Identity:Keycloak:BaseUrl"]);
 if (args is ["import-sign-ins", ..])
 {
-    if (!keycloak)
+    if (!WorkerServices.HasKeycloak(builder.Configuration))
     {
         await Console.Error.WriteLineAsync("Identity:Keycloak:BaseUrl is not configured.").ConfigureAwait(false);
         return 2;
@@ -172,45 +124,7 @@ if (args is ["import-sign-ins", ..])
     return 0;
 }
 
-// Subscribers of each module's events (ADR-0015): Tenancy's tenant_provisioned sets up the tenant in Keycloak and
-// starts its trial subscription in Billing.
-builder.Services.AddOutboxDispatcherService<TenancyDbContext>();
-builder.Services.AddOutboxDispatcherService<IdentityDbContext>();
-builder.Services.AddOutboxDispatcherService<BillingDbContext>();
-builder.Services.AddOutboxDispatcherService<FlagsDbContext>();
-builder.Services.AddOutboxDispatcherService<OrganizationDbContext>();
-builder.Services.AddOutboxDispatcherService<MaterialsDbContext>();
-builder.Services.AddOutboxDispatcherService<AssetsDbContext>();
-builder.Services.AddOutboxDispatcherService<ImportsDbContext>();
-builder.Services.AddOutboxDispatcherService<TrustDbContext>();
-builder.Services.AddOutboxDispatcherService<FieldOpsDbContext>();
-builder.Services.AddOutboxDispatcherService<VerificationDbContext>();
-builder.Services.AddOutboxDispatcherService<IntegrityDbContext>();
-builder.Services.AddOutboxDispatcherService<NotificationsDbContext>();
-
-builder.Services.AddQuartz(quartz =>
-{
-    Schedule<SubscriptionLifecycleJob>(quartz, "subscription-lifecycle", SubscriptionLifecycleJob.Schedule);
-    Schedule<UsageSnapshotJob>(quartz, "usage-snapshot", UsageSnapshotJob.Schedule);
-    Schedule<ShiftInstanceJob>(quartz, "shift-instances", ShiftInstanceJob.Schedule);
-    Schedule<ImportRetentionJob>(quartz, "import-retention", ImportRetentionJob.Schedule);
-    Schedule<SyncGapJob>(quartz, "sync-gaps", SyncGapJob.Schedule);
-    Schedule<ReviewEscalationJob>(quartz, "review-escalation", ReviewEscalationJob.Schedule);
-    Schedule<UnsettledGapsJob>(quartz, "unsettled-gaps", UnsettledGapsJob.Schedule);
-    Schedule<MissingEndJob>(quartz, "missing-ends", MissingEndJob.Schedule);
-    Schedule<CountersignJob>(quartz, "countersign", CountersignJob.Schedule);
-    if (anchoring)
-    {
-        Schedule<LedgerAnchoringJob>(quartz, "ledger-anchoring", LedgerAnchoringJob.Schedule);
-    }
-
-    if (keycloak)
-    {
-        Schedule<SignInFailureImportJob>(quartz, "sign-in-failure-import", SignInFailureImportJob.Schedule);
-    }
-});
-builder.Services.AddQuartzHostedService(options => options.WaitForJobsToComplete = true);
-
+builder.Services.AddWorkerJobs(builder.Configuration);
 using var host = builder.Build();
 await host.RunAsync().ConfigureAwait(false);
 return 0;
@@ -222,15 +136,3 @@ static async Task<int> DrainAsync<TContext>(OutboxDispatcher<TContext> dispatche
     await dispatcher.DispatchPendingAsync(int.MaxValue, CancellationToken.None).ConfigureAwait(false);
     return await dispatcher.PendingAsync(CancellationToken.None).ConfigureAwait(false);
 }
-
-// A cron schedule plus one run at start-up (catch-up after downtime; the staleness alerts read the first run's time).
-// Two triggers: a cron trigger's first fire is its next cron time, even with StartNow().
-static void Schedule<TJob>(IQuartzBuilder quartz, string name, string cron)
-    where TJob : IJob
-{
-    var job = new JobKey(name);
-    quartz.AddJob<TJob>(options => options.WithIdentity(job));
-    quartz.AddTrigger(trigger => trigger.ForJob(job).WithIdentity($"{name}-schedule").WithCronSchedule(cron));
-    quartz.AddTrigger(trigger => trigger.ForJob(job).WithIdentity($"{name}-start-up").StartNow());
-}
-

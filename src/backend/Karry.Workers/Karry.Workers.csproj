@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Worker">
   <!-- Background host: scheduled jobs (Quartz, ADR-0018) such as hourly ledger anchoring, and the modules' outbox dispatchers. -->
   <ItemGroup>
+    <InternalsVisibleTo Include="Karry.Workers.IntegrationTests" />
     <PackageReference Include="Quartz.Extensions.Hosting" />
   </ItemGroup>
   <ItemGroup>

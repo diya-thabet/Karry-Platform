@@ -278,12 +278,31 @@ Write or update an **ADR** (`docs/adr/NNNN-title.md`, template §26.1) when you:
 
 | Level | Share of tests | Speed target | Coverage target |
 |---|---|---|---|
-| Unit (incl. property) | ~70 % | < 50 ms each | ≥ 80 % lines on `Domain` projects; ≥ 90 % on formula/trust code |
+| Unit (incl. property) | ~70 % | < 50 ms each | See the coverage gate below |
 | Integration | ~20 % | < 2 s each | All repositories, endpoints, migrations, RLS |
 | E2E | ~10 % | < 2 min per journey | All critical journeys (`TC-…` marked E2E in the phase plan) |
 | Mutation (Stryker) | Nightly on math & trust modules (`nightly / mutation`; Trust since P1.6) | — | Mutation score ≥ 70 % (≥ 75 % for RUL, ledger, sync). Every surviving mutant gets a test or is documented as equivalent in the PR |
 
-Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is worthless (§8).
+**Coverage gate (CI `backend`, `tools/ci/coverage_gate.py`).** Lines of hand-written code only: generated files
+(`*.g.cs`, `*.generated.cs`, `obj/`) and EF Core `Migrations/` are left out, so the number says how much of what we
+wrote runs under a test.
+
+- **Every production assembly ≥ 90 %**: each module's Domain, Application, Infrastructure and Api, `SharedKernel`,
+  `BuildingBlocks`, both hosts (`Karry.Host`, `Karry.Workers`) and the auditors' `karry-ledger`. An assembly no test
+  loads counts as 0 % and fails (`--solution`).
+- **All of them together ≥ 95 %**: a ratchet. Raise it when the measured total allows; never lower it to merge.
+- Module `Contracts` with code ≥ 90 % (interface-only contracts have no line to cover).
+- A host's composition is tested as deployed: its container validated as in Development, its commands' exit codes, a
+  fresh database migrated and seeded twice (`WorkersStartupTests`, `FreshDeploymentTests`).
+
+Coverage is a **floor, not a goal**. 100 % coverage with weak assertions is worthless (§8): every test asserts a
+behaviour a person or an auditor relies on, and fails when that behaviour breaks.
+
+**After every sub-phase (P*n.m*), before its PR merges:** the sub-phase's stories have tests at every level the table
+in §7.1 asks for, *real-world scenarios included* (the journey as a site would live it: offline then online, two
+people at once, a retry after a crash, a second run of a job, the same request twice, another company's data next to
+it); the full backend and frontend suites ran locally; the coverage gate holds with the new code; the CI run shows the
+new tests. A sub-phase that lowers an assembly's coverage is not done.
 
 ### 7.3 Traceability
 
@@ -769,7 +788,8 @@ When you ask, give **a recommendation with reasoning**, not just options.
 - [ ] Unit + property tests (domain/math), integration tests (API/DB), E2E for critical/field journeys
 - [ ] Tenant-isolation test covers new endpoints; authz allow/deny tests; masking tests where relevant
 - [ ] Tests run locally and are executed by GitHub Actions (new tests visible in CI run)
-- [ ] Coverage thresholds met; mutation score maintained for math/trust modules
+- [ ] Coverage gate holds (§7.2: every production assembly ≥ 90 %, all together ≥ 95 %, generated code left out); mutation score maintained for math/trust modules
+- [ ] Real-world scenarios of the sub-phase tested (§7.2: offline/online, concurrency, retries, re-runs, idempotency, another tenant's data alongside)
 - [ ] Lint, format, type-check, analyzers, architecture tests green; no new warnings
 - [ ] Security: threat note for sensitive areas; no secrets; dependency scan clean
 - [ ] Migrations follow expand/contract; RLS checklist done; SQL reviewed
