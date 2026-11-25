@@ -4,7 +4,7 @@ area: phases
 tags: [phase-2, sub-phases, execution-plan, sequencing, sync, signatures, verification, field-ops, continuity, notifications, definition-of-done]
 source: "Phase 2 plan (plan.md) broken into executable steps; architect review 2026-11-04"
 status: draft
-last_updated: 2026-11-24
+last_updated: 2026-11-25
 ---
 
 # Phase 2 Execution Plan: Sub-Phases P2.0 – P2.12
@@ -224,8 +224,8 @@ sequenceDiagram
 | ADR-0034 | **Shift entries:** shift instance resolved from the site's pattern version at the entry's local time ([ADR-0024](../../adr/0024-sites-geometry-and-shift-time.md)); an entry is a chain of versions (`root_id`, `version`) and segments (`segment_no`); meter values as `MeterValue` strings; "estimated" mode when the meter has failed. | P2.4 |
 | [ADR-0037](../../adr/0037-verification-engine.md) | **Verification engine** (planned as ADR-0035; that number went to the P2.6 checklists): generic `ReviewItem` per record version; policies versioned and pinned on the item; SoD and four-eyes evaluated server side from facts the record type supplies; every action is a signed envelope plus a ledger entry; SLA and escalation as scheduled jobs. | P2.8 |
 | ADR-0036 | **Integrity rules:** a rule is code (owning module) + settings (tenant thresholds, on/off except security rules) + a flag (Integrity module); flags are re-evaluated when the facts they depend on change, and closed, never deleted. | P2.7 |
-| ADR-0038 | **Notifications:** rule = event → audience (role + scope) → channels; in-app center read by **polling with ETag** (the queue's ≤ 10 s target does not need WebSockets for tens of users per company; it also works through every proxy); e-mail through an `IEmailSender` port (Mailpit locally, provider later); Web Push optional and behind a flag. | P2.10 |
-| ADR-0039 | **Documents and public verification:** PDF engine chosen by a time-boxed spike (200 entries < 10 s, images, embedded fonts); candidates (P2.0 check, [technology stack §7.1.2](../../02-architecture/technology-stack.md#712-verified-versions-phase-2-start-2026-11-09)): **PDFsharp + MigraDoc pinned at 6.2.4**, the last MIT release (6.5.0 is AGPL-3.0-only), or **QuestPDF**, whose Community licence ends at USD 1 M revenue and needs owner approval, or another MIT engine. Public page on the platform address `/verify/{envelopeId}#{token}` until the `verify.` domain exists; token 128 random bits, stored hashed; rate-limited; shows only what the tenant's policy allows. | P2.11 |
+| ADR-0039 | **Notifications:** rule = event → audience (role + scope) → channels; in-app center read by **polling with ETag** (the queue's ≤ 10 s target does not need WebSockets for tens of users per company; it also works through every proxy); e-mail through an `IEmailSender` port (Mailpit locally, provider later); Web Push optional and behind a flag. | P2.10 |
+| ADR-0040 | **Documents and public verification:** PDF engine chosen by a time-boxed spike (200 entries < 10 s, images, embedded fonts); candidates (P2.0 check, [technology stack §7.1.2](../../02-architecture/technology-stack.md#712-verified-versions-phase-2-start-2026-11-09)): **PDFsharp + MigraDoc pinned at 6.2.4**, the last MIT release (6.5.0 is AGPL-3.0-only), or **QuestPDF**, whose Community licence ends at USD 1 M revenue and needs owner approval, or another MIT engine. Public page on the platform address `/verify/{envelopeId}#{token}` until the `verify.` domain exists; token 128 random bits, stored hashed; rate-limited; shows only what the tenant's policy allows. | P2.11 |
 
 ### 3.4 New permissions (role matrix)
 
@@ -611,7 +611,7 @@ machine is unsafe or reviews are late, by in-app notice, e-mail digest and, wher
 
 - **Stories:** US-P2-NOT-01 (AC1–AC3), US-P2-OFF-04 AC2, US-P2-VER-06 AC2; producers from FO-02 AC3 and FO-08 AC2.
 - **Depends on:** P2.8 (main producers), P2.6.
-- **Decisions:** ADR-0038 (above).
+- **Decisions:** ADR-0039 (above); [slice plan](p2.10-notifications-plan.md).
 - **What gets built:** new module `Notifications`: rules (event → audience by role and scope → channels), default
   rules seeded, per-user preferences; notification center in portal and field app (read/unread, deep links; on a
   shared tablet only for the unlocked user); `IEmailSender` (SMTP adapter; Mailpit locally) with daily digests per
@@ -634,7 +634,7 @@ document is genuine.
 
 - **Stories:** US-P2-SIG-05 (AC1–AC3), US-P2-SIG-06 (AC1–AC2).
 - **Depends on:** P2.8 (approved entries), P2.3.
-- **Decisions:** ADR-0039 (above), after a one-day spike of the PDF engine on the 200-entry generated shift.
+- **Decisions:** ADR-0040 (above), after a one-day spike of the PDF engine on the 200-entry generated shift.
 - **What gets built:** shift report (per shift and site: entries, Δ, operator, controller, flags, signature images,
   document hash in the footer, verification QR; masking per the reader's role, carry-over from P1.9); document
   envelope (the PDF's hash is signed and ledgered); public page `/verify/{envelopeId}#{token}` on the platform address
@@ -772,5 +772,5 @@ when the ADR is accepted.
 | Low-end tablet too slow for camera + compression | Medium / Medium | Compression in a worker, measured on the reference tablet as soon as it exists; fall back to a lower resolution setting |
 | Continuity engine wrong in edge cases (late data, resets) | Medium / High | Property tests with shrinking, generator anomalies, mutation checks |
 | Signing key custody before a KMS exists | Low / High | OpenBao with persistent storage; unseal key outside the repository; production waits for KMS (P1.17) |
-| PDF licence surprise | **Happened** (P2.0: PDFsharp 6.5 became AGPL) / Medium | Licence read from the package, not the web page; pin the last MIT release or choose another engine in the spike (ADR-0038) |
+| PDF licence surprise | **Happened** (P2.0: PDFsharp 6.5 became AGPL) / Medium | Licence read from the package, not the web page; pin the last MIT release or choose another engine in the spike (ADR-0040) |
 | Notification noise makes people ignore them | Medium / Medium | Digests instead of one message per event; per-user preferences; defaults reviewed after the shadow run |

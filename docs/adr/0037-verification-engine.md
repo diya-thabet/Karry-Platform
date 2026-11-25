@@ -21,7 +21,8 @@ open and close over time (ADR-0036). A controller now has to decide on each entr
 it with a before-and-after trail; big corrections need a second person; nobody approves their own work
 (US-P2-VER-02 … 06). A continuity gap needs a reasoned resolution (US-P2-FO-08). The sub-phase card reserved
 "ADR-0035" for this decision; that number went to the pre-start checklists in P2.6, so the verification engine is
-ADR-0037 and the planned notifications and documents ADRs become ADR-0038 and ADR-0039.
+ADR-0037 and the planned notifications and documents ADRs become ADR-0038 and ADR-0039 (later ADR-0039 and ADR-0040:
+ADR-0038 went to the controller console, P2.9).
 
 ## Decision
 
@@ -57,7 +58,7 @@ decision, ledgered under their name **with the hashes of every record version it
 them all in one ledger entry, US-P2-VER-02 AC2), so the hash-chained ledger binds the decision to exactly the
 versions the person saw. Correcting and second-approving need a recent sign-in (they change or override a signed
 fact); approving and rejecting do not (a controller approves dozens an hour, P2.9's target). A server-signed decision
-document, if the owner wants one in the PDF, comes with the shift report (P2.11, ADR-0039).
+document, if the owner wants one in the PDF, comes with the shift report (P2.11, ADR-0040).
 
 ### 4. Separation of duties is evaluated on the server, at action time
 
