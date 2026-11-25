@@ -6,6 +6,7 @@ import { Button, DataTable, EmptyState, ErrorState, PageHeader, SelectField, Sta
 import { useAccess, useApi } from "../app/api";
 import { useSiteNames } from "../assets/api";
 import { Trail } from "../shell/Trail";
+import { Settlement } from "./Settlement";
 import { closeReason, FlagsReadPermission, flagExplanation, flagsKey, RulesManagePermission, severityStatus, type IntegrityFlag } from "./api";
 
 const statuses = ["open", "closed", "all"] as const;
@@ -124,7 +125,12 @@ export function FlagsPage() {
                       )}
                     </span>
                   )
-                : <StatusChip status="warning">{t("portal.integrity.flags.open")}</StatusChip>),
+                : (
+                    <span className="flex flex-col items-start gap-2">
+                      <StatusChip status="warning">{t("portal.integrity.flags.open")}</StatusChip>
+                      <Settlement flag={flag} />
+                    </span>
+                  )),
             },
           ]}
         />

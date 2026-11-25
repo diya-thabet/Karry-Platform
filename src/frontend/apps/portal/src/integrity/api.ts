@@ -11,6 +11,19 @@ type TFunction = ReturnType<typeof useTranslation>["t"];
 
 export const FlagsReadPermission = "integrity.flags.read";
 export const RulesManagePermission = "integrity.rules.manage";
+export const FlagsSettlePermission = "integrity.flags.settle";
+
+/**
+ * Why a continuity gap is settled (US-P2-FO-08 AC1, ADR-0037 §7), as the API names them. A data-entry error is not
+ * among them: the entry is corrected in Review and the gap closes by itself.
+ */
+export const settlementReasons = ["meter_replaced", "meter_reset", "maintenance_run", "towing", "unexplained"] as const;
+
+/** What happened, as the API takes it: 1 to 500 characters. */
+export function settlementCommentOk(text: string): boolean {
+  const length = text.trim().length;
+  return length >= 1 && length <= 500;
+}
 
 export const rulesKey = ["integrity", "rules"] as const;
 export const flagsKey = ["integrity", "flags"] as const;

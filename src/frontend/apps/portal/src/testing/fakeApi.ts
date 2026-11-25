@@ -108,6 +108,8 @@ export function fakeApi(options: {
   entries?: ShiftEntry[];
   /** A correction is beyond the four-eyes thresholds: its next item waits for a second approval (default: no). */
   correctionWaits?: boolean;
+  /** What `GET /identity/me/field-account` answers (default: linked, no namesake). */
+  fieldAccount?: { linked: boolean; unlinkedNamesake: boolean };
   /** Every published checklist version, any machine type (default: none). */
   checklists?: Checklist[];
   /** Machines of `GET /assets` (default: none). */
@@ -163,6 +165,7 @@ export function fakeApi(options: {
   const queueCalls: { query: Record<string, string>; ifNoneMatch: string | null }[] = [];
   const decisions: { action: string; ifMatch: string | null; body: unknown }[] = [];
   const correctionWaits = options.correctionWaits ?? false;
+  const settlements: { action: string; ifMatch: string | null; body: unknown }[] = [];
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
@@ -412,6 +415,34 @@ export function fakeApi(options: {
         .filter((e) => e.meterId === entry.meterId && e.startedAt < entry.startedAt)
         .sort((a, b) => b.startedAt.localeCompare(a.startedAt))[0] ?? null;
       return json(200, { entry, versions: [entry], previousOnMeter: previous });
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/identity/me/field-account") {
+      return json(200, options.fieldAccount ?? { linked: true, unlinkedNamesake: false });
+    }
+
+    const settleMatch = /^\/api\/v1\/integrity\/flags\/([^/]+)\/(settle|settlement\/approve|settlement\/decline)$/.exec(url.pathname);
+    if (request.method === "POST" && settleMatch) {
+      // Settling a continuity gap (ADR-0037 §7): on the flag's version (If-Match), else 409.
+      const index = integrityFlags.findIndex((f) => f.id === settleMatch[1]);
+      const flag = integrityFlags[index];
+      if (!flag) {
+        return problem(404, "integrity.flag_not_found");
+      }
+
+      settlements.push({ action: settleMatch[2] ?? "", ifMatch: request.headers.get("If-Match"), body });
+      if (request.headers.get("If-Match") !== (flag.version ?? "")) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const input = body as { reason?: string; comment?: string } | null;
+      const next: IntegrityFlag = settleMatch[2] === "settle"
+        ? { ...flag, settlement: { reason: input?.reason ?? "", comment: input?.comment ?? "", proposedBy: "test-user", proposedAt: "2026-11-25T08:00:00Z" } }
+        : settleMatch[2] === "settlement/approve"
+          ? { ...flag, closedAt: "2026-11-25T09:00:00Z", closeReason: `settled:${flag.settlement?.reason ?? ""}` }
+          : { ...flag, settlement: null };
+      integrityFlags[index] = { ...next, version: nextVersion(flag.version ?? '"1"') };
+      return json(200, integrityFlags[index]);
     }
 
     if (request.method === "POST" && url.pathname === "/api/v1/verification/items/approve") {
@@ -1141,6 +1172,16 @@ export function fakeApi(options: {
     queueCalls,
     /** Every decision on a review item: approve, reject, correct or second-approve, with its `If-Match` and body. */
     decisions,
+    /** Every step of a gap settlement: settle, settlement/approve or settlement/decline, with its `If-Match` and body. */
+    settlements,
+    /** Someone else acts on the flag meanwhile: the version the page holds is out of date. */
+    changeFlagElsewhere: (id: string) => {
+      const index = integrityFlags.findIndex((f) => f.id === id);
+      const found = integrityFlags[index];
+      if (found) {
+        integrityFlags[index] = { ...found, version: nextVersion(found.version ?? '"1"') };
+      }
+    },
     /** Someone else decides on the item meanwhile: the version the open panel holds is out of date. */
     changeReviewItemElsewhere: (id: string) => {
       const index = reviewItems.findIndex((i) => i.id === id);

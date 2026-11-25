@@ -420,6 +420,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/identity/me/field-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetMyFieldAccount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/identity/me/access": {
         parameters: {
             query?: never;
@@ -2769,6 +2785,14 @@ export interface components {
             /** Format: double */
             amount: number | string;
         };
+        /**
+         * @description The signed-in person and their field account (ADR-0037 §4): `linked` when their reviews know it;
+         *     `unlinkedNamesake` when a field account with their name exists that no office account links (residual R-15).
+         */
+        MyFieldAccountResponse: {
+            linked: boolean;
+            unlinkedNamesake: boolean;
+        };
         NonWorkingDayInput: {
             kind: null | string;
             name: null | string;
@@ -4946,6 +4970,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetMyFieldAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyFieldAccountResponse"];
                 };
             };
             /** @description Unauthorized */

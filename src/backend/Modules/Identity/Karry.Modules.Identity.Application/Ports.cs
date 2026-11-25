@@ -67,6 +67,12 @@ public interface IIdentityStore
     /// <summary>Whether an office account other than <paramref name="except"/> links to <paramref name="fieldUserId"/> (ADR-0037 §4).</summary>
     Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Whether a field user not deactivated has this first and last name (case ignored) and no office account links to it
+    /// (residual R-15, ADR-0037 §9): the person may drive under that account while their reviews do not know it.
+    /// </summary>
+    Task<bool> UnlinkedFieldNamesakeAsync(string firstName, string lastName, CancellationToken cancellationToken);
+
     Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken);
 
     /// <summary>The user's latest invitation that is neither accepted nor replaced.</summary>

@@ -115,3 +115,26 @@ export function useMachineCodes() {
   const codes = new Map((machines.data ?? []).map((asset) => [asset.id, asset.code]));
   return (id: string | null | undefined) => (id ? codes.get(id) ?? "—" : "—");
 }
+
+/**
+ * Whether the signed-in reviewer's reviews know their field account (residual R-15, ADR-0037 §9): the queue warns when
+ * a field account with their name exists that nobody linked. A failure shows no warning rather than an error dialog:
+ * the server still checks separation of duties on every decision.
+ */
+export function useFieldAccountWarning(enabled: boolean) {
+  const api = useApi();
+  const answer = useQuery({
+    queryKey: ["identity", "me", "field-account"],
+    queryFn: async () => {
+      try {
+        return (await api.GET("/api/v1/identity/me/field-account")).data ?? null;
+      } catch {
+        return null;
+      }
+    },
+    enabled,
+    staleTime: 5 * 60_000,
+  });
+  return answer.data?.unlinkedNamesake === true;
+}
+

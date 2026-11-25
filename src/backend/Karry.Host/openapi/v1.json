@@ -1725,6 +1725,46 @@
         }
       }
     },
+    "/api/v1/identity/me/field-account": {
+      "get": {
+        "tags": [
+          "IdentityModule"
+        ],
+        "operationId": "GetMyFieldAccount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyFieldAccountResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/identity/me/access": {
       "get": {
         "tags": [
@@ -12668,6 +12708,22 @@
           }
         },
         "description": "The MRR of all tenants priced in one currency."
+      },
+      "MyFieldAccountResponse": {
+        "required": [
+          "linked",
+          "unlinkedNamesake"
+        ],
+        "type": "object",
+        "properties": {
+          "linked": {
+            "type": "boolean"
+          },
+          "unlinkedNamesake": {
+            "type": "boolean"
+          }
+        },
+        "description": "The signed-in person and their field account (ADR-0037 §4): `linked` when their reviews know it;\n`unlinkedNamesake` when a field account with their name exists that no office account links (residual R-15)."
       },
       "NonWorkingDayInput": {
         "required": [

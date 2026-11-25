@@ -18,6 +18,19 @@ internal sealed class IdentityStore(IdentityDbContext db) : IIdentityStore
     public Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken) =>
         db.Users.AnyAsync(u => u.LinkedFieldUserId == fieldUserId && u.Id != except, cancellationToken);
 
+    public async Task<bool> UnlinkedFieldNamesakeAsync(string firstName, string lastName, CancellationToken cancellationToken)
+    {
+        // Case ignored by ILIKE; the name is matched literally (its % _ and \ escaped), never as a pattern.
+        static string Literal(string text) => text.Trim().Replace(@"\", @"\\", StringComparison.Ordinal).Replace("%", @"\%", StringComparison.Ordinal).Replace("_", @"\_", StringComparison.Ordinal);
+        var (first, last) = (Literal(firstName), Literal(lastName));
+        var namesakes = (await db.Users.AsNoTracking()
+            .Where(u => u.Kind == UserKind.Field && u.Status != UserStatus.Deactivated
+                && EF.Functions.ILike(u.FirstName, first, @"\") && EF.Functions.ILike(u.LastName, last, @"\"))
+            .Select(u => u.Id).ToListAsync(cancellationToken).ConfigureAwait(false)).Select(id => (Guid?)id.Value).ToList();
+        return namesakes.Count > 0
+            && namesakes.Count > await db.Users.AsNoTracking().CountAsync(u => namesakes.Contains(u.LinkedFieldUserId), cancellationToken).ConfigureAwait(false);
+    }
+
     public Task<Invitation?> FindInvitationAsync(string tokenHash, CancellationToken cancellationToken) =>
         db.Invitations.SingleOrDefaultAsync(i => i.TokenHash == tokenHash, cancellationToken);
 
