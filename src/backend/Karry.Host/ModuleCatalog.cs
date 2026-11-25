@@ -7,6 +7,7 @@ using Karry.Modules.Identity.Api;
 using Karry.Modules.Imports.Api;
 using Karry.Modules.Integrity.Api;
 using Karry.Modules.Materials.Api;
+using Karry.Modules.Notifications.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Sync.Api;
 using Karry.Modules.Tenancy.Api;
@@ -35,5 +36,6 @@ internal static class ModuleCatalog
         new FieldOpsModule(),
         new IntegrityModule(),
         new VerificationModule(),
+        new NotificationsModule(),
     ];
 }

@@ -71,6 +71,26 @@ behind the sign-in (a lock screen is public).
 Parameters are what the reader's role may read (masking rules, ADR-0022): no price, cost or wage, no other person's
 personal data beyond a name already visible to them. Logs of deliveries carry IDs, never addresses or texts (T-18).
 
+## As built
+
+As built (slice 1): module `Notifications` (schema `notifications`, RLS; rows deletable for the 90-day retention).
+`INotices.PublishAsync(connection, transaction, notice)` (Notifications.Contracts) joins the transaction of the
+outbox dispatch that carries the event; `NoticeDelivery` applies the type's rule (`NoticeRules`, code), resolves the
+audience through Identity's new `INoticeAudiences` (active users holding a role on the site, an assignment to that
+site or to every site, or across the company) and stores one row per person, skipping those who already have the
+notice of that event (unique on event and person). Producers own their subscriber on their own event: Verification
+`ReviewNotices` (rejection → the entry's producer; escalation → the role the event names, on the site), FieldOps
+`HoldNotices` (unsafe machine → site managers and maintenance planners of the site), Integrity `FlagNotices`
+(RULE-FO-11 → executives and company administrators; RULE-FO-08 → site managers). Each takes every `INotices`
+registered, so a host without the module still starts; Host and Workers register it.
+
+Found while building: the FieldOps, Verification and Integrity outboxes were written but never dispatched (no
+`AddOutboxDispatcher` with their event assemblies, no dispatcher in the Workers). They are now registered and
+dispatched (and Notifications' own outbox); messages already waiting are processed by the subscribers that exist now.
+The API: `GET /api/v1/notifications/mine` (newest first, `unread`, the unread count, `ETag`/304),
+`POST /api/v1/notifications/{id}/read` (another's is a 404) and `POST /api/v1/notifications/read-all`, open to every
+member about themselves only (reviewed list of the authorization suite).
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

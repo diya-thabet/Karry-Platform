@@ -74,6 +74,8 @@ public sealed class IsolationHost : IAsyncLifetime
         AFlag = await SeedFlagAsync(A.Id, ASite);
         // Review items (P2.8): a pending item of A on its site, which B must never read, approve or reject.
         AReviewItem = await SeedReviewItemAsync(A.Id, ASite);
+        // A notification of A (its link, /alpha-notice, is a marker too): B never reads or marks it.
+        ANotification = await SeedNotificationAsync(A.Id);
     }
 
     /// <summary>ID of an open continuity gap of tenant A (its key, <c>Alphaflag</c>, is a marker too): B never settles it.</summary>
@@ -81,6 +83,9 @@ public sealed class IsolationHost : IAsyncLifetime
 
     /// <summary>ID of a pending review item of tenant A (its record hash, <c>sha256:a1…</c>, is a marker too).</summary>
     public Guid AReviewItem { get; private set; }
+
+    /// <summary>ID of a notification of a person of tenant A.</summary>
+    public Guid ANotification { get; private set; }
 
     /// <summary>ID of an open safety hold on tenant A's machine.</summary>
     public Guid AHold { get; private set; }
@@ -289,6 +294,22 @@ public sealed class IsolationHost : IAsyncLifetime
         insert.Parameters.AddWithValue(tenant);
         insert.Parameters.AddWithValue(site);
         insert.Parameters.AddWithValue(id);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    private async Task<Guid> SeedNotificationAsync(Guid tenant)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO notifications.notifications (id, tenant_id, recipient_id, type, parameters, link, site_id, source_event_id, created_at)
+            VALUES ($1, $2, gen_random_uuid(), 'review.rejected', '{}', '/alpha-notice', NULL, gen_random_uuid(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
         await insert.ExecuteNonQueryAsync();
         return id;
     }
@@ -572,7 +593,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
             host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
             host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag", "Alphameterevent",
-            host.AReviewItem.ToString(), "sha256:a1a1a1a1", host.AFlag.ToString()],
+            host.AReviewItem.ToString(), "sha256:a1a1a1a1", host.AFlag.ToString(), host.ANotification.ToString(), "/alpha-notice"],
             $"{operationId} returned tenant A's data to tenant B");
         (await TenantRowCountsAsync(host.A.Id)).Should().Equal(before, $"{operationId} changed tenant A's rows");
     }
@@ -684,6 +705,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "entryId" => host.AEntry.ToString(),
         "holdId" => host.AHold.ToString(),
         "itemId" => host.AReviewItem.ToString(),
+        "notificationId" => host.ANotification.ToString(),
         "flagId" => host.AFlag.ToString(),
         // A record type of the catalogue: B reads and publishes its own policy of it, never A's (ReviewPoliciesTests).
         "recordType" when template.StartsWith("/api/v1/verification/", StringComparison.Ordinal) => "fieldops.shift_entry",

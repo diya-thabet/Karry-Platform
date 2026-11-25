@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Verification.Contracts;
 using Karry.SharedKernel.Tenancy;
@@ -319,6 +320,32 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         return host.Client.SendAsync(request, Ct);
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-NOT-01")]
+    [Trait("TestCase", "TC-P2-NOT-001")]
+    public async Task A_rejection_notifies_the_entrys_operator_and_an_escalation_the_role_it_names_once_through_the_outbox()
+    {
+        var tenant = await ProvisionAsync();
+        var (operatorId, site, manager) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        host.Audiences.Holders[("site-manager", site)] = [manager];
+        var rejected = await PendingItemAsync(tenant, site: site, producer: operatorId);
+        await PendingItemAsync(tenant, site: site);
+        (await DecideAsync(tenant, rejected, "reject", new { reasonCode = "wrong_reading", comment = "The photo shows 1 248, not 1 250." }, $"\"{rejected.Version}\""))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        // Overdue now, escalated at the real time: an event dated in the future would wait in the outbox until then.
+        await ExecuteAsync($"UPDATE verification.review_items SET due_at = now() - interval '1 hour' WHERE tenant_id = '{tenant}' AND status = 'pending'");
+        await host.Services.GetRequiredService<Application.EscalateOverdueReviews>().RunAtAsync(DateTimeOffset.UtcNow, Ct);
+
+        var dispatcher = host.Services.GetRequiredService<OutboxDispatcher<Infrastructure.VerificationDbContext>>();
+        await dispatcher.DispatchPendingAsync(1000, Ct);
+        await dispatcher.DispatchPendingAsync(1000, Ct);
+
+        (await RowsAsync($"SELECT type || '|' || recipient_id || '|' || (parameters::jsonb->>'reasonCode') FROM notifications.notifications WHERE tenant_id = '{tenant}' AND type = 'review.rejected'"))
+            .Should().Equal([$"review.rejected|{operatorId}|wrong_reading"], "the entry's operator, once");
+        (await RowsAsync($"SELECT recipient_id::text FROM notifications.notifications WHERE tenant_id = '{tenant}' AND type = 'review.escalated'"))
+            .Should().Equal([manager.ToString()], "the policy's escalation role on the site; the rejected one no longer waits");
+    }
+
     private static string Recent(Guid tenant, string subject) =>
         TestTokens.Create(subject, (TenantResolutionMiddleware.TenantClaim, tenant.ToString()),
             (PermissionMiddleware.AuthTimeClaim, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
@@ -382,6 +409,14 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         using var response = await host.Client.SendAsync(request, Ct);
         response.StatusCode.Should().Be(HttpStatusCode.Created);
         return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
+    }
+
+    private async Task ExecuteAsync(string sql)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand(sql, connection);
+        await command.ExecuteNonQueryAsync(Ct);
     }
 
     private async Task<List<string>> RowsAsync(string sql)

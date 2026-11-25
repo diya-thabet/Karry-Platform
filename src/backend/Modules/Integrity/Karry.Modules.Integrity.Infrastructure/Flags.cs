@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Sync;
 using Karry.BuildingBlocks.Tenancy;
@@ -186,9 +187,12 @@ public static class IntegrityInfrastructure
     {
         services.TryAddSingleton(TimeProvider.System);
         services.AddModuleDbContext<IntegrityDbContext>(connectionString);
+        // Its events reach other modules (notices, ADR-0039): dispatched by the Workers.
+        services.AddOutboxDispatcher<IntegrityDbContext>(eventAssemblies: typeof(Domain.IntegrityFlag).Assembly);
         services.AddScoped<IIntegrityFlags, FlagWriter>();
         services.AddScoped<IFlagReader, FlagReader>();
         services.AddScoped<FlagReading>();
+        services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<FlagOpened>, FlagNotices>();
         services.AddScoped<IFlagStore, FlagStore>();
         services.AddScoped<FlagSettlements>();
         services.AddSingleton<RaiseUnsettledGaps>();

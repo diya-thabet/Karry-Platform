@@ -43,6 +43,7 @@ public static class IdentityInfrastructure
         services.AddScoped<IUserNames, UserNames>();
         services.AddScoped<IFieldSigners, FieldSigners>();
         services.AddScoped<IReviewers, Reviewers>();
+        services.AddScoped<INoticeAudiences, NoticeAudiences>();
 
         // One client and token cache for the process; connections are recycled so DNS changes are picked up. Changes to
         // the shared portal client are serialized with the other processes through the database.

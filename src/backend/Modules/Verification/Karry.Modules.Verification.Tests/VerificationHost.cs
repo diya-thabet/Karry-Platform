@@ -40,6 +40,9 @@ public sealed class VerificationHost : IAsyncLifetime
     /// <summary>FieldOps' answer to "did this person drive this machine then?", as (person, asset) pairs.</summary>
     public OperatedAssets Operated { get; } = new();
 
+    /// <summary>Who holds the escalation role on a site, as Identity answers the Notifications module.</summary>
+    public RoleHolders Audiences { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -58,10 +61,11 @@ public sealed class VerificationHost : IAsyncLifetime
         builder.Services.AddKarryApiConventions();
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new VerificationModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new VerificationModule(), new Trust.Api.TrustModule(), new Notifications.Api.NotificationsModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, Roles, SiteOf);
         builder.Services.AddSingleton<IReviewers>(People);
         builder.Services.AddSingleton<IReviewableRecords>(Operated);
+        builder.Services.AddSingleton<INoticeAudiences>(Audiences);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -120,4 +124,14 @@ public sealed class OperatedAssets : IReviewableRecords
         Corrections.Enqueue((recordId, version, fields));
         return Task.FromResult(NextCorrection);
     }
+}
+
+public sealed class RoleHolders : INoticeAudiences
+{
+    public ConcurrentDictionary<(string Role, Guid? Site), List<Guid>> Holders { get; } = new();
+
+    public Task<IReadOnlyList<Guid>> HoldersAsync(IReadOnlyCollection<string> roles, Guid? siteId, CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<Guid>>([.. roles.SelectMany(role => Holders.GetValueOrDefault((role, siteId)) ?? [])]);
+
+    public Task<Guid?> UserIdOfAsync(string subject, CancellationToken cancellationToken) => Task.FromResult<Guid?>(null);
 }
