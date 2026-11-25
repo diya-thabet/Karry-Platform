@@ -97,6 +97,21 @@ describe("the queue by keyboard and in bulk (US-P2-VER-07, ADR-0038 §4)", () =>
   });
 });
 
+describe("the speed target (US-P2-VER-07 AC3, proxy of the usability test)", () => {
+  it("approves 50 entries without a flag in two actions, one bulk request naming each at its version", async () => {
+    const items = Array.from({ length: 50 }, (_, n) => reviewItem({ id: id(0xf000 + n), recordId: id(0xf100 + n) }));
+    const api = fakeApi({ permissions: reviewer, sites: [site()], assets: [asset()], reviewItems: items, entries: items.map((item) => shiftEntry({ id: item.recordId })) });
+    await openQueue(api);
+
+    fireEvent.click(screen.getByRole("button", { name: "Choose every entry without a flag" }));
+    fireEvent.click(screen.getByRole("button", { name: "Approve 50 entries" }));
+
+    expect(await screen.findByText("50 entries approved")).toBeInTheDocument();
+    expect(api.decisions).toHaveLength(1);
+    expect((api.decisions[0]?.body as { items: { id: string; version: string }[] }).items).toEqual(items.map((item) => ({ id: item.id, version: '"1"' })));
+  });
+});
+
 describe("which key presses are shortcuts", () => {
   const empty = { querySelector: () => null };
   const event = (key: string, target: EventTarget | null = document.body, extra: Partial<KeyboardEvent> = {}) =>

@@ -3,7 +3,7 @@ title: "ADR-0038: Controller console"
 area: adr
 tags: [adr, phase-2, p2-9, verification, portal, review-queue, evidence, keyboard, shift-board]
 source: "P2.9 planning (sub-phases.md §P2.9), US-P2-VER-01, 07, 08, ADR-0032, ADR-0036, ADR-0037"
-status: proposed
+status: accepted
 last_updated: 2026-11-25
 ---
 
@@ -11,7 +11,7 @@ last_updated: 2026-11-25
 
 > [Docs index](../README.md) › [ADRs](README.md) · [P2.9 slice plan](../04-phases/phase-02-field-operations/p2.9-controller-console-plan.md)
 
-- **Status:** Proposed (2026-11-24, P2.9 planning)
+- **Status:** Accepted (2026-11-25, P2.9 close-out; security review below)
 - **Date:** 2026-11-24
 
 ## Context
@@ -146,6 +146,25 @@ every machine in service is not started, running, missing its end (still open an
 rule's default grace) or ended (all its segments of the shift ended; a handover's segments count together), with its
 review state and flag count, and the shift's counts. Entries and review items are read again every 30 s. A company
 with more than 200 machines or entries on one site and day sees the first 200 (noted for the close-out review).
+
+As built (slice 8, close-out): browser E2E `review-queue.spec.ts` (TC-P2-VER-010 and demo step 3): with the queue open
+in the portal, a tablet signs two shifts offline on PEL-01 (the second starting an hour above the first's end, a
+continuity gap), comes back online, and both entries appear in the queue within 10 s without a reload; the gap's
+panel shows the previous end photo beside this start and the flag in words. The speed target (US-P2-VER-07 AC3) has a
+proxy: 50 entries without a flag are approved in two actions (choose all, approve), one bulk request naming each at
+its version; the usability test with a controller is the owner's (protocol in the slice plan, §3).
+
+## Security review (P2.9 close-out, 2026-11-25)
+
+| Threat | What P2.9 does | Evidence |
+|---|---|---|
+| T-09/T-11 isolation | Every read is the API's, under the caller's company (RLS) and sites: the queue, the entries by ID (a foreign ID is simply absent), the photos (404 outside the caller's sites or company), the board (it reads the same APIs); the isolation suite attacks the photo route with tenant A's entry and hash | `TenantIsolationSuite` (572/572), `EntryPhotosTests` |
+| Photo disclosure | A photo is served only when the entry names it (a hash of the same company the entry does not name is a 404), under the key of the tablet that sent it, with `private, immutable`, `default-src 'none'`, `nosniff`; no pre-signed URL leaves the server; the portal shows it from a `blob:` URL (CSP unchanged) | `EntryPhotosTests` |
+| T-13 own entries | Unchanged and server-side: every decision, bulk included, runs separation of duties at action time; the console only hides buttons a person cannot use. Gap settlement: proposer ≠ approver, neither signed the gap's entries | ADR-0037 §9, `FlagsTests.Settlement` |
+| Accidental decisions | Keys act only outside fields and dialogs (TC-P2-VER-011) and only on a pending, highlighted entry; swipe never approves a flagged entry; bulk approval takes entries without a flag only, all or nothing, each at its version; every decision sends `If-Match` (a change meanwhile is a 409, the panel closes) | `keyboard.test.tsx`, `decisions.test.tsx`, `components.test.tsx` |
+| Residual R-15 | The console warns a reviewer whose name an unlinked field account carries; the endpoint answers about the caller only and names nobody | `FieldAccountLinkTests`, `settlement.test.tsx` |
+| Availability | The queue polls every 5 s per open tab (stops in the background) and gets a 304 without a body when nothing changed; the board every 30 s. The API's rate limits apply as to any client | `ReviewQueueTests` (ETag/304) |
+| Completeness | The queue shows 50 items (the most urgent first; the rest appear as these are decided); the board and the machine codes read up to 200 rows per site and day. A larger site sees the first 200: recorded here, to revisit with real data (P2.10) | review |
 
 ## Options considered
 
