@@ -1,9 +1,12 @@
 using System.Net;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Identity.Domain;
 using Karry.SharedKernel.Tenancy;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 
 namespace Karry.Modules.Identity.Tests.Api;
 
@@ -63,6 +66,57 @@ public sealed class FieldAccountLinkTests(IdentityHost host) : IClassFixture<Ide
             HttpStatusCode.BadRequest, "identity.field_user_not_found");
         (await api.SendAsync(HttpMethod.Put, $"/api/v1/identity/users/{second}/field-account", staleAdmin,
             new { fieldUserId = (Guid?)null })).StatusCode.Should().NotBe(HttpStatusCode.NoContent, "the link decides what a controller may approve");
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-VER-01")]
+    public async Task A_reviewer_learns_whether_their_reviews_know_their_field_account_and_whether_an_unlinked_one_has_their_name()
+    {
+        var tenant = await api.TenantAsync();
+        var admin = await api.MemberAsync(tenant, host.Clock.GetUtcNow(), (Roles.TenantAdmin, null));
+        var reviewer = await api.MemberAsync(tenant, (Roles.Controller, null));
+        var me = await IdOfAsync(reviewer);
+
+        var alone = await StatusAsync(reviewer);
+        var field = await api.FieldUserAsync(tenant, (Roles.Operator, null));
+        await RenameAsync(field, "SEEDED", "member");
+        var namesake = await StatusAsync(reviewer);
+        await RenameAsync(field, "Seeded", "Mem%");
+        var pattern = await StatusAsync(reviewer);
+        await RenameAsync(field, "Seeded", "Member");
+        (await api.SendAsync(HttpMethod.Put, $"/api/v1/identity/users/{me}/field-account", admin, new { fieldUserId = field })).StatusCode
+            .Should().Be(HttpStatusCode.NoContent);
+        var linked = await StatusAsync(reviewer);
+
+        alone.Should().Be((false, false), "no field account has the name");
+        namesake.Should().Be((false, true), "the same name, whatever the case");
+        pattern.Should().Be((false, false), "a name is matched as it is, never as a pattern");
+        linked.Should().Be((true, false));
+    }
+
+    private async Task<(bool Linked, bool Namesake)> StatusAsync(string token)
+    {
+        using var response = await api.SendAsync(HttpMethod.Get, "/api/v1/identity/me/field-account", token);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var body = await response.Content.ReadFromJsonAsync<JsonElement>(Ct);
+        return (body.GetProperty("linked").GetBoolean(), body.GetProperty("unlinkedNamesake").GetBoolean());
+    }
+
+    private async Task<Guid> IdOfAsync(string token)
+    {
+        using var response = await api.SendAsync(HttpMethod.Get, "/api/v1/identity/me", token);
+        return (await response.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("id").GetGuid();
+    }
+
+    private async Task RenameAsync(Guid user, string first, string last)
+    {
+        await using var connection = new NpgsqlConnection(host.Database.Admin);
+        await connection.OpenAsync(Ct);
+        await using var command = new NpgsqlCommand("UPDATE identity.users SET first_name = $1, last_name = $2 WHERE id = $3", connection);
+        command.Parameters.AddWithValue(first);
+        command.Parameters.AddWithValue(last);
+        command.Parameters.AddWithValue(user);
+        await command.ExecuteNonQueryAsync(Ct);
     }
 
     private async Task<Guid?> FieldAccountOfAsync(Guid tenant, string subject)

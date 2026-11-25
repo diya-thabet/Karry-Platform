@@ -164,6 +164,14 @@ public sealed class IdentityModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("GetCurrentUser");
 
+        // Whether the signed-in person's reviews know their field account (R-15): every member, about themselves only.
+        endpoints.MapGet("/me/field-account", MyFieldAccountAsync)
+            .AccountAccess()
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetMyFieldAccount");
+
         // The signed-in user's own permissions, so the apps show only what they can use: every member, about themselves.
         endpoints.MapGet("/me/access", CurrentAccess)
             .AccountAccess()
@@ -405,6 +413,25 @@ public sealed class IdentityModule : IModule
             : TypedResults.Ok(ToResponse(user, await roles.LoadAsync(cancellationToken).ConfigureAwait(false)));
     }
 
+    /// <summary>
+    /// Whether the signed-in office account is linked to a field account, and whether an unlinked field account has the
+    /// person's name (residual R-15, ADR-0037 §9): the console warns that reviews cannot see their own driving.
+    /// </summary>
+    private static async Task<Results<Ok<MyFieldAccountResponse>, ProblemHttpResult>> MyFieldAccountAsync(
+        ClaimsPrincipal caller, [FromServices] IIdentityStore store, CancellationToken cancellationToken)
+    {
+        var user = Subject(caller) is { } subject ? await store.FindBySubjectAsync(subject, cancellationToken).ConfigureAwait(false) : null;
+        if (user is null)
+        {
+            return SharedKernel.Results.Error.NotFound("identity.user_not_found", "This account has no Karry user in this company.").ToProblem();
+        }
+
+        var linked = user.LinkedFieldUserId is not null;
+        var namesake = !linked && user.Kind == UserKind.Office
+            && await store.UnlinkedFieldNamesakeAsync(user.FirstName, user.LastName, cancellationToken).ConfigureAwait(false);
+        return TypedResults.Ok(new MyFieldAccountResponse(linked, namesake));
+    }
+
     private static Ok<AccessResponse> CurrentAccess([FromServices] ICallerAccess caller) =>
         TypedResults.Ok(new AccessResponse([.. caller.Current.Granted.Order(StringComparer.Ordinal)]));
 
@@ -511,3 +538,9 @@ public sealed record PermissionCatalogResponse(IReadOnlyList<PermissionResponse>
 
 /// <summary>The permissions the caller holds at some scope (display only: every call is still checked).</summary>
 public sealed record AccessResponse(IReadOnlyList<string> Permissions);
+
+/// <summary>
+/// The signed-in person and their field account (ADR-0037 §4): <c>linked</c> when their reviews know it;
+/// <c>unlinkedNamesake</c> when a field account with their name exists that no office account links (residual R-15).
+/// </summary>
+public sealed record MyFieldAccountResponse(bool Linked, bool UnlinkedNamesake);

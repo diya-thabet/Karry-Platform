@@ -113,6 +113,8 @@ public sealed class ImportSignInFailuresTests
 
         public Task<bool> FieldAccountLinkedAsync(Guid fieldUserId, UserId except, CancellationToken cancellationToken) => throw new NotSupportedException();
 
+        public Task<bool> UnlinkedFieldNamesakeAsync(string firstName, string lastName, CancellationToken cancellationToken) => throw new NotSupportedException();
+
         public Task<bool> AddSignInFailureAsync(SignInFailure failure, CancellationToken cancellationToken) =>
             Task.FromResult(Recorded.Add(failure.Id.Value));
 

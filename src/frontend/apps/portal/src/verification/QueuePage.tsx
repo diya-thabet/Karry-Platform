@@ -9,7 +9,7 @@ import { useSiteNames } from "../assets/api";
 import { ItemsReviewPermission } from "./decisions";
 import { EntryPhoto } from "./EntryPhoto";
 import { ReviewDrawer } from "./ReviewDrawer";
-import { entryFlags, flagKey, queueKey, queueSize, useMachineCodes, useReviewQueue, type QueueFilters, type QueueRow } from "./queue";
+import { entryFlags, flagKey, queueKey, queueSize, useFieldAccountWarning, useMachineCodes, useReviewQueue, type QueueFilters, type QueueRow } from "./queue";
 import { moved, shortcutOf } from "./shortcuts";
 
 const any = "any";
@@ -44,6 +44,7 @@ export function QueuePage() {
   // Decimals come as JSON numbers or strings (exact values, ADR-0034): formatted for the reader, one decimal.
   const number = (value: number | string) => new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format(Number(value));
   const canReview = can(ItemsReviewPermission);
+  const unlinked = useFieldAccountWarning(canReview);
   const pending = (row: QueueRow) => canReview && row.item.status === "pending";
   const unflagged = (row: QueueRow) => pending(row) && row.item.flags.length === 0;
   const chosen = rows.filter((row) => selected.has(row.item.id) && unflagged(row));
@@ -122,6 +123,11 @@ export function QueuePage() {
     <div className="flex flex-col gap-4">
       <PageHeader title={t("portal.review.title")} description={t("portal.review.description")}
         actions={<Button variant="secondary" onClick={() => { setHelp(true); }}>{t("portal.review.keys.title")}</Button>} />
+      {unlinked && (
+        <div role="status" className="rounded-lg border border-warning bg-warning-soft px-4 py-3 text-sm">
+          {t("portal.review.unlinkedFieldAccount")}
+        </div>
+      )}
       <div className="flex flex-wrap items-end gap-3">
         <SelectField label={t("portal.review.site")} value={filters.siteId || any} onValueChange={(value) => { setFilters({ ...filters, siteId: value === any ? "" : value }); }}
           options={[{ value: any, label: t("portal.review.anySite") }, ...sites.map((site) => ({ value: site.id, label: site.name }))]} />

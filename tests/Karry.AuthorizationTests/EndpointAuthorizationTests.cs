@@ -20,6 +20,7 @@ public sealed class EndpointAuthorizationTests
     {
         ["GetCurrentUser"] = "The caller's own profile only (looked up by the token's subject).",
         ["GetCurrentAccess"] = "The caller's own permission codes (which screens to show); the API still checks every call.",
+        ["GetMyFieldAccount"] = "About the caller only: whether their office account is linked to a field account and whether an unlinked one has their name (R-15 warning); names no other user.",
         ["GetCurrentTenant"] = "Name and branding of the caller's own company, shown in every app header.",
         ["GetCurrentEntitlements"] = "Plan code, state and feature codes of the caller's own company (which features to show or lock); the API checks every call.",
         ["GetCurrentFlags"] = "Feature flag values evaluated for the caller and their own company (which features to show); display only, the API checks every call.",

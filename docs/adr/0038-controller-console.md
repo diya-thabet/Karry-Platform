@@ -4,7 +4,7 @@ area: adr
 tags: [adr, phase-2, p2-9, verification, portal, review-queue, evidence, keyboard, shift-board]
 source: "P2.9 planning (sub-phases.md §P2.9), US-P2-VER-01, 07, 08, ADR-0032, ADR-0036, ADR-0037"
 status: proposed
-last_updated: 2026-11-24
+last_updated: 2026-11-25
 ---
 
 # ADR-0038: Controller console
@@ -119,6 +119,17 @@ send one bulk approval (all or nothing, each at its version). On a touch screen,
 mostly horizontal swipe of 80 px or more toward the end or the start of the reading direction (mirrored in Arabic and
 N'Ko): toward the end approves an entry without a flag, toward the start opens it. Swipe never approves a flagged
 entry, so a stray gesture cannot pass one that needs a look.
+
+As built (slice 6): on Machines › Integrity flags, an open continuity gap (RULE-FO-01) shows **Settle** to people with
+`integrity.flags.settle`: a reason (meter replaced, reset or rollover, maintenance run, towing, unexplained; a typing
+error is not offered, it is corrected in Review) and what happened, proposed behind the recent-sign-in prompt; the
+dialog warns that "unexplained" raises a fraud suspicion at once. A proposal shows in the row with its reason and
+words; another person approves it (recent sign-in) or declines it. Every step sends the flag's version; a 409
+refreshes the list without the error dialog, and the other refusals (separation of duties, a pending proposal) have
+words (`errors.integrity.*`). For residual R-15, Identity answers `GET /identity/me/field-account` to every member about
+themselves only: `linked`, and `unlinkedNamesake` when a field user not deactivated has the person's first and last
+name (case ignored, matched literally) and no office account links it. The review queue shows a warning then; a
+failure of that call shows nothing (the server checks separation of duties on every decision anyway).
 
 ## Options considered
 
