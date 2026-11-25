@@ -6,6 +6,7 @@ import { cn, Drawer, rememberChoice, rememberedChoice } from "@karry/ui";
 import { SubscriptionGate, SubscriptionNotice } from "../billing/SubscriptionNotice";
 import { UsageBanner } from "../billing/UsageBanner";
 import { AccountMenu } from "./AccountMenu";
+import { NotificationBell } from "./NotificationBell";
 import { CompanyBrand, CompanyLanguage, CompanyStripe } from "./CompanyBrand";
 import { fadeWhenCollapsed, Navigation } from "./Navigation";
 
@@ -46,7 +47,10 @@ export function Layout() {
             </button>
             <CompanyBrand />
           </div>
-          <AccountMenu />
+          <div className="flex items-center gap-1">
+            <NotificationBell />
+            <AccountMenu />
+          </div>
         </div>
       </header>
       <Drawer open={drawerOpen} onOpenChange={setDrawerOpen} title={t("portal.nav.label")} closeLabel={t("common.close")} header={<CompanyBrand />}>

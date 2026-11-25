@@ -1562,5 +1562,19 @@
   "portal.board.state.ended": "Ended",
   "portal.board.review.pending": "To review",
   "portal.board.review.decided": "Decided",
-  "portal.board.flags": "{count, plural, one {# flag} other {# flags}}"
+  "portal.board.flags": "{count, plural, one {# flag} other {# flags}}",
+  "portal.notices.title": "Notifications",
+  "portal.notices.description": "What concerns you, newest first.",
+  "portal.notices.readAll": "Mark all read",
+  "portal.notices.none": "No notification.",
+  "portal.notices.unread": "New",
+  "portal.notices.open": "Open",
+  "portal.notices.markRead": "Mark read",
+  "portal.notices.bell": "{count, plural, =0 {Notifications} one {Notifications, # new} other {Notifications, # new}}",
+  "portal.notice.review.rejected": "An entry of yours was rejected: {reason}.",
+  "portal.notice.review.escalated": "An entry is waiting past its due time ({dueAt, date, medium} {dueAt, time, short}).",
+  "portal.notice.asset.unsafe": "A machine was held as unsafe after its pre-start checklist.",
+  "portal.notice.integrity.fraud_suspected": "A meter's continuity gap raised a fraud suspicion.",
+  "portal.notice.integrity.missing_end": "A shift has no end signed.",
+  "portal.notice.other": "Something needs a look."
 }

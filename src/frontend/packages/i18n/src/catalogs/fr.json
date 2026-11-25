@@ -1562,5 +1562,19 @@
   "portal.board.state.ended": "Terminé",
   "portal.board.review.pending": "À contrôler",
   "portal.board.review.decided": "Décidé",
-  "portal.board.flags": "{count, plural, one {# alerte} other {# alertes}}"
+  "portal.board.flags": "{count, plural, one {# alerte} other {# alertes}}",
+  "portal.notices.title": "Notifications",
+  "portal.notices.description": "Ce qui vous concerne, du plus récent au plus ancien.",
+  "portal.notices.readAll": "Tout marquer comme lu",
+  "portal.notices.none": "Aucune notification.",
+  "portal.notices.unread": "Nouveau",
+  "portal.notices.open": "Ouvrir",
+  "portal.notices.markRead": "Marquer comme lu",
+  "portal.notices.bell": "{count, plural, =0 {Notifications} one {Notifications, # nouvelle} other {Notifications, # nouvelles}}",
+  "portal.notice.review.rejected": "Une de vos saisies a été refusée : {reason}.",
+  "portal.notice.review.escalated": "Une saisie attend au-delà de son échéance ({dueAt, date, medium} {dueAt, time, short}).",
+  "portal.notice.asset.unsafe": "Un engin a été bloqué comme dangereux après son contrôle avant démarrage.",
+  "portal.notice.integrity.fraud_suspected": "Un écart de continuité d’un compteur a déclenché une suspicion de fraude.",
+  "portal.notice.integrity.missing_end": "Un poste n’a pas de fin signée.",
+  "portal.notice.other": "Quelque chose demande votre attention."
 }

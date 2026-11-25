@@ -1562,5 +1562,19 @@
   "portal.board.state.ended": "A bannen don",
   "portal.board.review.pending": "Ka lajɛ",
   "portal.board.review.decided": "A latigɛra",
-  "portal.board.flags": "{count, plural, one {Lasɔmini #} other {Lasɔmini #}}"
+  "portal.board.flags": "{count, plural, one {Lasɔmini #} other {Lasɔmini #}}",
+  "portal.notices.title": "Kunnafonilu",
+  "portal.notices.description": "Min bɛ i lajɛ, kuralu fɔlɔ.",
+  "portal.notices.readAll": "Bɛɛ taamasiyɛn ko a kalanna",
+  "portal.notices.none": "Kunnafoni si tɛ.",
+  "portal.notices.unread": "Kura",
+  "portal.notices.open": "Dayɛlɛ",
+  "portal.notices.markRead": "A taamasiyɛn ko a kalanna",
+  "portal.notices.bell": "{count, plural, =0 {Kunnafonilu} one {Kunnafonilu, kura #} other {Kunnafonilu, kura #}}",
+  "portal.notice.review.rejected": "I ka sɛbɛnni dɔ banna: {reason}.",
+  "portal.notice.review.escalated": "Sɛbɛnni dɔ bɛ makɔnɔ ka tɛmɛ a waati kan ({dueAt, date, medium} {dueAt, time, short}).",
+  "portal.notice.asset.unsafe": "Masin dɔ jɔra iko a tɛ lafiya a daminɛ ɲɛ lajɛli kɔfɛ.",
+  "portal.notice.integrity.fraud_suspected": "Kontɛri dɔ tugun fili ye nanbara sigiya wuli.",
+  "portal.notice.integrity.missing_end": "Baara waati dɔ laban ma bolonɔ bila.",
+  "portal.notice.other": "Fɛn dɔ bɛ lajɛli ɲini."
 }
