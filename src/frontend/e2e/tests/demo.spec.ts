@@ -54,7 +54,7 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
     await controller.goto(`${portal("demo-carriere-b")}/review`);
     await signIn(controller, controllerName);
     await secondFactor(controller, controllerName);
-    const gap = controller.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
+    const gap = controller.getByRole("row").filter({ hasText: "CHG-01" }).filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
     await expect(gap).toBeVisible({ timeout: 30_000 });
     await gap.getByRole("button", { name: "Contrôler la saisie de CHG-01" }).click();
     const panel = controller.getByRole("dialog", { name: "Contrôler une saisie" });
@@ -68,7 +68,7 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
 
     // The site manager, never the corrector, gives the second approval (TC-P2-VER-003); the versions show the change.
     await page.goto(`${portal("demo-carriere-b")}/review`);
-    const waiting = page.getByRole("row").filter({ hasText: shownRange(first, second) }).filter({ hasText: "En attente d’une seconde approbation" }).first();
+    const waiting = page.getByRole("row").filter({ hasText: "CHG-01" }).filter({ hasText: shownRange(first, second) }).filter({ hasText: "En attente d’une seconde approbation" }).first();
     await expect(waiting).toBeVisible({ timeout: 30_000 });
     await waiting.getByRole("button", { name: "Contrôler la saisie de CHG-01" }).click();
     const review = page.getByRole("dialog", { name: "Contrôler une saisie" });
