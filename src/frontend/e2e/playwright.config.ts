@@ -9,6 +9,8 @@ export default defineConfig({
   workers: 1,
   retries: 0,
   forbidOnly: Boolean(process.env.CI),
+  // Long runs (TC-P2-SYNC-006, 72 h offline) are tagged @nightly: the nightly job runs only them (E2E_NIGHTLY=1).
+  ...(process.env.E2E_NIGHTLY === "1" ? { grep: /@nightly/ } : { grepInvert: /@nightly/ }),
   reporter: process.env.CI ? [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]] : "list",
   // A French-speaking user (the default market); the English test chooses English in the app.
   // Chromium's fake camera (a moving test pattern) stands in for the tablet's back camera; no prompt asks for it.
