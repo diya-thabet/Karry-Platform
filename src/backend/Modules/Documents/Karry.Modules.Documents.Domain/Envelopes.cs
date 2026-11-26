@@ -18,6 +18,11 @@ public readonly record struct DocumentEnvelopeId(Guid Value) : IEntityId<Documen
 public sealed record ShiftReportIssued(
     Guid EnvelopeId, Guid SiteId, DateOnly ShiftDate, string ShiftCode, string ContentHash, string PdfHash, string? IssuedBy) : DomainEvent;
 
+/// <summary>The server signed an issued document's envelope (ADR-0040 §3): ledgered with the key version.</summary>
+[EventType("documents.envelope_signed.v1")]
+[AuditSubject("document", nameof(EnvelopeId), Site = nameof(SiteId))]
+public sealed record EnvelopeSigned(Guid EnvelopeId, Guid SiteId, string KeyId, string Signature) : DomainEvent;
+
 /// <summary>
 /// One issued document (ADR-0040 §3): what it is about, the hash of its content (printed in its footer) and of its PDF,
 /// the hash of its verification token (the token itself is never stored), who issued it and when. Never changed, except
@@ -71,6 +76,28 @@ public sealed class DocumentEnvelope : AggregateRoot<DocumentEnvelopeId>, ITenan
 
     /// <summary>The hash of a token as it is stored and compared (lower-case hex).</summary>
     public static string HashOf(string token) => Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token)));
+
+    /// <summary>
+    /// What the server signs: the SHA-256 of <c>{envelopeId}|{contentHash}|{pdfHash}</c>, which binds both hashes to this
+    /// envelope (a signature cannot be moved to another document).
+    /// </summary>
+    public byte[] SignedDigest() => SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{Id.Value:D}|{ContentHash}|{PdfHash}"));
+
+    /// <summary>Adds the server's signature once; a signed envelope keeps its first signature (returns false).</summary>
+    public bool Sign(TimeProvider clock, string keyId, string signature)
+    {
+        ArgumentNullException.ThrowIfNull(clock);
+        if (Signature is not null)
+        {
+            return false;
+        }
+
+        Signature = signature;
+        SignatureKeyId = keyId;
+        SignedAt = clock.GetUtcNow();
+        Raise(new EnvelopeSigned(Id.Value, SiteId, keyId, signature) { OccurredAt = SignedAt.Value });
+        return true;
+    }
 
     public static DocumentEnvelope IssueShiftReport(
         TimeProvider clock, DocumentEnvelopeId id, TenantId tenant, Guid siteId, DateOnly shiftDate, string shiftCode, string contentHash, string pdfHash,

@@ -32,6 +32,9 @@ public sealed class DocumentsHost : IAsyncLifetime
 
     public Field Field { get; } = new();
 
+    /// <summary>The server's signing service (Trust): down until a test brings it up.</summary>
+    public SigningService Signer { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -62,6 +65,8 @@ public sealed class DocumentsHost : IAsyncLifetime
         builder.Services.AddSingleton<IAssetDirectory>(Field);
         builder.Services.AddSingleton<IEnvelopeImages>(Field);
         builder.Services.AddSingleton<IEvidenceStore>(Field);
+        builder.Services.AddSingleton<IDigestSigner>(Signer);
+        builder.Services.AddSingleton<Karry.Modules.Documents.Application.SignDocuments>();
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -133,4 +138,23 @@ public sealed class Field : ISiteDirectory, IShiftEntriesOfShift, IReviewOutcome
 
     public Task<StoredObject?> GetAsync(string key, CancellationToken cancellationToken) =>
         Task.FromResult(Evidence.TryGetValue(key, out var bytes) ? new StoredObject(bytes, "image/png") : null);
+}
+
+/// <summary>The signing service as Trust's contract answers it: null while down; it keeps the digests it signed.</summary>
+public sealed class SigningService : IDigestSigner
+{
+    public bool Up { get; set; }
+
+    public ConcurrentQueue<byte[]> Digests { get; } = new();
+
+    public Task<DigestSignature?> TrySignAsync(ReadOnlyMemory<byte> sha256Digest, CancellationToken cancellationToken)
+    {
+        if (!Up)
+        {
+            return Task.FromResult<DigestSignature?>(null);
+        }
+
+        Digests.Enqueue(sha256Digest.ToArray());
+        return Task.FromResult<DigestSignature?>(new DigestSignature("karry-server-v1", Convert.ToBase64String(sha256Digest.Span)));
+    }
 }

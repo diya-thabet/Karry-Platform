@@ -82,6 +82,8 @@ public static class TrustInfrastructure
         services.TryAddSingleton<CountersignEnvelopes>();
         var options = new ServerSigningOptions();
         configuration.GetSection(ServerSigningOptions.Section).Bind(options);
+        // Other modules sign through the contract (documents, ADR-0040 §3); null while the service is absent or down.
+        services.TryAddSingleton<Contracts.IDigestSigner, ServerDigestSigner>();
         if (string.IsNullOrWhiteSpace(options.Address))
         {
             services.TryAddSingleton<IServerSigner, UnavailableServerSigner>();
