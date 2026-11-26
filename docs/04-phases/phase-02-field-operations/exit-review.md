@@ -70,6 +70,7 @@ job `local-stack` runs the same specs with the rest of the suite).
 | — | The field app could stay on "Mettre à jour" after an update: the reload timer started only once `skipWaiting` resolved | Timer started first (#273) |
 | L-7 | The burst stopped at the 102nd machine: the demo companies are on the trial plan | Demo seed buys extra assets through the subscription change when asked (#274) |
 | S-4 | An enrolment with a key off the P-256 curve ended in a 500 on Windows (CNG throws another exception) | Both exceptions mean "not a key" (#275) |
+| D-1 | Found by the demo rehearsal: after a material correction, the review panel tried to verify the corrected version's signature. A correction made in the office has no envelope (all-zero ID), so the portal asked for `/audit/envelopes/00000000-…/verification`, got a 404 and showed the error dialog over the panel | The portal verifies nothing for a version without an envelope (`noEnvelope`, `SignatureVerification`); unit test added (#277) |
 
 ## 5. Known issues and open items
 
