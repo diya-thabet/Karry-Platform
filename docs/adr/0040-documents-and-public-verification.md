@@ -106,6 +106,16 @@ declares a sensitive field (shift entries carry no money, threat model P2.4), so
 TC-P2-DOC-003 proves the wiring with a test-only sensitive field, and any field declared later is masked in the report
 without further work.
 
+As built (slice 3a, the renderer): `ShiftReportPdf.Build` makes the MigraDoc document (checked as DDL in tests) and
+`Render` the bytes: A4 landscape, a header with the company, site, date and shift, the reader's table exactly as the
+content has it (an absent column stays absent), the signature images by their evidence hash, and a footer with the
+content hash, the verification address without its token (the token is in the QR only) and the QR. Column titles in
+French or English; Arabic and N'Ko fall back to French until their fonts and right-to-left layout are added. Fonts are
+embedded resources of the Documents infrastructure, resolved by one `IFontResolver` per process. **Found by the
+tests:** PDFsharp's core build cannot read 1-bit grey PNG (QRCoder's own writer) and MigraDoc then prints an error text
+in place of the image without failing; the QR is therefore drawn from QRCoder's module matrix as an 8-bit grey PNG, and
+a test checks the PDF really contains the images. Tablet signatures are 8-bit RGBA (supported).
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

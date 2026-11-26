@@ -7,4 +7,15 @@
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="PDFsharp-MigraDoc" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" />
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The fonts every PDF embeds (Documents/Fonts, SIL OFL 1.1): part of the assembly, so a deployment cannot lose them. -->
+    <EmbeddedResource Include="../Fonts/*.ttf" LogicalName="Karry.Documents.Fonts.%(Filename)%(Extension)" />
+  </ItemGroup>
+
 </Project>
