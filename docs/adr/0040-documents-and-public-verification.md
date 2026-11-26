@@ -72,6 +72,16 @@ device.
 The page needs no sign-in, no third-party script and no frame: `default-src 'self'`, `frame-ancestors 'none'`, and
 the API answers it with `Cache-Control: no-store`.
 
+## As built
+
+As built (slice 2a, the read contracts): the modules that own the report's data answer through their contracts, in the
+current company (RLS): FieldOps `IShiftEntriesOfShift.OfShiftAsync(site, date, shift)` (the current version of each
+entry: machine, operator, meter kind, start and end, status, flags, envelope, corrector; at most 2000), Verification
+`IReviewOutcomes.OfRecordsAsync` (each record's newest reviewed version, its status and the last decision: who by
+sign-in subject, when, the reason code; an escalation is not a decision), Trust `IEnvelopeImages.ImageHashesAsync` (the
+handwritten signature image hash read from each envelope as signed; the image comes from the evidence store), Identity
+`IUserNames.ByIdAsync` (names by user ID, field people included). Machine codes come from Assets' `IAssetDirectory`.
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

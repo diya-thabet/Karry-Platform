@@ -14,6 +14,33 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace Karry.Modules.Verification.Infrastructure;
 
 
+/// <summary>Records' review outcomes for documents (ADR-0040): the newest item of each record and its last decision (RLS).</summary>
+internal sealed class ReviewOutcomesReader(VerificationDbContext db) : IReviewOutcomes
+{
+    /// <summary>The actions that decide an item; an escalation does not.</summary>
+    private static readonly string[] Decisions =
+        [ReviewActionKinds.Approve, ReviewActionKinds.Reject, ReviewActionKinds.Correct, ReviewActionKinds.SecondApprove, ReviewActionKinds.AutoApprove];
+
+    public async Task<IReadOnlyList<ReviewOutcome>> OfRecordsAsync(IReadOnlyCollection<Guid> recordIds, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(recordIds);
+        if (recordIds.Count == 0)
+        {
+            return [];
+        }
+
+        var wanted = recordIds.ToList();
+        var items = (await db.Items.AsNoTracking().Where(i => wanted.Contains(i.RecordId)).ToListAsync(cancellationToken).ConfigureAwait(false))
+            .GroupBy(i => i.RecordId).Select(g => g.OrderByDescending(i => i.RecordVersion).ThenByDescending(i => i.CreatedAt).First()).ToList();
+        var itemIds = items.Select(i => i.Id).ToList();
+        var last = (await db.Actions.AsNoTracking().Where(a => itemIds.Contains(a.ItemId) && Decisions.Contains(a.Kind)).ToListAsync(cancellationToken).ConfigureAwait(false))
+            .GroupBy(a => a.ItemId).ToDictionary(g => g.Key, g => g.OrderByDescending(a => a.At).First());
+        return [.. items.Select(i => last.GetValueOrDefault(i.Id) is { } decision
+            ? new ReviewOutcome(i.RecordId, i.RecordVersion, i.Status, decision.Actor, decision.At, decision.ReasonCode)
+            : new ReviewOutcome(i.RecordId, i.RecordVersion, i.Status, null, null, null))];
+    }
+}
+
 /// <summary>A site's review counts for the daily digest (US-P2-VER-06 AC2): read in the company's unit of work (RLS).</summary>
 internal sealed class ReviewCountsReader(VerificationDbContext db) : IReviewCounts
 {
@@ -226,6 +253,7 @@ public static class VerificationInfrastructure
         services.AddOutboxDispatcher<VerificationDbContext>(eventAssemblies: typeof(Domain.ReviewItem).Assembly);
         services.AddScoped<IReviewIntake, ReviewIntake>();
         services.AddScoped<IReviewCounts, ReviewCountsReader>();
+        services.AddScoped<IReviewOutcomes, ReviewOutcomesReader>();
         services.AddScoped<IReviewItemReader, ReviewItemReader>();
         services.AddScoped<ReviewReading>();
         services.AddScoped<ReviewNotices>();

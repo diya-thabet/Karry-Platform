@@ -29,6 +29,7 @@ public static class TrustInfrastructure
         services.AddScoped<VerifyLedgerHandler>();
         services.AddScoped<IVerificationRecords, EfVerificationRecords>();
         services.AddScoped<Contracts.IEnvelopeRecorder, PostgresEnvelopeRecorder>();
+        services.AddScoped<Contracts.IEnvelopeImages, EnvelopeImages>();
         services.AddScoped<ICountersignBook, EfCountersignBook>();
         services.AddScoped<IServerKeyBook, EfServerKeyBook>();
         services.AddScoped<IEnvelopeEvidence, EfEnvelopeEvidence>();

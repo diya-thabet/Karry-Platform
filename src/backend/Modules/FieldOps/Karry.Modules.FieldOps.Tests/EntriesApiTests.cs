@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Karry.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 
 namespace Karry.Modules.FieldOps.Tests;
@@ -132,6 +133,30 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
 
     /// <summary>Entry IDs in a known order (UUIDv7 from a timestamp): a higher <paramref name="n"/> is newer.</summary>
     private static Guid Id(int n) => Guid.CreateVersion7(Morning.AddSeconds(n));
+
+    [Fact]
+    [Trait("Story", "US-P2-SIG-05")]
+    public async Task A_shifts_entries_for_its_report_are_the_current_versions_of_that_site_date_and_shift()
+    {
+        var tenant = await ProvisionAsync();
+        var (site, elsewhere, asset, person) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (first, second, night, other) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        await InsertAsync(tenant, second, 1, site, asset, person, "200.0");
+        await InsertAsync(tenant, second, 2, site, asset, person, "200.0", "208.5", ["RULE-FO-02"]);
+        await InsertAsync(tenant, first, 1, site, asset, person, "100.0", "108.0");
+        await InsertAsync(tenant, night, 1, site, asset, person, "300.0", "305.0", shiftCode: "N");
+        await InsertAsync(tenant, other, 1, elsewhere, asset, person, "400.0", "401.0");
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<Karry.BuildingBlocks.Tenancy.ITenantContext>().Set(new Karry.SharedKernel.Tenancy.TenantId(tenant));
+        var entries = await scope.ServiceProvider.GetRequiredService<Contracts.IShiftEntriesOfShift>().OfShiftAsync(site, new DateOnly(2026, 11, 9), "D", Ct);
+
+        entries.Select(e => (e.RootId, e.Version, e.StartValue, e.EndValue, e.Status)).Should().BeEquivalentTo(
+            [(first, 1, 100.0m, (decimal?)108.0m, "closed"), (second, 2, 200.0m, (decimal?)208.5m, "closed")],
+            "another shift's and another site's entries are left out, and only the current version is printed");
+        entries.Single(e => e.RootId == second).Flags.Should().Equal("RULE-FO-02");
+        entries.Should().OnlyContain(e => e.MeterKind == "hours" && e.OperatorId == person && e.AssetId == asset);
+    }
 
     private static List<Guid> Ids(JsonElement page) => page.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetGuid()).ToList();
 

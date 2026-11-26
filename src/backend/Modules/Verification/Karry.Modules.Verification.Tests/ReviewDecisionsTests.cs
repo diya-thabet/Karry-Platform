@@ -44,6 +44,28 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
     }
 
     [Fact]
+    [Trait("Story", "US-P2-SIG-05")]
+    public async Task A_records_outcome_for_documents_is_its_status_and_who_decided_when_and_why()
+    {
+        var tenant = await ProvisionAsync();
+        var (approved, rejected, waiting) = (await PendingItemAsync(tenant), await PendingItemAsync(tenant), await PendingItemAsync(tenant));
+        (await DecideAsync(tenant, approved, "approve", null, "\"" + approved.Version + "\"")).Dispose();
+        (await DecideAsync(tenant, rejected, "reject", new { reasonCode = "photo_unreadable", comment = "The end photo is blurred, retake it." }, "\"" + rejected.Version + "\"")).Dispose();
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var outcomes = await scope.ServiceProvider.GetRequiredService<IReviewOutcomes>()
+            .OfRecordsAsync([approved.RecordId, rejected.RecordId, waiting.RecordId, Guid.CreateVersion7()], Ct);
+
+        outcomes.Select(o => (o.RecordId, o.Status, o.DecidedBy, o.ReasonCode)).Should().BeEquivalentTo([
+            (approved.RecordId, "approved", (string?)"admin-1", (string?)null),
+            (rejected.RecordId, "rejected", (string?)"admin-1", (string?)"photo_unreadable"),
+            (waiting.RecordId, "pending", (string?)null, (string?)null),
+        ], "a record never submitted is left out");
+        outcomes.Where(o => o.DecidedBy is not null).Should().OnlyContain(o => o.DecidedAt != null);
+    }
+
+    [Fact]
     [Trait("TestCase", "TC-P2-VER-008")]
     public async Task Two_controllers_acting_on_one_item_at_once_one_wins_the_other_gets_a_conflict_and_a_stale_version_is_refused()
     {
@@ -270,7 +292,7 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
 
         using var corrected = await CorrectAsync(tenant, item, new { endValue = "112.0" }, "The meter was misread: 112.0 on the photo.");
         var next = (await corrected.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("next");
-        var waiting = new Pending(next.GetProperty("id").GetGuid(), next.GetProperty("version").GetString()!.Trim('"'));
+        var waiting = new Pending(next.GetProperty("id").GetGuid(), next.GetProperty("version").GetString()!.Trim('"'), item.RecordId);
         using var byCorrector = await SecondAsync(tenant, waiting, Recent(tenant, "admin-1"));
         using var notRecent = await SecondAsync(tenant, waiting, TestTokens.ForTenant(tenant, "manager-2"));
         using var bySomeoneElse = await SecondAsync(tenant, waiting, Recent(tenant, "manager-2"));
@@ -350,7 +372,7 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         TestTokens.Create(subject, (TenantResolutionMiddleware.TenantClaim, tenant.ToString()),
             (PermissionMiddleware.AuthTimeClaim, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)));
 
-    private sealed record Pending(Guid Id, string Version);
+    private sealed record Pending(Guid Id, string Version, Guid RecordId);
 
     private async Task<Pending> PendingItemAsync(
         Guid tenant, Guid? site = null, Guid? producer = null, Guid? asset = null, DateTimeOffset? from = null, IReadOnlyList<string>? flags = null)
@@ -369,7 +391,7 @@ public sealed class ReviewDecisionsTests(VerificationHost host) : IClassFixture<
         }
 
         var item = (await ListAsync(tenant, null)).Single(i => i.GetProperty("recordId").GetGuid() == submission.RecordId);
-        return new Pending(item.GetProperty("id").GetGuid(), item.GetProperty("version").GetString()!.Trim('"'));
+        return new Pending(item.GetProperty("id").GetGuid(), item.GetProperty("version").GetString()!.Trim('"'), submission.RecordId);
     }
 
     private async Task<HttpResponseMessage> DecideAsync(Guid tenant, Pending item, string action, object? body, string? ifMatch = null, string? token = null)

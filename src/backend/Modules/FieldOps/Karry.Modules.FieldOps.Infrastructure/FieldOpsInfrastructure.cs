@@ -18,6 +18,8 @@ public static class FieldOpsInfrastructure
         services.AddOutboxDispatcher<FieldOpsDbContext>(eventAssemblies: typeof(Domain.ShiftEntryVersion).Assembly);
         services.AddScoped<IShiftEntryStore, ShiftEntryStore>();
         services.AddScoped<IShiftEntryReader, ShiftEntryReader>();
+        // A shift's entries for documents (the shift report, ADR-0040).
+        services.AddScoped<Contracts.IShiftEntriesOfShift, ShiftEntriesOfShift>();
         services.AddScoped<EntryReading>();
         services.AddScoped<IOpenSegments, OpenSegments>();
         services.AddScoped<BuildingBlocks.Outbox.IDomainEventSubscriber<Domain.AssetMarkedUnsafe>, HoldNotices>();
