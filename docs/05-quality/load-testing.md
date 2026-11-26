@@ -38,7 +38,9 @@ or minimum count. A snapshot must also contain the tablet's own site before the 
 
 ```bash
 tools/ci/install-tool.sh k6                    # pinned k6 2.3.0, checksum verified
-# local stack up, migrated and seeded; Karry.Host (Release) started with the load-run limits:
+# local stack up, migrated and seeded; the shift change's 300 machines bought for the demo companies (idempotent):
+Demo__ExtraAssets=400 dotnet Karry.Host.dll seed-demo
+# Karry.Host (Release) started with the load-run limits, and Karry.Workers:
 RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 dotnet Karry.Host.dll --urls http://127.0.0.1:5000
 tests/load/run.sh                              # all three runs, one at a time, 65 s apart; summaries in tests/load/results/<time>/
 tests/load/verify-ledgers.sh                   # H-L3: every company's audit ledger still verifies
@@ -109,6 +111,7 @@ production sizing; laptop numbers are a baseline.
 | L-4 | The sub-phase card asks for a 500-device **baseline** and sets no latency target. The plan's p95 < 800 ms for "500 at once" was set during P1.18a. The first measured burst was 1.65 s with three pulls per tablet back to back. | Needed a decision. | **Decided:** the realistic shift (tablets over a minute, about 100 times the real pull rate) must meet p95 < 800 ms. The burst (all in one second) must have 0 errors and 0 wrong-site, with a 3 s regression alarm. After L-1 the burst measured 751 ms, so it meets 800 ms today. |
 | L-5 | **A tablet's batch held its company's ledger for its whole length** (P2.12a shift change, 2026-11-26). The batch is one transaction; the first command saved appended to the ledger, which locks the company's ledger head `FOR UPDATE` until the commit, while the next commands were still verified, checked by the integrity rules and saved. Measured locally: one tablet, a batch of 5 in 0.8 s; 20 tablets at once, 10–15 s each (20 × 0.8 s), with 6–7 of 8–11 database sessions waiting on `audit.ledger_heads`. At 300 tablets the batches would have queued for minutes. | Every upload of a company waited for the others: the shift change could not meet its p95 or its 15 minutes. | **Fixed:** `LedgerDeferral` (ADR-0008 amendment). The sync session marks its transaction; the ledger writer keeps the entries and the session appends them right before the commit, still in the same transaction, in order, following savepoints. 20 tablets: 2.5 s average, the ledger waits gone; what remains on a laptop is CPU. |
 | L-6 | A shift entry stored with integrity flags is answered `conflict` (ADR-0031 §8), not `accepted`. With the demo site's few meters, tablets started entries on the same meter at once and every one was flagged. | The first runs counted them as failures. | One machine per tablet (registered in setup), as at a real shift change; `commands_stored` counts `accepted` and `conflict`; `flags_raised` reports the flags by name. |
+| L-7 | The first nightly shift change stopped in setup at the 102nd machine: `billing.limit_reached`. The demo companies are on the trial plan, and 300 tablets each register a machine. | Nightly run of 26 Nov 2026: setup failed, 0 commands sent | `DemoSeed` buys machines beyond the plan when `Demo:ExtraAssets` is set, through the same subscription change as a customer (in the ledger), and the nightly `load` job reseeds with `Demo__ExtraAssets=400` before the run. The limit itself worked as designed. |
 
 ## 5. Not covered yet
 

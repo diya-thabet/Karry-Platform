@@ -119,6 +119,8 @@ jobs:
         run: |
           dotnet build src/backend/Karry.Host -c Release
           cd src/backend/Karry.Host/bin/Release/net10.0
+          # The shift change registers one machine per tablet (300): the demo companies buy them (DemoSeed, idempotent).
+          DOTNET_ENVIRONMENT=Development Demo__ExtraAssets=400 dotnet Karry.Host.dll seed-demo
           DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
             RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 \
             nohup dotnet Karry.Host.dll --urls http://127.0.0.1:5000 > /tmp/karry-load-host.log 2>&1 &

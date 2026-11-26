@@ -12,28 +12,31 @@ test.describe("three days offline (P2.12a, TC-P2-SYNC-006, ADR-0031, ADR-0032) @
     test.setTimeout(3_600_000);
     const context = await browser.newContext({ locale: "fr-FR", permissions: ["camera"] });
     const tablet = await enrolledTablet(context, await enrollmentCode(page));
-    const now = Date.now();
+    // A step that hangs fails in a minute, not at the end of the hour.
+    tablet.setDefaultTimeout(60_000);
+    const start = Date.now() - 72 * hour;
 
-    // Offline from three days ago: the tablet's clock runs from then, a little more than the shift count spread over
-    // the 72 h between shifts, so each entry is signed at its own time, as on a tablet that saw no network for three days.
+    // Offline from three days ago: the tablet's clock runs from then, the shifts spread over the 72 h, so each entry is
+    // signed at its own time, as on a tablet that saw no network for three days.
     await context.setOffline(true);
-    await tablet.clock.install({ time: now - 72 * hour });
-    await tablet.clock.resume();
+    await tablet.clock.install({ time: start });
     const value = meterNow();
-    const step = Math.floor((72 * hour - 30 * 60_000) / shifts);
+    const step = Math.floor((72 * hour) / shifts);
     for (let shift = 0; shift < shifts; shift++) {
       await startAndEnd(tablet, value);
-      // Hours pass between shifts: the tablet locks itself after its idle time, and the next operator unlocks it.
-      await tablet.clock.fastForward(step);
+      // The operator hands the tablet over: locked, hours pass, the next one unlocks it. The clock jumps only while
+      // the tablet is locked: a jump on the home screen races its idle lock (US-P1-OFF-04 AC3, tested on its own) with
+      // the next tap. After the last shift it comes back to today's time.
+      await tablet.getByRole("button", { name: "Verrouiller", exact: true }).click();
       await expect(tablet.getByRole("heading", { name: "Déverrouiller la tablette" })).toBeVisible();
+      await tablet.clock.setSystemTime(shift + 1 < shifts ? start + (shift + 1) * step : Date.now());
       await unlock(tablet);
     }
 
     const outbox = tablet.getByRole("region", { name: "Envoi des saisies" });
     await expect(outbox).toContainText(`${String(shifts * 2)} saisies en attente d’envoi`);
 
-    // Back to today's time (the last jump locked the tablet: unlocked above), then back online on a 3G network (Chromium's throttling: 750 kb/s up, 300 ms latency).
-    await tablet.clock.setSystemTime(Date.now());
+    // Back online on a 3G network (Chromium's throttling: 750 kb/s up, 300 ms latency).
     const network = await context.newCDPSession(tablet);
     await network.send("Network.enable");
     await network.send("Network.emulateNetworkConditions", {
