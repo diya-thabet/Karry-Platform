@@ -77,6 +77,11 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
 
     public void Add(EmailDelivery delivery) => db.EmailDeliveries.Add(delivery);
 
+    public async Task<int> DeleteBeforeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken) =>
+        await db.Notifications.Where(n => n.CreatedAt < cutoff).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false)
+        + await db.EmailDeliveries.Where(d => d.CreatedAt < cutoff).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false)
+        + await db.PushPings.Where(p => p.CreatedAt < cutoff).ExecuteDeleteAsync(cancellationToken).ConfigureAwait(false);
+
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
 }
 
@@ -171,6 +176,8 @@ public static class NotificationsInfrastructure
         services.AddScoped<PushFanOut>();
         services.AddScoped<PushDeliveries>();
         services.AddSingleton<DeliverPushes>();
+        // Kept 90 days (ADR-0039 §1): the nightly purge.
+        services.AddSingleton<PurgeNotices>();
         // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
         services.AddScoped<ISyncSource, NoticesSync>();
         return services;

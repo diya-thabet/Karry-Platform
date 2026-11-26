@@ -3,8 +3,8 @@ title: "ADR-0039: Notifications"
 area: adr
 tags: [adr, phase-2, p2-10, notifications, email, web-push, digest, outbox]
 source: "P2.10 planning (sub-phases.md §P2.10, decision table), US-P2-NOT-01, US-P2-OFF-04 AC2, US-P2-VER-06 AC2, ADR-0037, ADR-0038"
-status: proposed
-last_updated: 2026-11-25
+status: accepted
+last_updated: 2026-11-26
 ---
 
 # ADR-0039: Notifications
@@ -173,6 +173,18 @@ server always has its current endpoint. Its Workbox service worker loads `push-s
 a tap. The portal shows "Alerts in this browser" on `/notifications` with a button to turn them on or off; it registers
 its own worker (`/push-sw.js`, push only, no cache) when the person turns them on, and a tap opens `/notifications`.
 Neither alert says what happened: the person reads it behind the sign-in (the lock screen is public).
+
+## Security review (P2.10 close-out, 2026-11-26)
+
+| Threat | What P2.10 does | Evidence |
+|---|---|---|
+| T-09 cross-tenant and cross-scope delivery | Audiences are resolved at delivery from Identity in the event's company (RLS): a role on a site, an assignment to that site or to every site, or the company; a person who left no longer hears. Every Notifications table has RLS (notifications, rule settings, preferences, e-mail deliveries, push subscriptions and pings). A person reads and marks only their own notices, sets only their own choices and subscriptions; a tablet subscribes only for its own site and receives only its site's rejections | TC-P2-NOT-002 (`NotificationsTests`), the isolation suite (`notificationId`, `noticeType`, `channel`), `A_rejection_alerts_the_sites_tablets…` |
+| T-10 masking in messages | A notice stores only the parameters its rule names, and only identifiers and codes (letters, digits, `_ . : , + -`, 200 characters): a price, a reading, a note or a name sent by a producer is dropped before storing. Words are written by the reader's app; the digest is counts and links; a push carries nothing | TC-P2-NOT-004 (`A_notice_keeps_only_the_identifiers_and_codes…`), TC-P2-NOT-003 (digest text), `VapidPushSenderTests` (empty body) |
+| T-18 personal data in delivery logs | Deliveries keep the person's ID, never the address (looked up at each attempt); errors are codes (`smtp_failed`, `no_address`, `push_failed`); the SMTP and push logs name the failure and the status code only, never an address, a text or an endpoint | `NotificationsTests.Email`, `SmtpEmailSender`, `VapidPushSender` log messages |
+| SSRF through push endpoints | A subscription endpoint comes from a client, so the server only calls HTTPS addresses on the default port of the browsers' push services (FCM, Mozilla, Windows, Apple), without credentials in the URL, and follows no redirect; the endpoint is never put in a URL or a log | `Only_a_browsers_push_service_over_https_is_an_endpoint` (look-alike hosts, other ports, credentials, the metadata address refused) |
+| Silencing alerts | Switching a rule off is privileged (Tenant Admin, second factor), needs a recent sign-in and is ledgered with who did it; switching it on needs no step-up | `A_company_switches_a_rule_off…` |
+| Lock screens | A Web Push and its alert say only that something needs a look; the content stays behind the sign-in (portal) or the unlock (tablet) | `push-sw.js` of both apps |
+| Residual | The VAPID private key is a deployment secret (vault); without it push stays off. E-mail goes through the platform's SMTP relay, chosen with the deployment (P1.17); until then Mailpit locally and nothing in production | operations |
 
 ## Options considered
 

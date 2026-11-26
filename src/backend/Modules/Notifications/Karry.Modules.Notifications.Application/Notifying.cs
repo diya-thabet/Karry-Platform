@@ -47,6 +47,9 @@ public interface INotificationStore
 
     void Add(EmailDelivery delivery);
 
+    /// <summary>Deletes the notifications, e-mail deliveries and pushes created before <paramref name="cutoff"/>; returns how many rows went.</summary>
+    Task<int> DeleteBeforeAsync(DateTimeOffset cutoff, CancellationToken cancellationToken);
+
     Task SaveAsync(CancellationToken cancellationToken);
 }
 
