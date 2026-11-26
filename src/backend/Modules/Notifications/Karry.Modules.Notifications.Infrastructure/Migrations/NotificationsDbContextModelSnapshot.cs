@@ -347,6 +347,114 @@ namespace Karry.Modules.Notifications.Infrastructure.Migrations
 
                     b.ToTable("notifications", "notifications");
                 });
+
+            modelBuilder.Entity("Karry.Modules.Notifications.Domain.PushPing", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscription_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_push_pings");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_push_pings_tenant_id");
+
+                    b.HasIndex("TenantId", "CreatedAt")
+                        .HasDatabaseName("ix_push_pings_tenant_id_created_at");
+
+                    b.HasIndex("TenantId", "Status", "NextAttemptAt")
+                        .HasDatabaseName("ix_push_pings_tenant_id_status_next_attempt_at");
+
+                    b.HasIndex("TenantId", "SubscriptionId", "Status")
+                        .HasDatabaseName("ix_push_pings_tenant_id_subscription_id_status");
+
+                    b.ToTable("push_pings", "notifications");
+                });
+
+            modelBuilder.Entity("Karry.Modules.Notifications.Domain.PushSubscription", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("Owner")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("owner");
+
+                    b.Property<Guid>("OwnerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_id");
+
+                    b.Property<Guid?>("SiteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("site_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_push_subscriptions");
+
+                    b.HasIndex("TenantId")
+                        .HasDatabaseName("ix_push_subscriptions_tenant_id");
+
+                    b.HasIndex("TenantId", "Endpoint")
+                        .IsUnique()
+                        .HasDatabaseName("ix_push_subscriptions_tenant_id_endpoint");
+
+                    b.HasIndex("TenantId", "SiteId")
+                        .HasDatabaseName("ix_push_subscriptions_tenant_id_site_id");
+
+                    b.HasIndex("TenantId", "Owner", "OwnerId")
+                        .HasDatabaseName("ix_push_subscriptions_tenant_id_owner_owner_id");
+
+                    b.ToTable("push_subscriptions", "notifications");
+                });
 #pragma warning restore 612, 618
         }
     }

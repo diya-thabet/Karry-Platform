@@ -13,7 +13,10 @@ public static class FeatureFlags
     /// <summary>The portal's over-limit banner (US-P1-BIL-04): a kill switch should it mislead customers.</summary>
     public static readonly FlagDefinition PortalUsageBanner = new("portal.usage-banner", "Show the over-limit banner in the portal.", Default: true);
 
-    public static IReadOnlyList<FlagDefinition> All { get; } = [PortalUsageBanner];
+    /// <summary>Web Push for notices (ADR-0039 §5): off until a company tries it; it also needs the VAPID keys configured.</summary>
+    public static readonly FlagDefinition NotificationsWebPush = new("notifications.web-push", "Alert people and tablets by Web Push when a notice needs a look.", Default: false);
+
+    public static IReadOnlyList<FlagDefinition> All { get; } = [PortalUsageBanner, NotificationsWebPush];
 
     public static FlagDefinition? Find(string? key) => All.FirstOrDefault(f => f.Key == key);
 }

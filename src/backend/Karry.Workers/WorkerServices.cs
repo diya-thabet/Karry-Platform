@@ -131,6 +131,7 @@ internal static class WorkerServices
         ScheduledJob.Of<MissingEndJob>("missing-ends", MissingEndJob.Schedule),
         ScheduledJob.Of<DigestJob>("digests", DigestJob.Schedule),
         ScheduledJob.Of<EmailDeliveryJob>("email-deliveries", EmailDeliveryJob.Schedule),
+        ScheduledJob.Of<PushDeliveryJob>("push-deliveries", PushDeliveryJob.Schedule),
         ScheduledJob.Of<CountersignJob>("countersign", CountersignJob.Schedule),
         .. anchoring ? [ScheduledJob.Of<LedgerAnchoringJob>("ledger-anchoring", LedgerAnchoringJob.Schedule)] : Array.Empty<ScheduledJob>(),
         .. keycloak ? [ScheduledJob.Of<SignInFailureImportJob>("sign-in-failure-import", SignInFailureImportJob.Schedule)] : Array.Empty<ScheduledJob>(),

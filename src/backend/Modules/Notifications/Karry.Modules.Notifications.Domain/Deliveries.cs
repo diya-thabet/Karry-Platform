@@ -10,8 +10,8 @@ public readonly record struct EmailDeliveryId(Guid Value) : IEntityId<EmailDeliv
     public override string ToString() => Value.ToString("D");
 }
 
-/// <summary>Where an e-mail stands: waiting (first try or a retry), sent, or given up.</summary>
-public enum EmailDeliveryStatus
+/// <summary>Where an e-mail or a push stands: waiting (first try or a retry), sent, or given up.</summary>
+public enum DeliveryStatus
 {
     Pending = 0,
     Sent = 1,
@@ -52,7 +52,7 @@ public sealed class EmailDelivery : ITenantOwned
 
     public string Text { get; private set; } = null!;
 
-    public EmailDeliveryStatus Status { get; private set; }
+    public DeliveryStatus Status { get; private set; }
 
     public int Attempts { get; private set; }
 
@@ -78,7 +78,7 @@ public sealed class EmailDelivery : ITenantOwned
             Key = key,
             Subject = subject,
             Text = text,
-            Status = EmailDeliveryStatus.Pending,
+            Status = DeliveryStatus.Pending,
             NextAttemptAt = now,
             CreatedAt = now,
         };
@@ -88,7 +88,7 @@ public sealed class EmailDelivery : ITenantOwned
     {
         ArgumentNullException.ThrowIfNull(clock);
         Attempts++;
-        Status = EmailDeliveryStatus.Sent;
+        Status = DeliveryStatus.Sent;
         SentAt = clock.GetUtcNow();
         LastError = null;
     }
@@ -104,7 +104,7 @@ public sealed class EmailDelivery : ITenantOwned
         LastError = reason;
         if (final || Attempts >= MaxAttempts)
         {
-            Status = EmailDeliveryStatus.Failed;
+            Status = DeliveryStatus.Failed;
             return;
         }
 

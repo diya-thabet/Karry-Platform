@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Karry.BuildingBlocks.Persistence;
+using Karry.Modules.Notifications.Application;
 using Karry.Modules.Notifications.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -25,6 +26,10 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
     public DbSet<NoticePreference> Preferences => Set<NoticePreference>();
 
     public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
+
+    public DbSet<PushSubscription> PushSubscriptions => Set<PushSubscription>();
+
+    public DbSet<PushPing> PushPings => Set<PushPing>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -81,6 +86,33 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
             delivery.HasIndex(d => new { d.TenantId, d.Key }).IsUnique();
             delivery.HasIndex(d => new { d.TenantId, d.Status, d.NextAttemptAt });
             delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
+        });
+
+        // A browser's or tablet's push subscription (ADR-0039 §5): an endpoint is one subscription.
+        modelBuilder.Entity<PushSubscription>(subscription =>
+        {
+            subscription.ToTable("push_subscriptions");
+            subscription.HasKey(s => s.Id);
+            subscription.Property(s => s.Id).HasConversion(id => id.Value, value => new PushSubscriptionId(value)).ValueGeneratedNever();
+            subscription.Property(s => s.Owner).HasConversion<string>().HasMaxLength(10);
+            subscription.Property(s => s.Endpoint).HasMaxLength(PushEndpoints.MaxLength);
+            subscription.HasIndex(s => new { s.TenantId, s.Endpoint }).IsUnique();
+            subscription.HasIndex(s => new { s.TenantId, s.Owner, s.OwnerId });
+            subscription.HasIndex(s => new { s.TenantId, s.SiteId });
+        });
+
+        // One push to one subscription and its attempts; at most one waits per subscription.
+        modelBuilder.Entity<PushPing>(ping =>
+        {
+            ping.ToTable("push_pings");
+            ping.HasKey(p => p.Id);
+            ping.Property(p => p.Id).HasConversion(id => id.Value, value => new PushPingId(value)).ValueGeneratedNever();
+            ping.Property(p => p.SubscriptionId).HasConversion(id => id.Value, value => new PushSubscriptionId(value));
+            ping.Property(p => p.Status).HasConversion<string>().HasMaxLength(10);
+            ping.Property(p => p.LastError).HasMaxLength(40);
+            ping.HasIndex(p => new { p.TenantId, p.Status, p.NextAttemptAt });
+            ping.HasIndex(p => new { p.TenantId, p.SubscriptionId, p.Status });
+            ping.HasIndex(p => new { p.TenantId, p.CreatedAt });
         });
     }
 

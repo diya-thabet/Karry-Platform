@@ -6,6 +6,7 @@ using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Notifications.Api;
+using Karry.Modules.Notifications.Application;
 using Karry.Modules.Organization.Contracts;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Verification.Contracts;
@@ -33,6 +34,9 @@ public sealed class NotificationsHost : IAsyncLifetime
     /// <summary>Each company's sites and each site's review counts, as Organization and Verification would answer.</summary>
     public Sites Organization { get; } = new();
 
+    /// <summary>Web Push: on for the companies listed, and the push service the pings go to (ADR-0039 §5).</summary>
+    public PushService Push { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -58,6 +62,8 @@ public sealed class NotificationsHost : IAsyncLifetime
         builder.Services.AddScoped<ISiteDirectory>(sp => new CompanySites(Organization, sp.GetRequiredService<ITenantContext>()));
         builder.Services.AddSingleton<IReviewCounts>(Organization);
         builder.Services.AddSingleton<IAppAddresses>(new PortalAddresses());
+        builder.Services.AddScoped<IPushSwitch>(sp => new CompanyPushSwitch(Push, sp.GetRequiredService<ITenantContext>()));
+        builder.Services.AddSingleton<IPushSender>(Push);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -154,4 +160,37 @@ public sealed class CompanySites(Sites sites, ITenantContext tenant) : ISiteDire
 public sealed class PortalAddresses : IAppAddresses
 {
     public Uri PortalFor(string slug) => new($"https://{slug}.karry.test");
+}
+
+/// <summary>A push service: it keeps the endpoints it was pinged at, and answers per endpoint the outcomes it was told to.</summary>
+public sealed class PushService : IPushSender
+{
+    /// <summary>The companies whose flag notifications.web-push is on.</summary>
+    public ConcurrentDictionary<Guid, bool> OnFor { get; } = new();
+
+    public ConcurrentQueue<string> Pinged { get; } = new();
+
+    public ConcurrentDictionary<string, ConcurrentQueue<PushOutcome>> NextOutcomes { get; } = new();
+
+    public string? PublicKey => "BKarryTestPublicKey";
+
+    public void Answer(string endpoint, PushOutcome outcome) => NextOutcomes.GetOrAdd(endpoint, _ => new()).Enqueue(outcome);
+
+    public Task<PushOutcome> PingAsync(string endpoint, CancellationToken cancellationToken)
+    {
+        var outcome = NextOutcomes.TryGetValue(endpoint, out var planned) && planned.TryDequeue(out var next) ? next : PushOutcome.Sent;
+        if (outcome == PushOutcome.Sent)
+        {
+            Pinged.Enqueue(endpoint);
+        }
+
+        return Task.FromResult(outcome);
+    }
+}
+
+/// <summary>Push is on for the scope's company when the test turned its flag on.</summary>
+public sealed class CompanyPushSwitch(PushService push, ITenantContext tenant) : IPushSwitch
+{
+    public Task<bool> OnAsync(CancellationToken cancellationToken) =>
+        Task.FromResult(tenant.Current is { } company && push.OnFor.GetValueOrDefault(company.Value));
 }

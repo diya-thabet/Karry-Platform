@@ -68,7 +68,7 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
 
     public async Task<IReadOnlyList<EmailDelivery>> DueEmailsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken) =>
         await db.EmailDeliveries
-            .Where(d => d.Status == EmailDeliveryStatus.Pending && d.NextAttemptAt <= now)
+            .Where(d => d.Status == DeliveryStatus.Pending && d.NextAttemptAt <= now)
             .OrderBy(d => d.NextAttemptAt).Take(take)
             .ToListAsync(cancellationToken).ConfigureAwait(false);
 
@@ -76,6 +76,50 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
         db.EmailDeliveries.AnyAsync(d => d.Key == key, cancellationToken);
 
     public void Add(EmailDelivery delivery) => db.EmailDeliveries.Add(delivery);
+
+    public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
+}
+
+/// <summary>The current company's push subscriptions and pings (RLS), in the notices' unit of work.</summary>
+internal sealed class PushStore(NotificationsDbContext db) : IPushStore
+{
+    public Task<PushSubscription?> SubscriptionAsync(string endpoint, CancellationToken cancellationToken) =>
+        db.PushSubscriptions.SingleOrDefaultAsync(s => s.Endpoint == endpoint, cancellationToken);
+
+    public Task<PushSubscription?> SubscriptionAsync(PushSubscriptionId id, CancellationToken cancellationToken) =>
+        db.PushSubscriptions.SingleOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<PushSubscription>> OfPeopleAsync(IReadOnlyCollection<Guid> people, CancellationToken cancellationToken)
+    {
+        var wanted = people.ToList();
+        return await db.PushSubscriptions.AsNoTracking()
+            .Where(s => s.Owner == PushOwner.Person && wanted.Contains(s.OwnerId)).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
+    public async Task<IReadOnlyList<PushSubscription>> OfSiteDevicesAsync(Guid siteId, CancellationToken cancellationToken) =>
+        await db.PushSubscriptions.AsNoTracking()
+            .Where(s => s.Owner == PushOwner.Device && s.SiteId == siteId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlyList<PushSubscription>> OfDeviceAsync(Guid deviceId, CancellationToken cancellationToken) =>
+        await db.PushSubscriptions.Where(s => s.Owner == PushOwner.Device && s.OwnerId == deviceId).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public async Task<IReadOnlySet<PushSubscriptionId>> WaitingAsync(IReadOnlyCollection<PushSubscriptionId> subscriptions, CancellationToken cancellationToken)
+    {
+        var wanted = subscriptions.ToList();
+        return (await db.PushPings.AsNoTracking()
+            .Where(p => p.Status == DeliveryStatus.Pending && wanted.Contains(p.SubscriptionId))
+            .Select(p => p.SubscriptionId).ToListAsync(cancellationToken).ConfigureAwait(false)).ToHashSet();
+    }
+
+    public async Task<IReadOnlyList<PushPing>> DuePingsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken) =>
+        await db.PushPings.Where(p => p.Status == DeliveryStatus.Pending && p.NextAttemptAt <= now)
+            .OrderBy(p => p.NextAttemptAt).Take(take).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(PushSubscription subscription) => db.PushSubscriptions.Add(subscription);
+
+    public void Remove(PushSubscription subscription) => db.PushSubscriptions.Remove(subscription);
+
+    public void Add(PushPing ping) => db.PushPings.Add(ping);
 
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
 }
@@ -116,6 +160,17 @@ public static class NotificationsInfrastructure
         // The daily digest at 07:00 site time (ADR-0039 §4); it reads the sites, the review counts and the portal's address.
         services.AddScoped<DailyDigests>();
         services.AddSingleton<QueueDigests>();
+        // Web Push (ADR-0039 §5): off without VAPID keys and the company's flag notifications.web-push.
+        services.AddOptions<WebPushOptions>().BindConfiguration(WebPushOptions.Section);
+        services.TryAddSingleton<IPushSender>(sp => new VapidPushSender(
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<WebPushOptions>>(), sp.GetRequiredService<TimeProvider>(),
+            sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<VapidPushSender>>()));
+        services.TryAddScoped<IPushSwitch, PushSwitch>();
+        services.AddScoped<IPushStore, PushStore>();
+        services.AddScoped<PushSubscriptions>();
+        services.AddScoped<PushFanOut>();
+        services.AddScoped<PushDeliveries>();
+        services.AddSingleton<DeliverPushes>();
         // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
         services.AddScoped<ISyncSource, NoticesSync>();
         return services;
