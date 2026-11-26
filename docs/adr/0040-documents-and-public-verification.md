@@ -1,0 +1,80 @@
+---
+title: "ADR-0040: Documents and public verification"
+area: adr
+tags: [adr, phase-2, p2-11, documents, pdf, verification, qr, signatures]
+source: "P2.11 planning (sub-phases.md §P2.11, decision table), US-P2-SIG-05, US-P2-SIG-06, ADR-0007, ADR-0033, P1.9 masking"
+status: proposed
+last_updated: 2026-11-26
+---
+
+# ADR-0040: Documents and public verification
+
+> [Docs index](../README.md) › [ADRs](README.md) · [P2.11 slice plan](../04-phases/phase-02-field-operations/p2.11-shift-report-plan.md)
+
+- **Status:** Proposed (2026-11-26, P2.11 planning)
+- **Date:** 2026-11-26
+
+## Context
+
+A shift's entries are signed on the tablet (ADR-0007), countersigned by the server (ADR-0033) and reviewed by a
+controller (ADR-0037). Outside the company, people still ask for a paper: a client, an auditor, an inspector. They
+need a report they can print, and a way to know it was not edited after Karry issued it, without an account. The
+sub-phase plan reserved this ADR for the PDF engine (after a time-boxed spike) and the public verification page.
+
+## Decision
+
+### 1. A PDF engine with a permissive licence, chosen by a spike
+
+The engine must render 200 entries with images and embedded fonts in under 10 s (US-P2-SIG-05 AC3) under a licence
+the product can ship. **PDFsharp + MigraDoc 6.2.4**, the last MIT release (6.5.0 became AGPL-3.0-only; the licence is
+read from the package, not the web page), is the candidate. QuestPDF's Community licence ends at USD 1 M revenue and
+needs the owner's approval, so it is only the fallback. Slice 1 measures the candidate on the generated 200-entry
+shift; this section records the result. Fonts are embedded (an open-licence font in the repository), never the
+system's.
+
+### 2. A Documents module that reads through contracts
+
+A module `Documents` (schema `documents`, RLS) builds the shift report from the other modules' contracts: entries and
+their Δ (FieldOps), decisions and the controller (Verification), flags (Integrity), signature strokes (Trust), site
+and shift (Organization), names (Identity). It never reads their tables. The report is masked for its reader with
+the same decision as the API and exports (P1.9 `SensitiveExport`): a column the reader's role may not see is absent,
+not blanked (TC-P2-DOC-003).
+
+### 3. The document envelope: what is signed and ledgered
+
+A report's content has a canonical form (RFC 8785) and its hash (`sha256:`), printed in the footer. A PDF cannot
+contain the hash of its own bytes, so the envelope keeps two hashes: the content's and the finished PDF's. Both are
+signed with the server key (ADR-0033) and ledgered (`documents.shift_report_issued.v1`) with the envelope ID, the
+shift, the site and who issued it. Issuing the same shift again makes a new envelope; the earlier ones stay valid
+for what they say.
+
+### 4. Public verification: an unguessable token, a fragment, one answer for every miss
+
+The QR opens `/verify/{envelopeId}#{token}` on the platform address (the `verify.` domain later). The token is 128
+random bits, stored hashed; it travels in the URL fragment, so it never reaches a server log or a proxy, and the page
+posts it in a request body. Every miss (unknown envelope, wrong token, another company) gets the same "not found"
+answer after the same work (the token hash is compared in constant time even when the envelope does not exist), and
+the endpoint is rate-limited per address (TC-P2-SIG-005). The answer shows the document type, date, issuing company,
+status and hashes; people's names only if the company's policy allows (US-P2-SIG-06 AC1). A visitor can drop the PDF
+on the page: it is hashed in the browser and compared with the signed hash (TC-P2-DOC-002), the file never leaves the
+device.
+
+### 5. A strict page policy for the public page
+
+The page needs no sign-in, no third-party script and no frame: `default-src 'self'`, `frame-ancestors 'none'`, and
+the API answers it with `Cache-Control: no-store`.
+
+## Options considered
+
+1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per
+   company, and viewers disagree; the page answers anyone with a phone. Kept for a market that requires it.
+2. **The token in the path or query** — Cons: it ends in server and proxy logs and in browser history servers.
+3. **Fragment token, server-side check (chosen)** — Pros: no log holds the token; a lost QR exposes one document.
+
+## Consequences
+
+- **Positive:** a printed report is checked by anyone in seconds; a changed byte shows; the report respects masking.
+- **Negative:** the public page reveals that a document exists to whoever holds its QR; names follow the company's
+  policy.
+- **Follow-ups:** PAdES and the `verify.` domain with the deployment; other documents (weighing tickets, invoices)
+  reuse the envelope.
