@@ -9,7 +9,8 @@ import { AssetsReadPermission, useSiteNames } from "../assets/api";
 import { Trail } from "../shell/Trail";
 import { ItemsReadPermission } from "./api";
 import { boardOf, type MachineState, type ReviewState } from "./board";
-import { EntriesReadPermission } from "./queue";
+import { EntriesReadPermission, type QueueRow } from "./queue";
+import { ReviewDrawer } from "./ReviewDrawer";
 import { ShiftReportButton } from "./ShiftReportButton";
 
 const stateStatus: Record<MachineState, Status> = { not_started: "pending", running: "ok", missing_end: "error", ended: "ok" };
@@ -33,6 +34,7 @@ export function BoardPage() {
   const { sites } = useSiteNames();
   const [siteId, setSiteId] = useState("");
   const [date, setDate] = useState(today());
+  const [open, setOpen] = useState<QueueRow | null>(null);
   const site = siteId !== "" ? siteId : (sites[0]?.id ?? "");
   const ready = site !== "" && /^\d{4}-\d{2}-\d{2}$/.test(date);
   const refresh = 30_000;
@@ -67,6 +69,7 @@ export function BoardPage() {
 
   const board = boardOf(shifts.data ?? [], machines.data ?? [], entries.data ?? [], items.data ?? [], new Date());
   const time = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { timeStyle: "short" }).format(new Date(value));
+  const number = (value: number | string) => new Intl.NumberFormat(intlLocale(i18n.language), { maximumFractionDigits: 1 }).format(Number(value));
   const failed = shifts.isError || machines.isError || entries.isError || items.isError;
 
   return (
@@ -91,7 +94,8 @@ export function BoardPage() {
               <h2 className="text-lg font-semibold">{t("portal.board.shift", { name: shift.name, from: time(shift.startsAt), to: time(shift.endsAt) })}</h2>
               <ShiftReportButton siteId={site} date={date} shift={shift.code} />
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            {/* Six side by side only on a wide screen: beside the menu on a laptop their labels did not fit. */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
               <StatCard icon={Truck} label={t("portal.board.count.planned")} value={counts.planned} />
               <StatCard icon={Play} label={t("portal.board.count.started")} value={counts.started} />
               <StatCard icon={CheckCircle2} label={t("portal.board.count.ended")} value={counts.ended} />
@@ -106,12 +110,25 @@ export function BoardPage() {
                   <StatusChip status={stateStatus[row.state]}>{t(`portal.board.state.${row.state}`)}</StatusChip>
                   {row.review !== "none" && <StatusChip status={reviewStatus[row.review]}>{t(`portal.board.review.${row.review}`)}</StatusChip>}
                   {row.flags > 0 && <span className="text-sm text-text-muted">{t("portal.board.flags", { count: row.flags })}</span>}
+                  {/* Each entry of the machine opens the same panel as the queue: photos, values, decision. */}
+                  <span className="ms-auto flex flex-wrap gap-2">
+                    {row.entries.map((entry) => {
+                      const item = (items.data ?? []).find((candidate) => candidate.recordId === entry.id);
+                      return item && (
+                        <Button key={entry.id} variant="secondary" aria-label={t("portal.review.openEntry", { machine: row.machine.code })}
+                          onClick={() => { setOpen({ item, entry }); }}>
+                          {t("portal.review.values", { start: number(entry.startValue), end: entry.endValue === null ? "—" : number(entry.endValue), unit: entry.unit })}
+                        </Button>
+                      );
+                    })}
+                  </span>
                 </li>
               ))}
             </ul>
           </section>
         </Card>
       ))}
+      <ReviewDrawer row={open} onClose={() => { setOpen(null); }} />
     </div>
   );
 }

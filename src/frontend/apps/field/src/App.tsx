@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { CircleCheck, Download, Droplets, HardDriveDownload, History as HistoryIcon, Lock, Mountain, Play, ScanLine, Square, TriangleAlert, type LucideIcon } from "lucide-react";
+import { CircleCheck, Download, Droplets, FilePen, HardDriveDownload, History as HistoryIcon, Lock, Mountain, Play, ScanLine, Square, TriangleAlert, type LucideIcon } from "lucide-react";
 import { I18nProvider, useTranslation, type I18n } from "@karry/i18n";
 import type { DeviceRecord, KarryOfflineDb, SettingsRecord } from "@karry/offline";
 import { Button, LanguageDirection, LanguageSwitcher, ThemeProvider, ThemeSwitcher } from "@karry/ui";
@@ -20,7 +20,7 @@ import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
 import { useAutoLock } from "./autoLock";
-import { purgeDrafts } from "./drafts";
+import { purgeDrafts, readDraft } from "./drafts";
 import { preloadParts } from "./lazyParts";
 import { Unlock } from "./UnlockScreen";
 import type { Session, UnlockFailure } from "./unlock";
@@ -114,9 +114,12 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
   const who = t("field.unlock.user", { name: session.name, employeeId: session.employeeId });
   // The camera and the pad are fetched while the tablet is (likely) online, before any form needs them offline.
   useEffect(() => { preloadParts(); }, []);
+  // A start left unsigned (the tablet locked, the app closed): offered here, not only in the history.
+  const [draft, setDraft] = useState(false);
   useEffect(() => {
     if (form === null) {
       void findActiveShift(environment.db, session.userId).then(setActive);
+      void readDraft(environment.db, session.userId, "start", new Date()).then((left) => { setDraft(left !== null); });
     }
   }, [environment.db, session.userId, form]);
 
@@ -167,6 +170,13 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
       )}
       <Notices db={environment.db} userId={session.userId} />
       <PushAlerts push={environment.push ?? null} />
+      {!active && draft && (
+        <section aria-label={t("field.history.draft")} className="flex flex-wrap items-center gap-3 rounded-xl border-[length:var(--karry-border-width)] border-warning bg-warning-soft p-4">
+          <FilePen aria-hidden className="size-6" />
+          <p className="flex-1 font-medium">{t("field.history.draft")}</p>
+          <Button onClick={() => { setSaved(null); setForm("start"); }}>{t("field.history.continue")}</Button>
+        </section>
+      )}
       {active
         ? (
             <section aria-label={t("field.active.label")} className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-primary bg-surface p-4">

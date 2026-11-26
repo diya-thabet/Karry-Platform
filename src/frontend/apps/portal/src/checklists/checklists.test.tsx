@@ -61,8 +61,9 @@ describe("checklist builder (US-P2-FO-03)", () => {
     fireEvent.click(await screen.findByRole("combobox", { name: /^Machine type/ }));
     expect(screen.queryByRole("option", { name: "Excavator" })).not.toBeInTheDocument();
     fireEvent.click(await screen.findByRole("option", { name: "Haul truck" }));
+    // One text per item, in the company's language (no field per language, no code to type).
+    expect(screen.getAllByRole("textbox")).toHaveLength(1);
     fireEvent.change(screen.getByRole("textbox", { name: "Text in Français" }), { target: { value: "Pneus à plat ?" } });
-    fireEvent.change(screen.getByRole("textbox", { name: "Text in English" }), { target: { value: "Flat tyres?" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Critical: a Not OK stops the machine" }));
     expect(screen.getByRole("checkbox", { name: "Photo on Not OK" })).toBeChecked();
     fireEvent.click(screen.getByRole("button", { name: "Publish version 1" }));
@@ -70,7 +71,7 @@ describe("checklist builder (US-P2-FO-03)", () => {
     expect(await screen.findByRole("heading", { level: 1, name: "Haul truck" })).toBeInTheDocument();
     expect(api.writes()).toEqual([{
       method: "POST", path: "/api/v1/fieldops/checklists/haul-truck/versions",
-      body: { required: true, items: [{ code: "pneus-a-plat", texts: { fr: "Pneus à plat ?", en: "Flat tyres?" }, critical: true, photoOnNotOk: true }] },
+      body: { required: true, items: [{ code: "pneus-a-plat", texts: { fr: "Pneus à plat ?" }, critical: true, photoOnNotOk: true }] },
     }]);
   });
 
@@ -81,7 +82,7 @@ describe("checklist builder (US-P2-FO-03)", () => {
     const second = await screen.findByRole("listitem", { name: "Item 2" });
     fireEvent.click(within(second).getByRole("button", { name: "Move item 2 up" }));
     fireEvent.click(screen.getByRole("button", { name: "Add an item" }));
-    fireEvent.change(within(screen.getByRole("listitem", { name: "Item 3" })).getByRole("textbox", { name: "Text in English" }), { target: { value: "Horn" } });
+    fireEvent.change(within(screen.getByRole("listitem", { name: "Item 3" })).getByRole("textbox", { name: "Text in Français" }), { target: { value: "Horn" } });
     fireEvent.click(screen.getByRole("checkbox", { name: "Required before starting a shift" }));
     fireEvent.click(screen.getByRole("button", { name: "Publish version 2" }));
 
@@ -94,7 +95,7 @@ describe("checklist builder (US-P2-FO-03)", () => {
         items: [
           { code: "lights", texts: { fr: "Feux", en: "Lights" }, critical: false, photoOnNotOk: false },
           { code: "brakes", texts: { fr: "Freins", en: "Brakes" }, critical: true, photoOnNotOk: true },
-          { code: "horn", texts: { en: "Horn" }, critical: false, photoOnNotOk: false },
+          { code: "horn", texts: { fr: "Horn" }, critical: false, photoOnNotOk: false },
         ],
       },
     }]);
@@ -103,12 +104,13 @@ describe("checklist builder (US-P2-FO-03)", () => {
     expect(within(versions).getByText("brakes, lights")).toBeInTheDocument();
   });
 
-  it("refuses an item without text or with a duplicate code before asking the API", async () => {
+  it("refuses an item whose text gives the code of another before asking the API", async () => {
     const api = fakeApi({ permissions: manager, checklists: [checklist()] });
     await renderAt("/settings/checklists/excavator", api);
 
     fireEvent.click(await screen.findByRole("button", { name: "Add an item" }));
-    fireEvent.change(within(screen.getByRole("listitem", { name: "Item 3" })).getByRole("textbox", { name: "Code" }), { target: { value: "brakes" } });
+    // The code is made from the text ("Brakes" → brakes), which item 2 already has.
+    fireEvent.change(within(screen.getByRole("listitem", { name: "Item 3" })).getByRole("textbox", { name: "Text in Français" }), { target: { value: "Brakes" } });
     fireEvent.click(screen.getByRole("button", { name: "Publish version 2" }));
 
     expect(await screen.findByText("Another item has this code.")).toBeInTheDocument();

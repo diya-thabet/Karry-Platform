@@ -4,7 +4,7 @@ area: quality
 tags: [ux, ui, hci, usability, accessibility, wcag, design-system, nielsen, hick, fitts, gestalt, portal, field-app, rtl]
 source: "Owner request 2026-10-29 (after ADR-0030): review the frontend from a design and HCI perspective"
 status: live
-last_updated: 2026-10-29
+last_updated: 2026-11-26
 ---
 
 # UI/UX review
@@ -204,3 +204,25 @@ Reviewers check these; a breach is a review finding like a failing test.
   with the tasks of the [Phase 1 demo script](../04-phases/phase-01-platform-foundation/plan.md): time on task,
   errors, and the System Usability Scale (SUS ≥ 75 targeted).
 - Re-run this review at each phase exit gate.
+
+## 10. Owner's walkthrough of the running app (2026-11-26)
+
+The owner asked for every screen to be tested by hand in a browser, with three complaints: the panel that opens on the
+left when a shift or an alert is clicked in the portal, the checklist builder's field per language, and components not
+well done. The portal (1366 × 768, site manager of company B) and the field app (768 × 1024 tablet) were walked through
+on the local demo, with real entries (photos and signatures) sent from a tablet.
+
+| # | Finding | Status |
+|---|---|---|
+| W-1 | **The review panel** reused the phone navigation drawer: on the left, 18 rem wide, no visible title, no padding, its content cut at the edge, photos 160 px. | **Fixed:** `Sheet` (ui): from the end edge, up to 56 rem, visible title and description (machine · shift · site), padded body, footer with the decisions always in view; the three meter photos side by side at 220 px with their values; Δ and fuel as tiles; alerts as badges. |
+| W-2 | **Checklist builder:** five text fields per point (one per language) and a technical "Code" field. | **Fixed:** one text, in the company's language (the tablet shows it in any language); the code is made from it and kept across versions. |
+| W-3 | Review queue: the photos spilled over the alerts column; alerts were plain text. | **Fixed:** the photos never shrink below their width; alerts are warning badges that wrap (`StatusChip wrap`). |
+| W-4 | Shift board: six count tiles too narrow beside the menu on a laptop; nothing clickable, so an entry could not be opened from the board. | **Fixed:** three tiles per row below 1536 px; each entry of a machine opens the review panel. |
+| W-5 | People: the role field was empty for a site manager (the role list needs `identity.roles.read`; the promised fallback was missing). | **Fixed:** the default roles are the choices then, and a role the person has is always one. |
+| W-6 | Tablet: the machine finder showed nothing until something was typed. | **Fixed:** the site's machines are listed at once. |
+| W-7 | Tablet: a start left unsigned (the tablet locked) was offered only inside the history. | **Fixed:** offered on the home screen too. |
+| W-8 | A machine's "last reading" ignores shift entries (it stays at the last manual reading), and the tablet says "no previous value". | Open: a server change (meter state fed by entries). |
+| W-9 | The site map has no base layer (a pin on an empty background). | Open: needs a tile source (offline-capable) chosen. |
+| W-10 | Audit log and filters show technical codes (`verification.review_item_created.v1`, entity IDs). | Open: readable event names and pickers. |
+| W-11 | Read-only pages (site, company) are forms of disabled fields; the machine page opens on its edit form. | Open: summary views. |
+| W-12 | Smaller: densities without unit (t/m³), brand colour typed as hex, time zone as free text, raw QR token shown, "Soon" tiles on the tablet home, no "all OK" on a checklist, fuel as a thin slider, the correction dialog pre-filled with a dot decimal, the duplicate-code message now that codes are hidden, the field app's language before enrolment. | Open. |

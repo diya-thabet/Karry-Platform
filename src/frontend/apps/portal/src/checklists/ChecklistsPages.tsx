@@ -8,7 +8,7 @@ import { useAccess, useApi, useCurrentTenant, useWithStepUp } from "../app/api";
 import { useAssetTypes } from "../assets/api";
 import { Trail } from "../shell/Trail";
 import {
-  checkItems, checklistsKey, ChecklistsManagePermission, checklistVersionsKey, draftsOf, itemsBody, languagesFor, maxItems, maxText, newItem,
+  checkItems, checklistsKey, ChecklistsManagePermission, checklistVersionsKey, draftsOf, itemsBody, languagesFor, maxItems, maxText, newItem, textOf,
   useChecklists, useChecklistVersions, type Checklist, type ItemDraft, type ItemProblem,
 } from "./api";
 
@@ -240,6 +240,7 @@ function ItemEditor({ draft, number, count, languages, problem, onChange, onMove
 }) {
   const { t } = useTranslation();
   const heading = t("portal.checklists.item", { number: String(number) });
+  const [language = "fr"] = languages;
   return (
     <li className="flex flex-col gap-3 rounded-lg border-[length:var(--karry-border-width)] border-divider p-4" aria-label={heading}>
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -256,28 +257,17 @@ function ItemEditor({ draft, number, count, languages, problem, onChange, onMove
           </Button>
         </div>
       </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        {languages.map((language) => (
-          <TextField
-            key={language}
-            label={t("portal.checklists.text", { language: t(`common.language.${language}`) })}
-            lang={language}
-            dir={languageDirection(language)}
-            maxLength={maxText + 1}
-            value={draft.texts[language] ?? ""}
-            onChange={(e) => { const value = e.target.value; onChange((current) => ({ ...current, texts: { ...current.texts, [language]: value } })); }}
-          />
-        ))}
-      </div>
-      <div className="grid gap-3 md:grid-cols-2">
-        <TextField
-          label={t("portal.checklists.code")}
-          description={t("portal.checklists.codeHint")}
-          translate="no"
-          value={draft.code}
-          onChange={(e) => { const value = e.target.value; onChange((current) => ({ ...current, code: value })); }}
-        />
-        <div className="flex flex-col">
+      {/* One text, in the company's language: the tablet shows it whatever its own language (the owner's choice: no
+          field per language). The code is made from it and kept across versions; nobody types it. */}
+      <TextField
+        label={t("portal.checklists.text", { language: t(`common.language.${language}`) })}
+        lang={language}
+        dir={languageDirection(language)}
+        maxLength={maxText + 1}
+        value={textOf(draft, language)}
+        onChange={(e) => { const value = e.target.value; onChange((current) => ({ ...current, texts: { [language]: value } })); }}
+      />
+      <div className="flex flex-wrap gap-x-6">
           <Checkbox label={t("portal.checklists.critical")} checked={draft.critical} onChange={(e) => { const value = e.target.checked; onChange((current) => ({ ...current, critical: value })); }} />
           <Checkbox
             label={t("portal.checklists.photo")}
@@ -285,8 +275,7 @@ function ItemEditor({ draft, number, count, languages, problem, onChange, onMove
             disabled={draft.critical}
             onChange={(e) => { const value = e.target.checked; onChange((current) => ({ ...current, photoOnNotOk: value })); }}
           />
-          {draft.critical && <p className="text-sm text-text-muted">{t("portal.checklists.photoForced")}</p>}
-        </div>
+          {draft.critical && <p className="w-full text-sm text-text-muted">{t("portal.checklists.photoForced")}</p>}
       </div>
       {problem && <p role="alert" className="font-semibold text-danger">{t(problemKeys[problem], { max: String(maxText) })}</p>}
     </li>
