@@ -24,7 +24,8 @@ test.describe("a notice reaches the operator's tablet (P2.10, ADR-0039)", () => 
     const rejection = page.getByRole("dialog", { name: "Refuser" });
     await rejection.getByLabel("Ce qui ne va pas").fill("Le compteur sur la photo ne correspond pas au relevé.");
     await rejection.getByRole("button", { name: "Refuser" }).click();
-    await expect(page.getByText("Saisie refusée : le conducteur voit pourquoi à la prochaine synchronisation")).toBeVisible();
+    // The toast shows the text and announces it again for screen readers (aria-live): the visible one, exactly.
+    await expect(page.getByText("Saisie refusée : le conducteur voit pourquoi à la prochaine synchronisation", { exact: true })).toBeVisible();
 
     // The rejection goes through the outbox to a notice (Workers); the tablet's next pull brings it to its operator.
     const notices = tablet.getByRole("region", { name: "Pour vous" });
