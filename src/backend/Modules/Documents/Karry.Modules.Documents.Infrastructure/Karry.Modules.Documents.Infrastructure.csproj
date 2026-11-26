@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Adapters implementing Application ports; persistence arrives with the document envelope (slice 3). -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Documents.Application/Karry.Modules.Documents.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Documents.Domain/Karry.Modules.Documents.Domain.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

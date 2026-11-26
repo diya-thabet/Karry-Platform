@@ -784,6 +784,7 @@
           "Karry.BuildingBlocks": "[1.0.0, )",
           "Karry.Modules.Assets.Api": "[1.0.0, )",
           "Karry.Modules.Billing.Api": "[1.0.0, )",
+          "Karry.Modules.Documents.Api": "[1.0.0, )",
           "Karry.Modules.FieldOps.Api": "[1.0.0, )",
           "Karry.Modules.Flags.Api": "[1.0.0, )",
           "Karry.Modules.Identity.Api": "[1.0.0, )",
@@ -872,6 +873,48 @@
         "type": "Project",
         "dependencies": {
           "Karry.Modules.Billing.Application": "[1.0.0, )"
+        }
+      },
+      "karry.modules.documents.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Documents.Application": "[1.0.0, )",
+          "Karry.Modules.Documents.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.documents.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Assets.Contracts": "[1.0.0, )",
+          "Karry.Modules.Documents.Contracts": "[1.0.0, )",
+          "Karry.Modules.Documents.Domain": "[1.0.0, )",
+          "Karry.Modules.FieldOps.Contracts": "[1.0.0, )",
+          "Karry.Modules.Identity.Contracts": "[1.0.0, )",
+          "Karry.Modules.Organization.Contracts": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "Karry.Modules.Trust.Contracts": "[1.0.0, )",
+          "Karry.Modules.Verification.Contracts": "[1.0.0, )"
+        }
+      },
+      "karry.modules.documents.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.documents.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.documents.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Documents.Application": "[1.0.0, )",
+          "Karry.Modules.Documents.Domain": "[1.0.0, )"
         }
       },
       "karry.modules.fieldops.api": {

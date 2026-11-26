@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The shift report's content (ADR-0040 §2): read only through the owning modules' contracts, masked per reader. -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Documents.Domain/Karry.Modules.Documents.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Documents.Contracts/Karry.Modules.Documents.Contracts.csproj" />
+    <ProjectReference Include="../../Assets/Karry.Modules.Assets.Contracts/Karry.Modules.Assets.Contracts.csproj" />
+    <ProjectReference Include="../../FieldOps/Karry.Modules.FieldOps.Contracts/Karry.Modules.FieldOps.Contracts.csproj" />
+    <ProjectReference Include="../../Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="../../Organization/Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../../Trust/Karry.Modules.Trust.Contracts/Karry.Modules.Trust.Contracts.csproj" />
+    <ProjectReference Include="../../Verification/Karry.Modules.Verification.Contracts/Karry.Modules.Verification.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+</Project>

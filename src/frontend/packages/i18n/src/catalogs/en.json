@@ -1188,6 +1188,7 @@
   "permissions.materials.catalog.manage": "Create and change materials and densities",
   "permissions.assets.registry.read": "See machines and their meters",
   "permissions.assets.registry.manage": "Register, move and change machines, record meter readings",
+  "permissions.documents.shift-reports.read": "Read and issue the shift reports of your sites",
   "permissions.fieldops.entries.read": "See shift entries and their versions",
   "permissions.fieldops.checklists.read": "See pre-start checklists and their versions",
   "permissions.fieldops.checklists.manage": "Publish pre-start checklists",

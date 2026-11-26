@@ -1188,6 +1188,7 @@
   "permissions.materials.catalog.manage": "Créer et modifier les matériaux et les densités",
   "permissions.assets.registry.read": "Voir les engins et leurs compteurs",
   "permissions.assets.registry.manage": "Enregistrer, déplacer et modifier les engins, saisir les relevés",
+  "permissions.documents.shift-reports.read": "Consulter et émettre les rapports de poste de vos sites",
   "permissions.fieldops.entries.read": "Voir les saisies de poste et leurs versions",
   "permissions.fieldops.checklists.read": "Voir les check-lists de démarrage et leurs versions",
   "permissions.fieldops.checklists.manage": "Publier les check-lists de démarrage",
