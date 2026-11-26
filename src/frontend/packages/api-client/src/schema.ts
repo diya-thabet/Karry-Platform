@@ -2068,6 +2068,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/documents/verify/{envelopeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VerifyDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2528,6 +2544,13 @@ export interface components {
             autoLockMinutes: number | string;
             /** Format: int32 */
             offlineSessionHours: number | string;
+        };
+        /** @description The server's signature of a verified document, once the Workers signed it. */
+        DocumentSignature: {
+            keyId: string;
+            value: string;
+            /** Format: date-time */
+            signedAt: string;
         };
         EnrollDevice: {
             tenant: null | string;
@@ -3794,6 +3817,32 @@ export interface components {
             version: string;
             /** Format: uuid */
             linkedFieldUserId: null | string;
+        };
+        /**
+         * @description What the public page shows of a genuine document (ADR-0040 §4, US-P2-SIG-06): what and whose it is, its hashes and
+         *     its signature, no person's name. `PdfMatches` answers a PDF hash the visitor sent (TC-P2-DOC-002), null if none.
+         */
+        VerifiedDocument: {
+            /** Format: uuid */
+            envelopeId: string;
+            type: string;
+            company: string;
+            siteCode: string;
+            siteName: string;
+            /** Format: date */
+            shiftDate: string;
+            shiftCode: string;
+            /** Format: date-time */
+            issuedAt: string;
+            contentHash: string;
+            pdfHash: string;
+            signature: null | components["schemas"]["DocumentSignature"];
+            pdfMatches: null | boolean;
+        };
+        /** @description The token from the QR's fragment and, optionally, the SHA-256 of a PDF the visitor dropped on the page. */
+        VerifyDocumentRequest: {
+            token: null | string;
+            pdfHash: null | string;
         };
     };
     responses: never;
@@ -11331,6 +11380,50 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    VerifyDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                envelopeId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["VerifyDocumentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VerifiedDocument"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

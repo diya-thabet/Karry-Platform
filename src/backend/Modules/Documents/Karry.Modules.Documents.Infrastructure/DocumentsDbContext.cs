@@ -14,6 +14,9 @@ public sealed class DocumentsDbContext(DbContextOptions<DocumentsDbContext> opti
 
     public DbSet<DocumentEnvelope> Envelopes => Set<DocumentEnvelope>();
 
+    /// <summary>Global (no RLS, declared): read by the public verification before any company is known.</summary>
+    public DbSet<VerificationKey> VerificationKeys => Set<VerificationKey>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -34,6 +37,13 @@ public sealed class DocumentsDbContext(DbContextOptions<DocumentsDbContext> opti
             envelope.HasIndex(e => new { e.TenantId, e.SiteId, e.ShiftDate, e.ShiftCode });
             // The Workers sign the envelopes still without a signature (slice 3c).
             envelope.HasIndex(e => new { e.TenantId, e.SignedAt });
+        });
+        modelBuilder.Entity<VerificationKey>(key =>
+        {
+            key.ToTable("verification_keys");
+            key.HasKey(k => k.EnvelopeId);
+            key.Property(k => k.EnvelopeId).ValueGeneratedNever();
+            key.Property(k => k.TokenHash).HasMaxLength(64);
         });
     }
 }

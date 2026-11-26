@@ -75,6 +75,7 @@ public sealed class EndpointAuthorizationTests
         ["GetTenantLogo"] = "Anonymous login branding (threat model R-07): the company logo, an image only (type read from the content, nosniff).",
         ["AcceptInvitation"] = "Anonymous: the single-use invitation token is the credential and names the tenant.",
         ["EnrollDevice"] = "Anonymous: the single-use 15-minute enrollment code is the credential, looked up only under the company the slug names (ADR-0028).",
+        ["VerifyDocument"] = "Anonymous public verification (ADR-0040 §4): the 128-bit token from the QR's fragment is the credential; every miss is the same 404 after the same work, limited per address; no name and no company ID in the answer.",
     };
 
     [Fact]

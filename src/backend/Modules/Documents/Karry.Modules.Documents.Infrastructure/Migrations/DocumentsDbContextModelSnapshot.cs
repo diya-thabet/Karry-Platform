@@ -201,6 +201,28 @@ namespace Karry.Modules.Documents.Infrastructure.Migrations
 
                     b.ToTable("envelopes", "documents");
                 });
+
+            modelBuilder.Entity("Karry.Modules.Documents.Domain.VerificationKey", b =>
+                {
+                    b.Property<Guid>("EnvelopeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("envelope_id");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("token_hash");
+
+                    b.HasKey("EnvelopeId")
+                        .HasName("pk_verification_keys");
+
+                    b.ToTable("verification_keys", "documents");
+                });
 #pragma warning restore 612, 618
         }
     }

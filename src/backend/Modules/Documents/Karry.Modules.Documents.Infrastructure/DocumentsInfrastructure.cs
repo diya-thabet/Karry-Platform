@@ -8,9 +8,20 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Karry.Modules.Documents.Infrastructure;
 
-internal sealed class EnvelopeStore(DocumentsDbContext db) : IDocumentEnvelopeStore
+internal sealed class EnvelopeStore(DocumentsDbContext db) : IDocumentEnvelopeStore, IEnvelopeReader, IVerificationKeys
 {
-    public void Add(DocumentEnvelope envelope) => db.Envelopes.Add(envelope);
+    /// <summary>The envelope and its verification key, saved in the same transaction.</summary>
+    public void Add(DocumentEnvelope envelope)
+    {
+        db.Envelopes.Add(envelope);
+        db.VerificationKeys.Add(VerificationKey.Of(envelope));
+    }
+
+    public Task<DocumentEnvelope?> FindAsync(Guid envelopeId, CancellationToken cancellationToken) =>
+        db.Envelopes.FirstOrDefaultAsync(e => e.Id == new DocumentEnvelopeId(envelopeId), cancellationToken);
+
+    Task<VerificationKey?> IVerificationKeys.FindAsync(Guid envelopeId, CancellationToken cancellationToken) =>
+        db.VerificationKeys.AsNoTracking().FirstOrDefaultAsync(k => k.EnvelopeId == envelopeId, cancellationToken);
 
     public async Task<IReadOnlyList<DocumentEnvelope>> UnsignedAsync(int take, CancellationToken cancellationToken) =>
         await db.Envelopes.Where(e => e.SignedAt == null).OrderBy(e => e.IssuedAt).Take(take).ToListAsync(cancellationToken).ConfigureAwait(false);
@@ -35,7 +46,11 @@ public static class DocumentsInfrastructure
         services.AddOutboxDispatcher<DocumentsDbContext>(eventAssemblies: typeof(DocumentEnvelope).Assembly);
         services.AddOptions<DocumentsOptions>().BindConfiguration(DocumentsOptions.Section);
         services.AddScoped<ShiftReportContents>();
-        services.AddScoped<IDocumentEnvelopeStore, EnvelopeStore>();
+        services.AddScoped<EnvelopeStore>();
+        services.AddScoped<IDocumentEnvelopeStore>(sp => sp.GetRequiredService<EnvelopeStore>());
+        services.AddScoped<IEnvelopeReader>(sp => sp.GetRequiredService<EnvelopeStore>());
+        services.AddScoped<IVerificationKeys>(sp => sp.GetRequiredService<EnvelopeStore>());
+        services.AddScoped<DocumentVerification>();
         services.AddSingleton<IShiftReportRenderer, ShiftReportRenderer>();
         services.AddScoped<ShiftReportIssuing>();
         return services;

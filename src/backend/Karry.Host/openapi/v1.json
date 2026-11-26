@@ -9796,6 +9796,72 @@
           }
         }
       }
+    },
+    "/api/v1/documents/verify/{envelopeId}": {
+      "post": {
+        "tags": [
+          "DocumentsModule"
+        ],
+        "operationId": "VerifyDocument",
+        "parameters": [
+          {
+            "name": "envelopeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/VerifyDocumentRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifiedDocument"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -11587,6 +11653,27 @@
           }
         },
         "description": "How tablets behave (US-P1-OFF-04 AC2/AC3), sent to each tablet with its settings."
+      },
+      "DocumentSignature": {
+        "required": [
+          "keyId",
+          "value",
+          "signedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "keyId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          },
+          "signedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "description": "The server's signature of a verified document, once the Workers signed it."
       },
       "EnrollDevice": {
         "required": [
@@ -16427,6 +16514,97 @@
           }
         },
         "description": "A user; `pinSet` tells whether a field user has a PIN (an imported one has none until an administrator sets it);\n`linkedFieldUserId` is an office account's link to the same person's field account (ADR-0037 §4)."
+      },
+      "VerifiedDocument": {
+        "required": [
+          "envelopeId",
+          "type",
+          "company",
+          "siteCode",
+          "siteName",
+          "shiftDate",
+          "shiftCode",
+          "issuedAt",
+          "contentHash",
+          "pdfHash",
+          "signature",
+          "pdfMatches"
+        ],
+        "type": "object",
+        "properties": {
+          "envelopeId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string"
+          },
+          "company": {
+            "type": "string"
+          },
+          "siteCode": {
+            "type": "string"
+          },
+          "siteName": {
+            "type": "string"
+          },
+          "shiftDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftCode": {
+            "type": "string"
+          },
+          "issuedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "pdfHash": {
+            "type": "string"
+          },
+          "signature": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DocumentSignature"
+              }
+            ]
+          },
+          "pdfMatches": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        },
+        "description": "What the public page shows of a genuine document (ADR-0040 §4, US-P2-SIG-06): what and whose it is, its hashes and\nits signature, no person's name. `PdfMatches` answers a PDF hash the visitor sent (TC-P2-DOC-002), null if none."
+      },
+      "VerifyDocumentRequest": {
+        "required": [
+          "token",
+          "pdfHash"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "pdfHash": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "The token from the QR's fragment and, optionally, the SHA-256 of a PDF the visitor dropped on the page."
       }
     }
   },
