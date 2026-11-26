@@ -134,4 +134,6 @@ public sealed class RoleHolders : INoticeAudiences
         Task.FromResult<IReadOnlyList<Guid>>([.. roles.SelectMany(role => Holders.GetValueOrDefault((role, siteId)) ?? [])]);
 
     public Task<Guid?> UserIdOfAsync(string subject, CancellationToken cancellationToken) => Task.FromResult<Guid?>(null);
+
+    public Task<NoticeContact?> ContactOfAsync(Guid userId, CancellationToken cancellationToken) => Task.FromResult<NoticeContact?>(null);
 }

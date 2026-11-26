@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using Karry.BuildingBlocks.Api;
+using Karry.BuildingBlocks.Messaging;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -24,6 +25,9 @@ public sealed class NotificationsHost : IAsyncLifetime
     /// <summary>Who holds a role on a site (null: across the company), as Identity would answer.</summary>
     public People People { get; } = new();
 
+    /// <summary>The mail server the e-mails go to (ADR-0039 §4).</summary>
+    public Mailbox Mailbox { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -44,6 +48,7 @@ public sealed class NotificationsHost : IAsyncLifetime
         builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new NotificationsModule(), new Trust.Api.TrustModule()]);
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin);
         builder.Services.AddSingleton<INoticeAudiences>(People);
+        builder.Services.AddSingleton<IEmailSender>(Mailbox);
         app = builder.Build();
         app.UseKarryApiConventions();
         app.UseKarryTenancy();
@@ -81,4 +86,29 @@ public sealed class People : INoticeAudiences
 
     public Task<Guid?> UserIdOfAsync(string subject, CancellationToken cancellationToken) =>
         Task.FromResult(UserOf.TryGetValue(subject, out var user) ? user : (Guid?)null);
+
+    /// <summary>Each person's e-mail address and name, as Identity would answer for an active user.</summary>
+    public ConcurrentDictionary<Guid, NoticeContact> Contacts { get; } = new();
+
+    public Task<NoticeContact?> ContactOfAsync(Guid userId, CancellationToken cancellationToken) =>
+        Task.FromResult(Contacts.TryGetValue(userId, out var contact) ? contact : null);
+}
+
+/// <summary>A mail server: it keeps what it was sent, and answers the outcomes it was told to, then "sent".</summary>
+public sealed class Mailbox : IEmailSender
+{
+    public ConcurrentQueue<EmailMessage> Received { get; } = new();
+
+    public ConcurrentQueue<EmailOutcome> NextOutcomes { get; } = new();
+
+    public Task<EmailOutcome> SendAsync(EmailMessage message, CancellationToken cancellationToken)
+    {
+        var outcome = NextOutcomes.TryDequeue(out var next) ? next : EmailOutcome.Sent;
+        if (outcome == EmailOutcome.Sent)
+        {
+            Received.Enqueue(message);
+        }
+
+        return Task.FromResult(outcome);
+    }
 }

@@ -88,6 +88,33 @@ public sealed class InvitationSenderTests(MailpitFixture mailpit) : IClassFixtur
         (await unreachable.SendAsync(Message(InvitationChannel.Email, "a@example.test"), Ct)).Should().BeFalse();
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-NOT-01")]
+    public async Task The_platform_e_mail_port_delivers_through_the_same_server_and_reports_instead_of_throwing()
+    {
+        var to = $"{Guid.NewGuid():N}@example.test";
+        var sender = new SmtpEmailSender(Options.Create(new MessagingOptions
+        {
+            SmtpHost = mailpit.Host,
+            SmtpPort = mailpit.SmtpPort,
+            RequireTls = false,
+            From = "Karry <no-reply@karry.test>",
+        }), NullLogger<SmtpEmailSender>.Instance);
+        var unconfigured = new SmtpEmailSender(Options.Create(new MessagingOptions()), NullLogger<SmtpEmailSender>.Instance);
+        var unreachable = new SmtpEmailSender(Options.Create(new MessagingOptions { SmtpHost = "127.0.0.1", SmtpPort = 1, RequireTls = false }),
+            NullLogger<SmtpEmailSender>.Instance);
+        var message = new BuildingBlocks.Messaging.EmailMessage(to, "Awa Camara", "Karry · digest", "3 entries to review");
+
+        (await sender.SendAsync(message, Ct)).Should().Be(BuildingBlocks.Messaging.EmailOutcome.Sent);
+        (await unconfigured.SendAsync(message, Ct)).Should().Be(BuildingBlocks.Messaging.EmailOutcome.NotConfigured);
+        (await unreachable.SendAsync(message, Ct)).Should().Be(BuildingBlocks.Messaging.EmailOutcome.Failed);
+
+        var mail = await MessageToAsync(to);
+        mail.GetProperty("Subject").GetString().Should().Be("Karry · digest");
+        mail.GetProperty("To")[0].GetProperty("Name").GetString().Should().Be("Awa Camara");
+        mail.GetProperty("Text").GetString().Should().Contain("3 entries to review");
+    }
+
     private static InvitationMessage Message(InvitationChannel channel, string destination) =>
         new(channel, destination, "Amel Ben Salah", "Carrière Acme", Link, new DateTimeOffset(2026, 10, 31, 8, 0, 0, TimeSpan.Zero));
 

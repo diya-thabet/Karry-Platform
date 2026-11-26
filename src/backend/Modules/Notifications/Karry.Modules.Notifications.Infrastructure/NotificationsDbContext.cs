@@ -24,6 +24,8 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
 
     public DbSet<NoticePreference> Preferences => Set<NoticePreference>();
 
+    public DbSet<EmailDelivery> EmailDeliveries => Set<EmailDelivery>();
+
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
         ArgumentNullException.ThrowIfNull(modelBuilder);
@@ -62,6 +64,23 @@ public sealed class NotificationsDbContext(DbContextOptions<NotificationsDbConte
             preference.HasKey(p => new { p.TenantId, p.UserId, p.Type, p.Channel });
             preference.Property(p => p.Type).HasMaxLength(60);
             preference.Property(p => p.Channel).HasMaxLength(20);
+        });
+
+        // An e-mail and its attempts (ADR-0039 §4): the person, never the address; the due ones are read every minute.
+        modelBuilder.Entity<EmailDelivery>(delivery =>
+        {
+            delivery.ToTable("email_deliveries");
+            delivery.HasKey(d => d.Id);
+            delivery.Property(d => d.Id).HasConversion(id => id.Value, value => new EmailDeliveryId(value)).ValueGeneratedNever();
+            delivery.Property(d => d.Kind).HasMaxLength(20);
+            delivery.Property(d => d.Key).HasMaxLength(200);
+            delivery.Property(d => d.Subject).HasMaxLength(200);
+            delivery.Property(d => d.Text).HasMaxLength(20_000);
+            delivery.Property(d => d.Status).HasConversion<string>().HasMaxLength(10);
+            delivery.Property(d => d.LastError).HasMaxLength(40);
+            delivery.HasIndex(d => new { d.TenantId, d.Key }).IsUnique();
+            delivery.HasIndex(d => new { d.TenantId, d.Status, d.NextAttemptAt });
+            delivery.HasIndex(d => new { d.TenantId, d.CreatedAt });
         });
     }
 

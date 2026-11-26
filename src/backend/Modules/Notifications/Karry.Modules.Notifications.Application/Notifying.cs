@@ -36,6 +36,14 @@ public interface INotificationStore
 
     void Add(NoticePreference preference);
 
+    /// <summary>E-mails waiting whose next attempt is due at <paramref name="now"/>, oldest first.</summary>
+    Task<IReadOnlyList<EmailDelivery>> DueEmailsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken);
+
+    /// <summary>Whether an e-mail with this key was already queued (a digest is queued once per person, site and day).</summary>
+    Task<bool> EmailQueuedAsync(string key, CancellationToken cancellationToken);
+
+    void Add(EmailDelivery delivery);
+
     Task SaveAsync(CancellationToken cancellationToken);
 }
 

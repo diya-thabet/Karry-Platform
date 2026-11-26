@@ -15,4 +15,13 @@ public interface INoticeAudiences
 
     /// <summary>The user of a signed-in account (the token's subject), or null.</summary>
     Task<Guid?> UserIdOfAsync(string subject, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Where to e-mail an active user (ADR-0039 §4), looked up when the e-mail is sent, never stored with it: null for a
+    /// user who left or has no e-mail address (a phone-only operator).
+    /// </summary>
+    Task<NoticeContact?> ContactOfAsync(Guid userId, CancellationToken cancellationToken);
 }
+
+/// <summary>An active user's e-mail address and name.</summary>
+public sealed record NoticeContact(string Email, string Name);
