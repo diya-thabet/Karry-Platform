@@ -57,6 +57,17 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
 
     public void Add(NoticePreference preference) => db.Preferences.Add(preference);
 
+    public async Task<IReadOnlyList<EmailDelivery>> DueEmailsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken) =>
+        await db.EmailDeliveries
+            .Where(d => d.Status == EmailDeliveryStatus.Pending && d.NextAttemptAt <= now)
+            .OrderBy(d => d.NextAttemptAt).Take(take)
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public Task<bool> EmailQueuedAsync(string key, CancellationToken cancellationToken) =>
+        db.EmailDeliveries.AnyAsync(d => d.Key == key, cancellationToken);
+
+    public void Add(EmailDelivery delivery) => db.EmailDeliveries.Add(delivery);
+
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
 }
 
@@ -90,6 +101,9 @@ public static class NotificationsInfrastructure
         services.AddScoped<INotices, NoticeInbox>();
         services.AddScoped<NotificationReading>();
         services.AddScoped<NoticeSettings>();
+        // E-mail (ADR-0039 §4): the records and their sending; the IEmailSender itself is the platform's (Identity's SMTP).
+        services.AddScoped<EmailDeliveries>();
+        services.AddSingleton<DeliverEmails>();
         // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
         services.AddScoped<ISyncSource, NoticesSync>();
         return services;

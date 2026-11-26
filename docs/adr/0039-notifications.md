@@ -125,6 +125,17 @@ with `notifications.rules.manage`) lists each kind with who hears of it and by w
 for the password again (step-up, then the call is retried), on does not; the card says when and by whom it last
 changed. Named "Notification rules", not "Notifications", which is the header bell's name.
 
+As built (slice 5a): the port `IEmailSender` (BuildingBlocks `Messaging`: `EmailMessage`, an `EmailOutcome` of sent,
+not configured or failed; it never throws for a delivery failure). Its SMTP adapter is Identity's `SmtpEmailSender`,
+on the same `Identity:Messaging` server as the invitations (Mailpit locally): Identity owns the sender settings, and
+keeping MailKit there spares every other project the dependency. Notifications keeps one `email_deliveries` record per
+e-mail (RLS): the person (an Identity user), never the address, which `INoticeAudiences.ContactOfAsync` gives at each
+attempt (active users with an address only); a unique key per company so an e-mail is queued once; the attempts, the
+next attempt and the last error as a code (`smtp_failed`, `not_configured`, `no_address`). A failure is tried again
+after 1, 5, 15, 60 and 240 minutes and given up after the sixth attempt; a person without an address at once. The
+Workers' `EmailDeliveryJob` sends the due ones every minute, company by company, saving each outcome before the next
+send. Logs carry neither address nor text (T-18).
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

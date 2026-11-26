@@ -17,6 +17,16 @@ internal sealed class NoticeAudiences(IdentityDbContext db) : INoticeAudiences
             .Select(u => u.Id.Value)];
     }
 
+    public async Task<NoticeContact?> ContactOfAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        var id = new UserId(userId);
+        var user = await db.Users.AsNoTracking()
+            .Where(u => u.Id == id && u.Status == UserStatus.Active && u.Email != null)
+            .Select(u => new { u.Email, u.FirstName, u.LastName })
+            .SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false);
+        return user is null ? null : new NoticeContact(user.Email!, $"{user.FirstName} {user.LastName}".Trim());
+    }
+
     public async Task<Guid?> UserIdOfAsync(string subject, CancellationToken cancellationToken) =>
         (await db.Users.AsNoTracking().Where(u => u.Subject == subject).Select(u => (UserId?)u.Id).SingleOrDefaultAsync(cancellationToken).ConfigureAwait(false))?.Value;
 }

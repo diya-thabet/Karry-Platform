@@ -24,6 +24,8 @@ public static class IdentityInfrastructure
         services.Configure<IdentityOptions>(configuration.GetSection(IdentityOptions.Section));
         services.Configure<KeycloakOptions>(configuration.GetSection(KeycloakOptions.Section));
         services.Configure<MessagingOptions>(configuration.GetSection(MessagingOptions.Section));
+        // The platform's e-mail port (ADR-0039 §4): any module sends through it, with the sender settings Identity owns.
+        services.TryAddSingleton<BuildingBlocks.Messaging.IEmailSender, SmtpEmailSender>();
 
         services.AddScoped<IIdentityStore, IdentityStore>();
         services.AddScoped<BuildingBlocks.Sync.ISyncSource, IdentitySync>();
