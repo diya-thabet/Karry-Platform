@@ -165,6 +165,15 @@ the browsers of its recipients who kept push. One ping waits per subscription at
 sends them every minute, retries after 1, 5 and 15 minutes, gives up after four attempts, and deletes a subscription the
 push service says is gone (404, 410).
 
+As built (slice 6b, apps): the field app offers "Alertes" on the home screen while the device key endpoint answers
+(push on for the company) and the browser can; a tap asks the browser's permission and subscribes the tablet as itself
+(signed device request); a tablet already allowed is resubscribed silently each time the home screen shows, so the
+server always has its current endpoint. Its Workbox service worker loads `push-sw.js` (`importScripts`), which shows
+"Quelque chose demande votre attention." (English when the browser is English) and opens or brings the app forward on
+a tap. The portal shows "Alerts in this browser" on `/notifications` with a button to turn them on or off; it registers
+its own worker (`/push-sw.js`, push only, no cache) when the person turns them on, and a tap opens `/notifications`.
+Neither alert says what happened: the person reads it behind the sign-in (the lock screen is public).
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

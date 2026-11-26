@@ -1,20 +1,38 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
 import { App } from "../App";
 import { fakeApi, notice, site } from "../testing/fakeApi";
 import { noticeText, portalLink } from "./api";
+import type { BrowserPush } from "./push";
 
 const escalated = notice();
 const rejected = notice({ id: "0192f0c1-0000-7000-8000-00000000c002", type: "review.rejected", parameters: { reasonCode: "wrong_reading" }, link: "/history", siteId: null });
 const old = notice({ id: "0192f0c1-0000-7000-8000-00000000c003", type: "asset.unsafe", parameters: {}, link: "/assets/holds", readAt: "2026-11-23T08:00:00Z" });
 
-async function renderAt(path: string, api: ReturnType<typeof fakeApi>) {
+async function renderAt(path: string, api: ReturnType<typeof fakeApi>, push?: BrowserPush) {
   const i18n = await createI18n({ language: "en", pseudo: false });
   const auth = await signedInAuth({ stepUp: true });
-  render(<App i18n={i18n} auth={auth} api={api.client} history={createMemoryHistory({ initialEntries: [path] })} />);
+  render(<App i18n={i18n} auth={auth} api={api.client} history={createMemoryHistory({ initialEntries: [path] })} {...(push ? { push } : {})} />);
+}
+
+/** A browser whose permission and push subscription are faked. */
+function fakeBrowser(permission: NotificationPermission) {
+  const state = { permission, subscribed: null as { endpoint: string; unsubscribe: () => Promise<boolean> } | null, keys: [] as string[], unsubscribed: 0 };
+  const push: BrowserPush = {
+    supported: true,
+    permission: () => state.permission,
+    requestPermission: () => { state.permission = "granted"; return Promise.resolve(state.permission); },
+    subscription: () => Promise.resolve(state.subscribed),
+    subscribe: (key) => {
+      state.keys.push(key);
+      state.subscribed = { endpoint: "https://fcm.googleapis.com/fcm/send/portal-1", unsubscribe: () => { state.unsubscribed++; state.subscribed = null; return Promise.resolve(true); } };
+      return Promise.resolve(state.subscribed);
+    },
+  };
+  return { push, state };
 }
 
 describe("the notification centre in the portal (US-P2-NOT-01 AC1, ADR-0039)", () => {
@@ -66,6 +84,35 @@ describe("the notification centre in the portal (US-P2-NOT-01 AC1, ADR-0039)", (
     expect(api.writes().filter((w) => w.method === "PUT").map((w) => [w.path, w.body]))
       .toEqual([["/api/v1/notifications/preferences/review.rejected/push", { enabled: false }]]);
     expect(within(choices).getByRole("checkbox", { name: "Overdue review: Daily e-mail" })).toBeChecked();
+  });
+
+  it("offers alerts in this browser only while push is on for the company, and turns them on and off", async () => {
+    const { push, state } = fakeBrowser("default");
+    await renderAt("/notifications", fakeApi({ permissions: [] }), push);
+    await screen.findByText("No notification.");
+    expect(screen.queryByRole("heading", { name: "Alerts in this browser" })).not.toBeInTheDocument();
+    cleanup();
+
+    const api = fakeApi({ permissions: [], pushKey: "BKarry-key_1" });
+    await renderAt("/notifications", api, push);
+    fireEvent.click(await screen.findByRole("button", { name: "Turn on alerts" }));
+
+    expect(await screen.findByText("Alerts are on in this browser.")).toBeInTheDocument();
+    expect(state.keys).toEqual(["BKarry-key_1"]);
+    fireEvent.click(screen.getByRole("button", { name: "Turn off alerts" }));
+    expect(await screen.findByRole("button", { name: "Turn on alerts" })).toBeInTheDocument();
+    expect(state.unsubscribed).toBe(1);
+    expect(api.sent.filter((w) => w.path.startsWith("/api/v1/notifications/push/subscription")).map((w) => [w.method, w.path, w.body])).toEqual([
+      ["PUT", "/api/v1/notifications/push/subscription", { endpoint: "https://fcm.googleapis.com/fcm/send/portal-1" }],
+      ["POST", "/api/v1/notifications/push/subscription/remove", { endpoint: "https://fcm.googleapis.com/fcm/send/portal-1" }],
+    ]);
+  });
+
+  it("says where to allow alerts when the browser blocks them", async () => {
+    await renderAt("/notifications", fakeApi({ permissions: [], pushKey: "BKarry-key_1" }), fakeBrowser("denied").push);
+
+    expect(await screen.findByText(/This browser blocks alerts from the portal/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Turn on alerts" })).not.toBeInTheDocument();
   });
 
   it("says when there is nothing", async () => {

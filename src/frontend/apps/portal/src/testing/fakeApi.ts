@@ -113,6 +113,8 @@ export function fakeApi(options: {
   notices?: Notice[];
   /** Notice types the company switched off (default: none). */
   noticeRulesOff?: string[];
+  /** The VAPID key while Web Push is on for the company (default: off, 404). */
+  pushKey?: string;
   /** What `GET /identity/me/field-account` answers (default: linked, no namesake). */
   fieldAccount?: { linked: boolean; unlinkedNamesake: boolean };
   /** Every published checklist version, any machine type (default: none). */
@@ -456,6 +458,15 @@ export function fakeApi(options: {
         const count = notices.filter((n) => n.readAt === null).length;
         notices.forEach((n, index) => { notices[index] = { ...n, readAt: n.readAt ?? "2026-11-25T10:00:00Z" }; });
         return json(200, { count });
+      }
+
+      // Web Push (ADR-0039 §5): the key while on, and the person's browser subscriptions.
+      if (url.pathname === "/api/v1/notifications/push/key") {
+        return options.pushKey ? json(200, { publicKey: options.pushKey }) : problem(404, "notifications.push_off");
+      }
+
+      if (url.pathname === "/api/v1/notifications/push/subscription" || url.pathname === "/api/v1/notifications/push/subscription/remove") {
+        return new Response(null, { status: 204 });
       }
 
       // The company's rule switches and the person's channel choices (ADR-0039 §2).

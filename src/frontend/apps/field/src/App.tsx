@@ -14,6 +14,8 @@ import { findActiveShift, type ActiveShift } from "./endRules";
 import { EndShift } from "./EndShift";
 import { History } from "./History";
 import { Notices } from "./Notices";
+import { PushAlerts } from "./PushAlerts";
+import type { TabletPush } from "./push";
 import { StartShift, type FormEnvironment } from "./StartShift";
 import type { PullOutcome } from "./sync";
 import type { EnrollFailure, EnrollInput } from "./tablet";
@@ -54,6 +56,8 @@ export interface FieldEnvironment {
   /** The position for a signature envelope, null when the browser gives none in time. */
   position: () => Promise<Position | null>;
   appVersion: string;
+  /** Push alerts of this tablet (ADR-0039 §5), null where the browser has none. */
+  push?: TabletPush | null;
 }
 
 /** A new version, offered only here on the home screen, never during a form (US-P1-OFF-01 AC2). */
@@ -162,6 +166,7 @@ function Home({ environment, device, session, autoLockMinutes, lock }: {
         </p>
       )}
       <Notices db={environment.db} userId={session.userId} />
+      <PushAlerts push={environment.push ?? null} />
       {active
         ? (
             <section aria-label={t("field.active.label")} className="flex flex-col gap-3 rounded-xl border-[length:var(--karry-border-width)] border-primary bg-surface p-4">
