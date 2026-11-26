@@ -149,6 +149,14 @@ sent a PDF hash (`sha256:` or bare hex, any case). No person's name and no compa
 (US-P2-SIG-06 AC1) is a follow-up. The per-address limit for anonymous callers (`RateLimits:AnonymousPerAddressPerMinute`,
 60) applies. Envelopes issued before this slice have no key (local data only).
 
+As built (slice 5a, the public page): the portal's `main.tsx` renders `VerifyApp` for `/verify/{envelopeId}` before
+any sign-in starts, so Keycloak is never asked and no company screen loads; the API client has no token. The page
+posts the fragment's token (never put in a URL), then shows "Verified" (type, company, site, shift, issue time, both
+hashes, the server's signature with its key or "pending"), "Not found" for every miss, or "Too many checks" on 429.
+A PDF dropped or chosen there is hashed with Web Crypto and only its hash is posted; the answer says whether it is
+the issued document. The page runs under the portal's page policy (no inline or remote script, no framing); a stricter
+policy for `/verify` alone is part of the slice 6 review.
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

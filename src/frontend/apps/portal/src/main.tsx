@@ -6,6 +6,7 @@ import { createI18n, resolveLanguage } from "@karry/i18n";
 import { initErrorTracking } from "@karry/observability";
 import { savedLanguage } from "@karry/ui";
 import { App } from "./App";
+import { isVerifyPath, verifyAddress } from "./verify/verify";
 import "./index.css";
 
 initErrorTracking({
@@ -19,24 +20,33 @@ initErrorTracking({
 const language = resolveLanguage({ user: savedLanguage(), browser: navigator.languages });
 const i18n = await createI18n({ language, pseudo: import.meta.env.VITE_PSEUDO_LOCALE === "1" });
 
-// Sign-in before anything renders (US-P1-IAM-01): back from Keycloak, or on the way there. Tokens stay in memory.
-const auth = createAuth({
-  authority: (import.meta.env.VITE_AUTH_AUTHORITY as string | undefined) ?? "http://localhost:8080/realms/karry",
-  clientId: "karry-portal",
-  language: () => i18n.language,
-});
-await auth.start();
-
-// Same origin as the app (the ingress, or Vite's /api proxy locally); the token comes from the session in memory.
-const api = createApiClient({ baseUrl: "", getAccessToken: () => auth.getAccessToken() });
-
 const root = document.getElementById("root");
 if (!root) {
   throw new Error("Missing #root element");
 }
 
-createRoot(root).render(
-  <StrictMode>
-    <App i18n={i18n} auth={auth} api={api} />
-  </StrictMode>,
-);
+if (isVerifyPath(window.location.pathname)) {
+  // The public verification page (ADR-0040 §4): no sign-in, anonymous calls only, the token from the fragment.
+  const { VerifyApp } = await import("./verify/VerifyApp");
+  createRoot(root).render(
+    <StrictMode>
+      <VerifyApp i18n={i18n} api={createApiClient({ baseUrl: "" })} address={verifyAddress(window.location)} />
+    </StrictMode>,
+  );
+} else {
+  // Sign-in before anything renders (US-P1-IAM-01): back from Keycloak, or on the way there. Tokens stay in memory.
+  const auth = createAuth({
+    authority: (import.meta.env.VITE_AUTH_AUTHORITY as string | undefined) ?? "http://localhost:8080/realms/karry",
+    clientId: "karry-portal",
+    language: () => i18n.language,
+  });
+  await auth.start();
+
+  // Same origin as the app (the ingress, or Vite's /api proxy locally); the token comes from the session in memory.
+  const api = createApiClient({ baseUrl: "", getAccessToken: () => auth.getAccessToken() });
+  createRoot(root).render(
+    <StrictMode>
+      <App i18n={i18n} auth={auth} api={api} />
+    </StrictMode>,
+  );
+}
