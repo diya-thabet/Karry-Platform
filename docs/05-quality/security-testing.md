@@ -4,7 +4,7 @@ area: quality
 tags: [security, zap, csp, security-headers, hsts, e2e, maplibre, p1-18, h-w1, h-w2]
 source: "P1.18a hardening plan, slice 4 (2026-11-03)"
 status: live
-last_updated: 2026-11-03
+last_updated: 2026-11-26
 ---
 
 # Security testing
@@ -55,7 +55,7 @@ The origins come from the same `VITE_` settings the build uses, so the policy fo
 | E2E guard (`e2e/tests/guard.ts`, every browser test) | Any CSP violation on our pages fails the test. It caught W-2. |
 | `security-headers.spec.ts` (E2E) | Both apps and the real API (through the app's `/api`) send their headers |
 | `map.spec.ts` (E2E) | The site map draws in the production build under the portal's policy (W-3) |
-| ZAP baseline (`tests/security/zap.sh`, nightly `zap` job) | Passive scan of both apps and of every API operation (OpenAPI, safe mode). Fails on any high finding, or a medium one not accepted in `tests/security/zap-accepted.tsv` with its reason (`zap_summary.py`, unit-tested) |
+| ZAP baseline (`tests/security/zap.sh`, nightly `zap` job) | Passive scan of both apps, of the public verification page `/verify/{id}` (P2.12a: the spider cannot reach it from the portal's home, so it is a target of its own) and of every API operation (OpenAPI, safe mode). Fails on any high finding, or a medium one not accepted in `tests/security/zap-accepted.tsv` with its reason (`zap_summary.py`, unit-tested) |
 
 **Running ZAP locally:** local stack, `Karry.Host` and both previews running (or `tools/e2e/run.sh tests/security/zap.sh`,
 which starts them), then `tests/security/zap.sh`. The image is a dated weekly build pinned by digest (1.1 GB). Reports
@@ -73,6 +73,8 @@ ZAP's first run (2026-11-03, local): no high finding; the only medium was W-2; l
 (`Cross-Origin-Resource-Policy`/`-Embedder-Policy` missing, client errors from the API scan's unauthenticated calls)
 are listed in the summary and not acted on: COEP would break the map tiles and Keycloak frame, CORP would break the
 login page's branding logo, which Keycloak's origin reads.
+
+P2.12a (2026-11-26, nightly on the slice 5 branch): the public verification page and `POST /api/v1/documents/verify/{id}` added. No high finding; the page's only medium is W-2 (accepted for every page); the API answers a made-up envelope ID with `400`, which ZAP lists as informational. Nothing new to fix or accept.
 
 ## 4. Not covered yet
 
