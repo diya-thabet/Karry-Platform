@@ -1,4 +1,4 @@
-import { contentSecurityPolicy, originOf, securityHeaders } from "../../../security-headers";
+import { contentSecurityPolicy, isVerifyRequest, originOf, securityHeaders } from "../../../security-headers";
 
 // Hardening plan H-W2: the page policy of both apps (src/frontend/security-headers.ts). The browser E2E run proves
 // the real pages work under it; these pin what it allows.
@@ -58,5 +58,27 @@ describe("page security policy", () => {
     expect(securityHeaders("portal", {})["Permissions-Policy"]).toContain("camera=()");
     expect(securityHeaders("portal", {})["Permissions-Policy"]).toContain("geolocation=()");
     expect(securityHeaders("portal", {})["X-Frame-Options"]).toBe("DENY");
+  });
+
+  it("ADR-0040 §5: the public verification page reaches only its own API (and error tracking), with no frame, worker, form or referrer", () => {
+    const policy = directives(contentSecurityPolicy("verify", production));
+    expect(policy.get("script-src")).toEqual(["'self'"]);
+    expect(policy.get("connect-src")).toEqual(["'self'", "https://o1.ingest.example.io"]);
+    expect(policy.get("frame-src")).toEqual(["'none'"]);
+    expect(policy.get("worker-src")).toEqual(["'none'"]);
+    expect(policy.get("form-action")).toEqual(["'none'"]);
+    expect(policy.get("frame-ancestors")).toEqual(["'none'"]);
+    expect(contentSecurityPolicy("verify", production)).not.toContain("auth.karry.app");
+    expect(securityHeaders("verify", production)["Referrer-Policy"]).toBe("no-referrer");
+  });
+
+  it("gives the verification policy to /verify/{id} only", () => {
+    expect(isVerifyRequest("/verify/0192f0c1-0000-7000-8000-00000000d001")).toBe(true);
+    expect(isVerifyRequest("/verify/0192f0c1-0000-7000-8000-00000000d001?x=1")).toBe(true);
+    expect(isVerifyRequest("/verify/")).toBe(false);
+    expect(isVerifyRequest("/verify/a/b")).toBe(false);
+    expect(isVerifyRequest("/review/board")).toBe(false);
+    expect(isVerifyRequest("/assets/index.js")).toBe(false);
+    expect(isVerifyRequest(undefined)).toBe(false);
   });
 });
