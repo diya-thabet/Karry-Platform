@@ -198,12 +198,15 @@ internal static class DemoSeed
                     .HandleAsync(new TenantSummary(id, tenant.Slug, tenant.Name), cancellationToken).ConfigureAwait(false);
 
                 // The demo sites must be bought, as a customer would (ADR-0024: the sites meter counts against them).
+                // Demo:ExtraAssets buys machines beyond the plan the same way (the load suite's shift change registers
+                // one machine per tablet: 300, tests/load/shift-change.js).
                 var subscriptions = billing.ServiceProvider.GetRequiredService<SubscriptionOperations>();
                 var terms = (await subscriptions.CurrentAsync(cancellationToken).ConfigureAwait(false))!.Terms;
-                if (terms.Sites < Sites[tenant.Slug].Length)
+                var extraAssets = Math.Max(terms.ExtraAssets, billing.ServiceProvider.GetRequiredService<IConfiguration>().GetValue("Demo:ExtraAssets", 0));
+                if (terms.Sites < Sites[tenant.Slug].Length || terms.ExtraAssets < extraAssets)
                 {
                     var bought = await subscriptions.ChangeAsync(
-                        new ChangeSubscription(terms.PlanCode, terms.PlanVersion, PlanPriceDto.PeriodName(terms.Period), Sites[tenant.Slug].Length, terms.ExtraAssets,
+                        new ChangeSubscription(terms.PlanCode, terms.PlanVersion, PlanPriceDto.PeriodName(terms.Period), Math.Max(terms.Sites, Sites[tenant.Slug].Length), extraAssets,
                             terms.AddOns, terms.ExtraFeatures, terms.LimitOverrides),
                         actor: "seed-demo", cancellationToken).ConfigureAwait(false);
                     if (!bought.IsSuccess)

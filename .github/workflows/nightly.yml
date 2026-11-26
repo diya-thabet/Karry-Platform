@@ -119,6 +119,8 @@ jobs:
         run: |
           dotnet build src/backend/Karry.Host -c Release
           cd src/backend/Karry.Host/bin/Release/net10.0
+          # The shift change registers one machine per tablet (300): the demo companies buy them (DemoSeed, idempotent).
+          DOTNET_ENVIRONMENT=Development Demo__ExtraAssets=400 dotnet Karry.Host.dll seed-demo
           DOTNET_ENVIRONMENT=Development ASPNETCORE_ENVIRONMENT=Development \
             RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000 \
             nohup dotnet Karry.Host.dll --urls http://127.0.0.1:5000 > /tmp/karry-load-host.log 2>&1 &
@@ -149,6 +151,51 @@ jobs:
             tests/load/results
             /tmp/karry-load-host.log
             /tmp/karry-load-workers.log
+          retention-days: 14
+
+  # P2.12a TC-P2-SYNC-006 (e2e/tests/field-offline-72h.spec.ts, tagged @nightly): a tablet 72 h offline queues 200 shifts
+  # with their photos, then sends them on a 3G network in under 15 minutes with nothing lost or refused.
+  offline:
+    name: offline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: "**/packages.lock.json"
+      - run: dotnet restore src/backend/Karry.Host --locked-mode
+      - name: Free disk space for the local stack
+        run: sudo rm -rf /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+      - name: Local stack, migrated and seeded
+        env:
+          KEEP_STACK: "1"
+        run: deploy/docker/smoke-test.sh
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          package_json_file: src/frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: src/frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: src/frontend
+      - name: 72 h offline, then 3G (tools/e2e/run.sh, @nightly specs only)
+        env:
+          E2E_INSTALL_DEPS: "1"
+          E2E_NIGHTLY: "1"
+        run: tools/e2e/run.sh
+      - name: Browser report
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: offline-report
+          path: |
+            src/frontend/e2e/playwright-report
+            src/frontend/e2e/test-results
           retention-days: 14
 
   # P1.18a OWASP ZAP baseline (hardening plan H-W1, tests/security/zap.sh): passive scan of the portal and field app
