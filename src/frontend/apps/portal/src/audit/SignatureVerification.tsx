@@ -1,7 +1,7 @@
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { StatusChip, type Status } from "@karry/ui";
 import { useAccess } from "../app/api";
-import { AuditVerifyPermission, useEnvelopeVerification } from "./api";
+import { AuditVerifyPermission, noEnvelope, useEnvelopeVerification } from "./api";
 
 const statusChip: Record<string, Status> = { verified: "ok", pending: "pending", invalid: "error" };
 const resultChip: Record<string, Status> = { pass: "ok", fail: "error", pending: "pending", not_checked: "pending" };
@@ -16,7 +16,8 @@ export function SignatureVerification({ envelopeId }: { envelopeId: string }) {
   const { t, i18n } = useTranslation();
   const { can } = useAccess();
   const verification = useEnvelopeVerification(envelopeId);
-  if (!can(AuditVerifyPermission)) return null;
+  // A version corrected in the office has no envelope: its trail is the versions and the ledger, not a signature.
+  if (!can(AuditVerifyPermission) || envelopeId === noEnvelope) return null;
 
   const at = (value: string) => new Intl.DateTimeFormat(intlLocale(i18n.language), { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
   const result = verification.data;

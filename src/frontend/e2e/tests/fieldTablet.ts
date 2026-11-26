@@ -21,10 +21,16 @@ export function meterNow(): string {
  * (Intl uses a narrow no-break space), a decimal comma. Finds a test's entries among those of the other specs.
  */
 export function shownAs(value: string): RegExp {
-  const [whole = "", tenths = "0"] = value.split(".");
-  const groups = whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ");
-  const number = `${groups.join("\\s?")}(,${tenths})?`;
-  return new RegExp(`${number}\\s*→\\s*${number}\\s*h`, "u");
+  return shownRange(value, value);
+}
+
+/** A row's "start → end" when they differ (a corrected entry), written as {@link shownAs} writes one value. */
+export function shownRange(start: string, end: string): RegExp {
+  const number = (value: string) => {
+    const [whole = "", tenths = "0"] = value.split(".");
+    return `${whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ").join("\\s?")}(,${tenths})?`;
+  };
+  return new RegExp(`${number(start)}\\s*→\\s*${number(end)}\\s*h`, "u");
 }
 
 export async function signIn(page: Page, username: string) {
@@ -94,13 +100,21 @@ export async function skipChecklist(tablet: Page) {
   await tablet.getByRole("region", { name: "Check-list de démarrage" }).getByRole("button", { name: "Passer la check-list" }).click();
 }
 
-/** Starts and ends a shift on PEL-01 at `value` (Δ 0), each step photographed and signed. */
-export async function startAndEnd(tablet: Page, value: string) {
+/** A machine of CAR-KAK a test works on: PEL-01 (optional checklist) is shared by most specs. */
+export interface Machine { code: string; search: string; checklist: boolean }
+export const pel01: Machine = { code: "PEL-01", search: "pel", checklist: true };
+/** The wheel loader, no checklist in the demo seed: for a spec whose meter values must not hold PEL-01's back. */
+export const chg01: Machine = { code: "CHG-01", search: "chg", checklist: false };
+
+/** Starts and ends a shift on `machine` (PEL-01) at `value` (Δ 0), each step photographed and signed. */
+export async function startAndEnd(tablet: Page, value: string, machine: Machine = pel01) {
   await tablet.getByRole("button", { name: "Commencer mon poste" }).click();
-  await tablet.getByLabel(/Code, nom ou étiquette/).fill("pel");
-  await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: /^PEL-01/ }).click();
+  await tablet.getByLabel(/Code, nom ou étiquette/).fill(machine.search);
+  await tablet.getByRole("list", { name: "Machines trouvées" }).getByRole("button", { name: new RegExp(`^${machine.code}`, "u") }).click();
   await tablet.getByRole("button", { name: "Choisir cette machine" }).click();
-  await skipChecklist(tablet);
+  if (machine.checklist) {
+    await skipChecklist(tablet);
+  }
   await photograph(tablet);
   await tablet.getByLabel(/Valeur de début/).fill(value);
   await tablet.getByLabel(/Raison de l’écart|Remarques/).fill("Essai de bout en bout");

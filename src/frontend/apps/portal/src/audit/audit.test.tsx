@@ -5,7 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { auditEntry, fakeApi, recordedEvent, site } from "../testing/fakeApi";
-import { dayEnd, dayStart } from "./api";
+import { dayEnd, dayStart, noEnvelope } from "./api";
 import { findTable } from "../testing/tables";
 
 const auditor = ["audit.ledger.read", "audit.ledger.verify", "organization.sites.read"];
@@ -315,6 +315,16 @@ describe("signature verification badge (US-P2-SIG-04 AC2)", () => {
     const api = fakeApi({ permissions: ["audit.ledger.read"], auditEntries: [received], envelopeVerifications: { [envelopeId]: verification("verified", allPass) } });
     const reader = await openEntry(api);
     expect(within(reader).queryByRole("region", { name: "Signature" })).not.toBeInTheDocument();
+    expect(api.auditCalls.some((call) => call.path.includes("/envelopes/"))).toBe(false);
+  });
+
+  it("shows nothing and asks nothing for a version corrected in the office, which has no envelope (P2.12a demo step 4)", async () => {
+    const corrected = auditEntry({ ...received, event: recordedEvent({ envelopeId: noEnvelope, envelopeHash: `sha256:${"a".repeat(64)}`, recordType: "shift.entry", recordVersion: 3 }) });
+    const api = fakeApi({ permissions: auditor, auditEntries: [corrected] });
+    const dialog = await openEntry(api);
+
+    expect(within(dialog).queryByRole("region", { name: "Signature" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Could not be checked")).not.toBeInTheDocument();
     expect(api.auditCalls.some((call) => call.path.includes("/envelopes/"))).toBe(false);
   });
 });

@@ -86,6 +86,12 @@ export function useLatestVerification() {
 export const envelopeReceivedEvent = "trust.envelope_received.v1";
 
 /** The verification of one signature envelope (`GET /audit/envelopes/{id}/verification`, US-P2-SIG-04). */
+/**
+ * The envelope ID of a version no tablet signed: a correction made in the office is a new version of the entry,
+ * recorded in the ledger, with no envelope (P2.8 corrections). There is nothing to verify for it.
+ */
+export const noEnvelope = "00000000-0000-0000-0000-000000000000";
+
 export function useEnvelopeVerification(envelopeId: string) {
   const api = useApi();
   const { can } = useAccess();
@@ -96,7 +102,7 @@ export function useEnvelopeVerification(envelopeId: string) {
       if (error) throw new Error("verification unavailable");
       return data;
     },
-    enabled: can(AuditVerifyPermission),
+    enabled: can(AuditVerifyPermission) && envelopeId !== noEnvelope,
     retry: false,
   });
 }

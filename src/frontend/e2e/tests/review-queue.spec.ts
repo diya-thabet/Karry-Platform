@@ -31,8 +31,8 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
     await expect(queue.or(empty)).toBeVisible();
     await expect(page.locator("table[aria-busy=true]")).toHaveCount(0);
     const shown = async () => [
-      await page.getByRole("row").filter({ hasText: shownAs(first) }).count(),
-      await page.getByRole("row").filter({ hasText: shownAs(second) }).count(),
+      await page.getByRole("row").filter({ hasText: "PEL-01" }).filter({ hasText: shownAs(first) }).count(),
+      await page.getByRole("row").filter({ hasText: "PEL-01" }).filter({ hasText: shownAs(second) }).count(),
     ];
     const [firstBefore = 0, secondBefore = 0] = await shown();
     // The page holds the first 50 items in risk order (queueSize): once the other specs have filled it, an unflagged
@@ -54,7 +54,7 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
     await expect.poll(arrived, { timeout: 10_000, intervals: [500] }).toBe(true);
 
     // Demo step 3: the second entry starts above the first's end: the gap, with the previous end beside this start.
-    const gap = queue.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
+    const gap = queue.getByRole("row").filter({ hasText: "PEL-01" }).filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
     await expect(gap).toContainText("Le début diffère de la fin précédente sur ce compteur");
     await gap.getByRole("button", { name: "Contrôler la saisie de PEL-01" }).click();
     const panel = page.getByRole("dialog", { name: "Contrôler une saisie" });

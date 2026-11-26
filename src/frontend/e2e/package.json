@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "demo": "playwright test --workers=1 field-checklist.spec.ts review-queue.spec.ts demo.spec.ts shift-report.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",

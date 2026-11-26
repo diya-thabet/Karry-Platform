@@ -17,7 +17,7 @@ test.describe("a notice reaches the operator's tablet (P2.10, ADR-0039)", () => 
 
     // The site manager rejects it: the meter on the photo does not match.
     await page.goto(`${portal("demo-carriere-b")}/review`);
-    const row = page.getByRole("table", { name: "Saisies à contrôler" }).getByRole("row").filter({ hasText: shownAs(value) }).first();
+    const row = page.getByRole("table", { name: "Saisies à contrôler" }).getByRole("row").filter({ hasText: "PEL-01" }).filter({ hasText: shownAs(value) }).first();
     await expect(row).toBeVisible({ timeout: 30_000 });
     await row.getByRole("button", { name: "Contrôler la saisie de PEL-01" }).click();
     await page.getByRole("dialog", { name: "Contrôler une saisie" }).getByRole("button", { name: "Refuser" }).click();
