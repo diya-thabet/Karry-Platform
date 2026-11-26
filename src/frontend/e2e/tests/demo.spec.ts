@@ -96,8 +96,11 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
     // Above step 4's last end on CHG-01 (its tablet knows the machine's meter from the pull).
     await startAndEnd(tablet, (Number(meterNow()) + 0.2).toFixed(1), chg01);
 
-    // Malware on the tablet raises the signed end of the shift by 100 h in the outbox (IndexedDB) before it is sent.
+    // Malware on the tablet lowers the signed start of the shift by 100 h in the outbox (IndexedDB) before it is sent,
+    // to pay for hours not worked. The start is refused, so no shift stays open for the operator on the server (an
+    // open one would hold every later spec's start).
     const changed = await tablet.evaluate(async () => {
+      interface Stored { sequence: number; payload: { record: { startValue?: string; endValue?: string } } }
       const db = await new Promise<IDBDatabase>((resolve, reject) => {
         const request = indexedDB.open("karry-field");
         request.onsuccess = () => { resolve(request.result); };
@@ -105,19 +108,20 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
       });
       const transaction = db.transaction("outbox", "readwrite");
       const outbox = transaction.objectStore("outbox");
-      const commands = await new Promise<{ sequence: number; payload: { record: { endValue?: string } } }[]>((resolve) => {
+      const commands = await new Promise<Stored[]>((resolve) => {
         const request = outbox.getAll();
-        request.onsuccess = () => { resolve(request.result as { sequence: number; payload: { record: { endValue?: string } } }[]); };
+        request.onsuccess = () => { resolve(request.result as Stored[]); };
       });
-      const end = commands.filter((command) => command.payload.record.endValue !== undefined).sort((a, b) => b.sequence - a.sequence)[0];
-      if (!end?.payload.record.endValue) return false;
-      end.payload.record.endValue = (Number(end.payload.record.endValue) + 100).toFixed(1);
-      outbox.put(end);
+      const start = commands.filter((command) => command.payload.record.startValue !== undefined && command.payload.record.endValue === undefined)
+        .sort((a, b) => a.sequence - b.sequence)[0];
+      if (!start?.payload.record.startValue) return false;
+      start.payload.record.startValue = (Number(start.payload.record.startValue) - 100).toFixed(1);
+      outbox.put(start);
       await new Promise((resolve) => { transaction.oncomplete = resolve; });
       db.close();
       return true;
     });
-    expect(changed, "the end of the shift was in the outbox").toBe(true);
+    expect(changed, "the start of the shift was in the outbox").toBe(true);
 
     await context.setOffline(false);
     const outbox = tablet.getByRole("region", { name: "Envoi des saisies" });
