@@ -18,6 +18,12 @@ internal sealed class PostgresLedgerWriter : ILedgerWriter
         IReadOnlyList<LedgerRecord> records, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(records);
+        // A long transaction (a tablet's batch) appends at its end: the head stays locked only for its last moment.
+        if (LedgerDeferral.TryDefer(transaction, unitOfWorkTenant, records))
+        {
+            return;
+        }
+
         foreach (var group in records.GroupBy(r => r.Tenant).OrderBy(g => g.Key.Value))
         {
             if (unitOfWorkTenant is { } current && current != group.Key)

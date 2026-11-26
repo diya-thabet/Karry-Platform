@@ -46,3 +46,18 @@ Decision unchanged. Details in [trust layer §13.3.1](../02-architecture/trust-l
 - Anchors are signed canonical documents in a versioned Object Lock bucket. Compliance retention stops deletion and alteration of a version but not the upload of a newer version, so the verifier trusts the **oldest** version of each key and reports any key with several versions.
 - The alert `KarryLedgerAnchoringStale` fires after 2 h without a fully successful run, or when the worker reports nothing (runbook in `docs/06-operations/runbooks/`).
 
+## Amendment: deferred append for long transactions (P2.12a, 2026-11-26)
+
+Appending locks the tenant's ledger head until the transaction commits, which keeps the sequence gap-free. A long
+transaction that appends early therefore makes every other writer of the tenant wait for its end. The P2.12a shift
+change found this with a tablet's batch (finding L-5 in [load testing](../05-quality/load-testing.md#4-findings)):
+uploads of one company ran one at a time.
+
+**Decision:** such a transaction may defer its ledger (`LedgerDeferral` in BuildingBlocks). Its owner marks it at
+the start; the ledger writer then keeps the entries instead of appending; the owner appends them right before the
+commit. The rule of this ADR holds: the entries are written in the same transaction as their change and commit or
+roll back with it, in the order they were given. A rollback to a savepoint drops the entries given after it. Only
+the sync session defers today; every other unit of work appends as before. A transaction that marks itself and
+commits without the final append would lose its entries, so the session appends in its commit path, and tests
+check the chain after deferred batches (`LedgerIntegrationTests`, the sync suites).
+

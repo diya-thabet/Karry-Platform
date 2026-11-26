@@ -9,10 +9,13 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run"
+    "test": "vitest run",
+    "bundle:k6": "node scripts/k6-bundle.mjs",
+    "check:k6-bundle": "node scripts/k6-bundle.mjs --check"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "esbuild": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }
