@@ -1,8 +1,11 @@
+using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Modules;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Notifications.Application;
 using Karry.Modules.Notifications.Domain;
 using Karry.Modules.Notifications.Infrastructure;
@@ -73,11 +76,82 @@ public sealed class NotificationsModule : IModule
             .RequirePermission(NotificationsPermissions.RulesManage)
             .WithName("ListNotificationRules");
 
+        // Web Push (ADR-0039 §5), behind notifications.web-push: a person's browser, or a tablet for its site.
+        endpoints.MapGet("/push/key", PushKeyAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetPushKey");
+
+        endpoints.MapPut("/push/subscription", SubscribeAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("SubscribeToPush");
+
+        endpoints.MapPost("/push/subscription/remove", UnsubscribeAsync)
+            .AllowAnyTenantMember()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .WithName("UnsubscribeFromPush");
+
+        endpoints.MapGet("/push/device/key", PushKeyAsync)
+            .RequireDevice()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("GetDevicePushKey");
+
+        endpoints.MapPut("/push/device/subscription", SubscribeDeviceAsync)
+            .RequireDevice()
+            .ProducesProblem(StatusCodes.Status400BadRequest)
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status404NotFound)
+            .WithName("SubscribeDeviceToPush");
+
+        endpoints.MapDelete("/push/device/subscription", UnsubscribeDeviceAsync)
+            .RequireDevice()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .WithName("UnsubscribeDeviceFromPush");
+
         endpoints.MapPut("/rules/{noticeType}", SwitchRuleAsync)
             .RequirePermission(NotificationsPermissions.RulesManage)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status404NotFound)
             .WithName("SwitchNotificationRule");
+    }
+
+    /// <summary>The VAPID public key a browser subscribes with (base64url); 404 while push is off for the company.</summary>
+    private static async Task<Results<Ok<PushKeyResponse>, ProblemHttpResult>> PushKeyAsync([FromServices] PushSubscriptions push, CancellationToken cancellationToken)
+    {
+        var result = await push.KeyAsync(cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.Ok(new PushKeyResponse(result.Value)) : result.Error.ToProblem();
+    }
+
+    /// <summary>Subscribes the caller's browser: the endpoint must be a browser push service's HTTPS address.</summary>
+    private static async Task<Results<NoContent, ProblemHttpResult>> SubscribeAsync(PushSubscriptionRequest request, [FromServices] PushSubscriptions push, CancellationToken cancellationToken)
+    {
+        var result = await push.SubscribeMineAsync(request.Endpoint, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
+    }
+
+    /// <summary>Removes the caller's subscription of this endpoint (sent in the body: an endpoint is never put in a URL).</summary>
+    private static async Task<Results<NoContent, ProblemHttpResult>> UnsubscribeAsync(PushSubscriptionRequest request, [FromServices] PushSubscriptions push, CancellationToken cancellationToken)
+    {
+        var result = await push.UnsubscribeMineAsync(request.Endpoint, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
+    }
+
+    /// <summary>Subscribes the calling tablet for its site: it is alerted when an entry of the site is rejected.</summary>
+    private static async Task<Results<NoContent, ProblemHttpResult>> SubscribeDeviceAsync(
+        PushSubscriptionRequest request, ClaimsPrincipal user, [FromServices] PushSubscriptions push, CancellationToken cancellationToken)
+    {
+        var result = await push.SubscribeDeviceAsync(DeviceCaller.From(user)!.Value, request.Endpoint, cancellationToken).ConfigureAwait(false);
+        return result.IsSuccess ? TypedResults.NoContent() : result.Error.ToProblem();
+    }
+
+    private static async Task<NoContent> UnsubscribeDeviceAsync(ClaimsPrincipal user, [FromServices] PushSubscriptions push, CancellationToken cancellationToken)
+    {
+        await push.UnsubscribeDeviceAsync(DeviceCaller.From(user)!.Value, cancellationToken).ConfigureAwait(false);
+        return TypedResults.NoContent();
     }
 
     /// <summary>The caller's channel choices: for each notice type, the channels they may turn off (digest, push).</summary>
@@ -183,3 +257,9 @@ public sealed record NoticePreferenceResponse(string Type, bool RuleEnabled, IRe
         return [.. views.Select(v => new NoticePreferenceResponse(v.Type, v.RuleEnabled, v.Channels))];
     }
 }
+
+/// <summary>The VAPID public key (base64url) a browser subscribes with.</summary>
+public sealed record PushKeyResponse(string PublicKey);
+
+/// <summary>A browser's push subscription endpoint, as <c>PushSubscription.endpoint</c> gives it.</summary>
+public sealed record PushSubscriptionRequest(string? Endpoint);

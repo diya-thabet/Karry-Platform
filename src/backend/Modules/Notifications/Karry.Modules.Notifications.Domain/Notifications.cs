@@ -102,6 +102,9 @@ public sealed record AudienceRule(bool Person, bool NoticeRole, IReadOnlyList<st
     public IReadOnlyList<string> Channels { get; init; } = [NoticeChannels.InApp];
 
     public IReadOnlyList<string> Parameters { get; init; } = [];
+
+    /// <summary>Shown on the site's tablets (the pull's <c>notices</c>): its push goes to the site's tablets, not a browser.</summary>
+    public bool Tablet { get; init; }
 }
 
 /// <summary>The default rules of Phase 2 (ADR-0039 §2), reviewed as code; a company may switch one off.</summary>
@@ -116,6 +119,7 @@ public static partial class NoticeRules
         {
             Channels = [NoticeChannels.InApp, NoticeChannels.Push],
             Parameters = ["reasonCode", "entryId"],
+            Tablet = true,
         },
         ["review.escalated"] = new(Person: false, NoticeRole: true, [], [])
         {

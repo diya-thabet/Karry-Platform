@@ -29,7 +29,7 @@ public sealed partial class NotificationsTests
         host.Mailbox.Received.Where(m => m.To == $"manager-{tenant:N}@karry.test").Should().ContainSingle()
             .Which.Should().Be(new EmailMessage($"manager-{tenant:N}@karry.test", "Awa Camara", "Karry · digest", "3 entries to review"));
         var delivery = await DeliveryAsync(tenant, key);
-        (delivery.Status, delivery.Attempts, delivery.LastError).Should().Be((EmailDeliveryStatus.Sent, 1, (string?)null));
+        (delivery.Status, delivery.Attempts, delivery.LastError).Should().Be((DeliveryStatus.Sent, 1, (string?)null));
         delivery.SentAt.Should().NotBeNull();
     }
 
@@ -45,7 +45,7 @@ public sealed partial class NotificationsTests
         var start = DateTimeOffset.UtcNow;
         await RunAsync(start);
         var failed = await DeliveryAsync(tenant, key);
-        (failed.Status, failed.Attempts, failed.LastError).Should().Be((EmailDeliveryStatus.Pending, 1, "smtp_failed"));
+        (failed.Status, failed.Attempts, failed.LastError).Should().Be((DeliveryStatus.Pending, 1, "smtp_failed"));
         failed.NextAttemptAt.Should().BeAfter(start.AddSeconds(50), "the first retry waits a minute");
 
         await RunAsync(start.AddSeconds(10));
@@ -73,9 +73,9 @@ public sealed partial class NotificationsTests
         }
 
         var noAddress = await DeliveryAsync(tenant, phoneOnly);
-        (noAddress.Status, noAddress.Attempts, noAddress.LastError).Should().Be((EmailDeliveryStatus.Failed, 1, "no_address"));
+        (noAddress.Status, noAddress.Attempts, noAddress.LastError).Should().Be((DeliveryStatus.Failed, 1, "no_address"));
         var givenUp = await DeliveryAsync(tenant, unconfigured);
-        (givenUp.Status, givenUp.Attempts, givenUp.LastError).Should().Be((EmailDeliveryStatus.Failed, EmailDelivery.MaxAttempts, "not_configured"));
+        (givenUp.Status, givenUp.Attempts, givenUp.LastError).Should().Be((DeliveryStatus.Failed, EmailDelivery.MaxAttempts, "not_configured"));
         host.Mailbox.Received.Where(m => m.To == $"never-{tenant:N}@karry.test").Should().BeEmpty();
     }
 

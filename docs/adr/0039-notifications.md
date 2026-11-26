@@ -149,6 +149,22 @@ without the kinds they turned off. Nothing to say, nothing sent. One e-mail per 
 invitations), with links to the portal's `/review` and `/notifications` (Identity's new `IAppAddresses`, the
 invitations' address). Counts and links only: no entry, reading or name. The e-mail job of 5a sends it.
 
+As built (slice 6a, server): push is on for a company when the VAPID keys are configured (`Notifications:WebPush`:
+`PublicKey`, the 65-byte P-256 point, and `PrivateKey`, its 32-byte scalar, base64url; the private key from the vault)
+and its flag `notifications.web-push` is on (default off). A push is an empty `POST` signed with VAPID (RFC 8292: an
+ES256 JWT for the push service's origin, 12 hours, the contact `Subject`): no payload, so no RFC 8291 encryption, and
+nothing on a lock screen. Subscriptions (`push_subscriptions`, RLS): a person's browser (`PUT /notifications/push/
+subscription`, any member, their own) or a tablet for its site (`PUT /notifications/push/device/subscription`, the
+device). The tablet subscribes as itself, not per person: it pulls as a device and holds the site's rejections, and the
+push says nothing, so per device is enough and needs no PIN. An endpoint must be an HTTPS address, on the default port,
+of the browsers' push services (FCM, Mozilla, Windows, Apple); redirects are not followed: a client cannot make the
+server call elsewhere (SSRF). The endpoint is a capability, never logged nor put in a URL (removal is a `POST` with a
+body). A stored notice queues pings in its own transaction (`push_pings`, RLS), only for the people reached now: a
+tablet notice (a rejection) pings the site's tablets unless its operator turned push off for it; another notice pings
+the browsers of its recipients who kept push. One ping waits per subscription at most; the Workers' `PushDeliveryJob`
+sends them every minute, retries after 1, 5 and 15 minutes, gives up after four attempts, and deletes a subscription the
+push service says is gone (404, 410).
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

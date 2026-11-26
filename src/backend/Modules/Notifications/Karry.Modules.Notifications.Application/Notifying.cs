@@ -54,7 +54,7 @@ public interface INotificationStore
 /// Who receives a notice and what they get (ADR-0039 §1, §2): the rule of its type gives the audience, resolved now
 /// through Identity; each person gets one notification per event, however often the event is delivered.
 /// </summary>
-public sealed class NoticeDelivery(INotificationStore store, INoticeAudiences audiences, TimeProvider clock)
+public sealed class NoticeDelivery(INotificationStore store, INoticeAudiences audiences, PushFanOut push, TimeProvider clock)
 {
     /// <summary>Stores the notice's notifications; returns how many people it reached for the first time.</summary>
     public async Task<int> DeliverAsync(TenantId tenant, Notice notice, CancellationToken cancellationToken)
@@ -101,15 +101,16 @@ public sealed class NoticeDelivery(INotificationStore store, INoticeAudiences au
         }
 
         var already = await store.AlreadyNotifiedAsync(notice.SourceEventId, recipients, cancellationToken).ConfigureAwait(false);
-        var reached = 0;
-        foreach (var recipient in recipients.Where(r => !already.Contains(r)))
+        var reached = recipients.Where(r => !already.Contains(r)).ToList();
+        foreach (var recipient in reached)
         {
             store.Add(Notification.For(clock, tenant, recipient, notice.Type, parameters, notice.Link, notice.SiteId, notice.SourceEventId));
-            reached++;
         }
 
+        // Web Push (ADR-0039 §5), in the same transaction: only for the people reached now, so a redelivered event alerts nobody twice.
+        await push.QueueAsync(tenant, rule, notice.Type, notice.SiteId, notice.Person, reached, cancellationToken).ConfigureAwait(false);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
-        return reached;
+        return reached.Count;
     }
 }
 
