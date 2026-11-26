@@ -56,6 +56,17 @@ signed with the server key (ADR-0033) and ledgered (`documents.shift_report_issu
 shift, the site and who issued it. Issuing the same shift again makes a new envelope; the earlier ones stay valid
 for what they say.
 
+The ledger entry is written when the document is issued, in the same transaction as the envelope: from then on the
+hashes cannot change unseen (the ledger is hash-chained and anchored). The server's signature needs the signing
+service (ADR-0033 §3), which may be down or, locally, absent: as for countersignatures (ADR-0033 §4), the document is
+issued at once and the Workers sign its envelope when the service answers. The public page answers "genuine" when the
+token and the hashes match a ledgered envelope, and shows the signature and its key version once it exists. Trust
+exposes the signer to other modules through a contract (`Trust.Contracts`), so Documents never reaches into Trust's
+application layer.
+
+The QR code is drawn by **QRCoder 1.8.1** (MIT, read from the package; published 2026-10-13; 1.9.0 was under the
+seven-day rule when chosen) with its PNG writer, which needs no `System.Drawing` call.
+
 ### 4. Public verification: an unguessable token, a fragment, one answer for every miss
 
 The QR opens `/verify/{envelopeId}#{token}` on the platform address (the `verify.` domain later). The token is 128
