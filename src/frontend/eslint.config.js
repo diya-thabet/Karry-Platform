@@ -35,6 +35,12 @@ export default tseslint.config(
     rules: { "react-refresh/only-export-components": ["error", { allowConstantExport: true }] },
   },
   {
+    // The apps' service worker scripts (Web Push, ADR-0039 §5): plain JavaScript run in the worker, not type-checked.
+    files: ["apps/*/public/**/*.js"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: { ...globals.serviceworker }, parserOptions: { projectService: false, project: null } },
+  },
+  {
     files: ["*.js", "**/*.config.{js,ts}"],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: { globals: { ...globals.node } },

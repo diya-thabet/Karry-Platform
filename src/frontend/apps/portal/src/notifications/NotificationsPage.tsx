@@ -4,6 +4,7 @@ import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, EmptyState, ErrorState, PageHeader, StatusChip } from "@karry/ui";
 import { useApi } from "../app/api";
 import { noticesKey, noticeText, portalLink, useMyNotices, type Notice } from "./api";
+import { BrowserAlerts } from "./BrowserAlerts";
 import { NoticeChoices } from "./NoticeChoices";
 
 /**
@@ -68,6 +69,7 @@ export function NotificationsPage() {
         </ul>
       )}
       <NoticeChoices />
+      <BrowserAlerts />
     </div>
   );
 }

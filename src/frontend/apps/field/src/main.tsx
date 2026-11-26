@@ -8,6 +8,7 @@ import { savedLanguage } from "@karry/ui";
 import { App } from "./App";
 import { browserCamera, takePhoto } from "./camera";
 import { browserScanner } from "./machines";
+import { browserPushPlatform, tabletPush } from "./push";
 import { browserPosition } from "./signShiftEntry";
 import { codeOf, companyOf, deviceInfo, enrollTablet } from "./tablet";
 import { unlock } from "./unlock";
@@ -62,6 +63,7 @@ createRoot(root).render(
       take: (video, deviceId) => takePhoto(video, { deviceId, appVersion: release }),
       position: browserPosition(),
       appVersion: release,
+      push: tabletPush(db, browserPushPlatform()),
     }} />
   </StrictMode>,
 );

@@ -40,7 +40,7 @@ export default defineConfig(({ mode }) => ({
           { src: "icon-maskable.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
         ],
       },
-      includeAssets: ["icon.svg", "icon-maskable.svg"],
+      includeAssets: ["icon.svg", "icon-maskable.svg", "push-sw.js"],
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,woff2,webmanifest}"],
         // The first install takes control of the page already open: without it, a tablet that goes offline before
@@ -50,6 +50,8 @@ export default defineConfig(({ mode }) => ({
         navigateFallback: "/index.html",
         // The API is never cached by the service worker: reference data lives in IndexedDB (ADR-0028 §5).
         navigateFallbackDenylist: [/^\/api\//],
+        // Web Push (ADR-0039 §5): the alert "something needs a look" and opening the app on a tap (public/push-sw.js).
+        importScripts: ["push-sw.js"],
       },
     }),
   ],

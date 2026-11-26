@@ -9,6 +9,7 @@ import { useApi } from "./app/api";
 import { ApiProvider } from "./app/ApiProvider";
 import { ErrorDialogProvider } from "./app/ErrorDialog";
 import { FlagsProvider } from "./app/FlagsProvider";
+import { BrowserPushContext, type BrowserPush } from "./notifications/push";
 import { isOperator } from "./operator/api";
 import { SupportBanner, SupportVisitProvider } from "./operator/support";
 import { supportClient, useSupportVisit, type SupportVisit } from "./operator/supportVisit";
@@ -63,8 +64,9 @@ function SupportedCompany({ visit, history }: { visit: SupportVisit; history?: R
   );
 }
 
-export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api: ApiClient; history?: RouterHistory }) {
+export function App({ i18n, auth, api, history, push }: { i18n: I18n; auth: Auth; api: ApiClient; history?: RouterHistory; push?: BrowserPush }) {
   return (
+    <BrowserPushContext value={push ?? null}>
     <AuthProvider auth={auth}>
     <ApiProvider client={api}>
     <I18nProvider i18n={i18n}>
@@ -82,5 +84,6 @@ export function App({ i18n, auth, api, history }: { i18n: I18n; auth: Auth; api:
     </I18nProvider>
     </ApiProvider>
     </AuthProvider>
+    </BrowserPushContext>
   );
 }
