@@ -44,12 +44,14 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
     await expect(tablet.getByRole("region", { name: "Envoi des saisies" }).getByText("Tout est envoyé")).toBeVisible({ timeout: 60_000 });
     // TC-P2-VER-010: the entries appear without reloading, within 10 s of the upload (the page asks every 5 s): the
     // flagged one always (it ranks first), the unflagged one when the first page still has room for it. On a full page
-    // the lowest unflagged rows leave it as new ones come, so only the flagged count is checked then.
-    const counted = async () => {
+    // the lowest unflagged rows leave it as new ones come, so only the flagged count is checked then. Other specs sign
+    // at the same values in the same minutes (meterNow has six-minute steps), so a row of theirs may come too: at least
+    // one more of each, not exactly one.
+    const arrived = async () => {
       const [firstNow, secondNow] = await shown();
-      return roomForBoth ? [firstNow, secondNow] : [secondNow];
+      return (secondNow > secondBefore) && (!roomForBoth || firstNow > firstBefore);
     };
-    await expect.poll(counted, { timeout: 10_000, intervals: [500] }).toEqual(roomForBoth ? [firstBefore + 1, secondBefore + 1] : [secondBefore + 1]);
+    await expect.poll(arrived, { timeout: 10_000, intervals: [500] }).toBe(true);
 
     // Demo step 3: the second entry starts above the first's end: the gap, with the previous end beside this start.
     const gap = queue.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
