@@ -208,7 +208,8 @@ export function QueuePage() {
               header: t("portal.review.photos"),
               cell: ({ entry }) => (entry
                 ? (
-                    <span className="flex gap-2">
+                    // Never narrower than both photos: an automatic table may give the column less (they spilled over the flags).
+                    <span className="flex min-w-max gap-2">
                       <EntryPhoto entryId={entry.id} sha256={entry.startPhoto} label={t("portal.review.startPhoto")} />
                       {entry.endPhoto && <EntryPhoto entryId={entry.id} sha256={entry.endPhoto} label={t("portal.review.endPhoto")} />}
                     </span>
@@ -221,10 +222,10 @@ export function QueuePage() {
               cell: ({ item }) => (item.flags.length === 0
                 ? <span className="text-text-muted">{t("portal.review.noFlags")}</span>
                 : (
-                    <ul className="flex flex-col gap-1">
+                    <ul className="flex max-w-60 flex-col items-start gap-1">
                       {item.flags.map((flag) => {
                         const key = flagKey(flag);
-                        return <li key={flag}>{key ? t(key) : flag}</li>;
+                        return <li key={flag}><StatusChip status="warning" wrap>{key ? t(key) : flag}</StatusChip></li>;
                       })}
                     </ul>
                   )),

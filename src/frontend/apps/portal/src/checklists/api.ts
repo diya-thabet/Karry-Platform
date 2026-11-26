@@ -56,6 +56,14 @@ export function draftsOf(checklist: Checklist | undefined): ItemDraft[] {
   return (checklist?.items ?? []).map((item) => ({ ...newItem(), code: item.code, texts: { ...item.texts }, critical: item.critical, photoOnNotOk: item.photoOnNotOk }));
 }
 
+/**
+ * The one text the builder shows for an item: the one in `language` (the company's), else the first it has (a version
+ * published when the builder still had a field per language).
+ */
+export function textOf(draft: ItemDraft, language: Language): string {
+  return draft.texts[language] ?? Object.values(draft.texts).find((text) => text.trim() !== "") ?? "";
+}
+
 /** The languages in the builder's order: the company's first (the tablet's fallback), then the others. */
 export function languagesFor(companyLanguage: string | undefined): Language[] {
   const first = supportedLanguages.find((language) => language === companyLanguage);

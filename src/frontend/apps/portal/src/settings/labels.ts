@@ -7,6 +7,17 @@ export function roleName(t: TFunction, role: { code: string; name?: string | nul
   return role.name ?? t(`roles.${role.code}`, { defaultValue: role.code });
 }
 
+/**
+ * The default roles (DefaultRoles and Roles on the server): what a person may choose from when they cannot read the
+ * company's role list (`identity.roles.read`, an administrator's). Their names are translated in the app.
+ */
+export const defaultRoles: readonly { code: string; office: boolean }[] = [
+  { code: "tenant-admin", office: true }, { code: "executive", office: true }, { code: "finance", office: true },
+  { code: "controller", office: true }, { code: "site-manager", office: true }, { code: "maintenance-planner", office: true },
+  { code: "commercial", office: true }, { code: "storekeeper", office: false }, { code: "weighmaster", office: false },
+  { code: "fuel-attendant", office: false }, { code: "mechanic", office: false }, { code: "operator", office: false },
+];
+
 /** A permission in plain words; a module that ships later without translations shows the code. */
 export function permissionLabel(t: TFunction, code: string): string {
   return t(`permissions.${code}`, { defaultValue: code });

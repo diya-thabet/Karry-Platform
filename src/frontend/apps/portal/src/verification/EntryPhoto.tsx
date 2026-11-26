@@ -26,6 +26,6 @@ export function EntryPhoto({ entryId, sha256, label, size = 64 }: { entryId: str
   useEffect(() => () => { if (url) URL.revokeObjectURL(url); }, [url]);
 
   return url
-    ? <img src={url} alt={label} width={size} height={size} className="rounded-md border border-border object-cover" style={{ width: size, height: size }} />
-    : <span role="img" aria-label={label} className="inline-block rounded-md border border-border bg-surface-muted" style={{ width: size, height: size }} />;
+    ? <img src={url} alt={label} width={size} height={size} className="shrink-0 rounded-md border border-border object-cover" style={{ width: size, height: size }} />
+    : <span role="img" aria-label={label} className="inline-block shrink-0 rounded-md border border-border bg-surface-muted" style={{ width: size, height: size }} />;
 }

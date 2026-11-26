@@ -10,6 +10,7 @@ export { QuantityInput, type MaterialState, type QuantityFactor, type QuantityIn
 export { SelectField, type SelectOption } from "./components/SelectField";
 export { Dialog } from "./components/Dialog";
 export { Drawer } from "./components/Drawer";
+export { Sheet } from "./components/Sheet";
 export { StatusChip, type Status } from "./components/StatusChip";
 export { MaskedValue, SensitiveValue, type MaybeMasked } from "./components/MaskedValue";
 export { EmptyState, ErrorState, UpgradeCard } from "./components/States";

@@ -10,7 +10,7 @@ import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
 import { useRecordDraft } from "../app/recordDraft";
 import { Trail } from "../shell/Trail";
 import { useSites } from "../sites/api";
-import { roleName } from "./labels";
+import { defaultRoles, roleName } from "./labels";
 
 type User = components["schemas"]["UserResponse"];
 type Assignment = components["schemas"]["RoleAssignmentDto"];
@@ -101,8 +101,10 @@ function UserRoles({ user }: { user: User }) {
     ...(sites.data ?? []).filter((s) => s.status === "active" || s.id === current).map((s) => ({ value: s.id, label: siteLabel(s.id) })),
     ...(current && !sites.data?.some((s) => s.id === current) ? [{ value: current, label: siteLabel(current) }] : []),
   ];
-  // Without identity.roles.read the choice is the default roles (their names are translated in the app).
-  const choices = (roles.data ?? []).filter((r) => r.office || user.kind === "field");
+  // Without identity.roles.read the choice is the default roles (their names are translated in the app); a role the
+  // person already has is always among the choices, so the field never shows empty.
+  const known = (roles.data ?? defaultRoles).filter((r) => r.office || user.kind === "field");
+  const choices = [...known, ...assignments.filter((a) => !known.some((r) => r.code === a.role)).map((a) => ({ code: a.role, office: true }))];
 
   const save = useMutation({
     meta: handlesVersionConflict,

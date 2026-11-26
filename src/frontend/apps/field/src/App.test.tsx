@@ -1,5 +1,5 @@
 import "fake-indexeddb/auto";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { generateDeviceKey, importPinKey, publicJwk } from "@karry/crypto";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
@@ -255,9 +255,15 @@ describe("finding a machine (P1.15, ADR-0028 §5)", () => {
     expect(screen.queryByRole("button", { name: "Scanner l’étiquette QR" })).not.toBeInTheDocument();
     expect(screen.getByText(/Cette tablette ne lit pas les QR codes/)).toBeInTheDocument();
 
+    // The site's machines are listed before anything is typed (owner's UI review): a tap is quicker than typing.
+    const listed = await screen.findByRole("list", { name: "Machines trouvées" });
+    expect(within(listed).getAllByRole("button")).toHaveLength(3);
+
     fireEvent.change(screen.getByLabelText(/Code, nom ou étiquette/), { target: { value: "pe" } });
-    const results = await screen.findByRole("list", { name: "Machines trouvées" });
-    expect(within(results).getAllByRole("button").map((b) => b.textContent)).toEqual(["PE-01Pelle 1", "PE-02Pelle 2"]);
+    await waitFor(() => {
+      expect(within(screen.getByRole("list", { name: "Machines trouvées" })).getAllByRole("button").map((b) => b.textContent)).toEqual(["PE-01Pelle 1", "PE-02Pelle 2"]);
+    });
+    const results = screen.getByRole("list", { name: "Machines trouvées" });
     fireEvent.click(within(results).getByRole("button", { name: /PE-02/ }));
     expect(await screen.findByRole("region", { name: "Machine choisie" })).toHaveTextContent("Pelle 2");
 

@@ -52,6 +52,9 @@ export function MachineFinder({ find, scanner, onBack, onChoose, title, who }: {
     }
   }, [find]);
 
+  // The site's machines are listed before anything is typed: on most sites they are few, and a tap is quicker.
+  useEffect(() => { void look(""); }, [look]);
+
   useEffect(() => {
     const element = video.current;
     if (!scanning || !scanner || !element) {
@@ -120,7 +123,7 @@ export function MachineFinder({ find, scanner, onBack, onChoose, title, who }: {
         </Button>
       )}
       {lookup?.kind === "unknown-label" && <p role="alert" className="font-medium text-danger">{t("field.machines.unknownLabel")}</p>}
-      {lookup?.kind === "search" && text.trim() !== "" && !selected && (
+      {lookup?.kind === "search" && !selected && (
         lookup.machines.length === 0
           ? <p>{t("field.machines.none")}</p>
           : (
