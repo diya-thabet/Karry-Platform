@@ -32,6 +32,11 @@ scan() {
 
 scan zap-baseline.py -t http://localhost:5173/ -m 2 -J portal.json -r portal.html -I
 scan zap-baseline.py -t http://localhost:5174/ -m 2 -J field.json -r field.html -I
+# P2.12a slice 5: the public verification page (US-P2-SIG-06), opened from a document's QR before any sign-in. The
+# spider cannot reach it from the portal's home; any envelope ID serves the same page and headers (securityHeaders
+# "verify"), and the token after # never reaches the server. Its API (POST /api/v1/documents/verify/{id}) is in the
+# OpenAPI scan below.
+scan zap-baseline.py -t "http://localhost:5173/verify/01930000-0000-7000-8000-000000000000#zap-baseline-token" -m 1 -J verify.json -r verify.html -I
 scan zap-api-scan.py -t "$api/openapi/v1.json" -f openapi -S -J api.json -r api.html -I
 
 # The table also goes to summary.md (the nightly job shows it on the run page).
