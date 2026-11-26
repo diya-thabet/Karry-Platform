@@ -10,6 +10,7 @@ import { Trail } from "../shell/Trail";
 import { ItemsReadPermission } from "./api";
 import { boardOf, type MachineState, type ReviewState } from "./board";
 import { EntriesReadPermission } from "./queue";
+import { ShiftReportButton } from "./ShiftReportButton";
 
 const stateStatus: Record<MachineState, Status> = { not_started: "pending", running: "ok", missing_end: "error", ended: "ok" };
 const reviewStatus: Record<ReviewState, Status> = { none: "pending", pending: "warning", decided: "ok" };
@@ -86,7 +87,10 @@ export function BoardPage() {
       {board.map(({ shift, machines: rows, counts }) => (
         <Card key={shift.code}>
           <section aria-label={t("portal.board.shift", { name: shift.name, from: time(shift.startsAt), to: time(shift.endsAt) })} className="flex flex-col gap-4">
-            <h2 className="text-lg font-semibold">{t("portal.board.shift", { name: shift.name, from: time(shift.startsAt), to: time(shift.endsAt) })}</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">{t("portal.board.shift", { name: shift.name, from: time(shift.startsAt), to: time(shift.endsAt) })}</h2>
+              <ShiftReportButton siteId={site} date={date} shift={shift.code} />
+            </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               <StatCard icon={Truck} label={t("portal.board.count.planned")} value={counts.planned} />
               <StatCard icon={Play} label={t("portal.board.count.started")} value={counts.started} />

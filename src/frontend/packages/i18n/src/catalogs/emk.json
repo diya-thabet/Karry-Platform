@@ -1647,5 +1647,7 @@
   "verify.pdf.hashing": "Taamasiyɛn bɛ jate…",
   "verify.pdf.matches": "Nin PDF ye sɛbɛn bɔlen ye",
   "verify.pdf.differs": "A tɛ tiɲɛn ye: nin PDF tɛ kelen ye ni sɛbɛn bɔlen ye",
-  "verify.pdf.failed": "Suma ma ban. A lajɛ tuguni."
+  "verify.pdf.failed": "Suma ma ban. A lajɛ tuguni.",
+  "portal.shiftReport.download": "Baara waati kibaru (PDF)",
+  "portal.shiftReport.issued": "Baara waati kibaru bɔra ka jigin"
 }

@@ -9,6 +9,7 @@ import { SignatureVerification } from "../audit/SignatureVerification";
 import { EntryPhoto } from "./EntryPhoto";
 import { correctedFields, explanationOk, ItemsReviewPermission, rejectionReasons, SecondApprovePermission } from "./decisions";
 import { EntriesReadPermission, flagKey, queueKey, type QueueRow, type ShiftEntry } from "./queue";
+import { ShiftReportButton } from "./ShiftReportButton";
 
 /**
  * One entry as a controller decides on it (US-P2-VER-02 … 04, ADR-0038 §4): the previous end on the meter beside this
@@ -136,6 +137,7 @@ function ReviewDetail({ row, initial, onClose }: { row: QueueRow; initial: "reje
         {canReview && <Button variant="secondary" onClick={() => { setDialog("reject"); }}>{t("portal.review.detail.reject")}</Button>}
         {canReview && entry && <Button variant="secondary" onClick={() => { setDialog("correct"); }}>{t("portal.review.detail.correct")}</Button>}
         {canSecond && <Button loading={secondApprove.isPending} onClick={() => { secondApprove.mutate(); }}>{t("portal.review.detail.secondApprove")}</Button>}
+        {entry?.shift && <ShiftReportButton siteId={entry.siteId} date={entry.shift.date} shift={entry.shift.code} />}
       </div>
 
       <RejectDialog open={dialog === "reject"} onClose={() => { setDialog(null); }} itemId={item.id} version={item.version} decision={decision} done={done} />

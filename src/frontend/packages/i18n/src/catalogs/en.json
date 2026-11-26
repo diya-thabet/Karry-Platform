@@ -1647,5 +1647,7 @@
   "verify.pdf.hashing": "Computing the hash…",
   "verify.pdf.matches": "This PDF is the issued document",
   "verify.pdf.differs": "Not genuine: this PDF differs from the issued document",
-  "verify.pdf.failed": "The comparison did not finish. Try again."
+  "verify.pdf.failed": "The comparison did not finish. Try again.",
+  "portal.shiftReport.download": "Shift report (PDF)",
+  "portal.shiftReport.issued": "Shift report issued and downloaded"
 }

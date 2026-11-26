@@ -1647,5 +1647,7 @@
   "verify.pdf.hashing": "جارٍ حساب البصمة…",
   "verify.pdf.matches": "ملف PDF هذا هو المستند الصادر",
   "verify.pdf.differs": "غير أصلي: يختلف ملف PDF هذا عن المستند الصادر",
-  "verify.pdf.failed": "لم تكتمل المقارنة. حاول مرة أخرى."
+  "verify.pdf.failed": "لم تكتمل المقارنة. حاول مرة أخرى.",
+  "portal.shiftReport.download": "تقرير المناوبة (PDF)",
+  "portal.shiftReport.issued": "صدر تقرير المناوبة وتم تنزيله"
 }

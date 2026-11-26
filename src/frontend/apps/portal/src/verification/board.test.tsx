@@ -1,5 +1,5 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import axe from "axe-core";
 import { signedInAuth } from "@karry/auth/testing";
 import { createI18n } from "@karry/i18n";
@@ -62,5 +62,37 @@ describe("the shift board (US-P2-VER-08)", () => {
 
     const results = await axe.run(document.body, { rules: { region: { enabled: false } } });
     expect(results.violations).toEqual([]);
+  });
+
+  it("US-P2-SIG-05: a reader of shift reports downloads each shift's report from its card", async () => {
+    const i18n = await createI18n({ language: "en", pseudo: false });
+    const auth = await signedInAuth({ stepUp: true });
+    const permissions = ["verification.items.read", "fieldops.entries.read", "assets.registry.read", "organization.sites.read"];
+    const api = fakeApi({
+      permissions: [...permissions, "documents.shift-reports.read"],
+      sites: [site()], assets: [pelle, loader], instances: [morning, night], entries: [ended, open], reviewItems: [],
+    });
+    render(<App i18n={i18n} auth={auth} api={api.client} history={createMemoryHistory({ initialEntries: ["/review/board"] })} />);
+    fireEvent.change(await screen.findByLabelText("Day"), { target: { value: "2026-11-23" } });
+
+    const nightCard = await screen.findByRole("region", { name: /^Nuit/ });
+    fireEvent.click(within(nightCard).getByRole("button", { name: "Shift report (PDF)" }));
+
+    await waitFor(() => { expect(api.shiftReportCalls).toEqual([{ siteId: site().id, date: "2026-11-23", shift: "N", language: "en" }]); });
+    expect(await screen.findByText("Shift report issued and downloaded")).toBeInTheDocument();
+  });
+
+  it("shows no report button to someone who may not read shift reports", async () => {
+    const i18n = await createI18n({ language: "en", pseudo: false });
+    const auth = await signedInAuth({ stepUp: true });
+    const api = fakeApi({
+      permissions: ["verification.items.read", "fieldops.entries.read", "assets.registry.read", "organization.sites.read"],
+      sites: [site()], assets: [pelle], instances: [morning], entries: [ended], reviewItems: [],
+    });
+    render(<App i18n={i18n} auth={auth} api={api.client} history={createMemoryHistory({ initialEntries: ["/review/board"] })} />);
+    fireEvent.change(await screen.findByLabelText("Day"), { target: { value: "2026-11-23" } });
+
+    await screen.findByRole("region", { name: /^Matin/ });
+    expect(screen.queryByRole("button", { name: "Shift report (PDF)" })).not.toBeInTheDocument();
   });
 });

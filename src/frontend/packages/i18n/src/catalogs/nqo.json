@@ -1647,5 +1647,7 @@
   "verify.pdf.hashing": "ߕߊ߯ߡߊߛߌߦߍ߲ ߓߍ ߖߊߕߋ…",
   "verify.pdf.matches": "ߣߌ߲ PDF ߦߋ ߛߍߓߍ߲ ߓߐߟߋ߲ ߦߋ",
   "verify.pdf.differs": "ߊ ߕߍ ߕߌߢߍ߲ ߦߋ: ߣߌ߲ PDF ߕߍ ߞߋߟߋ߲ ߦߋ ߣߌ ߛߍߓߍ߲ ߓߐߟߋ߲ ߦߋ",
-  "verify.pdf.failed": "ߛߎߡߊ ߡߊ ߓߊ߲. ߊ ߟߊߖߍ ߕߎߜ߭ߎߣߌ."
+  "verify.pdf.failed": "ߛߎߡߊ ߡߊ ߓߊ߲. ߊ ߟߊߖߍ ߕߎߜ߭ߎߣߌ.",
+  "portal.shiftReport.download": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߞߌߓߊߙߎ (PDF)",
+  "portal.shiftReport.issued": "ߓߊ߯ߙߊ ߥߊ߯ߕߌ ߞߌߓߊߙߎ ߓߐߙߊ ߞߊ ߖߌߜ߭ߌ߲"
 }
