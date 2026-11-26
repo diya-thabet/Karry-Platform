@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Documents.Application;
 using Karry.Modules.Documents.Domain;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -10,6 +11,9 @@ namespace Karry.Modules.Documents.Infrastructure;
 internal sealed class EnvelopeStore(DocumentsDbContext db) : IDocumentEnvelopeStore
 {
     public void Add(DocumentEnvelope envelope) => db.Envelopes.Add(envelope);
+
+    public async Task<IReadOnlyList<DocumentEnvelope>> UnsignedAsync(int take, CancellationToken cancellationToken) =>
+        await db.Envelopes.Where(e => e.SignedAt == null).OrderBy(e => e.IssuedAt).Take(take).ToListAsync(cancellationToken).ConfigureAwait(false);
 
     public Task SaveAsync(CancellationToken cancellationToken) => db.SaveChangesAsync(cancellationToken);
 }

@@ -28,6 +28,9 @@ public interface IDocumentEnvelopeStore
 {
     void Add(DocumentEnvelope envelope);
 
+    /// <summary>Envelopes still without the server's signature, oldest first.</summary>
+    Task<IReadOnlyList<DocumentEnvelope>> UnsignedAsync(int take, CancellationToken cancellationToken);
+
     Task SaveAsync(CancellationToken cancellationToken);
 }
 

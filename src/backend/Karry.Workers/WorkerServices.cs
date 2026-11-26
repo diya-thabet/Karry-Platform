@@ -74,6 +74,8 @@ internal static class WorkerServices
         services.AddNotificationsInfrastructure(connectionString);
         // Documents (ADR-0040): delivers its events (issued documents); the server signs their envelopes here (P2.11 slice 3c).
         services.AddDocumentsInfrastructure(connectionString);
+        // The server's signature on issued documents (ADR-0040 §3): only here, where the signing service is configured.
+        services.AddSingleton<Karry.Modules.Documents.Application.SignDocuments>();
 
         // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
         // The runner rebuilds the requester's access, so this host knows every module's permissions.
@@ -137,6 +139,7 @@ internal static class WorkerServices
         ScheduledJob.Of<EmailDeliveryJob>("email-deliveries", EmailDeliveryJob.Schedule),
         ScheduledJob.Of<PushDeliveryJob>("push-deliveries", PushDeliveryJob.Schedule),
         ScheduledJob.Of<NoticeRetentionJob>("notice-retention", NoticeRetentionJob.Schedule),
+        ScheduledJob.Of<DocumentSigningJob>("document-signing", DocumentSigningJob.Schedule),
         ScheduledJob.Of<CountersignJob>("countersign", CountersignJob.Schedule),
         .. anchoring ? [ScheduledJob.Of<LedgerAnchoringJob>("ledger-anchoring", LedgerAnchoringJob.Schedule)] : Array.Empty<ScheduledJob>(),
         .. keycloak ? [ScheduledJob.Of<SignInFailureImportJob>("sign-in-failure-import", SignInFailureImportJob.Schedule)] : Array.Empty<ScheduledJob>(),

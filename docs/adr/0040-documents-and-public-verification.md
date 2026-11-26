@@ -126,6 +126,15 @@ saved with its ledger entry `documents.shift_report_issued.v1` (both hashes) in 
 `Cache-Control: no-store`, its envelope in `X-Karry-Envelope`. Each call is a new envelope. The signature columns stay
 empty until the Workers sign (slice 3c).
 
+As built (slice 3c, signing): Trust's contract `IDigestSigner.TrySignAsync(sha256Digest)` answers a `DigestSignature`
+(key ID, base64 signature) or null when the signing service (OpenBao transit) is not configured or does not answer;
+`ServerDigestSigner` wraps the server signer. The Workers job `document-signing` (every minute) signs, company by
+company and 100 at a time, the envelopes not yet signed, oldest first. The signed digest is the SHA-256 of
+`{envelopeId}|{contentHash}|{pdfHash}`, so the signature covers which document, what it says and its exact bytes. An
+envelope is signed once (`DocumentEnvelope.Sign`), and the signature is ledgered (`documents.envelope_signed.v1`) in
+the same transaction. When the service does not answer, the run stops and the next minute tries again; nothing issued
+waits on it.
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per
