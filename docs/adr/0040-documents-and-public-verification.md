@@ -116,6 +116,16 @@ tests:** PDFsharp's core build cannot read 1-bit grey PNG (QRCoder's own writer)
 in place of the image without failing; the QR is therefore drawn from QRCoder's module matrix as an 8-bit grey PNG, and
 a test checks the PDF really contains the images. Tablet signatures are 8-bit RGBA (supported).
 
+As built (slice 3b, issuing): `GET /api/v1/documents/shift-reports?siteId&date&shift&language`
+(`documents.shift-reports.read`) issues the reader's report: the content (slice 2b), the signature images from the
+evidence store under the tablet that signed each entry (`EvidenceKeys.For(company, tablet, hash)`; an image the store
+cannot give leaves its cell empty, never the report undone), a new envelope ID and token (128 random bits, base64url),
+the PDF with the QR to `{Documents:VerifyOrigin}/verify/{envelopeId}#{token}`, then the envelope (`documents.envelopes`,
+RLS: site, shift, content hash, the SHA-256 of exactly the returned bytes, the token's SHA-256, who issued it, when)
+saved with its ledger entry `documents.shift_report_issued.v1` (both hashes) in one transaction. The answer is the PDF,
+`Cache-Control: no-store`, its envelope in `X-Karry-Envelope`. Each call is a new envelope. The signature columns stay
+empty until the Workers sign (slice 3c).
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

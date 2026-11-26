@@ -1,5 +1,6 @@
 using System.Globalization;
 using Karry.BuildingBlocks.Authorization;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Assets.Contracts;
 using Karry.Modules.Documents.Domain;
@@ -30,6 +31,12 @@ public static class DocumentsPermissions
             Roles.TenantAdmin, Roles.Executive, Roles.Finance, Roles.Controller, Roles.SiteManager, Roles.MaintenancePlanner, Roles.Operator),
     ];
 }
+
+/// <summary>
+/// A shift report ready to render: its content as the reader sees it, and where each signature image is in the evidence
+/// store (by the image's hash, as the content's signature cells name it).
+/// </summary>
+public sealed record ShiftReport(ShiftReportContent Content, IReadOnlyDictionary<string, string> ImageKeys);
 
 /// <summary>
 /// One entry of the report, before masking: every value the report may print, as text, and its site, so a reader's
@@ -81,7 +88,7 @@ public sealed class ShiftReportContents(
 
     public static readonly Error ShiftInvalid = Error.Validation("documents.shift_invalid", "Give the shift's code (1 to 20 characters).");
 
-    public async Task<Result<ShiftReportContent>> OfShiftAsync(Guid siteId, DateOnly date, string? shift, CancellationToken cancellationToken)
+    public async Task<Result<ShiftReport>> OfShiftAsync(Guid siteId, DateOnly date, string? shift, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(shift) || shift.Length > 20)
         {
@@ -107,8 +114,8 @@ public sealed class ShiftReportContents(
             return TooLong;
         }
 
-        var rows = await RowsAsync(siteId, found, cancellationToken).ConfigureAwait(false);
-        return Compose(caller.Current, ShiftReportColumns.All, rows, summary.Name, site, date, shift);
+        var (rows, imageKeys) = await RowsAsync(company.Value, siteId, found, cancellationToken).ConfigureAwait(false);
+        return new ShiftReport(Compose(caller.Current, ShiftReportColumns.All, rows, summary.Name, site, date, shift), imageKeys);
     }
 
     /// <summary>The masked table (TC-P2-DOC-003): the columns the reader may see, and each cell or its mask.</summary>
@@ -123,7 +130,8 @@ public sealed class ShiftReportContents(
             [.. rows.Select(row => (IReadOnlyList<string>)[.. shown.Select(c => SensitiveExport.Cell(reader, c, row)?.ToString() ?? string.Empty)])]);
     }
 
-    private async Task<IReadOnlyList<ShiftReportRow>> RowsAsync(Guid siteId, IReadOnlyList<ShiftReportEntry> found, CancellationToken cancellationToken)
+    private async Task<(IReadOnlyList<ShiftReportRow> Rows, IReadOnlyDictionary<string, string> ImageKeys)> RowsAsync(
+        Guid company, Guid siteId, IReadOnlyList<ShiftReportEntry> found, CancellationToken cancellationToken)
     {
         var outcomes = (await reviews.OfRecordsAsync([.. found.Select(e => e.RootId)], cancellationToken).ConfigureAwait(false))
             .ToDictionary(o => o.RecordId);
@@ -137,7 +145,17 @@ public sealed class ShiftReportContents(
             machines[asset] = (await assets.FindAsync(asset, cancellationToken).ConfigureAwait(false))?.Code ?? string.Empty;
         }
 
-        return
+        // The signature images: under the tablet that signed each entry, by the image's hash (sha256 hex).
+        var imageKeys = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in found)
+        {
+            if (signatures.GetValueOrDefault(entry.EnvelopeId) is { } image && image.StartsWith("sha256:", StringComparison.Ordinal))
+            {
+                imageKeys[image] = EvidenceKeys.For(company, entry.DeviceId, image["sha256:".Length..]);
+            }
+        }
+
+        IReadOnlyList<ShiftReportRow> rows =
         [
             .. found.Select(e =>
             {
@@ -158,6 +176,7 @@ public sealed class ShiftReportContents(
                     signatures.GetValueOrDefault(e.EnvelopeId, string.Empty));
             }),
         ];
+        return (rows, imageKeys);
     }
 
     /// <summary>A meter value as the content keeps it: invariant, one decimal at least (the PDF writes it in the reader's locale).</summary>

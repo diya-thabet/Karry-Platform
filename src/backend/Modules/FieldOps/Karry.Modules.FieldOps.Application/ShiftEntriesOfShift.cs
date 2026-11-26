@@ -11,6 +11,6 @@ public sealed class ShiftEntriesOfShift(IShiftEntryReader reader) : IShiftEntrie
             new EntryQuery(null, siteId, shiftDate, shiftCode, null, null, null, null, null, IShiftEntriesOfShift.MaxEntries + 1), cancellationToken).ConfigureAwait(false);
         return [.. versions.OrderBy(v => v.StartedAt).ThenBy(v => v.RootId).Select(v => new ShiftReportEntry(
             v.RootId, v.Version, v.AssetId, v.OperatorId, v.MeterKind, v.StartedAt, v.StartValue, v.EndedAt, v.EndValue,
-            v.Status.ToString().ToLowerInvariant(), v.Flags, v.EnvelopeId, v.CorrectedBy, v.Estimated))];
+            v.Status.ToString().ToLowerInvariant(), v.Flags, v.EnvelopeId, v.CorrectedBy, v.Estimated) { DeviceId = v.DeviceId })];
     }
 }
