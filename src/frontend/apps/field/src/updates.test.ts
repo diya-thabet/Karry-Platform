@@ -33,4 +33,20 @@ describe("applying a new version (US-P1-OFF-01 AC2, TC-P2-SYNC-007)", () => {
       vi.useRealTimers();
     }
   });
+
+  it("reloads after the grace period even when asking the new version to take over hangs or fails", async () => {
+    vi.useFakeTimers();
+    try {
+      const hanging = vi.fn();
+      void applyAndReload(() => new Promise<void>(() => undefined), new EventTarget(), hanging, 10_000);
+      const failing = vi.fn();
+      await applyAndReload(() => Promise.reject(new Error("no worker")), new EventTarget(), failing, 10_000);
+
+      vi.advanceTimersByTime(10_000);
+      expect(hanging).toHaveBeenCalledTimes(1);
+      expect(failing).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
