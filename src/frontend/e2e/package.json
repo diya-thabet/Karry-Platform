@@ -11,6 +11,7 @@
   "devDependencies": {
     "@playwright/test": "catalog:",
     "@types/node": "catalog:",
+    "jsqr": "catalog:",
     "typescript": "catalog:"
   }
 }

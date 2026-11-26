@@ -3,7 +3,8 @@
 // Not on the dev server: its hot reload injects inline scripts, which this policy forbids on purpose.
 // The API sends its own, stricter headers (Karry.BuildingBlocks/Api/SecurityHeaders.cs).
 
-export type App = "portal" | "field";
+/** `verify`: the portal's public verification page (`/verify/{id}`, ADR-0040 §5), stricter than the rest of the portal. */
+export type App = "portal" | "field" | "verify";
 
 /** The settings the policy depends on: the same VITE_ variables the apps read at build time. */
 export interface PolicyEnvironment {
@@ -53,7 +54,16 @@ export function contentSecurityPolicy(app: App, environment: PolicyEnvironment):
             "form-action": sources("'self'", auth),
           };
         })()
-      : {
+      : app === "verify"
+        ? {
+            // No sign-in, no map, no frame, no worker, no form: the page posts the token to its own API and nothing else.
+            "img-src": sources("'self'", "data:"),
+            "connect-src": sources("'self'", errors),
+            "worker-src": "'none'",
+            "frame-src": "'none'",
+            "form-action": "'none'",
+          }
+        : {
           "img-src": sources("'self'", "data:", "blob:"),
           // Photos and signatures go up with a pre-signed PUT straight to the evidence store (ADR-0032 §2): without its
           // origin here the browser blocks every upload (found by the P2.5 browser E2E).
@@ -88,7 +98,8 @@ export function securityHeaders(app: App, environment: PolicyEnvironment): Recor
     "Content-Security-Policy": contentSecurityPolicy(app, environment),
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Referrer-Policy": "same-origin",
+    // The verification page never tells another site where a visitor came from (the fragment is never sent anyway).
+    "Referrer-Policy": app === "verify" ? "no-referrer" : "same-origin",
     "Cross-Origin-Opener-Policy": "same-origin",
     // The field app photographs meters (camera) and records where a signature was made (geolocation, ADR-0033
     // `context.geo`, never required); nothing else is ever asked of the device.
@@ -97,4 +108,9 @@ export function securityHeaders(app: App, environment: PolicyEnvironment): Recor
         ? "camera=(self), microphone=(), geolocation=(self), payment=(), usb=()"
         : "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
   };
+}
+
+/** True for a request to the public verification page (with or without a query), which gets the `verify` policy. */
+export function isVerifyRequest(url: string | undefined): boolean {
+  return /^\/verify\/[^/?#]+\/?(?:[?#]|$)/.test(url ?? "");
 }

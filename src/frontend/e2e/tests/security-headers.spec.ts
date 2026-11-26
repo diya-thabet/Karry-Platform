@@ -23,6 +23,19 @@ for (const app of apps) {
   });
 }
 
+test("ADR-0040 §5: the public verification page has its own stricter policy, the rest of the portal keeps its own", async ({ request }) => {
+  const page = (await request.get("http://localhost:5173/verify/0192f0c1-0000-7000-8000-00000000d001")).headers();
+  expect(page["content-security-policy"]).toContain("connect-src 'self'");
+  expect(page["content-security-policy"]).toContain("frame-src 'none'");
+  expect(page["content-security-policy"]).not.toContain("localhost:8080");
+  expect(page["referrer-policy"]).toBe("no-referrer");
+  expect(page["x-frame-options"]).toBe("DENY");
+
+  const board = (await request.get("http://localhost:5173/review/board")).headers();
+  expect(board["content-security-policy"]).toContain("http://localhost:8080");
+  expect(board["referrer-policy"]).toBe("same-origin");
+});
+
 test("the API's answers carry its own stricter headers, errors included", async ({ request }) => {
   for (const path of ["/api/v1/tenancy/public/demo-carriere-a", "/api/v1/identity/users", "/api/v1/no-such-thing"]) {
     const headers = (await request.get(`http://localhost:5173${path}`)).headers();

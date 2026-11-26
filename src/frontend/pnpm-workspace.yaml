@@ -91,6 +91,8 @@ catalog:
   # Sign-in (P1.8): newest versions published >= 7 days before 2026-10-24
   oidc-client-ts: 3.5.0
   "@playwright/test": 1.64.1
+  # Reads the QR of a downloaded PDF in the browser E2E (P2.11 demo step 5). Apache-2.0, 1.4.0 published 2021.
+  jsqr: 1.4.0
 
 # Dependency install scripts are blocked by default (pnpm 12). Each decision is explicit and reviewed:
 allowBuilds:

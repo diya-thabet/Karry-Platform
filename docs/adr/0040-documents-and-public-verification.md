@@ -3,7 +3,7 @@ title: "ADR-0040: Documents and public verification"
 area: adr
 tags: [adr, phase-2, p2-11, documents, pdf, verification, qr, signatures]
 source: "P2.11 planning (sub-phases.md §P2.11, decision table), US-P2-SIG-05, US-P2-SIG-06, ADR-0007, ADR-0033, P1.9 masking"
-status: proposed
+status: accepted
 last_updated: 2026-11-26
 ---
 
@@ -160,6 +160,21 @@ policy for `/verify` alone is part of the slice 6 review.
 As built (slice 5b, the report in the portal): `ShiftReportButton` issues and downloads the report of one site, date
 and shift in the reader's language; it sits on each shift card of the board and in the review drawer of a shift
 entry, shown only with `documents.shift-reports.read`. Each click issues a new envelope (slice 3b).
+
+## Security review (P2.11 close-out, 2026-11-26)
+
+| Threat | What P2.11 does | Evidence |
+|---|---|---|
+| T-09 cross-tenant read | Envelopes stay under forced RLS; the public lookup reads only `documents.verification_keys` (envelope ID, company, token hash; declared global with its reason), then reads the envelope in a scope set to that company; a signed-in caller of another company gets the same "not found" as anyone | `VerifyingTests` (`Every_miss_gets_the_same_not_found_and_another_companys_caller_learns_nothing_more`), `TenantIsolationSuite`, `MigrationLinterTests` |
+| T-10 disclosure | The report is built from the reader's masked view (P1.9) and an absent column stays absent from the PDF; the public answer carries no person's name and no company ID | `ShiftReportContentsTests` (TC-P2-DOC-003), `ShiftReportPdfTests`, `VerifyingTests` |
+| Enumeration (TC-P2-SIG-005) | 128-bit random token, kept only as its SHA-256; every miss (malformed ID, unknown envelope, wrong, empty or oversized token) is one 404 `documents.not_found` after one key read and one constant-time comparison (a stand-in hash when there is no envelope); anonymous callers are limited per address | `VerifyingTests`, `RateLimitWiringTests` (`Public_document_verification_past_the_limit_gets_429`) |
+| Token leakage | The token is in the QR's fragment only: never in a URL the server or a proxy logs, never in the footer's printed address, posted in a body; the public page sends no referrer | `ShiftReportPdfTests`, `verify.test.tsx`, browser E2E `shift-report.spec.ts` |
+| Tampering (TC-P2-DOC-002) | The envelope keeps the SHA-256 of exactly the bytes sent; the content and PDF hashes are ledgered at issue, the server's signature over `{envelopeId}|{contentHash}|{pdfHash}` is ledgered when made; a PDF with one changed byte is "not genuine" | `IssuingTests`, `SigningTests`, `VerifyingTests`, browser E2E `shift-report.spec.ts` |
+| Page policy (§5) | `/verify/{id}` is rendered before any sign-in, with its own headers: `connect-src 'self'` (and error tracking), no frame, worker or form target, `Referrer-Policy: no-referrer`, `frame-ancestors 'none'`; the rest of the portal keeps its own | `securityHeaders.test.ts`, browser E2E `security-headers.spec.ts` |
+| Availability | Issuing never waits on the signing service; the Workers sign when it answers | `SigningTests` |
+
+Residual (threat model R-16): whoever holds a QR sees the document's company, site, shift and hashes for as long as
+the envelope exists (no revocation yet); the per-address limit is counted per API instance.
 
 ## Options considered
 
