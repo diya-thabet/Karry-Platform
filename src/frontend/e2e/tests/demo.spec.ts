@@ -1,10 +1,11 @@
 import { type Locator, type Page } from "@playwright/test";
-import { enrolledTablet, enrollmentCode, meterNow, portal, shownAs, shownRange, signIn, startAndEnd } from "./fieldTablet";
+import { chg01, enrolledTablet, enrollmentCode, meterNow, portal, shownAs, shownRange, signIn, startAndEnd } from "./fieldTablet";
 import { expect, test } from "./guard";
 import { secondFactor } from "./totp";
 
 // The Phase 2 demo script (plan.md §9.8), steps 4 and 6; steps 1, 2-3 and 5 are field-checklist, review-queue and
-// shift-report (`pnpm --filter @karry/e2e demo` runs the six together, P2.12a slice 6).
+// shift-report (`pnpm --filter @karry/e2e demo` runs the six together, P2.12a slice 6). Both run on CHG-01: the other
+// specs start PEL-01 at meterNow(), and a meter end above it would hold their starts back for minutes.
 
 /** The next meter value a tenth of an hour apart, as the tablet types it (one decimal). */
 function plus(value: string, hours: number): string {
@@ -35,12 +36,12 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
     const tabletContext = await browser.newContext({ locale: "fr-FR", permissions: ["camera"] });
     const tablet = await enrolledTablet(tabletContext, await enrollmentCode(page));
 
-    // Demo steps 1-2 in short: two shifts on PEL-01, the second typed a tenth of an hour above where the first ended.
+    // Demo steps 1-2 in short: two shifts on CHG-01, the second typed a tenth of an hour above where the first ended.
     await tabletContext.setOffline(true);
     const first = meterNow();
     const second = plus(first, 0.1);
-    await startAndEnd(tablet, first);
-    await startAndEnd(tablet, second);
+    await startAndEnd(tablet, first, chg01);
+    await startAndEnd(tablet, second, chg01);
     await tabletContext.setOffline(false);
     await expect(tablet.getByRole("region", { name: "Envoi des saisies" }).getByText("Tout est envoyé")).toBeVisible({ timeout: 60_000 });
     await tabletContext.close();
@@ -55,26 +56,26 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
     await secondFactor(controller, controllerName);
     const gap = controller.getByRole("row").filter({ hasText: shownAs(second) }).filter({ hasText: "Le début diffère de la fin précédente sur ce compteur" }).first();
     await expect(gap).toBeVisible({ timeout: 30_000 });
-    await gap.getByRole("button", { name: "Contrôler la saisie de PEL-01" }).click();
+    await gap.getByRole("button", { name: "Contrôler la saisie de CHG-01" }).click();
     const panel = controller.getByRole("dialog", { name: "Contrôler une saisie" });
     await panel.getByRole("button", { name: "Corriger" }).click();
     const correction = controller.getByRole("dialog", { name: "Corriger" });
     await correction.getByLabel(/^Début/).fill(first);
     await correction.getByLabel("Pourquoi").fill("La photo du compteur montre la fin du poste précédent.");
     await decide(controller, controllerName, () => correction.getByRole("button", { name: "Corriger" }).click(),
-      controller.getByText("Correction enregistrée : elle attend l’approbation d’une autre personne"));
+      controller.getByText("Correction enregistrée : elle attend l’approbation d’une autre personne").first());
     await controllerContext.close();
 
     // The site manager, never the corrector, gives the second approval (TC-P2-VER-003); the versions show the change.
     await page.goto(`${portal("demo-carriere-b")}/review`);
     const waiting = page.getByRole("row").filter({ hasText: shownRange(first, second) }).filter({ hasText: "En attente d’une seconde approbation" }).first();
     await expect(waiting).toBeVisible({ timeout: 30_000 });
-    await waiting.getByRole("button", { name: "Contrôler la saisie de PEL-01" }).click();
+    await waiting.getByRole("button", { name: "Contrôler la saisie de CHG-01" }).click();
     const review = page.getByRole("dialog", { name: "Contrôler une saisie" });
     await expect(review.getByText(/^Version 1 :/)).toBeVisible();
     await expect(review.getByText(/^Version 2 :/)).toBeVisible();
     await decide(page, "site-manager@demo-carriere-b.karry.test", () => review.getByRole("button", { name: "Donner la seconde approbation" }).click(),
-      page.getByText("Saisie approuvée"));
+      page.getByText("Saisie approuvée").first());
 
     // The ledger diff: the correction as recorded, before and after, in the company's audit trail.
     await page.goto(`${portal("demo-carriere-b")}/audit`);
@@ -92,7 +93,8 @@ test.describe("the Phase 2 demo (plan §9.8, P2.12a)", () => {
     const context = await browser.newContext({ locale: "fr-FR", permissions: ["camera"] });
     const tablet = await enrolledTablet(context, await enrollmentCode(page));
     await context.setOffline(true);
-    await startAndEnd(tablet, meterNow());
+    // Above step 4's last end on CHG-01 (its tablet knows the machine's meter from the pull).
+    await startAndEnd(tablet, (Number(meterNow()) + 0.2).toFixed(1), chg01);
 
     // Malware on the tablet raises the signed end of the shift by 100 h in the outbox (IndexedDB) before it is sent.
     const changed = await tablet.evaluate(async () => {
