@@ -20,6 +20,12 @@ test.describe("three days offline (P2.12a, TC-P2-SYNC-006, ADR-0031, ADR-0032) @
     // signed at its own time, as on a tablet that saw no network for three days.
     await context.setOffline(true);
     await tablet.clock.install({ time: start });
+    // The app restarts under the fake clock (its service worker serves it offline; the session is in memory only, so it
+    // comes back locked). Timers it set before the install are real ones the fake clearInterval cannot clear: the home
+    // screen's idle check would go on with a stale last touch and lock the tablet at random after the first jump.
+    await tablet.reload();
+    await expect(tablet.getByRole("heading", { name: "Déverrouiller la tablette" })).toBeVisible();
+    await unlock(tablet);
     const value = meterNow();
     const step = Math.floor((72 * hour) / shifts);
     for (let shift = 0; shift < shifts; shift++) {
