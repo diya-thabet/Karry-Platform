@@ -52,6 +52,22 @@ public sealed class FreshDeploymentTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Seed_with_extra_assets_buys_them_for_each_demo_company_once_and_never_sells_them_back()
+    {
+        (await RunAsync("migrate", "Testing")).Should().Be(0);
+        (await RunAsync("seed-demo", "Testing")).Should().Be(0);
+
+        // The load suite's shift change registers 300 machines (tests/load/shift-change.js, finding L-7).
+        (await RunAsync("seed-demo", "Testing", extraAssets: 400)).Should().Be(0);
+        (await RunAsync("seed-demo", "Testing", extraAssets: 400)).Should().Be(0);
+        (await RunAsync("seed-demo", "Testing")).Should().Be(0);
+
+        (await ScalarAsync("SELECT string_agg(terms->>'extraAssets' || '/' || (terms->>'sites'), ',' ORDER BY terms->>'sites' DESC) FROM billing.subscriptions"))
+            .Should().Be("400/2,400/1", "both companies bought them, kept their sites, and a later seed without the setting keeps them");
+        (await ScalarAsync("SELECT count(*) FROM billing.subscriptions")).Should().Be(2L);
+    }
+
+    [Fact]
     public async Task Migrate_without_the_owner_connection_string_exits_2()
     {
         (await RunAsync("migrate", "Testing", owner: string.Empty)).Should().Be(2, "the runtime role cannot change the schema");
@@ -77,7 +93,7 @@ public sealed class FreshDeploymentTests : IAsyncLifetime
         (long)(await ScalarAsync("SELECT count(*) FROM fieldops.checklist_templates"))!);
 
     /// <summary>The real entry point (<c>Program</c>) with the command, the environment and the database's two roles.</summary>
-    private Task<int> RunAsync(string command, string environment, string? owner = null)
+    private Task<int> RunAsync(string command, string environment, string? owner = null, int? extraAssets = null)
     {
         var entry = typeof(Program).Assembly.EntryPoint!;
         string[] args =
@@ -85,6 +101,7 @@ public sealed class FreshDeploymentTests : IAsyncLifetime
             command, "--environment", environment,
             $"--ConnectionStrings:Karry={database.App}",
             $"--ConnectionStrings:KarryOwner={owner ?? database.Owner}",
+            .. extraAssets is { } extra ? [$"--Demo:ExtraAssets={extra}"] : Array.Empty<string>(),
         ];
 
         // The compiler's entry point of an async Main blocks on it: run it off the test thread.
