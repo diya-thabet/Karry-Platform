@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Adapters implementing Application ports; persistence arrives with the document envelope (slice 3). -->
+  <!-- Persistence (EF Core mappings, migrations) and adapters implementing Application ports: the PDF, the envelope store. -->
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Documents.Application/Karry.Modules.Documents.Application.csproj" />
     <ProjectReference Include="../Karry.Modules.Documents.Domain/Karry.Modules.Documents.Domain.csproj" />
@@ -11,6 +11,7 @@
     <PackageReference Include="PDFsharp-MigraDoc" />
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
     <PackageReference Include="QRCoder" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

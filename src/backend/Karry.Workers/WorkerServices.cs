@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Storage;
 using Karry.Modules.Assets.Infrastructure;
 using Karry.Modules.Billing.Infrastructure;
+using Karry.Modules.Documents.Infrastructure;
 using Karry.Modules.FieldOps.Infrastructure;
 using Karry.Modules.Flags.Infrastructure;
 using Karry.Modules.Identity.Infrastructure;
@@ -71,6 +72,8 @@ internal static class WorkerServices
         services.AddVerificationInfrastructure(connectionString);
         // Notifications (ADR-0039): the FieldOps, Verification and Integrity outboxes hand their notices to it.
         services.AddNotificationsInfrastructure(connectionString);
+        // Documents (ADR-0040): delivers its events (issued documents); the server signs their envelopes here (P2.11 slice 3c).
+        services.AddDocumentsInfrastructure(connectionString);
 
         // Imports: validates and commits uploaded files (its outbox runs the import runner) and deletes files after 90 days.
         // The runner rebuilds the requester's access, so this host knows every module's permissions.
@@ -104,6 +107,7 @@ internal static class WorkerServices
         services.AddOutboxDispatcherService<VerificationDbContext>();
         services.AddOutboxDispatcherService<IntegrityDbContext>();
         services.AddOutboxDispatcherService<NotificationsDbContext>();
+        services.AddOutboxDispatcherService<DocumentsDbContext>();
 
         var anchoring = services.HasAnchoring();
         var keycloak = HasKeycloak(configuration);

@@ -32,6 +32,7 @@ public sealed class ShiftReportContentsTests
     private static readonly DateOnly Day = new(2026, 11, 26);
     private static readonly Guid Excavator = Guid.Parse("0192f0a1-0000-7000-8000-0000000000e1");
     private static readonly Guid Operator = Guid.Parse("0192f0a1-0000-7000-8000-0000000000f1");
+    private static readonly Guid Tablet = Guid.Parse("0192f0a1-0000-7000-8000-0000000000d7");
 
     private readonly Contracts world = new();
 
@@ -44,7 +45,8 @@ public sealed class ShiftReportContentsTests
         world.Outcomes.Add(new ReviewOutcome(reviewed, 1, "approved", "ctl-1", DateTimeOffset.UtcNow, null));
         world.Images[Guid.Parse("0192f0a1-0000-7000-8000-00000000e001")] = "sha256:" + new string('9', 64);
 
-        var content = (await Contents(Reader(Roles.SiteManager, Site.Id)).OfShiftAsync(Site.Id, Day, "M", CancellationToken.None)).Value;
+        var report = (await Contents(Reader(Roles.SiteManager, Site.Id)).OfShiftAsync(Site.Id, Day, "M", CancellationToken.None)).Value;
+        var content = report.Content;
 
         (content.Company, content.SiteCode, content.ShiftDate, content.ShiftCode).Should().Be(("Carrière Démo B", "CAR-KAK", Day, "M"));
         content.Columns.Should().Equal("machine", "operator", "start", "end", "delta", "unit", "status", "review", "controller", "flags", "signature");
@@ -54,6 +56,10 @@ public sealed class ShiftReportContentsTests
             ["PEL-01", "Mamadou Diallo", "1258.5", "", "", "hours", "open", "not_reviewed", "", "", ""],
         ];
         content.Rows.Should().BeEquivalentTo(expected, options => options.WithStrictOrdering());
+        report.ImageKeys.Should().Equal(new Dictionary<string, string>
+        {
+            ["sha256:" + new string('9', 64)] = $"tenants/{Company.Value:D}/devices/{Tablet:D}/evidence/{new string('9', 64)}",
+        }, "a signature image is read from the evidence of the tablet that signed the entry");
     }
 
     [Fact]
@@ -108,7 +114,8 @@ public sealed class ShiftReportContentsTests
 
     private static ShiftReportEntry Entry(Guid root, decimal start, decimal? end, string[] flags, Guid envelope) =>
         new(root, 1, Excavator, Operator, "hours", DateTimeOffset.UtcNow.AddHours(-8), start, end is null ? null : DateTimeOffset.UtcNow, end,
-            end is null ? "open" : "closed", flags, envelope, null, false);
+            end is null ? "open" : "closed", flags, envelope, null, false)
+        { DeviceId = Tablet };
 
     private ShiftReportContents Contents(ICallerAccess reader)
     {
