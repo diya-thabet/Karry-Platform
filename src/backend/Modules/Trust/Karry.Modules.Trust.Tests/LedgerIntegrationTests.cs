@@ -10,6 +10,7 @@ using Karry.SharedKernel.Identity;
 using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using Npgsql;
@@ -209,6 +210,76 @@ public sealed class LedgerIntegrationTests(LedgerDatabase postgres) : IClassFixt
 
         (await ScalarAsync<bool>(database.Admin, "SELECT has_table_privilege('karry_app', 'audit.ledger_entries', 'INSERT')")).Should().BeTrue();
         (await ScalarAsync<bool>(database.Admin, "SELECT has_table_privilege('karry_app', 'audit.ledger_entries', 'SELECT')")).Should().BeTrue();
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P1-AUD-001")]
+    public async Task A_deferred_transaction_holds_no_ledger_lock_until_its_end_and_its_entries_still_chain()
+    {
+        // P2.12a burst finding: a tablet's batch saved each command in one long transaction, and the first save locked
+        // the company's ledger head until the commit. Deferred, the entries wait for the end of the transaction.
+        var ct = TestContext.Current.CancellationToken;
+        await using var scope = Scope(TenantA);
+        var db = scope.ServiceProvider.GetRequiredService<LedgerProbeDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var dbTransaction = transaction.GetDbTransaction();
+        LedgerDeferral.Begin(dbTransaction);
+        db.Blasts.Add(Blast.Record(clock, TenantA, 1m));
+        await db.SaveChangesAsync(ct);
+        db.Blasts.Add(Blast.Record(clock, TenantA, 2m));
+        await db.SaveChangesAsync(ct);
+        LedgerDeferral.Waiting(dbTransaction).Should().Be(2);
+
+        // Another writer of the same company is not held up by the open transaction.
+        await SaveBlastAsync(TenantA, 3m).WaitAsync(TimeSpan.FromSeconds(10), ct);
+
+        await LedgerDeferral.FlushAsync(scope.ServiceProvider.GetRequiredService<ILedgerWriter>(), db.Database.GetDbConnection(), dbTransaction, ct);
+        await transaction.CommitAsync(ct);
+
+        var entries = await EntriesAsync(TenantA);
+        entries.Select(e => e.Sequence).Should().Equal(1L, 2L, 3L);
+        LedgerVerifier.Verify(entries).IsValid.Should().BeTrue();
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM ledgerprobe.blasts")).Should().Be(3);
+    }
+
+    [Fact]
+    [Trait("TestCase", "TC-P1-AUD-006")]
+    public async Task Rolling_back_to_a_savepoint_drops_its_deferred_entries_and_a_rolled_back_transaction_leaves_none()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using (var scope = Scope(TenantA))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<LedgerProbeDbContext>();
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            var dbTransaction = transaction.GetDbTransaction();
+            LedgerDeferral.Begin(dbTransaction);
+            db.Blasts.Add(Blast.Record(clock, TenantA, 1m));
+            await db.SaveChangesAsync(ct);
+            await transaction.CreateSavepointAsync("command", ct);
+            LedgerDeferral.Savepoint(dbTransaction, "command");
+            db.Blasts.Add(Blast.Record(clock, TenantA, 2m));
+            await db.SaveChangesAsync(ct);
+            await transaction.RollbackToSavepointAsync("command", ct);
+            LedgerDeferral.RollbackTo(dbTransaction, "command");
+            LedgerDeferral.Waiting(dbTransaction).Should().Be(1, "the entry of the command rolled back went with it");
+            await LedgerDeferral.FlushAsync(scope.ServiceProvider.GetRequiredService<ILedgerWriter>(), db.Database.GetDbConnection(), dbTransaction, ct);
+            await transaction.CommitAsync(ct);
+        }
+
+        await using (var scope = Scope(TenantA))
+        {
+            var db = scope.ServiceProvider.GetRequiredService<LedgerProbeDbContext>();
+            await using var transaction = await db.Database.BeginTransactionAsync(ct);
+            LedgerDeferral.Begin(transaction.GetDbTransaction());
+            db.Blasts.Add(Blast.Record(clock, TenantA, 9m));
+            await db.SaveChangesAsync(ct);
+            LedgerDeferral.Discard(transaction.GetDbTransaction());
+            await transaction.RollbackAsync(ct);
+        }
+
+        (await EntriesAsync(TenantA)).Should().ContainSingle();
+        (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM ledgerprobe.blasts")).Should().Be(1);
+        LedgerVerifier.Verify(await EntriesAsync(TenantA)).IsValid.Should().BeTrue();
     }
 
     [Fact]

@@ -41,6 +41,12 @@ export default tseslint.config(
     languageOptions: { globals: { ...globals.serviceworker }, parserOptions: { projectService: false, project: null } },
   },
   {
+    // Build scripts of the packages (e.g. the k6 bundle of @karry/crypto): plain Node modules, not type-checked.
+    files: ["packages/*/scripts/**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
+    languageOptions: { globals: { ...globals.node }, parserOptions: { projectService: false, project: null } },
+  },
+  {
     files: ["*.js", "**/*.config.{js,ts}"],
     ...tseslint.configs.disableTypeChecked,
     languageOptions: { globals: { ...globals.node } },

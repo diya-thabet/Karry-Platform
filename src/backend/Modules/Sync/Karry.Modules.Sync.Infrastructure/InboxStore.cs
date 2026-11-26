@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Karry.BuildingBlocks.Ledger;
 using Karry.BuildingBlocks.Sync;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Sync.Domain;
@@ -9,13 +10,16 @@ using Npgsql;
 
 namespace Karry.Modules.Sync.Infrastructure;
 
-internal sealed class InboxStore(SyncDbContext db) : IInboxStore
+internal sealed class InboxStore(SyncDbContext db, ILedgerWriter ledger) : IInboxStore
 {
     public async Task<IInboxSession> OpenAsync(Guid deviceId, IReadOnlyCollection<CommandId> ids, CancellationToken cancellationToken)
     {
         // One upload of a tablet at a time (findings C-5, C-7): the lock is taken before anything is read, so the reads
         // below see every upload of this tablet that came before, and the lock is released with the transaction.
         var transaction = await db.Database.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        // The batch's ledger entries are appended right before its commit (LedgerDeferral, P2.12a burst finding): the
+        // company's ledger head is then locked for that moment only, not while every command of the batch is handled.
+        LedgerDeferral.Begin(transaction.GetDbTransaction());
         try
         {
             var lockKey = $"sync.inbox:{deviceId}";
@@ -29,17 +33,18 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
                     && !db.Inbox.Any(i => i.DeviceId == w.DeviceId && i.Id == w.Id))
                 .OrderBy(w => w.Sequence).Take(InboxRules.MaxWaiting).ToListAsync(cancellationToken).ConfigureAwait(false);
             var clock = await db.Clocks.SingleOrDefaultAsync(c => c.DeviceId == deviceId, cancellationToken).ConfigureAwait(false);
-            return new Session(db, transaction, deviceId, stored, unhandled, last, waiting, clock);
+            return new Session(db, ledger, transaction, deviceId, stored, unhandled, last, waiting, clock);
         }
         catch
         {
+            LedgerDeferral.Discard(transaction.GetDbTransaction());
             await transaction.DisposeAsync().ConfigureAwait(false);
             throw;
         }
     }
 
     private sealed class Session(
-        SyncDbContext db, IDbContextTransaction transaction, Guid deviceId, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last,
+        SyncDbContext db, ILedgerWriter ledger, IDbContextTransaction transaction, Guid deviceId, IReadOnlySet<CommandId> stored, IReadOnlySet<CommandId> unhandled, long last,
         IReadOnlyList<WaitingCommand> waiting, DeviceClock? clock)
         : IInboxSession, ISyncTransaction
     {
@@ -57,11 +62,23 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
 
         DbTransaction ISyncTransaction.Transaction => transaction.GetDbTransaction();
 
-        public Task SavepointAsync(string name, CancellationToken cancellationToken) => transaction.CreateSavepointAsync(name, cancellationToken);
+        public async Task SavepointAsync(string name, CancellationToken cancellationToken)
+        {
+            await transaction.CreateSavepointAsync(name, cancellationToken).ConfigureAwait(false);
+            LedgerDeferral.Savepoint(transaction.GetDbTransaction(), name);
+        }
 
-        public Task ReleaseAsync(string name, CancellationToken cancellationToken) => transaction.ReleaseSavepointAsync(name, cancellationToken);
+        public async Task ReleaseAsync(string name, CancellationToken cancellationToken)
+        {
+            await transaction.ReleaseSavepointAsync(name, cancellationToken).ConfigureAwait(false);
+            LedgerDeferral.Release(transaction.GetDbTransaction(), name);
+        }
 
-        public Task RollbackToAsync(string name, CancellationToken cancellationToken) => transaction.RollbackToSavepointAsync(name, cancellationToken);
+        public async Task RollbackToAsync(string name, CancellationToken cancellationToken)
+        {
+            await transaction.RollbackToSavepointAsync(name, cancellationToken).ConfigureAwait(false);
+            LedgerDeferral.RollbackTo(transaction.GetDbTransaction(), name);
+        }
 
         public void Add(InboxCommand command) => db.Inbox.Add(command);
 
@@ -91,17 +108,23 @@ internal sealed class InboxStore(SyncDbContext db) : IInboxStore
             try
             {
                 await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
+                await LedgerDeferral.FlushAsync(ledger, db.Database.GetDbConnection(), transaction.GetDbTransaction(), cancellationToken).ConfigureAwait(false);
                 await transaction.CommitAsync(cancellationToken).ConfigureAwait(false);
                 return true;
             }
             catch (DbUpdateException ex) when (ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
             {
+                LedgerDeferral.Discard(transaction.GetDbTransaction());
                 await transaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
                 db.ChangeTracker.Clear();
                 return false;
             }
         }
 
-        public ValueTask DisposeAsync() => transaction.DisposeAsync();
+        public ValueTask DisposeAsync()
+        {
+            LedgerDeferral.Discard(transaction.GetDbTransaction());
+            return transaction.DisposeAsync();
+        }
     }
 }

@@ -3,8 +3,9 @@
 # (`Karry.Host migrate`, `seed-demo`), Keycloak up, Karry.Host on :5000 started with the load-run limits:
 #   RateLimits__PerPersonPerMinute=100000 RateLimits__AnonymousPerAddressPerMinute=100000
 # (six demo accounts stand for many people, and setup enrols the tablets from one address; the tablet and company
-# limits stay as in production). Runs H-L1 (devices.js: burst and shift), TC-P1-TEN-005 (tenants.js mixed) and the
-# spike (tenants.js spike), one at a time, and keeps each summary in tests/load/results/<time>/ (git-ignored).
+# limits stay as in production). Runs H-L1 (devices.js: burst and shift), TC-P1-TEN-005 (tenants.js mixed), the
+# spike (tenants.js spike) and the P2.12a shift change (shift-change.js, then outbox-drained.sh: Karry.Workers must
+# run), one at a time, and keeps each summary in tests/load/results/<time>/ (git-ignored).
 # Exit code: non-zero when any threshold fails. TABLETS, REQUESTS, VUS and SPIKE_VUS change the sizes; PAUSE_SECONDS
 # the wait between runs (65 s: one rate-limit window).
 set -euo pipefail
@@ -42,6 +43,14 @@ sleep "$pause"
 run tenants-mixed -e SCENARIO=mixed "$here/tenants.js"
 sleep "$pause"
 run tenants-spike -e SCENARIO=spike "$here/tenants.js"
+
+# P2.12a shift-change burst (shift-change.js), then the queue gate: every outbox drained within 10 s (needs Karry.Workers).
+sleep "$pause"
+since="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+run shift-change "$here/shift-change.js"
+echo "== outboxes drained"
+if SINCE="$since" "$here/outbox-drained.sh" > "$out/outbox-drained.txt" 2>&1; then echo "   passed"; else status=1; echo "   FAILED"; fi
+cat "$out/outbox-drained.txt"
 
 if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
   python3 "$here/summary.py" "$out" >> "$GITHUB_STEP_SUMMARY"

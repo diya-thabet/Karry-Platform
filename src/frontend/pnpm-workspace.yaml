@@ -93,6 +93,8 @@ catalog:
   "@playwright/test": 1.64.1
   # Reads the QR of a downloaded PDF in the browser E2E (P2.11 demo step 5). Apache-2.0, 1.4.0 published 2021.
   jsqr: 1.4.0
+  # Bundles @karry/crypto for the k6 load suite (P2.12a); the version Vite already brings.
+  esbuild: 0.28.2
 
 # Dependency install scripts are blocked by default (pnpm 12). Each decision is explicit and reviewed:
 allowBuilds:

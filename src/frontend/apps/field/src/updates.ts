@@ -40,6 +40,7 @@ export function useUpdateAvailable(updates: AppUpdates): boolean {
  * The new version only takes over once the old one has finished the requests it is serving, so a slow or hanging
  * request can hold the switch back indefinitely. After `graceMs` the page reloads anyway: the new version is told to
  * skip waiting and takes over as soon as the old one is idle, and the outbox lives in IndexedDB, so nothing is lost.
+ * The grace period starts before the request to skip waiting, which can hang or fail too.
  */
 export async function applyAndReload(
   skipWaiting: () => Promise<void>,
@@ -55,6 +56,12 @@ export async function applyAndReload(
     }
   };
   container?.addEventListener("controllerchange", once, { once: true });
-  await skipWaiting();
+  // The grace reload is set first: asking the new version to take over can itself hang (the old worker busy), and the
+  // tablet then sat on a disabled "Update" button for good (CI browser E2E, TC-P2-SYNC-007, 2026-11-26).
   setTimeout(once, graceMs);
+  try {
+    await skipWaiting();
+  } catch {
+    // The grace reload still comes; the new version takes over at the next load.
+  }
 }

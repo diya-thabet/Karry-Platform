@@ -95,11 +95,12 @@ jobs:
 
 
   # P1.18a load suite (docs/05-quality/load-testing.md): 500 signed tablets (burst and shift, H-L1), TC-P1-TEN-005
-  # (10,000 mixed requests of two companies, 0 leaks, p95 < 300 ms) and a 300-user spike, against the local stack.
+  # (10,000 mixed requests of two companies, 0 leaks, p95 < 300 ms) and a 300-user spike, against the local stack;
+  # P2.12a shift change (300 tablets × 10 signed commands with photos, outboxes drained within 10 s by Karry.Workers).
   load:
     name: load
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
@@ -123,6 +124,12 @@ jobs:
             nohup dotnet Karry.Host.dll --urls http://127.0.0.1:5000 > /tmp/karry-load-host.log 2>&1 &
           for _ in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:5000/health/ready && exit 0; sleep 2; done
           cat /tmp/karry-load-host.log; exit 1
+      # The outboxes' subscribers (review items, flags, notices) run in Karry.Workers: the shift change's queue gate.
+      - name: Karry.Workers
+        run: |
+          dotnet build src/backend/Karry.Workers -c Release
+          cd src/backend/Karry.Workers/bin/Release/net10.0
+          DOTNET_ENVIRONMENT=Development nohup dotnet Karry.Workers.dll > /tmp/karry-load-workers.log 2>&1 &
       - run: tools/ci/install-tool.sh k6
       - name: Load suite
         # Correctness gates only: a shared runner's response times are noise (tests/load/lib/karry.js latencyGate).
@@ -141,6 +148,7 @@ jobs:
           path: |
             tests/load/results
             /tmp/karry-load-host.log
+            /tmp/karry-load-workers.log
           retention-days: 14
 
   # P1.18a OWASP ZAP baseline (hardening plan H-W1, tests/security/zap.sh): passive scan of the portal and field app
