@@ -16,6 +16,17 @@ export function meterNow(): string {
   return `${String(Math.floor(tenths / 10))}.${String(tenths % 10)}`;
 }
 
+/**
+ * A row's "start → end" as the portal writes it in French ("492 135,5 → 492 135,5 h"): thousands apart by any space
+ * (Intl uses a narrow no-break space), a decimal comma. Finds a test's entries among those of the other specs.
+ */
+export function shownAs(value: string): RegExp {
+  const [whole = "", tenths = "0"] = value.split(".");
+  const groups = whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ");
+  const number = `${groups.join("\\s?")}(,${tenths})?`;
+  return new RegExp(`${number}\\s*→\\s*${number}\\s*h`, "u");
+}
+
 export async function signIn(page: Page, username: string) {
   await page.locator("#username").fill(username);
   await page.locator("#password").fill(password);

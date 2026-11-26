@@ -1,20 +1,9 @@
-import { enrolledTablet, enrollmentCode, meterNow, portal, startAndEnd } from "./fieldTablet";
+import { enrolledTablet, enrollmentCode, meterNow, portal, shownAs, startAndEnd } from "./fieldTablet";
 import { expect, test } from "./guard";
 
 /** The next meter value a tenth of an hour apart, as the tablet types it (one decimal). */
 function plus(value: string, hours: number): string {
   return (Number(value) + hours).toFixed(1);
-}
-
-/**
- * A row's "start → end" as the portal writes it in French ("492 135,5 → 492 135,5 h"): thousands apart by any space
- * (Intl uses a narrow no-break space), a decimal comma. Finds this test's entries among those of the other specs.
- */
-function shownAs(value: string): RegExp {
-  const [whole = "", tenths = "0"] = value.split(".");
-  const groups = whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ");
-  const number = `${groups.join("\\s?")}(,${tenths})?`;
-  return new RegExp(`${number}\\s*→\\s*${number}\\s*h`, "u");
 }
 
 test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
