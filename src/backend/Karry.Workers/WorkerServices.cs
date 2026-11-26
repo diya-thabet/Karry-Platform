@@ -129,6 +129,7 @@ internal static class WorkerServices
         ScheduledJob.Of<ReviewEscalationJob>("review-escalation", ReviewEscalationJob.Schedule),
         ScheduledJob.Of<UnsettledGapsJob>("unsettled-gaps", UnsettledGapsJob.Schedule),
         ScheduledJob.Of<MissingEndJob>("missing-ends", MissingEndJob.Schedule),
+        ScheduledJob.Of<DigestJob>("digests", DigestJob.Schedule),
         ScheduledJob.Of<EmailDeliveryJob>("email-deliveries", EmailDeliveryJob.Schedule),
         ScheduledJob.Of<CountersignJob>("countersign", CountersignJob.Schedule),
         .. anchoring ? [ScheduledJob.Of<LedgerAnchoringJob>("ledger-anchoring", LedgerAnchoringJob.Schedule)] : Array.Empty<ScheduledJob>(),
