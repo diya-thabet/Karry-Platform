@@ -21,10 +21,16 @@ export function meterNow(): string {
  * (Intl uses a narrow no-break space), a decimal comma. Finds a test's entries among those of the other specs.
  */
 export function shownAs(value: string): RegExp {
-  const [whole = "", tenths = "0"] = value.split(".");
-  const groups = whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ");
-  const number = `${groups.join("\\s?")}(,${tenths})?`;
-  return new RegExp(`${number}\\s*→\\s*${number}\\s*h`, "u");
+  return shownRange(value, value);
+}
+
+/** A row's "start → end" when they differ (a corrected entry), written as {@link shownAs} writes one value. */
+export function shownRange(start: string, end: string): RegExp {
+  const number = (value: string) => {
+    const [whole = "", tenths = "0"] = value.split(".");
+    return `${whole.replace(/\B(?=(\d{3})+(?!\d))/gu, " ").split(" ").join("\\s?")}(,${tenths})?`;
+  };
+  return new RegExp(`${number(start)}\\s*→\\s*${number(end)}\\s*h`, "u");
 }
 
 export async function signIn(page: Page, username: string) {
