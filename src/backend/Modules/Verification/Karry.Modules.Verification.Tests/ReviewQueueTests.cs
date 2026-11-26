@@ -116,6 +116,29 @@ public sealed class ReviewQueueTests(VerificationHost host) : IClassFixture<Veri
         RecordOf((await changed.Content.ReadFromJsonAsync<JsonElement>(Ct)).GetProperty("items")[0]).Should().Be(flagged, "a new flagged entry comes first");
     }
 
+    [Fact]
+    [Trait("Story", "US-P2-VER-06")]
+    public async Task A_sites_counts_for_the_daily_digest_are_its_waiting_items_those_overdue_and_the_days_corrections()
+    {
+        var tenant = await ProvisionAsync();
+        var (site, elsewhere) = (Guid.CreateVersion7(), Guid.CreateVersion7());
+        var overdue = await SubmitAsync(tenant, Entry(site));
+        await SubmitAsync(tenant, Entry(site));
+        var correctedToday = await SubmitAsync(tenant, Entry(site));
+        var correctedLastWeek = await SubmitAsync(tenant, Entry(site));
+        await SubmitAsync(tenant, Entry(elsewhere));
+        await ExecuteAsync($"UPDATE verification.review_items SET due_at = now() - interval '1 hour' WHERE record_id = '{overdue}'");
+        await ExecuteAsync($"UPDATE verification.review_items SET status = 'approved', corrected_by = 'ctl-1', created_at = now() - interval '2 hours' WHERE record_id = '{correctedToday}'");
+        await ExecuteAsync($"UPDATE verification.review_items SET status = 'approved', corrected_by = 'ctl-1', created_at = now() - interval '7 days' WHERE record_id = '{correctedLastWeek}'");
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var now = DateTimeOffset.UtcNow;
+        var counts = await scope.ServiceProvider.GetRequiredService<IReviewCounts>().OfSiteAsync(site, now.AddDays(-1), now, Ct);
+
+        counts.Should().Be(new ReviewCounts(Pending: 2, Overdue: 1, Corrected: 1));
+    }
+
     private static Guid RecordOf(JsonElement item) => item.GetProperty("recordId").GetGuid();
 
     private static ReviewSubmission Entry(Guid site, params string[] flags) =>

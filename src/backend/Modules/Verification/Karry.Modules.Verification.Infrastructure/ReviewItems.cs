@@ -13,6 +13,22 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Karry.Modules.Verification.Infrastructure;
 
+
+/// <summary>A site's review counts for the daily digest (US-P2-VER-06 AC2): read in the company's unit of work (RLS).</summary>
+internal sealed class ReviewCountsReader(VerificationDbContext db) : IReviewCounts
+{
+    public async Task<ReviewCounts> OfSiteAsync(Guid siteId, DateTimeOffset since, DateTimeOffset now, CancellationToken cancellationToken)
+    {
+        var site = db.Items.AsNoTracking().Where(i => i.SiteId == siteId);
+        var waiting = site.Where(i => i.Status == ReviewStatuses.Pending || i.Status == ReviewStatuses.AwaitingSecond);
+        var pending = await waiting.CountAsync(cancellationToken).ConfigureAwait(false);
+        var overdue = await waiting.CountAsync(i => i.DueAt < now, cancellationToken).ConfigureAwait(false);
+        // A correction is a new item for the corrected version, created when the controller corrected it.
+        var corrected = await site.CountAsync(i => i.CorrectedBy != null && i.CreatedAt >= since && i.CreatedAt < now, cancellationToken).ConfigureAwait(false);
+        return new ReviewCounts(pending, overdue, corrected);
+    }
+}
+
 /// <summary>
 /// Puts record versions up for review for the other modules (ADR-0037 §1), joined to their transaction: the version,
 /// its review item and the item's ledger entry commit together.
@@ -209,6 +225,7 @@ public static class VerificationInfrastructure
         // Its events reach other modules (notices, ADR-0039): dispatched by the Workers.
         services.AddOutboxDispatcher<VerificationDbContext>(eventAssemblies: typeof(Domain.ReviewItem).Assembly);
         services.AddScoped<IReviewIntake, ReviewIntake>();
+        services.AddScoped<IReviewCounts, ReviewCountsReader>();
         services.AddScoped<IReviewItemReader, ReviewItemReader>();
         services.AddScoped<ReviewReading>();
         services.AddScoped<ReviewNotices>();

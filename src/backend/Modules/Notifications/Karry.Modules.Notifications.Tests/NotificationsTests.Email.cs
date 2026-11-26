@@ -40,7 +40,7 @@ public sealed partial class NotificationsTests
         var person = Guid.CreateVersion7();
         host.People.Contacts[person] = new NoticeContact($"retry-{tenant:N}@karry.test", "Retry");
         var key = await QueueAsync(tenant, person);
-        host.Mailbox.NextOutcomes.Enqueue(EmailOutcome.Failed);
+        host.Mailbox.Answer($"retry-{tenant:N}@karry.test", EmailOutcome.Failed);
 
         var start = DateTimeOffset.UtcNow;
         await RunAsync(start);
@@ -67,7 +67,7 @@ public sealed partial class NotificationsTests
         var at = DateTimeOffset.UtcNow;
         for (var attempt = 0; attempt < EmailDelivery.MaxAttempts; attempt++)
         {
-            host.Mailbox.NextOutcomes.Enqueue(EmailOutcome.NotConfigured);
+            host.Mailbox.Answer($"never-{tenant:N}@karry.test", EmailOutcome.NotConfigured);
             await RunAsync(at);
             at = at.AddHours(5);
         }

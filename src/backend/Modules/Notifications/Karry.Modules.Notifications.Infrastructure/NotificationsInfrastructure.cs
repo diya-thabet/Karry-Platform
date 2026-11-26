@@ -57,6 +57,15 @@ internal sealed class NotificationStore(NotificationsDbContext db) : INotificati
 
     public void Add(NoticePreference preference) => db.Preferences.Add(preference);
 
+    public async Task<IReadOnlyList<Notification>> SiteNoticesAsync(
+        Guid siteId, IReadOnlyCollection<string> types, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken)
+    {
+        var wanted = types.ToList();
+        return await db.Notifications.AsNoTracking()
+            .Where(n => n.SiteId == siteId && wanted.Contains(n.Type) && n.CreatedAt >= from && n.CreatedAt < to)
+            .OrderBy(n => n.Id).ToListAsync(cancellationToken).ConfigureAwait(false);
+    }
+
     public async Task<IReadOnlyList<EmailDelivery>> DueEmailsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken) =>
         await db.EmailDeliveries
             .Where(d => d.Status == EmailDeliveryStatus.Pending && d.NextAttemptAt <= now)
@@ -104,6 +113,9 @@ public static class NotificationsInfrastructure
         // E-mail (ADR-0039 §4): the records and their sending; the IEmailSender itself is the platform's (Identity's SMTP).
         services.AddScoped<EmailDeliveries>();
         services.AddSingleton<DeliverEmails>();
+        // The daily digest at 07:00 site time (ADR-0039 §4); it reads the sites, the review counts and the portal's address.
+        services.AddScoped<DailyDigests>();
+        services.AddSingleton<QueueDigests>();
         // The tablet's pull (ADR-0039 §3): its site's notices for the people who work on tablets.
         services.AddScoped<ISyncSource, NoticesSync>();
         return services;

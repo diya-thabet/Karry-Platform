@@ -36,6 +36,9 @@ public interface INotificationStore
 
     void Add(NoticePreference preference);
 
+    /// <summary>A site's notices of <paramref name="types"/> created from <paramref name="from"/> to <paramref name="to"/> (excluded), for its daily digest.</summary>
+    Task<IReadOnlyList<Notification>> SiteNoticesAsync(Guid siteId, IReadOnlyCollection<string> types, DateTimeOffset from, DateTimeOffset to, CancellationToken cancellationToken);
+
     /// <summary>E-mails waiting whose next attempt is due at <paramref name="now"/>, oldest first.</summary>
     Task<IReadOnlyList<EmailDelivery>> DueEmailsAsync(DateTimeOffset now, int take, CancellationToken cancellationToken);
 

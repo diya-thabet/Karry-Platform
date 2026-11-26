@@ -77,3 +77,19 @@ public static class ReviewRecordTypes
     /// <summary>A shift entry's ended version (FieldOps, ADR-0034).</summary>
     public const string ShiftEntry = "fieldops.shift_entry";
 }
+
+/// <summary>
+/// A site's review work for a manager's daily digest (US-P2-VER-06 AC2): items waiting for a decision now, those of them
+/// past their due time, and corrections made in the period.
+/// </summary>
+public sealed record ReviewCounts(int Pending, int Overdue, int Corrected);
+
+/// <summary>The current company's review counts of one site (RLS), for the daily digest (ADR-0039 §4).</summary>
+public interface IReviewCounts
+{
+    /// <summary>
+    /// Pending and overdue at <paramref name="now"/>; corrections made from <paramref name="since"/> to
+    /// <paramref name="now"/>.
+    /// </summary>
+    Task<ReviewCounts> OfSiteAsync(Guid siteId, DateTimeOffset since, DateTimeOffset now, CancellationToken cancellationToken);
+}

@@ -136,6 +136,19 @@ after 1, 5, 15, 60 and 240 minutes and given up after the sixth attempt; a perso
 Workers' `EmailDeliveryJob` sends the due ones every minute, company by company, saving each outcome before the next
 send. Logs carry neither address nor text (T-18).
 
+As built (slice 5b): `DailyDigests` queues the digests of the current company; the Workers' `DigestJob` runs it every
+15 minutes, company by company. A site's digest is due from 07:00 to noon in the site's time zone (NodaTime, as
+Organization; an unknown zone is read as UTC; the noon limit catches up after downtime without mailing in the
+afternoon), and covers yesterday 07:00 to today 07:00 local, so a clock change is a 23- or 25-hour day. It goes to the
+site's managers and to everyone with a digest notice about the site in that period (the types whose rule uses the
+digest channel and is on). A manager's digest carries the site's review counts (Verification's new `IReviewCounts`:
+waiting now, of which overdue, corrections since yesterday 07:00; US-P2-VER-06 AC2); they follow the choices of
+`review.escalated` (the company's switch and the person's digest preference). A person's notices are counted by kind,
+without the kinds they turned off. Nothing to say, nothing sent. One e-mail per person, site and day (the delivery key
+`digest:{person}:{site}:{day}`), in French then English (the server does not know the reader's language, as for
+invitations), with links to the portal's `/review` and `/notifications` (Identity's new `IAppAddresses`, the
+invitations' address). Counts and links only: no entry, reading or name. The e-mail job of 5a sends it.
+
 ## Options considered
 
 1. **Outbox subscribers in a Notifications module (chosen).** One place for rules, preferences and delivery; the

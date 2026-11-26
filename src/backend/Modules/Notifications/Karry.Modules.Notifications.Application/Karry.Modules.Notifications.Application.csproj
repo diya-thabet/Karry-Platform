@@ -1,12 +1,19 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Delivering and reading notifications: the services behind the API and the contract (ADR-0039). -->
+  <!-- Delivering and reading notifications: the services behind the API and the contract (ADR-0039). The daily digest
+       reads the sites' time zones (NodaTime, as Organization) and the review counts through their modules' contracts. -->
   <ItemGroup>
     <ProjectReference Include="../Karry.Modules.Notifications.Domain/Karry.Modules.Notifications.Domain.csproj" />
     <ProjectReference Include="../Karry.Modules.Notifications.Contracts/Karry.Modules.Notifications.Contracts.csproj" />
     <ProjectReference Include="../../Identity/Karry.Modules.Identity.Contracts/Karry.Modules.Identity.Contracts.csproj" />
+    <ProjectReference Include="../../Organization/Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
     <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../../Verification/Karry.Modules.Verification.Contracts/Karry.Modules.Verification.Contracts.csproj" />
     <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
   </ItemGroup>
 
 </Project>
