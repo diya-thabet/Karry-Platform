@@ -172,3 +172,13 @@ public static partial class SignatureEnvelopes
     [GeneratedRegex("^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,7})?(Z|[+-][0-9]{2}:[0-9]{2})\\z", RegexOptions.CultureInvariant)]
     private static partial Regex DeviceTime();
 }
+
+/// <summary>
+/// The handwritten signature images of stored envelopes, for documents that print them (the shift report, ADR-0040):
+/// the evidence hash of each envelope's image (the image itself is read from the evidence store). Envelopes without a
+/// handwritten signature, unknown or of another company (RLS), are left out.
+/// </summary>
+public interface IEnvelopeImages
+{
+    Task<IReadOnlyDictionary<Guid, string>> ImageHashesAsync(IReadOnlyCollection<Guid> envelopeIds, CancellationToken cancellationToken);
+}

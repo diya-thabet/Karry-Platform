@@ -33,6 +33,25 @@ public sealed class UserNamesTests(IdentityHost host) : IClassFixture<IdentityHo
     }
 
     [Fact]
+    public async Task Names_come_back_by_user_id_field_people_included_and_only_for_the_current_company()
+    {
+        var members = new TenantMembers(host);
+        var tenant = await members.TenantAsync();
+        var other = await members.TenantAsync();
+        var office = await members.InsertAsync(tenant, "Office", [("site-manager", null)], $"ids-{Guid.NewGuid():N}", employeeId: null);
+        var field = await members.FieldUserAsync(tenant, ("operator", null));
+        var theirs = await members.FieldUserAsync(other, ("operator", null));
+
+        await using var scope = host.Services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(tenant));
+        var names = await scope.ServiceProvider.GetRequiredService<IUserNames>().ByIdAsync([office, field, theirs, Guid.CreateVersion7()], Ct);
+
+        names.Should().BeEquivalentTo(new Dictionary<Guid, string> { [office] = "Seeded Member", [field] = "Seeded Member" },
+            "operators sign on tablets without an account; another company's people and unknown IDs are left out");
+        (await scope.ServiceProvider.GetRequiredService<IUserNames>().ByIdAsync([], Ct)).Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task No_subjects_ask_nothing()
     {
         await using var scope = host.Services.CreateAsyncScope();

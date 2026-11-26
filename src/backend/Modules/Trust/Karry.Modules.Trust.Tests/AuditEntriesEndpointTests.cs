@@ -283,6 +283,9 @@ public sealed class AuditEntriesEndpointTests(LedgerDatabase postgres) : IClassF
             Task.FromResult<IReadOnlyDictionary<string, string>>(subjects.Contains("alice")
                 ? new Dictionary<string, string> { ["alice"] = "Alice Ben Salah" }
                 : new Dictionary<string, string>());
+
+        public Task<IReadOnlyDictionary<Guid, string>> ByIdAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, string>>(new Dictionary<Guid, string>());
     }
 
     private static string[] Rows(string csv) =>

@@ -5,9 +5,11 @@ using System.Text.Json.Nodes;
 using Karry.BuildingBlocks.Devices;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Trust.Contracts;
 using Karry.Modules.Trust.Domain;
 using Karry.Modules.Trust.Infrastructure;
+using Karry.SharedKernel.Tenancy;
 using Karry.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -73,6 +75,25 @@ public sealed class EnvelopeRecorderTests(LedgerDatabase postgres) : IClassFixtu
         // A typed event: the audit viewer turns it back into the event and finds the envelope to verify.
         (new EventSerializer([typeof(EnvelopeReceived).Assembly]).Deserialize(EnvelopeLedger.ReceivedEvent, ledger) as EnvelopeReceived)!.EnvelopeHash.Should().Be(hash);
         (await ScalarAsync<long>(database.Admin, "SELECT count(*) FROM audit.ledger_entries")).Should().Be(1);
+    }
+
+    [Fact]
+    [Trait("Story", "US-P2-SIG-05")]
+    public async Task The_handwritten_signature_image_of_an_envelope_is_its_signed_image_hash_and_none_without_one()
+    {
+        var full = Vectors.GetProperty("valid")[1];
+        await RecordAsync(Submission(TenantA, VectorDevice, Minimal.GetProperty("envelope"), Minimal.GetProperty("deviceSignature").GetString()!));
+        await RecordAsync(Submission(TenantA, VectorDevice, full.GetProperty("envelope"), full.GetProperty("deviceSignature").GetString()!));
+        var (minimalId, fullId) = (Guid.Parse(Minimal.GetProperty("envelope").GetProperty("envelopeId").GetString()!), Guid.Parse(full.GetProperty("envelope").GetProperty("envelopeId").GetString()!));
+
+        await using var scope = services.CreateAsyncScope();
+        scope.ServiceProvider.GetRequiredService<ITenantContext>().Set(new TenantId(TenantA));
+        var images = await scope.ServiceProvider.GetRequiredService<IEnvelopeImages>().ImageHashesAsync([minimalId, fullId, Guid.CreateVersion7()], Ct);
+
+        images.Should().BeEquivalentTo(new Dictionary<Guid, string>
+        {
+            [fullId] = full.GetProperty("envelope").GetProperty("handwritten").GetProperty("imageHash").GetString()!,
+        }, "the minimal envelope has no handwritten signature and an unknown one is left out");
     }
 
     [Fact]

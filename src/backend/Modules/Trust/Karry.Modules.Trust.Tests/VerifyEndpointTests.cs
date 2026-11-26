@@ -78,6 +78,9 @@ public sealed class VerifyEndpointTests(LedgerDatabase postgres) : IClassFixture
             Task.FromResult<IReadOnlyDictionary<string, string>>(subjects.Contains("user-1")
                 ? new Dictionary<string, string> { ["user-1"] = "Amel Controller" }
                 : new Dictionary<string, string>());
+
+        public Task<IReadOnlyDictionary<Guid, string>> ByIdAsync(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyDictionary<Guid, string>>(new Dictionary<Guid, string>());
     }
 
     private static async Task<JsonElement> LatestAsync(HttpClient client, Guid tenant)
