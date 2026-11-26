@@ -50,7 +50,11 @@ test.describe("three days offline (P2.12a, TC-P2-SYNC-006, ADR-0031, ADR-0032) @
     });
     await context.setOffline(false);
     const online = Date.now();
-    await tablet.getByRole("button", { name: "Actualiser" }).click();
+    // Back online, the tablet starts sending by itself ("Actualiser" is disabled while it does); tapped only if it has not.
+    const refresh = tablet.getByRole("button", { name: "Actualiser" });
+    if (await refresh.isEnabled()) {
+      await refresh.click();
+    }
     await expect(outbox.getByText("Tout est envoyé")).toBeVisible({ timeout: 15 * 60_000 });
     const took = Date.now() - online;
     console.log(`TC-P2-SYNC-006: ${String(shifts * 2)} commands with their photos sent in ${(took / 60_000).toFixed(1)} min on 3G`);
