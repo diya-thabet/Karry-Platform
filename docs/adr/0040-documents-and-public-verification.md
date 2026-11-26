@@ -157,6 +157,10 @@ A PDF dropped or chosen there is hashed with Web Crypto and only its hash is pos
 the issued document. The page runs under the portal's page policy (no inline or remote script, no framing); a stricter
 policy for `/verify` alone is part of the slice 6 review.
 
+As built (slice 5b, the report in the portal): `ShiftReportButton` issues and downloads the report of one site, date
+and shift in the reader's language; it sits on each shift card of the board and in the review drawer of a shift
+entry, shown only with `documents.shift-reports.read`. Each click issues a new envelope (slice 3b).
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

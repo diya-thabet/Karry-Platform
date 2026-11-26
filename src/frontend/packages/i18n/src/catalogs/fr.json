@@ -1647,5 +1647,7 @@
   "verify.pdf.hashing": "Calcul de l’empreinte…",
   "verify.pdf.matches": "Ce PDF est le document émis",
   "verify.pdf.differs": "Non authentique : ce PDF diffère du document émis",
-  "verify.pdf.failed": "La comparaison n’a pas abouti. Réessayez."
+  "verify.pdf.failed": "La comparaison n’a pas abouti. Réessayez.",
+  "portal.shiftReport.download": "Rapport de poste (PDF)",
+  "portal.shiftReport.issued": "Rapport de poste émis et téléchargé"
 }

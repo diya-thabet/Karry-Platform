@@ -199,6 +199,7 @@ export function fakeApi(options: {
   const supportCalls: { method: string; path: string; header: string | null }[] = [];
   let importSteps = 0;
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
+  const shiftReportCalls: Record<string, string>[] = [];
   const requested: string[] = [];
   const operatorTenants: OperatorTenant[] = [...(options.operatorTenants ?? [])];
   const tenantSubscriptions: Record<string, Subscription> = { ...options.tenantSubscriptions };
@@ -653,6 +654,13 @@ export function fakeApi(options: {
     const audited = auditRoute(request.method, url);
     if (audited) {
       return audited;
+    }
+
+    if (request.method === "GET" && url.pathname === "/api/v1/documents/shift-reports") {
+      shiftReportCalls.push(Object.fromEntries(url.searchParams));
+      return new Response(new Uint8Array([0x25, 0x50, 0x44, 0x46]), {
+        status: 200, headers: { "Content-Type": "application/pdf", "X-Karry-Envelope": "0192f0c1-0000-7000-8000-00000000d001" },
+      });
     }
 
     const machine = assetsRoute(request.method, url, body, request.headers.get("If-Match"));
@@ -1259,6 +1267,8 @@ export function fakeApi(options: {
     sent,
     /** Calls of the audit API with their query (filters, cursor). */
     auditCalls,
+    /** Shift reports issued, with their query (site, date, shift, language). */
+    shiftReportCalls,
     /** Every path asked, in order (reads included). */
     requested,
     /** Every ask of the review queue with its query and `If-None-Match`. */
