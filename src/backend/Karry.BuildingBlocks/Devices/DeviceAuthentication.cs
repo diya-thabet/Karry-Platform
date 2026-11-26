@@ -170,9 +170,9 @@ public sealed class DeviceAuthenticationHandler(
             using var key = ECDsa.Create(new ECParameters { Curve = ECCurve.NamedCurves.nistP256, Q = new ECPoint { X = device.X, Y = device.Y } });
             return key.VerifyData(data, signature, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
-        catch (CryptographicException)
+        catch (Exception exception) when (exception is CryptographicException or NotSupportedException)
         {
-            return false; // a stored point not on the curve verifies nothing
+            return false; // a stored point not on the curve verifies nothing (Windows CNG throws PlatformNotSupportedException)
         }
     }
 

@@ -105,7 +105,7 @@ Trust boundaries: **TB1** device/user ↔ cloud; **TB2** application ↔ databas
 
 | Date | Phase | Change | By |
 |---|---|---|---|
-| 2026-11-26 | P2.12a | Security review of sync and signatures: every attack of the Phase 2 list is a CI test (TC-P2-SIG-002…005, TC-P2-SYNC-001/008/012, TC-P2-VER-003); one test added (a re-signed replay under a stored command ID); no code change needed; R-16 unchanged ([review](../04-phases/phase-02-field-operations/p2.12a-security-review.md)) | Software architect |
+| 2026-11-26 | P2.12a | Security review of sync and signatures: every attack of the Phase 2 list is a CI test (TC-P2-SIG-002…005, TC-P2-SYNC-001/008/012, TC-P2-VER-003); one test added (a re-signed replay under a stored command ID); an off-curve enrolment key now refused on Windows too (finding S-4); R-16 unchanged ([review](../04-phases/phase-02-field-operations/p2.12a-security-review.md)) | Software architect |
 | 2026-11-26 | P2.11 | Documents and public verification (ADR-0040 accepted, security review in its "Security review" section): T-09 and T-10 extended to the shift report and its public check; enumeration (TC-P2-SIG-005), token leakage, tampering (TC-P2-DOC-002) and the `/verify` page policy reviewed; new residual risk R-16 (a QR holder reads the document's metadata, no revocation yet) | Software architect |
 | 2026-11-20 | P2.7 | Integrity flags close-out (ADR-0036 accepted, security review in its "Security review" section): T-01, T-03, T-04, T-05, T-06 extended to flags and rule settings; R-13 and R-14 mitigated; no new residual risk | Software architect |
 | 2026-11-20 | P2.7 | RULE-FO-10 (ADR-0036 slice 7d): R-14 mitigated, a start without its operator's recent required checklist is flagged on the server | Software architect |

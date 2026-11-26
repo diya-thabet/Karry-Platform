@@ -298,9 +298,11 @@ public sealed class Device : AggregateRoot<DeviceId>, ITenantOwned
             using var key = ECDsa.Create(new ECParameters { Curve = ECCurve.NamedCurves.nistP256, Q = new ECPoint { X = x, Y = y } });
             return key.VerifyData(Encoding.UTF8.GetBytes(text), proof, HashAlgorithmName.SHA256, DSASignatureFormat.IeeeP1363FixedFieldConcatenation);
         }
-        catch (CryptographicException)
+        catch (Exception exception) when (exception is CryptographicException or NotSupportedException)
         {
-            return false; // not a point of the curve
+            // Not a point of the curve: OpenSSL (Linux) throws CryptographicException, Windows CNG
+            // PlatformNotSupportedException ("the curve or its parameters are not valid").
+            return false;
         }
     }
 
