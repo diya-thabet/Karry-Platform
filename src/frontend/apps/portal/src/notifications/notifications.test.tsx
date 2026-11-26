@@ -50,6 +50,24 @@ describe("the notification centre in the portal (US-P2-NOT-01 AC1, ADR-0039)", (
     expect(within(list).queryAllByText("New")).toHaveLength(0);
   });
 
+  it("lets the person turn off the daily e-mail or push for a kind of notice, never the list itself", async () => {
+    const api = fakeApi({ permissions: [], noticeRulesOff: ["asset.unsafe"] });
+    await renderAt("/notifications", api);
+
+    const choices = await screen.findByRole("region", { name: "How you are told" });
+    expect(within(choices).queryByRole("checkbox", { name: /In the app/ })).not.toBeInTheDocument();
+    expect(within(choices).getByText("Your company does not send this kind of notice for now.")).toBeInTheDocument();
+    const push = within(choices).getByRole("checkbox", { name: "Rejected entry: Push alert" });
+    expect(push).toBeChecked();
+
+    fireEvent.click(push);
+    expect(await screen.findByText("Your choice is saved.")).toBeInTheDocument();
+    await waitFor(() => { expect(push).not.toBeChecked(); });
+    expect(api.writes().filter((w) => w.method === "PUT").map((w) => [w.path, w.body]))
+      .toEqual([["/api/v1/notifications/preferences/review.rejected/push", { enabled: false }]]);
+    expect(within(choices).getByRole("checkbox", { name: "Overdue review: Daily e-mail" })).toBeChecked();
+  });
+
   it("says when there is nothing", async () => {
     await renderAt("/notifications", fakeApi({ permissions: [] }));
     expect(await screen.findByText("No notification.")).toBeInTheDocument();

@@ -111,6 +111,8 @@ export function fakeApi(options: {
   correctionWaits?: boolean;
   /** The signed-in person's notifications, newest first (default: none). */
   notices?: Notice[];
+  /** Notice types the company switched off (default: none). */
+  noticeRulesOff?: string[];
   /** What `GET /identity/me/field-account` answers (default: linked, no namesake). */
   fieldAccount?: { linked: boolean; unlinkedNamesake: boolean };
   /** Every published checklist version, any machine type (default: none). */
@@ -170,6 +172,20 @@ export function fakeApi(options: {
   const correctionWaits = options.correctionWaits ?? false;
   const settlements: { action: string; ifMatch: string | null; body: unknown }[] = [];
   const notices: Notice[] = [...(options.notices ?? [])];
+  // The default rules' channels (ADR-0039 §2) and the company's switches and the person's choices, all on at first.
+  const noticeChannels: Record<string, string[]> = {
+    "review.rejected": ["in_app", "push"],
+    "review.escalated": ["in_app", "digest"],
+    "asset.unsafe": ["in_app", "push"],
+    "integrity.fraud_suspected": ["in_app", "digest"],
+    "integrity.missing_end": ["in_app", "digest"],
+  };
+  const noticeRules = Object.entries(noticeChannels).map(([type, channels]) => ({
+    type, enabled: !(options.noticeRulesOff ?? []).includes(type), channels, changedAt: null as string | null, changedBy: null as string | null,
+  }));
+  const choices: Record<string, Record<string, boolean>> = Object.fromEntries(Object.entries(noticeChannels).map(([type, channels]) =>
+    [type, Object.fromEntries(channels.filter((c) => c !== "in_app").map((c) => [c, true]))]));
+  const preferences = () => noticeRules.map((rule) => ({ type: rule.type, ruleEnabled: rule.enabled, channels: { ...choices[rule.type] } }));
   const integrityFlags: IntegrityFlag[] = [...(options.integrityFlags ?? [])];
   const policyVersions: PolicyVersion[] = [...(options.policyVersions ?? [])];
   const meters: Record<string, Meter[]> = { ...options.meters };
@@ -440,6 +456,36 @@ export function fakeApi(options: {
         const count = notices.filter((n) => n.readAt === null).length;
         notices.forEach((n, index) => { notices[index] = { ...n, readAt: n.readAt ?? "2026-11-25T10:00:00Z" }; });
         return json(200, { count });
+      }
+
+      // The company's rule switches and the person's channel choices (ADR-0039 §2).
+      if (request.method === "GET" && url.pathname === "/api/v1/notifications/rules") {
+        return json(200, noticeRules);
+      }
+
+      if (request.method === "GET" && url.pathname === "/api/v1/notifications/preferences") {
+        return json(200, preferences());
+      }
+
+      const ruleMatch = /^\/api\/v1\/notifications\/rules\/([^/]+)$/.exec(url.pathname);
+      const rule = noticeRules.find((r) => r.type === decodeURIComponent(ruleMatch?.[1] ?? ""));
+      if (request.method === "PUT" && rule) {
+        rule.enabled = (body as { enabled: boolean }).enabled;
+        rule.changedAt = "2026-11-26T09:00:00Z";
+        rule.changedBy = "admin-1";
+        return json(200, rule);
+      }
+
+      const choiceMatch = /^\/api\/v1\/notifications\/preferences\/([^/]+)\/([^/]+)$/.exec(url.pathname);
+      const choice = choices[decodeURIComponent(choiceMatch?.[1] ?? "")];
+      if (request.method === "PUT" && choiceMatch && choice) {
+        const channel = decodeURIComponent(choiceMatch[2] ?? "");
+        if (!(channel in choice)) {
+          return problem(400, "notifications.channel_invalid");
+        }
+
+        choice[channel] = (body as { enabled: boolean }).enabled;
+        return json(200, preferences());
       }
 
       const readMatch = /^\/api\/v1\/notifications\/([^/]+)\/read$/.exec(url.pathname);

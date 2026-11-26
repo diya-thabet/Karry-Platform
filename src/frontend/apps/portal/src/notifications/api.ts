@@ -69,3 +69,35 @@ export function useMyNotices() {
     refetchInterval: noticesPollMs,
   });
 }
+
+export type NoticeRule = components["schemas"]["NoticeRuleView"];
+export type NoticePreference = components["schemas"]["NoticePreferenceResponse"];
+
+/** Switch the company's notice rules (ADR-0039 §2): a company administrator's, with a recent sign-in to switch one off. */
+export const NoticeRulesManagePermission = "notifications.rules.manage";
+
+export const noticeRulesKey = ["notifications", "rules"] as const;
+export const noticePreferencesKey = ["notifications", "preferences"] as const;
+
+/** A notice type's short name, for the lists of rules and choices (the sentences are `noticeText`'s). */
+export function noticeTypeName(t: TFunction, type: string): string {
+  return t(`portal.noticeType.${type}`, { defaultValue: type });
+}
+
+/** The company's notice rules: each type, on or off, its channels, who switched it last. */
+export function useNoticeRules() {
+  const api = useApi();
+  return useQuery({
+    queryKey: noticeRulesKey,
+    queryFn: async () => (await api.GET("/api/v1/notifications/rules")).data ?? [],
+  });
+}
+
+/** The signed-in person's channel choices: for each type, the channels they may turn off (digest, push). */
+export function useNoticePreferences() {
+  const api = useApi();
+  return useQuery({
+    queryKey: noticePreferencesKey,
+    queryFn: async () => (await api.GET("/api/v1/notifications/preferences")).data ?? [],
+  });
+}
