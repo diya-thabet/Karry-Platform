@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/pdf-engine/" />
+  <Folder Name="/pdf-engine/tests/">
+    <Project Path="pdf-engine/tests/Karry.Spikes.PdfEngine.Tests/Karry.Spikes.PdfEngine.Tests.csproj" />
+  </Folder>
   <Folder Name="/rls-pooling/" />
   <Folder Name="/rls-pooling/bench/">
     <Project Path="rls-pooling/bench/Karry.Spikes.RlsPooling.Bench/Karry.Spikes.RlsPooling.Bench.csproj" />

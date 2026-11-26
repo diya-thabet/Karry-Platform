@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   dotnet:
-    name: rls-pooling + signature-interop (.NET)
+    name: rls-pooling + signature-interop + pdf-engine (.NET)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     services:
@@ -43,7 +43,7 @@ jobs:
           global-json-file: spikes/global.json
       - run: dotnet restore Karry.Spikes.slnx --locked-mode
       - run: dotnet build Karry.Spikes.slnx -c Release --no-restore
-      - name: Test (TC-P0-RLS-*, TC-P0-SIG-*)
+      - name: Test (TC-P0-RLS-*, TC-P0-SIG-*, P2.11 PDF engine)
         run: dotnet test --solution Karry.Spikes.slnx -c Release --no-build --report-xunit-trx --results-directory ${{ github.workspace }}/spikes/TestResults
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()

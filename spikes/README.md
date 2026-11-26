@@ -8,6 +8,7 @@ Throwaway-quality **code**, production-quality **evidence**. Each spike answers 
 | WP-P0-11 | [field-capture-pwa](field-capture-pwa/README.md) + [signature-interop](signature-interop/README.md) | Can a non-extractable WebCrypto key persist, sign offline, and be verified by the .NET server? | ✅ Survives 10 restarts, non-exportable, verifies in Node and .NET. ⚠ Lost on "clear site data", so re-enrollment flow required |
 | WP-P0-10 | [field-capture-pwa](field-capture-pwa/README.md) | Does the offline outbox (Dexie + service worker) keep data across reloads/restarts and sync exactly once? | ✅ in desktop Chromium (1,000 entries + 50 × 200 KB photos). ⏳ Real 2 GB Android tablet, 72 h run: manual device-lab step |
 | WP-P0-13 | [pg-extensions](pg-extensions/README.md) | Are PostGIS + TimescaleDB + pgvector available together on PostgreSQL 17 and 18? | ✅ PG 17.11 and 18.6: PostGIS 3.6.4, TimescaleDB 2.31.0, pgvector 0.8.7, pgcrypto (CI, 4 consecutive green runs). ⏳ Managed-provider check depends on hosting decision (WP-P0-14) |
+| P2.11 slice 1 | [pdf-engine](pdf-engine/README.md) | Can PDFsharp + MigraDoc 6.2.4 (MIT) render the 200-entry shift report with signature images and embedded fonts in < 10 s? | ✅ 0.6–0.8 s cold, 15 pages, fonts embedded as subsets; licence MIT read from the package; transitive Pkcs pinned to the patched release |
 
 ## Run locally
 
