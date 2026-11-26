@@ -48,7 +48,7 @@ test.describe("the controller's review queue (P2.9, ADR-0038)", () => {
     // at the same values in the same minutes (meterNow has six-minute steps), so a row of theirs may come too: at least
     // one more of each, not exactly one.
     const arrived = async () => {
-      const [firstNow, secondNow] = await shown();
+      const [firstNow = 0, secondNow = 0] = await shown();
       return (secondNow > secondBefore) && (!roomForBoth || firstNow > firstBefore);
     };
     await expect.poll(arrived, { timeout: 10_000, intervals: [500] }).toBe(true);
