@@ -82,6 +82,19 @@ sign-in subject, when, the reason code; an escalation is not a decision), Trust 
 handwritten signature image hash read from each envelope as signed; the image comes from the evidence store), Identity
 `IUserNames.ByIdAsync` (names by user ID, field people included). Machine codes come from Assets' `IAssetDirectory`.
 
+As built (slice 2b, the Documents module): `Karry.Modules.Documents` (Contracts, Domain, Application, Infrastructure,
+Api, Tests), registered in the Host and the Workers. `ShiftReportContents.OfShiftAsync(site, date, shift)` checks the
+reader's scope on the site (`documents.shift-reports.read`, site-scoped, office roles and operators; another site gets
+the same "not found" as an unknown one), reads the entries, review outcomes, names (by ID for operators, by subject for
+controllers), machine codes and signature image hashes in one call per contract, refuses a shift above 2000 entries
+rather than printing it short, and masks the table with `SensitiveExport`. Rows are site-scoped (`ISiteScoped`), so a
+reader's field access on that site applies: found by the TC-P2-DOC-003 test, where a site manager first lost a column
+they may read. `ShiftReportContent` is the table as the reader sees it (column codes, rows of text); its canonical form
+(RFC 8785) and `sha256:` hash are what the footer prints and the envelope will sign. **Masking today:** no module
+declares a sensitive field (shift entries carry no money, threat model P2.4), so the report has no masked column yet;
+TC-P2-DOC-003 proves the wiring with a test-only sensitive field, and any field declared later is masked in the report
+without further work.
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

@@ -1188,6 +1188,7 @@
   "permissions.materials.catalog.manage": "Fɛnlu ani girinyalu dabɔ ani ka u yɛlɛma",
   "permissions.assets.registry.read": "Masinlu ani u ka jatebagalu ye",
   "permissions.assets.registry.manage": "Masinlu sɛbɛn, ka u taa ani ka u yɛlɛma, jatebaga kalannilu sɛbɛn",
+  "permissions.documents.shift-reports.read": "I ka sitɛw ka baara rapɔrɔw lajɛ ani k'u bɔ",
   "permissions.fieldops.entries.read": "Baara waati sɛbɛnlu ani u yɛlɛmalu lajɛ",
   "permissions.fieldops.checklists.read": "Baara daminɛ lajɛli sɛbɛnlu ani u yɛlɛmalu lajɛ",
   "permissions.fieldops.checklists.manage": "Baara daminɛ lajɛli sɛbɛnlu bɔ",

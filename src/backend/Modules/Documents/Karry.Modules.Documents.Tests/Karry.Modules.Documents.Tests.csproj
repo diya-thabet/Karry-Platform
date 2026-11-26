@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Unit tests of the Documents module (test settings come from Directory.Build.props). -->
+  <ItemGroup>
+    <ProjectReference Include="../Karry.Modules.Documents.Api/Karry.Modules.Documents.Api.csproj" />
+    <!-- Direct references so Stryker (nightly mutation testing) can find the projects it mutates. -->
+    <ProjectReference Include="../Karry.Modules.Documents.Domain/Karry.Modules.Documents.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Documents.Application/Karry.Modules.Documents.Application.csproj" />
+    <ProjectReference Include="../Karry.Modules.Documents.Infrastructure/Karry.Modules.Documents.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
