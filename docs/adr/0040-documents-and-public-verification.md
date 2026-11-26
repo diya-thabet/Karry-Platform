@@ -32,6 +32,14 @@ needs the owner's approval, so it is only the fallback. Slice 1 measures the can
 shift; this section records the result. Fonts are embedded (an open-licence font in the repository), never the
 system's.
 
+**Spike result (slice 1, 2026-11-26, [spikes/pdf-engine](../../spikes/pdf-engine/README.md)):** PDFsharp + MigraDoc
+6.2.4 is chosen. The licence is MIT, read from the `PDFsharp-MigraDoc` and `PDFsharp` 6.2.4 packages (6.5.0's says
+AGPL-3.0-only). The 200-entry shift, each entry with its own signature image, renders in 0.6–0.8 s on the first run of
+the process (15 A4 landscape pages, 302 KB), far under the 10 s budget. Noto Sans Regular and Bold (SIL OFL 1.1, in
+`src/backend/Modules/Documents/Fonts`) are embedded as TrueType subsets through an `IFontResolver` registered once
+per process. Its transitive `System.Security.Cryptography.Pkcs` 8.0.1 has two advisories and is pinned to 10.0.13,
+as the product already pins it. QuestPDF is not needed, so no licence decision is asked of the owner.
+
 ### 2. A Documents module that reads through contracts
 
 A module `Documents` (schema `documents`, RLS) builds the shift report from the other modules' contracts: entries and
