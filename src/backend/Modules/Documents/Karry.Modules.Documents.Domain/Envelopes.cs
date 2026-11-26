@@ -122,3 +122,30 @@ public sealed class DocumentEnvelope : AggregateRoot<DocumentEnvelopeId>, ITenan
         return envelope;
     }
 }
+
+/// <summary>
+/// An envelope's company and token hash, kept outside the company's rows (ADR-0040 §4): the public page knows only the
+/// envelope ID and the token, so this is read before any company is known. Written with the envelope, never changed.
+/// </summary>
+public sealed class VerificationKey
+{
+    public VerificationKey(Guid envelopeId, Guid tenantId, string tokenHash)
+    {
+        EnvelopeId = envelopeId;
+        TenantId = tenantId;
+        TokenHash = tokenHash;
+    }
+
+    public Guid EnvelopeId { get; private set; }
+
+    public Guid TenantId { get; private set; }
+
+    /// <summary>SHA-256 (hex) of the token, as in the envelope.</summary>
+    public string TokenHash { get; private set; }
+
+    public static VerificationKey Of(DocumentEnvelope envelope)
+    {
+        ArgumentNullException.ThrowIfNull(envelope);
+        return new VerificationKey(envelope.Id.Value, envelope.TenantId.Value, envelope.TokenHash);
+    }
+}

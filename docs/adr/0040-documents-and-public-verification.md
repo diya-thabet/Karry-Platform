@@ -135,6 +135,20 @@ envelope is signed once (`DocumentEnvelope.Sign`), and the signature is ledgered
 the same transaction. When the service does not answer, the run stops and the next minute tries again; nothing issued
 waits on it.
 
+As built (slice 4, public verification API): `POST /api/v1/documents/verify/{envelopeId}` (anonymous, no company,
+`Cache-Control: no-store`) with `{ token, pdfHash? }` in the body. The envelope's company and token hash are also kept
+in `documents.verification_keys` (envelope ID, company, token SHA-256), written with the envelope in the same
+transaction and declared global in `deploy/database/global-reference-tables.txt`: the page knows no company, and the
+envelopes stay under RLS. `DocumentVerification` reads that key once, hashes the token (capped at 64 characters) and
+compares it in constant time, against a stand-in hash when the envelope does not exist; only a match reads the
+envelope, the company name (Tenancy) and the site (Organization) in a scope of its own set to that company. Every
+miss (malformed ID, unknown envelope, wrong or missing token, a caller of another company) is the same 404
+`documents.not_found`. The answer: type, company, site code and name, shift date and code, issue time, content and
+PDF hashes, the server's signature once the Workers made it (key ID, value, time), and `pdfMatches` when the visitor
+sent a PDF hash (`sha256:` or bare hex, any case). No person's name and no company ID: a company setting to show names
+(US-P2-SIG-06 AC1) is a follow-up. The per-address limit for anonymous callers (`RateLimits:AnonymousPerAddressPerMinute`,
+60) applies. Envelopes issued before this slice have no key (local data only).
+
 ## Options considered
 
 1. **Sign the PDF itself (PAdES)** — Pros: readers check it in their PDF viewer. Cons: a qualified certificate per

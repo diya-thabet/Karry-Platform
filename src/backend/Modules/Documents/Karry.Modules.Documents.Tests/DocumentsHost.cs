@@ -35,6 +35,9 @@ public sealed class DocumentsHost : IAsyncLifetime
     /// <summary>The server's signing service (Trust): down until a test brings it up.</summary>
     public SigningService Signer { get; } = new();
 
+    /// <summary>The verification address of each issued document (the token is only in its QR).</summary>
+    public Renderer Renderer { get; } = new();
+
     public KarryDatabase Database { get; private set; } = null!;
 
     public HttpClient Client { get; private set; } = null!;
@@ -66,6 +69,7 @@ public sealed class DocumentsHost : IAsyncLifetime
         builder.Services.AddSingleton<IEnvelopeImages>(Field);
         builder.Services.AddSingleton<IEvidenceStore>(Field);
         builder.Services.AddSingleton<IDigestSigner>(Signer);
+        builder.Services.AddSingleton<Karry.Modules.Documents.Application.IShiftReportRenderer>(Renderer);
         builder.Services.AddSingleton<Karry.Modules.Documents.Application.SignDocuments>();
         app = builder.Build();
         app.UseKarryApiConventions();
@@ -156,5 +160,18 @@ public sealed class SigningService : IDigestSigner
 
         Digests.Enqueue(sha256Digest.ToArray());
         return Task.FromResult<DigestSignature?>(new DigestSignature("karry-server-v1", Convert.ToBase64String(sha256Digest.Span)));
+    }
+}
+
+/// <summary>The real PDF renderer, keeping the verification address (with its token) of every document it drew.</summary>
+public sealed class Renderer : Karry.Modules.Documents.Application.IShiftReportRenderer
+{
+    public ConcurrentDictionary<Guid, Uri> Addresses { get; } = new();
+
+    public byte[] Render(Karry.Modules.Documents.Domain.ShiftReportContent content, Uri verification, IReadOnlyDictionary<string, byte[]> images, string language)
+    {
+        ArgumentNullException.ThrowIfNull(verification);
+        Addresses[Guid.Parse(verification.Segments[^1])] = verification;
+        return Karry.Modules.Documents.Infrastructure.ShiftReportPdf.Render(content, verification, images, language);
     }
 }

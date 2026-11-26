@@ -18,3 +18,4 @@ billing.plans          | global        | Plan catalogue (features, limits, price
 flags.platform_flags   | global        | Platform-wide flag values of this environment (kill switches): Karry's own rollout settings, no tenant data
 flags.platform_flag_changes | global   | Append-only history of platform-wide flag changes (who, before, after, when); no tenant data
 audit.server_keys      | global        | Public keys of the server's signing key versions (kid, SPKI PEM): public by design so anyone can verify a countersignature; no tenant data; append-only (ADR-0033 §3)
+documents.verification_keys | global | Public document verification (ADR-0040 §4): envelope ID, its company and the SHA-256 of its 128-bit token, read before any company is known; the API answers only when the token matches, with the same "not found" for every miss, and never returns the company ID
