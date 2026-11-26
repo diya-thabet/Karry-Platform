@@ -45,8 +45,10 @@ test.describe("the signed shift report and its public verification (P2.11, ADR-0
     await expect(check.getByText("Non authentique : ce PDF diffère du document émis")).toBeVisible();
 
     // A wrong token is "not found", like any other miss (TC-P2-SIG-005).
-    await check.goto(address.replace(/#.*/, "#not-the-token"));
-    await expect(check.getByText("Document introuvable")).toBeVisible();
+    // A new page: changing only the fragment of the open one is a same-document navigation, which loads nothing.
+    const wrong = await visitor.newPage();
+    await wrong.goto(address.replace(/#.*/, "#not-the-token"));
+    await expect(wrong.getByText("Document introuvable")).toBeVisible();
     await visitor.close();
   });
 });
