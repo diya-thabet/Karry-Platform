@@ -38,6 +38,28 @@ public sealed class SyncBatchesTests(SyncHost host) : IClassFixture<SyncHost>
     }
 
     [Fact]
+    [Trait("Story", "P2.12a")]
+    public async Task A_stored_command_sent_again_with_another_payload_signed_anew_is_a_duplicate_and_the_first_stays()
+    {
+        // P2.12a security review, replay with a modified payload: the tablet's key signs a changed record under a command
+        // ID already stored (a stolen tablet "correcting" an entry, or a bug). The first command is what counts; the
+        // change must be a new command (a correction, ADR-0034), never a rewrite through the outbox.
+        using var tablet = await host.TabletAsync(host.A);
+        var id = Guid.CreateVersion7();
+        var first = tablet.Command(1, new { ticket = "T-1", net = "12.340" }, id);
+        (await UploadAsync(tablet, [first])).Results.Should().ContainSingle().Which.Status.Should().Be("accepted");
+
+        var changed = tablet.Command(1, new { ticket = "T-1", net = "99.999" }, id);
+        var later = tablet.Command(2, new { ticket = "T-1", net = "99.999" }, id);
+
+        (await UploadAsync(tablet, [changed])).Results.Should().ContainSingle().Which.Status.Should().Be("duplicate");
+        (await UploadAsync(tablet, [later])).Results.Should().ContainSingle().Which.Status.Should().Be("duplicate", "another place in the sequence does not make it new");
+        var rows = await InboxAsync(tablet.Id);
+        rows.Should().ContainSingle().Which.Should().Be(
+            new InboxRow(id, 1, "test.item_recorded.v1", Unsigned(first), first["signature"]!.GetValue<string>(), "Received"), "the stored command is not rewritten");
+    }
+
+    [Fact]
     [Trait("Story", "P1.18a")]
     public async Task The_same_batch_sent_many_times_at_once_is_stored_once()
     {
