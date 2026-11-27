@@ -1103,6 +1103,7 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Materials.Contracts": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
           "Karry.Modules.Sales.Contracts": "[1.0.0, )",
           "Karry.Modules.Sales.Domain": "[1.0.0, )",

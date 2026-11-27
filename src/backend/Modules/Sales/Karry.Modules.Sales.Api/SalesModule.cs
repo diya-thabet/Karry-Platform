@@ -18,10 +18,10 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Karry.Modules.Sales.Api;
 
 /// <summary>
-/// The company's customers (US-P3-SAL-01, ADR-0042), and in the next slices its products and price lists. Routes under
+/// The company's customers (US-P3-SAL-01), products and price lists (US-P3-SAL-02), ADR-0042. Routes under
 /// <c>/api/v1/sales</c>.
 /// </summary>
-public sealed class SalesModule : IModule
+public sealed partial class SalesModule : IModule
 {
     public string Name => "sales";
 
@@ -80,6 +80,9 @@ public sealed class SalesModule : IModule
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .WithName("UnblockCustomer");
+
+        MapProducts(endpoints);
+        MapPriceLists(endpoints);
     }
 
     private static async Task<Ok<CustomerListResponse>> ListCustomersAsync(

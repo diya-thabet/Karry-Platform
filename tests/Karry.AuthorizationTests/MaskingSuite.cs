@@ -44,6 +44,7 @@ public sealed partial class MaskingSuite : IDisposable
         ["MrrTotalResponse.amount"] = "Karry's own recurring revenue from its customers (operator console, platform operators only), not a customer's business data.",
         ["MoneyResponse.amount"] = "A generic amount with its currency: the property holding it carries the marker (CustomerResponse.CreditLimit, masked as a whole).",
         ["MoneyInput.amount"] = "A generic amount with its currency: the property holding it carries the marker (CustomerInput.CreditLimit, sales.customers.credit-limit).",
+        ["PriceQuoteResponse.priceListId"] = "The identifier of the price list version that gave the price, not a price (the unit price is sales.prices.unit-price).",
     };
 
     /// <summary>Success responses that are not JSON (files): each must be written with <see cref="SensitiveExport"/>.</summary>

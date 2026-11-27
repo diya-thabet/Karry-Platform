@@ -62,6 +62,9 @@ The matrix above is the target for the whole product. In code it is the union of
 | `materials.catalog.manage` | tenant | yes | Tenant Admin | Create, change, archive materials and set density versions (they change invoiced volumes) |
 | `sales.customers.read` | tenant | no | Tenant Admin, Executive, Finance, Commercial, Controller, Site Manager, Weighmaster | Customers (US-P3-SAL-01): the weighbridge needs them to issue tickets |
 | `sales.customers.manage` | tenant | no | Tenant Admin, Commercial | Create and change customers, block them with a reason and unblock them, set their credit limit (P3.1) |
+| `sales.products.read` | tenant | no | Tenant Admin, Executive, Finance, Commercial, Controller, Site Manager, Weighmaster | Products, price list versions and the price on a date (US-P3-SAL-02); unit prices are the sensitive field `sales.prices.unit-price` |
+| `sales.products.manage` | tenant | no | Tenant Admin, Commercial | Create, change, archive and restore products, each a sold material fraction with its sale unit (P3.1) |
+| `sales.prices.manage` | tenant | no | Tenant Admin, Commercial, Finance | Create price list versions, change or withdraw them before they come into force (P3.1) |
 | `assets.registry.read` | site | no | all 12 default roles | The asset register on the caller's sites, the type catalogue (US-P1-AST-01, US-P1-AST-02) |
 | `assets.registry.manage` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Register, change, move and set the status of assets on the caller's sites |
 | `fieldops.entries.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager, Maintenance Planner | Shift entries of the caller's sites with every version (ADR-0034 §7; P2.4). Field roles see their own history on the tablet (P2.5) |
@@ -86,6 +89,7 @@ Sensitive fields declared by modules (US-P1-IAM-07; levels per default role, oth
 | Field | Write | Read | Notes |
 |---|---|---|---|
 | `sales.customers.credit-limit` | Tenant Admin, Commercial | Finance, Executive | A customer's credit limit (P3.1); a change that leaves it out keeps it |
+| `sales.prices.unit-price` | Tenant Admin, Commercial, Finance | Executive, Weighmaster | A unit price in price lists and price previews (P3.1): the plan's `sales.prices.read`; masked for Site Manager and Controller |
 
 Rules that apply to every permission:
 

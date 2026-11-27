@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Karry.Modules.Sales.Infrastructure;
 
 /// <summary>
-/// Schema <c>sales</c> (tenant-owned, RLS): customers (ADR-0042). Addresses, contacts and allowed sites are small lists,
+/// Schema <c>sales</c> (tenant-owned, RLS): customers, products and price list versions (ADR-0042). Addresses, contacts and allowed sites are small lists,
 /// always read and written whole with their customer: one JSON document each. The credit limit is stored as exact text
 /// ("1500.00 EUR"), never through a floating-point column.
 /// </summary>
@@ -22,6 +22,10 @@ public sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) : M
     public override string Schema => SchemaName;
 
     public DbSet<Customer> Customers => Set<Customer>();
+
+    public DbSet<Product> Products => Set<Product>();
+
+    public DbSet<PriceList> PriceLists => Set<PriceList>();
 
     protected override void OnModuleModelCreating(ModelBuilder modelBuilder)
     {
@@ -46,6 +50,42 @@ public sealed class SalesDbContext(DbContextOptions<SalesDbContext> options) : M
             customer.Ignore(c => c.Details);
             customer.Ignore(c => c.DomainEvents);
             customer.Ignore(c => c.AggregateKey);
+        });
+
+        modelBuilder.Entity<Product>(product =>
+        {
+            product.ToTable("products");
+            product.HasKey(p => p.Id);
+            product.Property(p => p.Id).HasConversion(id => id.Value, value => new ProductId(value)).ValueGeneratedNever();
+            product.Property(p => p.Code).HasMaxLength(ProductRules.CodeMaxLength);
+            product.HasIndex(p => new { p.TenantId, p.Code }).IsUnique();
+            product.Property(p => p.Name).HasMaxLength(ProductRules.NameMaxLength);
+            product.Property(p => p.SaleUnit).HasConversion<string>().HasMaxLength(30);
+            product.Property(p => p.Status).HasConversion<string>().HasMaxLength(20);
+            product.Property(p => p.Version).IsRecordVersion();
+            product.Ignore(p => p.Details);
+            product.Ignore(p => p.DomainEvents);
+            product.Ignore(p => p.AggregateKey);
+        });
+
+        modelBuilder.Entity<PriceList>(list =>
+        {
+            list.ToTable("price_lists");
+            list.HasKey(l => l.Id);
+            list.Property(l => l.Id).HasConversion(id => id.Value, value => new PriceListId(value)).ValueGeneratedNever();
+            list.Property(l => l.Currency).HasMaxLength(3);
+            list.Property(l => l.Status).HasConversion<string>().HasMaxLength(20);
+
+            // One active version of a list (a site's, or a customer's at a site) per first day; the site's own list has no
+            // customer, and NULLS NOT DISTINCT makes those collide too.
+            list.HasIndex(l => new { l.TenantId, l.SiteId, l.CustomerId, l.EffectiveFrom })
+                .IsUnique().AreNullsDistinct(false).HasFilter("status = 'Active'");
+
+            // Lines are read and written whole with their version; amounts stay exact decimals in the JSON document.
+            list.Property(l => l.Lines).HasColumnType("jsonb").HasConversion(Json<PriceLine>.Converter, Json<PriceLine>.Comparer);
+            list.Property(l => l.Version).IsRecordVersion();
+            list.Ignore(l => l.DomainEvents);
+            list.Ignore(l => l.AggregateKey);
         });
     }
 

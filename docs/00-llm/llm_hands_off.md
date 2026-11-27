@@ -351,6 +351,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-27 (late) — P3.1 slices 1 and 2: customers, products, price lists (agent)
+
+- **Branches (stacked, CI blocked by billing):** `feat/p3.1-sales-customers` (slice 1, customers) and `feat/p3.1-sales-prices` (slice 2) on top of `feat/p3.0-entry`. Merge order once Actions run again: plan PR #284 → P3.0 → P3.1 slice 1 → slice 2.
+- **Slice 2:** products map to a sold material fraction through the new `Materials.Contracts.IMaterialDirectory`; price list versions (site, or customer at a site; company's clock; never back-dated; frozen once in force; one active start per day, `NULLS NOT DISTINCT` unique index); `Sales.Contracts.IPriceBook.PriceAtAsync` for the weighbridge (P3.4) and `GET /api/v1/sales/prices`; customer price beats site price per product. Recorded in ADR-0042 §2–3.
+- **Permissions:** `sales.products.read/manage`, `sales.prices.manage`; the plan's `sales.prices.read` is the sensitive field `sales.prices.unit-price` (masked for Site Manager, Controller). The masking suite requires every `*price*` property to be marked or listed: `PriceQuoteResponse.priceListId` is listed as not sensitive.
+- **Verified locally:** Sales 31/31, isolation 712/712, authorization 9/9, architecture 34/34, Host 67/67, Workers 14/14, Materials 46/46; `dotnet format` clean on changed projects.
+- **Trap:** the owner's demo Workers/Host lock their `bin`; run their test projects with `--artifacts-path E:\Karry-Platform\.claude\<dir>` (inside the repo: `PostgresServer` looks for `Karry.slnx` above the test binaries; a scratchpad outside the repo fails every fixture). `git diff` of `openapi/v1.json` can look like thousands of changed lines; `--diff-algorithm=histogram` shows the real additions.
+- **Next:** P3.1 slice 3: Excel import targets for customers and products (TC-P3-SAL-004) and the portal screens (customers, products, price lists with a "price on date" preview); then P3.2 trucks and haulers.
+
 ### 2026-11-27 (later) — Phase 3 planned into sub-phases P3.0 – P3.16 (agent)
 
 - **Plan:** [Phase 3 sub-phases](../04-phases/phase-03-weighbridge-fuel-pilot/sub-phases.md) and [tracker](../04-phases/phase-03-weighbridge-fuel-pilot/tracker.md). 17 sub-phases (weighing P3.1–P3.7, fuel P3.8–P3.11, dashboards and report P3.12–P3.13, SMS/WhatsApp P3.14, export/support/demo P3.15, hardening and pilot P3.16a/b), ADR-0042 … 0050 reserved, amendments A1–A8 (PDFsharp not QuestPDF; `Sales` and `Weighbridge` separate; `online_only` numbering by default; desk mode of the field PWA; providers as ports with fakes; production after P1.17; ROI in the operator console; M2 = Phase 3 exit only).

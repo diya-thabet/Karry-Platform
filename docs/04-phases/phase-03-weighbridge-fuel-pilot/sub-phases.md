@@ -237,6 +237,7 @@ sequenceDiagram
 |---|---|---|
 | `sales.customers.manage` / `sales.customers.read` | Commercial Manager / Weighmaster, Finance, Executive | Block / unblock with a reason |
 | `sales.prices.manage` / `sales.prices.read` | Commercial Manager, Finance / Weighmaster (price only on the ticket) | Price fields masked for others |
+| `sales.products.read` / `sales.products.manage` | Every sales, weighbridge and finance role / Commercial Manager | Added in P3.1: products and price list versions (prices masked); `sales.prices.read` is the field `sales.prices.unit-price` |
 | `sales.orders.manage` | Commercial Manager | — |
 | `weighbridge.trucks.manage` | Weighmaster, Commercial Manager | Unknown trucks created at the desk are flagged |
 | `weighbridge.tickets.issue` | Weighmaster (desk device) | Field app desk mode only |

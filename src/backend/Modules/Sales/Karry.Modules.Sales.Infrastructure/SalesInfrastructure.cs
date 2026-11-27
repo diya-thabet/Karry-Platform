@@ -8,7 +8,7 @@ namespace Karry.Modules.Sales.Infrastructure;
 
 public static class SalesInfrastructure
 {
-    /// <summary>Customer storage and operations; the outbox delivers the module's events.</summary>
+    /// <summary>Customers, products and price lists: storage and operations, and the price book other modules read; the outbox delivers the module's events.</summary>
     public static IServiceCollection AddSalesInfrastructure(this IServiceCollection services, string connectionString)
     {
         services.TryAddSingleton(TimeProvider.System);
@@ -16,6 +16,11 @@ public static class SalesInfrastructure
         services.AddOutboxDispatcher<SalesDbContext>(eventAssemblies: typeof(Domain.Customer).Assembly);
         services.AddScoped<ICustomerStore, CustomerStore>();
         services.AddScoped<CustomerOperations>();
+        services.AddScoped<IProductStore, ProductStore>();
+        services.AddScoped<ProductOperations>();
+        services.AddScoped<IPriceListStore, PriceListStore>();
+        services.AddScoped<PriceListOperations>();
+        services.AddScoped<Contracts.IPriceBook>(sp => sp.GetRequiredService<PriceListOperations>());
         return services;
     }
 }

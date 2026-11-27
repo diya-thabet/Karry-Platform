@@ -4,6 +4,7 @@ using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
+using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Sales.Api;
 using Karry.Modules.Tenancy.Api;
@@ -24,13 +25,14 @@ internal sealed class NoLimits : ILimitGuard
 }
 
 /// <summary>
-/// Tenancy, Organization (sites), Sales and Trust behind the real pipeline, on PostgreSQL and the real roles. Every caller
-/// is a Tenant Admin except <see cref="Weighmaster"/> and <see cref="Finance"/>.
+/// Tenancy, Organization (sites), Materials (fractions sold as products), Sales and Trust behind the real pipeline, on PostgreSQL and the real roles. Every caller
+/// is a Tenant Admin except <see cref="Weighmaster"/>, <see cref="Finance"/> and <see cref="SiteManager"/>.
 /// </summary>
 public sealed class SalesHost : IAsyncLifetime
 {
     public const string Weighmaster = "weighmaster-1";
     public const string Finance = "finance-1";
+    public const string SiteManager = "site-manager-1";
 
     private PostgresServer? server;
     private WebApplication? app;
@@ -51,12 +53,13 @@ public sealed class SalesHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new SalesModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new MaterialsModule(), new SalesModule(), new Trust.Api.TrustModule()]);
         builder.Services.AddScoped<ILimitGuard, NoLimits>();
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, new Dictionary<string, string>
         {
             [Weighmaster] = DefaultRoles.Weighmaster,
             [Finance] = DefaultRoles.Finance,
+            [SiteManager] = DefaultRoles.SiteManager,
         });
         app = builder.Build();
         app.UseKarryApiConventions();

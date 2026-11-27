@@ -457,6 +457,12 @@
           "OpenTelemetry.Instrumentation.Runtime": "[1.20.0, )"
         }
       },
+      "karry.modules.materials.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
       "karry.modules.organization.contracts": {
         "type": "Project",
         "dependencies": {
@@ -467,6 +473,7 @@
         "type": "Project",
         "dependencies": {
           "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Materials.Contracts": "[1.0.0, )",
           "Karry.Modules.Organization.Contracts": "[1.0.0, )",
           "Karry.Modules.Sales.Contracts": "[1.0.0, )",
           "Karry.Modules.Sales.Domain": "[1.0.0, )",

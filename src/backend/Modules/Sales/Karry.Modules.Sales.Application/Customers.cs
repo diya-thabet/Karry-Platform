@@ -25,11 +25,30 @@ public static class SalesPermissions
     /// <summary>A customer's credit limit: commercial data, masked for roles that do not need it.</summary>
     public const string CreditLimitField = "sales.customers.credit-limit";
 
+    /// <summary>See products and price list versions (their prices are the sensitive field <see cref="UnitPriceField"/>).</summary>
+    public const string ProductsRead = "sales.products.read";
+
+    /// <summary>Create, change, archive and restore products (US-P3-SAL-02 AC1).</summary>
+    public const string ProductsManage = "sales.products.manage";
+
+    /// <summary>Create, change and withdraw price list versions (US-P3-SAL-02 AC2).</summary>
+    public const string PricesManage = "sales.prices.manage";
+
+    /// <summary>
+    /// A unit price, wherever it appears (price lists, price previews): "sales.prices.read" of the plan is read access to
+    /// this field; the weighmaster reads it (the ticket shows it), the site manager and the controller do not.
+    /// </summary>
+    public const string UnitPriceField = "sales.prices.unit-price";
+
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         new(CustomersRead, ScopeKind.Tenant, privileged: false,
             Roles.TenantAdmin, Roles.Executive, Roles.Finance, Roles.Commercial, Roles.Controller, Roles.SiteManager, Roles.Weighmaster),
         new(CustomersManage, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Commercial),
+        new(ProductsRead, ScopeKind.Tenant, privileged: false,
+            Roles.TenantAdmin, Roles.Executive, Roles.Finance, Roles.Commercial, Roles.Controller, Roles.SiteManager, Roles.Weighmaster),
+        new(ProductsManage, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Commercial),
+        new(PricesManage, ScopeKind.Tenant, privileged: false, Roles.TenantAdmin, Roles.Commercial, Roles.Finance),
     ];
 
     public static IReadOnlyList<SensitiveFieldDefinition> SensitiveFields { get; } =
@@ -40,6 +59,14 @@ public static class SalesPermissions
             [Roles.Commercial] = FieldAccess.Write,
             [Roles.Finance] = FieldAccess.Read,
             [Roles.Executive] = FieldAccess.Read,
+        }),
+        new(UnitPriceField, new Dictionary<string, FieldAccess>
+        {
+            [Roles.TenantAdmin] = FieldAccess.Write,
+            [Roles.Commercial] = FieldAccess.Write,
+            [Roles.Finance] = FieldAccess.Write,
+            [Roles.Executive] = FieldAccess.Read,
+            [Roles.Weighmaster] = FieldAccess.Read,
         }),
     ];
 }
