@@ -351,6 +351,13 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-27 (later) — P2.13 website: cinematic workflow film, islands, slices 2–6 (agent)
+
+- **Website (`E:\Karry-Website`, local `main`, commits 467ee29 and 4e25d62; GitHub repository not created: the auto-mode check refused, it needs the owner).** Owner direction: "cinematic, 3D, top tier, not AI-looking", then "every node a step of Karry's workflow, Karry on top orchestrating". Design written in its `DESIGN.md`, film plan in `docs/plan-workflow-film.md`.
+- **Lessons:** (1) the Claude built-in browser pane throttles animation frames (1–2 fps) when not focused: never judge motion or frame rate there; take screenshots with Playwright and the real GPU (`--use-angle=d3d11`). (2) Speed: hydrating a whole React page cost seconds of blocking on a slowed phone; static pages plus small scripts (islands) took first-load JS from 88 to 12.7 kB. (3) Late web fonts caused the layout shift and, for Arabic, a long re-layout: preload plus `font-display: optional`. (4) A stepped circular terrain on a square grid aliases into saw teeth: polar mesh with rings on the bench edges. (5) `@lhci/cli` failed `trustPolicy: no-downgrade` (`chromium-bidi`): do not override; speed is gated with Playwright instead. (6) The camera must target the rounded active step; fractional framing left the subject at the screen edge.
+- **Decisions:** sign-up option A via e-mail until a trial endpoint exists (website `trial.ts`); speed gate thresholds as a regression gate, product targets to verify on a real device once hosted.
+- **Follow-ups:** `?lang=` on the portal address so the sign-in page follows the website's language (platform change); owner review of the site and final copy in FR, EN, AR; GitHub repository (private) and its CI.
+
 ### 2026-11-27 — Entry history, the sign-in page and logo, the website as its own product (agent)
 
 - **PR #280** (`feat/entry-history-and-fixes`): entry history with photos and a period export (`GET /fieldops/entries?from&to`, inclusive shift dates, `fieldops.period_invalid`), the portal `/review/history` page and per-machine card, the audit opening on the last 30 days, the language menu as an inline accordion (fits a phone), a shared photo URL bug (each `EntryPhoto` owns its blob URL); the branded, animated Keycloak sign-in page (company colour, navy panel, animated SVG K, reduced motion); the Karry logo as the apps' icons; the P2.13 plan.
