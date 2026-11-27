@@ -11,10 +11,10 @@ using Karry.Modules.Integrity.Api;
 using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Sales.Api;
-using Karry.Modules.Weighbridge.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
 using Karry.Modules.Verification.Api;
+using Karry.Modules.Weighbridge.Api;
 
 namespace Karry.Workers;
 

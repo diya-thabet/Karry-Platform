@@ -15,11 +15,11 @@ using Karry.Modules.Notifications.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
 using Karry.Modules.Sales.Infrastructure;
-using Karry.Modules.Weighbridge.Infrastructure;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Verification.Infrastructure;
+using Karry.Modules.Weighbridge.Infrastructure;
 using Karry.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);
