@@ -134,6 +134,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-18 | `field.history.*` (20 keys: my history, statuses, the flags in words) | ar, emk, nqo | P2.5 my history: the flag sentences tell an operator what the controller will check |
 | 2026-11-27 | `portal.imports.kind.customers`, `portal.imports.kind.products` | ar, emk, nqo | P3.1 customer and product imports |
 | 2026-11-27 | `portal.sales.*` (all), `portal.settings.customersHint`, `portal.settings.productsHint`, `portal.settings.priceListsHint` | ar, emk, nqo | P3.1 portal screens: customers, products, price lists |
+| 2026-11-27 | `portal.integrity.rule.RULE-WB-09.title`, `portal.integrity.rule.RULE-WB-09.description`, `portal.integrity.flags.subject.truck` | ar, emk, nqo | P3.2 unverified truck flag |
 
 ## 6. Not translated yet
 

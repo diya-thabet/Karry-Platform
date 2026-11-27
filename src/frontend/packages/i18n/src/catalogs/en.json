@@ -1753,5 +1753,8 @@
   "portal.sales.prices.ask": "Show the price",
   "portal.sales.prices.noPrice": "No price: no list in force prices this product here. The weighbridge will say so.",
   "portal.sales.prices.source.customer": "from the customer’s list of {date}",
-  "portal.sales.prices.source.site": "from the site’s list of {date}"
+  "portal.sales.prices.source.site": "from the site’s list of {date}",
+  "portal.integrity.rule.RULE-WB-09.title": "Unverified truck",
+  "portal.integrity.rule.RULE-WB-09.description": "A truck created at the weighbridge for a plate nobody knew, until someone other than the weighmaster verifies it.",
+  "portal.integrity.flags.subject.truck": "Truck"
 }

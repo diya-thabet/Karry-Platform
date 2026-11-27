@@ -34,7 +34,7 @@ public sealed class RuleSettingRulesTests
     [Fact]
     public void Every_rule_of_the_catalogue_but_the_security_ones_can_be_switched_off()
     {
-        RuleCatalog.All.Where(r => !r.Security).Select(r => r.Code).Should().Equal("RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-08");
+        RuleCatalog.All.Where(r => !r.Security).Select(r => r.Code).Should().Equal("RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-08", "RULE-WB-09");
         var off = RuleSetting.Create(Clock, Company, Rule("RULE-FO-01"), enabled: false, new Dictionary<string, decimal>(), "admin").Value;
         RuleSettingRules.Runs(Rule("RULE-FO-01"), off).Should().BeFalse();
     }

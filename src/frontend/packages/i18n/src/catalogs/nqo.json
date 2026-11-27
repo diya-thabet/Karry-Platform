@@ -1753,5 +1753,8 @@
   "portal.sales.prices.ask": "ߛߐ߲ߜ߭ߐ ߖߌߙߊ",
   "portal.sales.prices.noPrice": "ߛߐ߲ߜ߭ߐ ߕߍ: ߛߐ߲ߜ߭ߐ ߛߍߓߍ߲ ߛߌ ߕߍ ߓߊ߯ߙߊ ߟߊ ߣߌ߲ ߝߋ߯ߙߋߝߍ߲ ߣߊ ߦߊ߲. ߔߍߛߍߟߌ ߓߍߣߊ ߏ ߝߐ.",
   "portal.sales.prices.source.customer": "ߞߊ ߓߐ ߛߊ߲ߣߌߞߍߟߊ ߞߊ ߛߍߓߍ߲ ߣߊ {date}",
-  "portal.sales.prices.source.site": "ߞߊ ߓߐ ߦߐߙߐ ߞߊ ߛߍߓߍ߲ ߣߊ {date}"
+  "portal.sales.prices.source.site": "ߞߊ ߓߐ ߦߐߙߐ ߞߊ ߛߍߓߍ߲ ߣߊ {date}",
+  "portal.integrity.rule.RULE-WB-09.title": "ߞߊߡߌߦߐ߲ min ߡߊ ߟߊߖߍ",
+  "portal.integrity.rule.RULE-WB-09.description": "ߞߊߡߌߦߐ߲ min ߘߊߙߊ ߔߍߛߍߟߌ ߟߊ ߣߌߡߐߙߐ ߘߐ߲ߓߊߟߌ ߞߊߡߊ߸ ߝߏ ߡߐߜ߭ߐ ߥߍߙߍ ߣߌ ߔߍߛߍߓߊߜ߭ߊ ߦߋ ߞߊ ߟߊߖߍ.",
+  "portal.integrity.flags.subject.truck": "ߞߊߡߌߦߐ߲"
 }

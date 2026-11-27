@@ -351,6 +351,14 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-27 (night) — P3.1 merged (#286); P3.2 slice 1: trucks and haulers (agent)
+
+- **Merged:** #284 (plan), #285 (P3.0), #286 (P3.1 slices 1–3). Superseded branches deleted.
+- **P3.2 slice 1 (branch `feat/p3.2-trucks`):** module `Weighbridge` (schema `weighbridge`, RLS) created with `tools/new-module.sh` (its solution-folder step fails on Windows again; projects added to `Karry.slnx` by hand). Haulers (name unique however written: key of letters and digits), trucks (plate as written + `plate_key` unique per company, TC-P3-WB-016; registered tare whole kg with its day and method; legal payload kg; axle configuration like `2+3`), search by any part of the plate (exact, then prefix, then contains; at most 50).
+- **Unknown truck (TC-P3-WB-017):** `POST /weighbridge/trucks/unknown` creates it `unverified` and raises **RULE-WB-09** (new, low, switchable; added to the Integrity catalogue and detection-rules.md) through `IIntegrityFlags.SyncAsync` **in the same transaction** as the truck (the store opens the transaction; `ModuleDbContext` reuses it for the outbox and ledger). Every truck save re-syncs the flag from the status, so verify or archive closes it (`re-evaluated`). `weighbridge.trucks.verify` is not the weighmaster's: nobody clears their own flag.
+- **Verified locally:** Weighbridge 14/14 (Docker Desktop had to be started: `%LOCALAPPDATA%\Programs\DockerDesktop\Docker Desktop.exe`).
+- **Next:** P3.2 slice 2: portal screens (trucks, haulers, verify) and the `trucks` Excel import; then P3.3 ticket numbering.
+
 ### 2026-11-27 (late) — P3.1 built: customers, products, price lists, imports, portal (agent)
 
 - **CI back:** the owner made the repository public (Actions minutes free). Merged with the guard: #284 (plan), #285 (P3.0). Stacked branches were brought up to date by **merging `origin/main` into them** (the guard squash-merges, so the branch still carries the original commits; a merge avoids rewriting history and force-pushing). Conflicts are add/add on docs the branch extends: take the branch's version after checking `git diff HEAD:f origin/main:f` shows nothing only in main.

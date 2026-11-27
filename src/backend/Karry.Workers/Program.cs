@@ -19,6 +19,7 @@ using Karry.Modules.Sync.Application;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Verification.Infrastructure;
+using Karry.Modules.Weighbridge.Infrastructure;
 using Karry.Workers;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -55,6 +56,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<OrganizationDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<SalesDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<WeighbridgeDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<AssetsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<ImportsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FieldOpsDbContext>>()).ConfigureAwait(false);

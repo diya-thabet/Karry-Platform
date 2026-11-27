@@ -12,7 +12,7 @@ import { closeReason, FlagsReadPermission, flagExplanation, flagsKey, RulesManag
 const statuses = ["open", "closed", "all"] as const;
 type FlagStatus = (typeof statuses)[number];
 const rules = ["RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-08", "RULE-FO-09", "RULE-FO-10", "RULE-FO-11"] as const;
-const subjects = ["shift_entry", "meter", "sync_command"] as const;
+const subjects = ["shift_entry", "meter", "sync_command", "truck"] as const;
 const any = "any";
 const pageSize = 50;
 

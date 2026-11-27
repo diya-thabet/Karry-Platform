@@ -32,7 +32,7 @@ public sealed class RuleSettingsApiTests(IntegrityHost host) : IClassFixture<Int
         var rules = await RulesAsync(tenant);
 
         rules.Select(r => r.GetProperty("rule").GetString()).Should().Equal(
-            "RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-08", "RULE-FO-09", "RULE-FO-10", "RULE-FO-11");
+            "RULE-FO-01", "RULE-FO-02", "RULE-FO-03", "RULE-FO-04", "RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-08", "RULE-FO-09", "RULE-FO-10", "RULE-FO-11", "RULE-WB-09");
         rules.Should().OnlyContain(r => r.GetProperty("enabled").GetBoolean() && r.GetProperty("version").GetString() == "\"0\"");
         rules.Where(r => r.GetProperty("security").GetBoolean()).Select(r => r.GetProperty("rule").GetString()).Should().Equal("RULE-FO-05", "RULE-FO-06", "RULE-FO-07", "RULE-FO-09", "RULE-FO-10", "RULE-FO-11");
         var margin = Rule(rules, "RULE-FO-04").GetProperty("thresholds")[0];

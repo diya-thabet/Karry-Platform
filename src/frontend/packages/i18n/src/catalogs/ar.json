@@ -1753,5 +1753,8 @@
   "portal.sales.prices.ask": "إظهار السعر",
   "portal.sales.prices.noPrice": "لا سعر: لا توجد قائمة سارية تسعّر هذا المنتج هنا. سيُظهر الميزان ذلك.",
   "portal.sales.prices.source.customer": "من قائمة العميل بتاريخ {date}",
-  "portal.sales.prices.source.site": "من قائمة الموقع بتاريخ {date}"
+  "portal.sales.prices.source.site": "من قائمة الموقع بتاريخ {date}",
+  "portal.integrity.rule.RULE-WB-09.title": "شاحنة غير مُتحقَّق منها",
+  "portal.integrity.rule.RULE-WB-09.description": "شاحنة أُنشئت عند الميزان للوحة غير معروفة، إلى أن يتحقق منها شخص غير عامل الميزان.",
+  "portal.integrity.flags.subject.truck": "شاحنة"
 }

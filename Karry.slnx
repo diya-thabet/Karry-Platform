@@ -64,6 +64,11 @@
     <Project Path="src/backend/Modules/Sales/Karry.Modules.Sales.Contracts/Karry.Modules.Sales.Contracts.csproj" />
     <Project Path="src/backend/Modules/Sales/Karry.Modules.Sales.Domain/Karry.Modules.Sales.Domain.csproj" />
     <Project Path="src/backend/Modules/Sales/Karry.Modules.Sales.Infrastructure/Karry.Modules.Sales.Infrastructure.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Api/Karry.Modules.Weighbridge.Api.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Application/Karry.Modules.Weighbridge.Application.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Contracts/Karry.Modules.Weighbridge.Contracts.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Domain/Karry.Modules.Weighbridge.Domain.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Infrastructure/Karry.Modules.Weighbridge.Infrastructure.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Api/Karry.Modules.Organization.Api.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Application/Karry.Modules.Organization.Application.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Contracts/Karry.Modules.Organization.Contracts.csproj" />
@@ -98,6 +103,7 @@
     <Project Path="src/backend/Modules/Imports/Karry.Modules.Imports.Tests/Karry.Modules.Imports.Tests.csproj" />
     <Project Path="src/backend/Modules/Materials/Karry.Modules.Materials.Tests/Karry.Modules.Materials.Tests.csproj" />
     <Project Path="src/backend/Modules/Sales/Karry.Modules.Sales.Tests/Karry.Modules.Sales.Tests.csproj" />
+    <Project Path="src/backend/Modules/Weighbridge/Karry.Modules.Weighbridge.Tests/Karry.Modules.Weighbridge.Tests.csproj" />
     <Project Path="src/backend/Modules/Organization/Karry.Modules.Organization.Tests/Karry.Modules.Organization.Tests.csproj" />
     <Project Path="src/backend/Modules/Sync/Karry.Modules.Sync.Tests/Karry.Modules.Sync.Tests.csproj" />
     <Project Path="src/backend/Modules/Tenancy/Karry.Modules.Tenancy.Tests/Karry.Modules.Tenancy.Tests.csproj" />

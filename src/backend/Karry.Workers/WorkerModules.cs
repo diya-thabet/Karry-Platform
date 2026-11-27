@@ -14,6 +14,7 @@ using Karry.Modules.Sales.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
 using Karry.Modules.Verification.Api;
+using Karry.Modules.Weighbridge.Api;
 
 namespace Karry.Workers;
 
@@ -34,6 +35,7 @@ internal static class WorkerModules
         new OrganizationModule(),
         new MaterialsModule(),
         new SalesModule(),
+        new WeighbridgeModule(),
         new AssetsModule(),
         new ImportsModule(),
         new FieldOpsModule(),

@@ -17,6 +17,7 @@ using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
 using Karry.Modules.Trust.Infrastructure;
 using Karry.Modules.Verification.Infrastructure;
+using Karry.Modules.Weighbridge.Infrastructure;
 using Quartz;
 
 namespace Karry.Workers;
@@ -57,6 +58,9 @@ internal static class WorkerServices
 
         // Sales: delivers its events (customers created, changed, blocked; P3.1).
         services.AddSalesInfrastructure(connectionString);
+
+        // Weighbridge: delivers its events (haulers, trucks; P3.2).
+        services.AddWeighbridgeInfrastructure(connectionString);
 
         // Assets: delivers its events (asset registrations, changes, moves).
         services.AddAssetsInfrastructure(connectionString, configuration);
@@ -107,6 +111,7 @@ internal static class WorkerServices
         services.AddOutboxDispatcherService<OrganizationDbContext>();
         services.AddOutboxDispatcherService<MaterialsDbContext>();
         services.AddOutboxDispatcherService<SalesDbContext>();
+        services.AddOutboxDispatcherService<WeighbridgeDbContext>();
         services.AddOutboxDispatcherService<AssetsDbContext>();
         services.AddOutboxDispatcherService<ImportsDbContext>();
         services.AddOutboxDispatcherService<TrustDbContext>();

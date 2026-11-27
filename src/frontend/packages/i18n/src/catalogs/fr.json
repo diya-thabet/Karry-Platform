@@ -1753,5 +1753,8 @@
   "portal.sales.prices.ask": "Afficher le prix",
   "portal.sales.prices.noPrice": "Aucun prix : aucune liste en vigueur ne tarife ce produit ici. Le pont-bascule l’indiquera.",
   "portal.sales.prices.source.customer": "liste du client du {date}",
-  "portal.sales.prices.source.site": "liste du site du {date}"
+  "portal.sales.prices.source.site": "liste du site du {date}",
+  "portal.integrity.rule.RULE-WB-09.title": "Camion non vérifié",
+  "portal.integrity.rule.RULE-WB-09.description": "Un camion créé au pont-bascule pour une plaque inconnue, jusqu’à ce qu’une autre personne que le pontier le vérifie.",
+  "portal.integrity.flags.subject.truck": "Camion"
 }

@@ -58,6 +58,9 @@ public sealed class IsolationHost : IAsyncLifetime
         // Sales (P3.1): a product of A and a future price list version of A's site, to change or withdraw.
         AProduct = await SeedProductAsync(A.Id, AMaterial, "Alphaproduct");
         APriceList = await SeedPriceListAsync(A.Id, ASite, AProduct);
+        // Weighbridge (P3.2): a hauler of A and its truck, to read, change, verify, archive or restore.
+        AHauler = await SeedHaulerAsync(A.Id, "Alphahauler");
+        ATruck = await SeedTruckAsync(A.Id, AHauler);
         // Assets (P1.13): a machine of A on its site, to read, change, move or dispose.
         AAsset = await SeedAssetAsync(A.Id, ASite, "Alphamachine");
         AMeter = await SeedMeterAsync(A.Id, AAsset);
@@ -130,6 +133,10 @@ public sealed class IsolationHost : IAsyncLifetime
     public Guid AProduct { get; private set; }
 
     public Guid APriceList { get; private set; }
+
+    public Guid AHauler { get; private set; }
+
+    public Guid ATruck { get; private set; }
 
     /// <summary>Date of tenant A's future pattern version and non-working day (their names, <c>Alphashift</c> and <c>Alphaday</c>, are markers).</summary>
     public const string AShiftDate = "2099-01-01";
@@ -464,6 +471,42 @@ public sealed class IsolationHost : IAsyncLifetime
         return id;
     }
 
+    private async Task<Guid> SeedHaulerAsync(Guid tenant, string name)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO weighbridge.haulers (id, tenant_id, name, name_key, phone, status, created_at, changed_at)
+            VALUES ($1, $2, $3, upper($3), '+216 99 424 242', 'Active', now(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(name);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
+    /// <summary>Unverified, so verifying it is an attack too (it would close A's review flag).</summary>
+    private async Task<Guid> SeedTruckAsync(Guid tenant, Guid hauler)
+    {
+        var id = Guid.CreateVersion7();
+        await using var connection = new NpgsqlConnection(Database.Admin);
+        await connection.OpenAsync();
+        await using var insert = new NpgsqlCommand(
+            """
+            INSERT INTO weighbridge.trucks (id, tenant_id, plate, plate_key, hauler_id, tare_kg, tare_on, tare_method, max_payload_kg, axles, status,
+                                            created_at, changed_at)
+            VALUES ($1, $2, 'ALPHA 4242', 'ALPHA4242', $3, 14243, DATE '2026-01-02', 'Weighed', 26000, '2+3', 'Unverified', now(), now())
+            """, connection);
+        insert.Parameters.AddWithValue(id);
+        insert.Parameters.AddWithValue(tenant);
+        insert.Parameters.AddWithValue(hauler);
+        await insert.ExecuteNonQueryAsync();
+        return id;
+    }
+
     private async Task<Guid> SeedProductAsync(Guid tenant, Guid material, string name)
     {
         var id = Guid.CreateVersion7();
@@ -656,7 +699,7 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         }
 
         body.Should().NotContainAny([.. host.A.Markers, host.AUser.Id.ToString(), host.AUser.LastName, host.AUser.Email, host.ARole, "Alpharole", host.ASite.ToString(), "Alphasite", "ALPHA-SITE", "Alphashift", "Alphaday",
-            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.ACustomer.ToString(), "Alphacustomer", "ALPHA-CLI", "ALPHATAX42", "Alphacontact", "777777", host.AProduct.ToString(), "Alphaproduct", "ALPHA-PRD", host.APriceList.ToString(), "6543.21", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
+            host.AMaterial.ToString(), "Alphamaterial", "ALPHA-MAT", host.ACustomer.ToString(), "Alphacustomer", "ALPHA-CLI", "ALPHATAX42", "Alphacontact", "777777", host.AProduct.ToString(), "Alphaproduct", "ALPHA-PRD", host.APriceList.ToString(), "6543.21", host.AHauler.ToString(), "Alphahauler", "+216 99 424 242", host.ATruck.ToString(), "ALPHA 4242", "ALPHA4242", "14243", host.AAsset.ToString(), "Alphamachine", "ALPHA-PEL", "ALPHA 0001", host.AMeter.ToString(), "4242.5", IsolationHost.ALabelToken,
             host.AImport.ToString(), "Alphaimport.xlsx", "ALPHA-IMPORT", host.ADevice.ToString(), "Alphatablet",
             host.ASupportSession.ToString(), "Alphasupport", host.AEntry.ToString(), "Alphaentry", "4250.5", "Alphachecklist", host.AHold.ToString(), "Alphaflag", "Alphameterevent",
             host.AReviewItem.ToString(), "sha256:a1a1a1a1", host.AFlag.ToString(), host.ANotification.ToString(), "/alpha-notice"],
@@ -767,6 +810,8 @@ public sealed partial class TenantIsolationSuite(IsolationHost host) : IClassFix
         "customerId" => host.ACustomer.ToString(),
         "productId" => host.AProduct.ToString(),
         "priceListId" => host.APriceList.ToString(),
+        "haulerId" => host.AHauler.ToString(),
+        "truckId" => host.ATruck.ToString(),
         "assetId" => host.AAsset.ToString(),
         "meterId" => host.AMeter.ToString(),
         "importId" => host.AImport.ToString(),
