@@ -29,6 +29,13 @@ internal sealed class CustomerStore(SalesDbContext db) : ICustomerStore
         return await query.ToListAsync(cancellationToken).ConfigureAwait(false);
     }
 
+    public async Task<IReadOnlyList<Customer>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken) =>
+        await db.Customers.Where(c => codes.Contains(c.Code)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Customer customer) => db.Customers.Add(customer);
+
+    public Task<bool> TrySaveAllAsync(CancellationToken cancellationToken) => SalesSaving.TrySaveAsync(db, cancellationToken);
+
     public async Task<bool> TrySaveAsync(Customer customer, CancellationToken cancellationToken)
     {
         if (db.Entry(customer).State == EntityState.Detached)

@@ -11,4 +11,7 @@ public interface IMaterialDirectory
 {
     /// <summary>The material, or null when there is none in this company.</summary>
     Task<MaterialSummary?> FindAsync(Guid materialId, CancellationToken cancellationToken);
+
+    /// <summary>Every material of the company, archived ones included, by code.</summary>
+    Task<IReadOnlyList<MaterialSummary>> ListAsync(CancellationToken cancellationToken);
 }

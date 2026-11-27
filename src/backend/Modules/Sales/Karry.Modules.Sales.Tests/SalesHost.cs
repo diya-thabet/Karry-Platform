@@ -3,6 +3,7 @@ using Karry.BuildingBlocks.Entitlements;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
@@ -25,7 +26,7 @@ internal sealed class NoLimits : ILimitGuard
 }
 
 /// <summary>
-/// Tenancy, Organization (sites), Materials (fractions sold as products), Sales and Trust behind the real pipeline, on PostgreSQL and the real roles. Every caller
+/// Tenancy, Organization (sites), Materials (fractions sold as products), Sales, Trust and Imports (customer and product files) behind the real pipeline, on PostgreSQL and the real roles. Every caller
 /// is a Tenant Admin except <see cref="Weighmaster"/>, <see cref="Finance"/> and <see cref="SiteManager"/>.
 /// </summary>
 public sealed class SalesHost : IAsyncLifetime
@@ -41,6 +42,14 @@ public sealed class SalesHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    /// <summary>The imported files (customers and products, P3.1).</summary>
+    public InMemoryObjectStore Files { get; } = new();
+
+    /// <summary>Runs the queued import steps (validation, commit), as the worker does.</summary>
+    public Task RunImportsAsync() =>
+        app!.Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Imports.Infrastructure.ImportsDbContext>>()
+            .DispatchPendingAsync(100, CancellationToken.None);
+
     public async ValueTask InitializeAsync()
     {
         server = await PostgresServer.StartAsync();
@@ -53,7 +62,8 @@ public sealed class SalesHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new MaterialsModule(), new SalesModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddSingleton<IObjectStore>(Files);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new OrganizationModule(), new MaterialsModule(), new SalesModule(), new Trust.Api.TrustModule(), new Imports.Api.ImportsModule()]);
         builder.Services.AddScoped<ILimitGuard, NoLimits>();
         builder.Services.TreatEveryoneAs(DefaultRoles.TenantAdmin, new Dictionary<string, string>
         {

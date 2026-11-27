@@ -60,4 +60,9 @@ internal sealed class MaterialDirectory(MaterialsDbContext db) : IMaterialDirect
         db.Materials.AsNoTracking().Where(m => m.Id == new MaterialId(materialId))
             .Select(m => new MaterialSummary(m.Id.Value, m.Code, m.Name, m.Kind == MaterialKind.Product, m.Status == MaterialStatus.Archived))
             .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MaterialSummary>> ListAsync(CancellationToken cancellationToken) =>
+        await db.Materials.AsNoTracking().OrderBy(m => m.Code)
+            .Select(m => new MaterialSummary(m.Id.Value, m.Code, m.Name, m.Kind == MaterialKind.Product, m.Status == MaterialStatus.Archived))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 }

@@ -11,6 +11,8 @@
     <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
     <ProjectReference Include="../../Organization/Karry.Modules.Organization.Api/Karry.Modules.Organization.Api.csproj" />
     <ProjectReference Include="../../Materials/Karry.Modules.Materials.Api/Karry.Modules.Materials.Api.csproj" />
+    <!-- The customer and product imports run through the Imports module (P1.14). -->
+    <ProjectReference Include="../../Imports/Karry.Modules.Imports.Api/Karry.Modules.Imports.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

@@ -21,6 +21,8 @@ public static class SalesInfrastructure
         services.AddScoped<IPriceListStore, PriceListStore>();
         services.AddScoped<PriceListOperations>();
         services.AddScoped<Contracts.IPriceBook>(sp => sp.GetRequiredService<PriceListOperations>());
+        services.AddScoped<BuildingBlocks.Imports.IImportTarget, CustomerImport>();
+        services.AddScoped<BuildingBlocks.Imports.IImportTarget, ProductImport>();
         return services;
     }
 }

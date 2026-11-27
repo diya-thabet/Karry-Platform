@@ -13,6 +13,13 @@ internal sealed class ProductStore(SalesDbContext db) : IProductStore
     public async Task<IReadOnlyList<Product>> ListAsync(bool includeArchived, CancellationToken cancellationToken) =>
         await db.Products.AsNoTracking().Where(p => includeArchived || p.Status == ProductStatus.Active).ToListAsync(cancellationToken).ConfigureAwait(false);
 
+    public async Task<IReadOnlyList<Product>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken) =>
+        await db.Products.Where(p => codes.Contains(p.Code)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Product product) => db.Products.Add(product);
+
+    public Task<bool> TrySaveAllAsync(CancellationToken cancellationToken) => SalesSaving.TrySaveAsync(db, cancellationToken);
+
     public Task<bool> TrySaveAsync(Product product, CancellationToken cancellationToken)
     {
         if (db.Entry(product).State == EntityState.Detached)

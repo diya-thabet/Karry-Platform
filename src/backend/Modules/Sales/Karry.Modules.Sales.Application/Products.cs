@@ -20,6 +20,15 @@ public interface IProductStore
 
     /// <summary>Saves with its events; false, with nothing saved, when the code is taken or the product changed since it was loaded.</summary>
     Task<bool> TrySaveAsync(Product product, CancellationToken cancellationToken);
+
+    /// <summary>The products with these codes (imports), tracked so that changes to them are saved by <see cref="TrySaveAllAsync"/>.</summary>
+    Task<IReadOnlyList<Product>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken);
+
+    /// <summary>Adds a new product to the unit of work, saved by <see cref="TrySaveAllAsync"/>.</summary>
+    void Add(Product product);
+
+    /// <summary>Saves every pending change in one transaction; false, with nothing saved, on a code or version conflict.</summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>US-P3-SAL-02 AC1: what the company sells, each a material fraction with its sale unit.</summary>

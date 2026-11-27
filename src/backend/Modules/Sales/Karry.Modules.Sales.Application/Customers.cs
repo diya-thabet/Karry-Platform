@@ -94,6 +94,15 @@ public interface ICustomerStore
 
     /// <summary>Saves with its events; false, with nothing saved, when the code is taken or the customer changed since it was loaded.</summary>
     Task<bool> TrySaveAsync(Customer customer, CancellationToken cancellationToken);
+
+    /// <summary>The customers with these codes (imports), tracked so that changes to them are saved by <see cref="TrySaveAllAsync"/>.</summary>
+    Task<IReadOnlyList<Customer>> FindByCodesAsync(IReadOnlyCollection<string> codes, CancellationToken cancellationToken);
+
+    /// <summary>Adds a new customer to the unit of work, saved by <see cref="TrySaveAllAsync"/>.</summary>
+    void Add(Customer customer);
+
+    /// <summary>Saves every pending change in one transaction; false, with nothing saved, on a code or version conflict.</summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>US-P3-SAL-01: the company's customers, each change in the company's ledger.</summary>
