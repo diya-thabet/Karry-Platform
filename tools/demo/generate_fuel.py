@@ -230,8 +230,7 @@ def main(argv: list[str] | None = None) -> int:
     text = json.dumps(generate(seed=args.seed, sites=args.sites, machines=args.machines, days=args.days, start=args.start),
                       indent=2, ensure_ascii=False, default=str) + "\n"
     if args.out:
-        args.out.write_text(text, encoding="utf-8", newline="
-")
+        args.out.write_text(text, encoding="utf-8", newline="\n")
     else:
         sys.stdout.write(text)
     return 0
