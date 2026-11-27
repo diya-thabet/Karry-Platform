@@ -1,3 +1,6 @@
 # Fonts embedded in documents (ADR-0040 §1): never touched by line-ending conversion or diffs.
 *.ttf binary
 *.otf binary
+
+# Shared test vectors are compared byte for byte (drift guards): always LF, on every platform.
+tests/vectors/*.json text eol=lf
