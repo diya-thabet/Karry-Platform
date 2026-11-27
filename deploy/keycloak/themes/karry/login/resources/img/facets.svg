@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice">
+  <!-- Faint facets behind the login panel, after the low-poly style of the Karry mark. -->
+  <g fill="#fff" stroke="#fff" stroke-opacity=".07" stroke-width="1">
+    <path d="M0 0 220 0 90 170z" fill-opacity=".03"/>
+    <path d="M220 0 420 0 300 210z" fill-opacity=".05"/>
+    <path d="M420 0 600 0 600 160 300 210z" fill-opacity=".02"/>
+    <path d="M0 0 90 170 0 320z" fill-opacity=".04"/>
+    <path d="M90 170 300 210 160 420z" fill-opacity=".06"/>
+    <path d="M300 210 600 160 470 430z" fill-opacity=".04"/>
+    <path d="M0 320 90 170 160 420z" fill-opacity=".02"/>
+    <path d="M160 420 300 210 470 430z" fill-opacity=".03"/>
+    <path d="M470 430 600 160 600 520z" fill-opacity=".05"/>
+    <path d="M0 320 160 420 0 600z" fill-opacity=".05"/>
+    <path d="M160 420 470 430 300 660z" fill-opacity=".05"/>
+    <path d="M470 430 600 520 600 760 300 660z" fill-opacity=".02"/>
+    <path d="M0 600 160 420 300 660z" fill-opacity=".03"/>
+    <path d="M0 600 300 660 120 900 0 900z" fill-opacity=".04"/>
+    <path d="M300 660 600 760 600 900 120 900z" fill-opacity=".06"/>
+  </g>
+</svg>

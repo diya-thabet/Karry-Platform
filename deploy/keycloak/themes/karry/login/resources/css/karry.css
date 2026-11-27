@@ -9,7 +9,7 @@
  */
 
 :root {
-  --karry-brand: #1d4f91;
+  --karry-brand: #1d4ed8;
   --karry-ink: #111827;
   --karry-muted: #5b6474;
   --karry-line: #d9dee7;
@@ -18,7 +18,7 @@
   --karry-font: "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans", "Noto Sans Arabic", Roboto, Arial, sans-serif;
 }
 
-/* The page: no dark polygon picture, a light background and the brand panel. */
+/* The page: a light background, and the Karry brand on a navy panel on the start side. */
 body#keycloak-bg {
   background: var(--karry-page) !important;
   font-family: var(--karry-font);
@@ -32,8 +32,10 @@ body#keycloak-bg::before {
   inset: 0 auto 0 0;
   width: 44vw;
   background:
-    radial-gradient(120% 80% at 0% 100%, rgba(255, 255, 255, 0.14), transparent 60%),
-    linear-gradient(160deg, var(--karry-brand), color-mix(in srgb, var(--karry-brand) 70%, #000));
+    radial-gradient(60% 50% at 85% 15%, rgba(56, 189, 248, 0.28), transparent 70%),
+    radial-gradient(70% 60% at 10% 100%, rgba(37, 99, 235, 0.45), transparent 70%),
+    url("../img/facets.svg") center / cover no-repeat,
+    linear-gradient(155deg, #0b1d42 0%, #102a63 55%, #1e3a8a 100%);
   z-index: 0;
 }
 
@@ -41,37 +43,55 @@ body#keycloak-bg::before {
   inset: 0 0 0 auto;
 }
 
-/* The product and its promise on the panel (French by default, English when the page is). */
+/* The promise at the bottom of the panel: a headline, then what it means (French by default, English when the page is). */
 body#keycloak-bg::after {
-  content: "Les opérations de vos carrières, saisies sur le terrain et vérifiées.";
+  content: "Du terrain au bureau,\A des saisies sûres.";
   white-space: pre-line;
   position: fixed;
   inset-inline-start: 0;
-  bottom: 12vh;
+  bottom: calc(10vh + 5.5rem);
   width: 44vw;
-  padding: 0 6vw;
+  padding: 0 5vw;
   box-sizing: border-box;
   color: #fff;
-  font-size: 1.125rem;
-  line-height: 1.6;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   z-index: 1;
 }
 
 html[lang="en"] body#keycloak-bg::after {
-  content: "Your quarry operations, captured in the field and verified.";
+  content: "From the field to the office,\A entries you can trust.";
 }
 
-/* The product's name, large, above its promise on the panel. */
-.pf-v5-c-login::before {
-  content: "Karry";
+.pf-v5-c-login::after {
+  content: "Postes, compteurs et photos signés sur la tablette, même hors ligne, puis contrôlés et vérifiables par tous.";
   position: fixed;
-  inset-inline-start: 6vw;
-  bottom: calc(12vh + 5.5rem);
-  color: #fff;
-  font-family: var(--karry-font);
-  font-size: 3rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
+  inset-inline-start: 0;
+  bottom: 10vh;
+  width: 44vw;
+  padding: 0 5vw;
+  box-sizing: border-box;
+  color: #bfdbfe;
+  font-size: 1rem;
+  line-height: 1.6;
+  z-index: 1;
+}
+
+html[lang="en"] .pf-v5-c-login::after {
+  content: "Shifts, meters and photos signed on the tablet, even offline, then reviewed and verifiable by anyone.";
+}
+
+/* The Karry logo at the top of the panel. */
+.pf-v5-c-login::before {
+  content: "";
+  position: fixed;
+  inset-inline-start: 5vw;
+  top: 9vh;
+  width: min(22rem, 34vw);
+  aspect-ratio: 320 / 84;
+  background: url("../img/karry-logo-light.svg") left center / contain no-repeat;
   z-index: 1;
 }
 
@@ -307,24 +327,29 @@ html[lang="en"] body#keycloak-bg::after {
   }
 
   body#keycloak-bg::after,
-  html[lang="en"] body#keycloak-bg::after {
+  html[lang="en"] body#keycloak-bg::after,
+  .pf-v5-c-login::after,
+  html[lang="en"] .pf-v5-c-login::after {
     content: none;
   }
 
   .pf-v5-c-login::before {
     position: absolute;
-    inset-inline-start: 0;
-    top: 2rem;
-    bottom: auto;
-    width: 100%;
-    text-align: center;
-    font-size: 2rem;
+    inset-inline-start: 50%;
+    top: 1.75rem;
+    width: 13rem;
+    transform: translateX(-50%);
+    background-position: center;
+  }
+
+  [dir="rtl"] .pf-v5-c-login::before {
+    transform: translateX(50%);
   }
 
   .pf-v5-c-login {
     margin-inline-start: 0;
     align-items: flex-start;
-    padding-top: 5rem;
+    padding-top: 6rem;
   }
 
   .karry-tenant-name {
