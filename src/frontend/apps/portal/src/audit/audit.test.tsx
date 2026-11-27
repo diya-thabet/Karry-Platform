@@ -5,7 +5,7 @@ import { signedInAuth } from "@karry/auth/testing";
 import { createI18n, pseudoClose, pseudoOpen } from "@karry/i18n";
 import { App } from "../App";
 import { auditEntry, fakeApi, recordedEvent, site } from "../testing/fakeApi";
-import { dayEnd, dayStart, noEnvelope } from "./api";
+import { dayEnd, dayStart, noEnvelope, recentPeriod } from "./api";
 import { findTable } from "../testing/tables";
 
 const auditor = ["audit.ledger.read", "audit.ledger.verify", "organization.sites.read"];
@@ -36,6 +36,12 @@ async function choose(label: string, option: string) {
 
 function entryCalls(api: ReturnType<typeof fakeApi>) {
   return api.auditCalls.filter((call) => call.path === "/api/v1/audit/entries");
+}
+
+/** The period the log opens with, as the API is asked for it: the last 30 days. */
+function lastMonth() {
+  const period = recentPeriod();
+  return { from: dayStart(period.fromDay), to: dayEnd(period.toDay) };
 }
 
 describe("audit viewer (US-P1-AUD-04)", () => {
@@ -147,7 +153,7 @@ describe("audit viewer (US-P1-AUD-04)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Show more" }));
 
     expect(await within(table).findByRole("button", { name: "Details of entry no. 1" })).toBeInTheDocument();
-    expect(entryCalls(api).at(-1)?.query).toEqual({ limit: "50", cursor: "2" });
+    expect(entryCalls(api).at(-1)?.query).toEqual({ ...lastMonth(), limit: "50", cursor: "2" });
     expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
   });
 
@@ -162,7 +168,8 @@ describe("audit viewer (US-P1-AUD-04)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Export to Excel (CSV)" }));
 
     expect(await screen.findByText("Export downloaded and recorded in the audit log")).toBeInTheDocument();
-    expect(api.auditCalls.find((call) => call.path === "/api/v1/audit/entries/export.csv")?.query).toEqual({ actor: "user-ali" });
+    // The export takes the period on screen (the last 30 days by default), never the whole trail.
+    expect(api.auditCalls.find((call) => call.path === "/api/v1/audit/entries/export.csv")?.query).toEqual({ actor: "user-ali", ...lastMonth() });
   });
 
   it("explains an export over the limit", async () => {

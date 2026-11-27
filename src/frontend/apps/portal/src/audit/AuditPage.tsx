@@ -6,7 +6,7 @@ import { useAccess, useApi } from "../app/api";
 import { useSiteNames } from "../assets/api";
 import { saveFile } from "../imports/api";
 import {
-  auditKey, auditQuery, AuditReadPermission, envelopeOf, AuditVerifyPermission, latestVerificationKey, maskedFieldsOf, noFilters, shownValue, useAuditActors,
+  auditKey, auditQuery, AuditReadPermission, envelopeOf, AuditVerifyPermission, latestVerificationKey, maskedFieldsOf, recentPeriod, shownValue, useAuditActors,
   useLatestVerification, type AuditEntry, type AuditFilters,
 } from "./api";
 import { SignatureVerification } from "./SignatureVerification";
@@ -98,8 +98,10 @@ function AuditLog() {
   const toast = useToast();
   const { sites, name } = useSiteNames();
   const actors = useAuditActors();
-  const [draft, setDraft] = useState<AuditFilters>(noFilters);
-  const [filters, setFilters] = useState<AuditFilters>(noFilters);
+  // The last 30 days, not the company's whole trail: what the list shows is what the export takes, and a wider period
+  // is a deliberate choice in the filters (owner's review 2026-11-27: the export brought back everything).
+  const [draft, setDraft] = useState<AuditFilters>(recentPeriod);
+  const [filters, setFilters] = useState<AuditFilters>(recentPeriod);
   const [shown, setShown] = useState<AuditEntry | null>(null);
   const set = (key: keyof AuditFilters, value: string) => { setDraft((current) => ({ ...current, [key]: value })); };
   const invalidRange = draft.fromDay !== "" && draft.toDay !== "" && draft.toDay < draft.fromDay;
@@ -132,8 +134,9 @@ function AuditLog() {
   };
 
   const clear = () => {
-    setDraft(noFilters);
-    setFilters(noFilters);
+    const period = recentPeriod();
+    setDraft(period);
+    setFilters(period);
   };
 
   const person = (entry: { actor: string | null; actorName: string | null }) => entry.actorName ?? entry.actor ?? t("portal.audit.system");

@@ -49,6 +49,12 @@ public sealed record EntrySearch(
 {
     /// <summary>Only these entries (root IDs, at most <see cref="EntryReading.MaxLimit"/>): the review queue's page at once (ADR-0038).</summary>
     public IReadOnlyList<Guid>? Ids { get; init; }
+
+    /// <summary>Shift dates from this one (inclusive): a machine's or a person's history, an export of a period.</summary>
+    public DateOnly? From { get; init; }
+
+    /// <summary>Shift dates up to this one (inclusive).</summary>
+    public DateOnly? To { get; init; }
 }
 
 /// <summary>A checked search for the reader; <c>Sites</c> null means every site of the company.</summary>
@@ -57,6 +63,10 @@ public sealed record EntryQuery(
     ShiftEntryStatus? Status, bool? Flagged, Guid? After, int Take)
 {
     public IReadOnlyList<Guid>? Ids { get; init; }
+
+    public DateOnly? From { get; init; }
+
+    public DateOnly? To { get; init; }
 }
 
 /// <summary>A page of entries (their current versions), newest first.</summary>
@@ -105,6 +115,8 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
 
     public static readonly Error IdsInvalid = Error.Validation("fieldops.ids_invalid", $"Ask for at most {MaxLimit} entries by ID.");
 
+    public static readonly Error PeriodInvalid = Error.Validation("fieldops.period_invalid", "The period ends before it starts.");
+
     public async Task<Result<EntryPage>> SearchAsync(EntrySearch search, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(search);
@@ -117,6 +129,11 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
         if (search.Ids is { Count: > MaxLimit })
         {
             return IdsInvalid;
+        }
+
+        if (search.From is { } from && search.To is { } to && to < from)
+        {
+            return PeriodInvalid;
         }
 
         ShiftEntryStatus? status = null;
@@ -134,7 +151,7 @@ public sealed class EntryReading(IShiftEntryReader reader, ICallerAccess caller,
         var found = await reader.SearchAsync(
             new EntryQuery(scope.TenantWide ? null : scope.Sites, search.SiteId, search.ShiftDate, search.ShiftCode, search.AssetId, search.OperatorId,
                 status, search.Flagged, search.Cursor, take + 1)
-            { Ids = search.Ids },
+            { Ids = search.Ids, From = search.From, To = search.To },
             cancellationToken).ConfigureAwait(false);
         return found.Count > take ? new EntryPage([.. found.Take(take)], found[take - 1].RootId) : new EntryPage(found, null);
     }

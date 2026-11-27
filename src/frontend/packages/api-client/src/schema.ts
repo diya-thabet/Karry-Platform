@@ -9823,6 +9823,8 @@ export interface operations {
                 cursor?: string;
                 limit?: number | string;
                 ids?: string[];
+                from?: string;
+                to?: string;
             };
             header?: never;
             path?: never;

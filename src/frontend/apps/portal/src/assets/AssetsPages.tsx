@@ -3,7 +3,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { SearchX } from "lucide-react";
 import { useState, type SyntheticEvent } from "react";
 import { useTranslation } from "@karry/i18n";
-import { Button, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField, useToast, type Status } from "@karry/ui";
+import { Button, Card, DataTable, EmptyState, PageHeader, PageSkeleton, SelectField, StatusChip, TextField, useToast, type Status } from "@karry/ui";
 import { useAccess, useApi, useCurrentTenant } from "../app/api";
 import { VersionConflict } from "../app/VersionConflict";
 import { handlesVersionConflict, isVersionConflict } from "../app/conflicts";
@@ -11,6 +11,8 @@ import { useRecordDraft } from "../app/recordDraft";
 import { HoldsReadPermission } from "../holds/HoldsPage";
 import { FlagsReadPermission } from "../integrity/api";
 import { Trail } from "../shell/Trail";
+import { EntryHistory } from "../verification/EntryHistory";
+import { EntriesReadPermission } from "../verification/queue";
 import { todayIn } from "../sites/api";
 import { LabelPrintDialog, LabelPanel, MetersPanel, PhotoPanel, PlacePanel } from "./AssetPanels";
 import {
@@ -162,6 +164,7 @@ export function AssetsPage() {
 export function AssetPage({ assetId }: { assetId?: string }) {
   const { t } = useTranslation();
   const api = useApi();
+  const { can } = useAccess();
   const asset = useQuery({
     queryKey: assetKey(assetId ?? "new"),
     queryFn: async () => (await api.GET("/api/v1/assets/{assetId}", { params: { path: { assetId: assetId ?? "" } } })).data ?? null,
@@ -181,14 +184,22 @@ export function AssetPage({ assetId }: { assetId?: string }) {
   }
 
   return (
-    <div className="flex max-w-4xl flex-col gap-8">
-      <AssetForm key={asset.data.id} asset={asset.data} />
-      <PlacePanel asset={asset.data} />
-      <div className="grid gap-8 lg:grid-cols-2">
-        <PhotoPanel asset={asset.data} />
-        <LabelPanel asset={asset.data} />
+    <div className="flex flex-col gap-8">
+      <div className="flex max-w-4xl flex-col gap-8">
+        <AssetForm key={asset.data.id} asset={asset.data} />
+        <PlacePanel asset={asset.data} />
+        <div className="grid gap-8 lg:grid-cols-2">
+          <PhotoPanel asset={asset.data} />
+          <LabelPanel asset={asset.data} />
+        </div>
+        <MetersPanel asset={asset.data} />
       </div>
-      <MetersPanel asset={asset.data} />
+      {/* Its shifts with their meter photos, today's and older ones, over a period (owner's review 2026-11-27). */}
+      {can(EntriesReadPermission) && (
+        <Card title={t("portal.history.machine")} description={t("portal.history.description")}>
+          <EntryHistory assetId={asset.data.id} />
+        </Card>
+      )}
     </div>
   );
 }
