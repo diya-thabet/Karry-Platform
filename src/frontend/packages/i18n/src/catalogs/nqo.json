@@ -1060,6 +1060,8 @@
   "portal.imports.kind.assets": "ߡߊߛߌ߲ߟߎ",
   "portal.imports.kind.meters": "ߖߊߕߋߓߊߜ߭ߊߟߎ",
   "portal.imports.kind.users": "ߓߊ߯ߙߊߞߍߟߊߟߎ",
+  "portal.imports.kind.customers": "ߛߊ߲ߣߌߞߍߟߊߟߎ",
+  "portal.imports.kind.products": "ߝߋ߯ߙߋߝߍ߲ߟߎ",
   "portal.imports.language": "ߡߏߘߍߟߌ ߞߊ߲",
   "portal.imports.template": "ߡߏߘߍߟߌ ߖߌߜ߭ߌ߲",
   "portal.imports.templateHint": "Data ߝߍߦߌ ߝߊ؛ Instructions ߝߍߦߌ ߓߍ ߞߏߟߐ߲ ߞߋߟߋ߲ ߞߋߟߋ߲ ߓߍ߯ ߢߍߝߐ߸ ߟߌߛߌ ߖߌߜ߭ߌ߲ߣߋ߲ߟߎ ߓߍ ߤߊߞߍ ߕߊߣߌߟߋ߲ߟߎ ߦߌߙߊ. ߞߏߟߐ߲ ߡߌ߲ߣߎ ߕߊ߯ߡߊߛߦߍ߲ ߦߋ *߸ ߏߟߎ ߦߋ ߥߊߖߌߓߌ ߦߋ.",

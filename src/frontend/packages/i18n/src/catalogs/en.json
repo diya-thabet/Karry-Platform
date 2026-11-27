@@ -1060,6 +1060,8 @@
   "portal.imports.kind.assets": "Machines",
   "portal.imports.kind.meters": "Meters",
   "portal.imports.kind.users": "Users",
+  "portal.imports.kind.customers": "Customers",
+  "portal.imports.kind.products": "Products",
   "portal.imports.language": "Template language",
   "portal.imports.template": "Download the template",
   "portal.imports.templateHint": "Fill in the Data sheet; the Instructions sheet explains each column and the drop-down lists show the accepted values. Columns marked * are required.",

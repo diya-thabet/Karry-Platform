@@ -1060,6 +1060,8 @@
   "portal.imports.kind.assets": "الآلات",
   "portal.imports.kind.meters": "العدادات",
   "portal.imports.kind.users": "المستخدمون",
+  "portal.imports.kind.customers": "العملاء",
+  "portal.imports.kind.products": "المنتجات",
   "portal.imports.language": "لغة القالب",
   "portal.imports.template": "تنزيل القالب",
   "portal.imports.templateHint": "املأ ورقة البيانات؛ تشرح ورقة التعليمات كل عمود، وتعرض القوائم المنسدلة القيم المقبولة. الأعمدة المعلّمة بـ * إلزامية.",

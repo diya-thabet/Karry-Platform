@@ -1060,6 +1060,8 @@
   "portal.imports.kind.assets": "Masinlu",
   "portal.imports.kind.meters": "Jatebagalu",
   "portal.imports.kind.users": "Baarakɛlalu",
+  "portal.imports.kind.customers": "Sannikɛlalu",
+  "portal.imports.kind.products": "Feerefɛnlu",
   "portal.imports.language": "Modɛli kan",
   "portal.imports.template": "Modɛli jigin",
   "portal.imports.templateHint": "Data fɛyi fa; Instructions fɛyi bɛ kolɔn kelen kelen bɛɛ ɲɛfɔ, lisi jiginnenlu bɛ hakɛ tanilenlu yira. Kolɔn minnu taamasyɛn ye *, olu ye wajibi ye.",

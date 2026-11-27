@@ -132,6 +132,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-18 | `field.start.*` (33 keys: the start-of-shift screen, its blocks, summary and restored draft), `field.machines.choose`; `field.action.meter` removed | ar, emk, nqo | P2.5 start of shift: "below the previous end" and "machine in use" are the messages operators will read most |
 | 2026-11-18 | `field.end.*` (25 keys: end of shift, Δ, stoppage reasons, blocks), `field.active.label` | ar, emk, nqo | P2.5 end of shift: the stoppage reasons are a fixed list until the owner confirms the codes |
 | 2026-11-18 | `field.history.*` (20 keys: my history, statuses, the flags in words) | ar, emk, nqo | P2.5 my history: the flag sentences tell an operator what the controller will check |
+| 2026-11-27 | `portal.imports.kind.customers`, `portal.imports.kind.products` | ar, emk, nqo | P3.1 customer and product imports |
 
 ## 6. Not translated yet
 

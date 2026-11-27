@@ -1060,6 +1060,8 @@
   "portal.imports.kind.assets": "Engins",
   "portal.imports.kind.meters": "Compteurs",
   "portal.imports.kind.users": "Utilisateurs",
+  "portal.imports.kind.customers": "Clients",
+  "portal.imports.kind.products": "Produits",
   "portal.imports.language": "Langue du modèle",
   "portal.imports.template": "Télécharger le modèle",
   "portal.imports.templateHint": "Remplissez la feuille Données ; la feuille Instructions explique chaque colonne et les listes déroulantes montrent les valeurs acceptées. Les colonnes marquées * sont obligatoires.",
