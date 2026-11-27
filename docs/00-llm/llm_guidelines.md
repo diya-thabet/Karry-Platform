@@ -470,6 +470,8 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 
 **Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `tenant-isolation`, `authorization`, `openapi-diff`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
 
+**SonarCloud** (automatic analysis since the repository went public, 2026-11-27) also reports on every PR, and the guard blocks on it like any failing check. Its quality gate wants at most 3 % duplication on new code; `.sonarcloud.properties` keeps generated code (migrations, `schema.ts`) and test projects out of the duplication measure only. Do not widen those exclusions to product code: factor the duplication instead.
+
 ### 9.2 Workflow rules
 
 - **Pin third-party actions by full commit SHA** (with version comment), e.g. `uses: actions/checkout@<sha> # v4.x`. Renovate keeps them updated.
