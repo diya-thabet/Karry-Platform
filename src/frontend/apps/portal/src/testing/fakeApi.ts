@@ -37,6 +37,13 @@ type Hold = components["schemas"]["HoldResponse"];
 type ReviewItem = components["schemas"]["ReviewItemResponse"];
 type ShiftEntry = components["schemas"]["ShiftEntryResponse"];
 type Notice = components["schemas"]["NotificationResponse"];
+type Customer = components["schemas"]["CustomerResponse"];
+type CustomerInput = components["schemas"]["CustomerInput"];
+type Product = components["schemas"]["ProductResponse"];
+type ProductInput = components["schemas"]["ProductInput"];
+type PriceList = components["schemas"]["PriceListResponse"];
+type PriceListInput = components["schemas"]["PriceListInput"];
+type PriceQuote = components["schemas"]["PriceQuoteResponse"];
 
 export interface Sent {
   method: string;
@@ -93,6 +100,14 @@ export function fakeApi(options: {
   days?: Record<string, NonWorkingDay[]>;
   /** What `GET /sites/{id}/shift-instances` answers for every site. */
   instances?: ShiftInstance[];
+  /** Customers of `GET /sales/customers` (default: none). */
+  customers?: Customer[];
+  /** Products of `GET /sales/products` (default: none). */
+  products?: Product[];
+  /** Price list versions of `GET /sales/price-lists` (default: none). */
+  priceLists?: PriceList[];
+  /** Answers of `GET /sales/prices` by product ID; a product without one has no price (404 `sales.no_price`). */
+  quotes?: Record<string, PriceQuote>;
   /** Materials of `GET /materials` (default: none). */
   materials?: Material[];
   /** The company's integrity rules (default: the catalogue with its defaults, `integrityCatalog()`). */
@@ -163,6 +178,9 @@ export function fakeApi(options: {
   const patterns: Record<string, ShiftPattern[]> = { ...options.patterns };
   const days: Record<string, NonWorkingDay[]> = { ...options.days };
   const materials: Material[] = [...(options.materials ?? [])];
+  const customers: Customer[] = [...(options.customers ?? [])];
+  const products: Product[] = [...(options.products ?? [])];
+  const priceLists: PriceList[] = [...(options.priceLists ?? [])];
   const integrityRules: IntegrityRule[] = [...(options.integrityRules ?? integrityCatalog())];
   const assets: Asset[] = [...(options.assets ?? [])];
   const checklists: Checklist[] = [...(options.checklists ?? [])];
@@ -645,6 +663,11 @@ export function fakeApi(options: {
       return material;
     }
 
+    const sold = salesRoute(request.method, url, body, request.headers.get("If-Match"));
+    if (sold) {
+      return sold;
+    }
+
     const held = holdsRoute(request.method, url, body);
     if (held) {
       return held;
@@ -1033,6 +1056,147 @@ export function fakeApi(options: {
       default:
         return problem(404, "test.unknown_route");
     }
+  }
+
+  /** Sales (P3.1): customers, products, price list versions and the price on a date, as the API answers them. */
+  function salesRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
+    const match = /^\/api\/v1\/sales\/(customers|products|price-lists|prices)(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const [, kind, id, action] = match;
+    if (kind === "prices") {
+      const quote = options.quotes?.[url.searchParams.get("productId") ?? ""];
+      return quote ? json(200, quote) : problem(404, "sales.no_price");
+    }
+
+    if (kind === "customers") {
+      if (!id && method === "GET") {
+        const status = url.searchParams.get("status");
+        const search = (url.searchParams.get("search") ?? "").toLowerCase();
+        return json(200, {
+          items: customers.filter((c) => (!status || c.status === status) && (!search || `${c.code} ${c.legalName} ${c.taxId ?? ""}`.toLowerCase().includes(search))),
+        });
+      }
+
+      if (!id) {
+        const input = body as CustomerInput;
+        const created = customer({
+          id: `0192f0c1-0000-7000-8000-${String(7000 + customers.length + 1).padStart(12, "0")}`, code: (input.code ?? "").toUpperCase(),
+          legalName: input.legalName ?? "", taxId: input.taxId ?? null, paymentTermsDays: input.paymentTermsDays ?? 30, basis: input.basis ?? "t",
+          addresses: input.addresses ?? [], contacts: input.contacts ?? [], allowedSiteIds: input.allowedSiteIds ?? [],
+          creditLimit: input.creditLimit?.amount ? { amount: Number(input.creditLimit.amount), currency: input.creditLimit.currency ?? "EUR" } : null,
+        });
+        customers.push(created);
+        return json(201, created);
+      }
+
+      const index = customers.findIndex((c) => c.id === id);
+      const found = customers[index];
+      if (!found) {
+        return problem(404, "sales.customer_not_found");
+      }
+
+      const save = (next: Customer) => {
+        customers[index] = { ...next, version: nextVersion(found.version) };
+        return json(200, customers[index]);
+      };
+      if (method === "GET") {
+        return json(200, found);
+      }
+
+      if (action === "block") {
+        return save({ ...found, status: "blocked", blockedReason: (body as { reason: string }).reason });
+      }
+
+      if (action === "unblock") {
+        return save({ ...found, status: "active", blockedReason: null });
+      }
+
+      if (ifMatch !== null && ifMatch !== found.version) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const input = body as CustomerInput;
+      const limit = input.creditLimit;
+      return save({
+        ...found, legalName: input.legalName ?? "", taxId: input.taxId ?? null, paymentTermsDays: input.paymentTermsDays ?? 30, basis: input.basis ?? "t",
+        addresses: input.addresses ?? [], contacts: input.contacts ?? [], allowedSiteIds: input.allowedSiteIds ?? [],
+        creditLimit: limit ? (limit.amount ? { amount: Number(limit.amount), currency: limit.currency ?? "EUR" } : null) : (found.creditLimit ?? null),
+      });
+    }
+
+    if (kind === "products") {
+      if (!id && method === "GET") {
+        const all = url.searchParams.get("includeArchived") === "true";
+        return json(200, { items: products.filter((p) => all || p.status === "active") });
+      }
+
+      if (!id) {
+        const input = body as ProductInput;
+        const created = product({
+          id: `0192f0c1-0000-7000-8000-${String(8000 + products.length + 1).padStart(12, "0")}`, code: (input.code ?? "").toUpperCase(),
+          name: input.name ?? "", materialId: input.materialId ?? "", saleUnit: input.saleUnit ?? "t",
+        });
+        products.push(created);
+        return json(201, created);
+      }
+
+      const index = products.findIndex((p) => p.id === id);
+      const found = products[index];
+      if (!found) {
+        return problem(404, "sales.product_not_found");
+      }
+
+      const save = (next: Product) => {
+        products[index] = { ...next, version: nextVersion(found.version) };
+        return json(200, products[index]);
+      };
+      if (method === "GET") {
+        return json(200, found);
+      }
+
+      if (action === "archive" || action === "restore") {
+        return save({ ...found, status: action === "archive" ? "archived" : "active" });
+      }
+
+      if (ifMatch !== null && ifMatch !== found.version) {
+        return problem(409, "request.version_conflict");
+      }
+
+      const input = body as ProductInput;
+      return save({ ...found, name: input.name ?? "", materialId: input.materialId ?? found.materialId, saleUnit: input.saleUnit ?? found.saleUnit });
+    }
+
+    if (!id && method === "GET") {
+      const siteId = url.searchParams.get("siteId");
+      return json(200, { items: priceLists.filter((l) => !siteId || l.siteId === siteId) });
+    }
+
+    if (!id) {
+      const input = body as PriceListInput;
+      const created = priceList({
+        id: `0192f0c1-0000-7000-8000-${String(9000 + priceLists.length + 1).padStart(12, "0")}`, siteId: input.siteId ?? "", customerId: input.customerId ?? null,
+        currency: input.currency ?? "EUR", effectiveFrom: input.effectiveFrom ?? "2026-12-01", inForce: false,
+        lines: (input.lines ?? []).map((l) => ({ productId: l.productId ?? "", unitPrice: Number(l.unitPrice) })),
+      });
+      priceLists.push(created);
+      return json(201, created);
+    }
+
+    const index = priceLists.findIndex((l) => l.id === id);
+    const found = priceLists[index];
+    if (!found) {
+      return problem(404, "sales.price_list_not_found");
+    }
+
+    if (action === "withdraw") {
+      priceLists[index] = { ...found, status: "withdrawn", version: nextVersion(found.version) };
+      return json(200, priceLists[index]);
+    }
+
+    return json(200, found);
   }
 
   function materialsRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
@@ -1500,6 +1664,31 @@ function versionFrom(effectiveFrom: string, input: DensityInput | null | undefin
 }
 
 /** A material as the API answers it: 0/31.5 with 2.2 bank, 1.6 loose, 3 % moisture from 1 January 2026. */
+export function customer(overrides: Partial<Customer> = {}): Customer {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000007001", code: "CLI-0042", legalName: "Bâtisseurs du Cap", taxId: "TN1234567",
+    addresses: [{ kind: "billing", line1: "12 rue du Port", line2: null, city: "Bizerte", region: null, postalCode: null, country: "TN" }],
+    contacts: [{ name: "Awa Diallo", role: null, phone: null, email: "awa@cap.example" }], paymentTermsDays: 30, basis: "t", allowedSiteIds: [],
+    creditLimit: { amount: 150000, currency: "TND" }, status: "active", blockedReason: null, createdAt: "2026-11-27T08:00:00Z",
+    changedAt: "2026-11-27T08:00:00Z", version: '"1"', ...overrides,
+  };
+}
+
+export function product(overrides: Partial<Product> = {}): Product {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000008001", code: "G-8/16", name: "Gravier 8/16", materialId: "0192f0c1-0000-7000-8000-000000006001",
+    saleUnit: "t", status: "active", createdAt: "2026-11-27T08:00:00Z", changedAt: "2026-11-27T08:00:00Z", version: '"1"', ...overrides,
+  };
+}
+
+export function priceList(overrides: Partial<PriceList> = {}): PriceList {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000009001", siteId: "0192f0c1-0000-7000-8000-000000005001", customerId: null, currency: "TND",
+    effectiveFrom: "2026-11-01", status: "active", inForce: true, lines: [{ productId: "0192f0c1-0000-7000-8000-000000008001", unitPrice: 30 }],
+    createdAt: "2026-11-01T08:00:00Z", changedAt: "2026-11-01T08:00:00Z", version: '"1"', ...overrides,
+  };
+}
+
 export function material(overrides: Partial<Material> = {}): Material {
   return {
     id: "0192f0c1-0000-7000-8000-000000006001", code: "0/31.5", name: "Grave 0/31.5", kind: "product",

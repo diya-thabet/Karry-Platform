@@ -8,6 +8,7 @@ import { HomePage } from "./home/HomePage";
 import { ImportsPage } from "./imports/ImportsPage";
 import { ComingSoon } from "./shell/Placeholders";
 import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
+import { CustomerPage, CustomersPage, PriceListsPage, ProductPage, ProductsPage } from "./sales/SalesPages";
 import { TenantPage } from "./operator/TenantPage";
 import { TenantsPage } from "./operator/TenantsPage";
 import { sections } from "./shell/sections";
@@ -111,6 +112,27 @@ const material = createRoute({
     return <MaterialPage key={materialId} materialId={materialId} />;
   },
 });
+const customers = createRoute({ getParentRoute: () => company, path: "/settings/customers", component: CustomersPage });
+const newCustomer = createRoute({ getParentRoute: () => company, path: "/settings/customers/new", component: () => <CustomerPage /> });
+const customer = createRoute({
+  getParentRoute: () => company,
+  path: "/settings/customers/$customerId",
+  component: function Customer() {
+    const { customerId } = customer.useParams();
+    return <CustomerPage key={customerId} customerId={customerId} />;
+  },
+});
+const products = createRoute({ getParentRoute: () => company, path: "/settings/products", component: ProductsPage });
+const newProduct = createRoute({ getParentRoute: () => company, path: "/settings/products/new", component: () => <ProductPage /> });
+const product = createRoute({
+  getParentRoute: () => company,
+  path: "/settings/products/$productId",
+  component: function Product() {
+    const { productId } = product.useParams();
+    return <ProductPage key={productId} productId={productId} />;
+  },
+});
+const priceLists = createRoute({ getParentRoute: () => company, path: "/settings/price-lists", component: PriceListsPage });
 const checklists = createRoute({ getParentRoute: () => company, path: "/settings/checklists", component: ChecklistsPage });
 const newChecklist = createRoute({ getParentRoute: () => company, path: "/settings/checklists/new", component: () => <ChecklistPage /> });
 const checklist = createRoute({
@@ -149,7 +171,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, review, board, entryHistory, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, noticeRules, materials, newMaterial, material, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
+        home, ...routes, audit, review, board, entryHistory, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, noticeRules, materials, newMaterial, material, customers, newCustomer, customer, products, newProduct, product, priceLists, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),
