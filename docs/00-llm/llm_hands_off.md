@@ -351,6 +351,12 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-27 (later) — Phase 3 planned into sub-phases P3.0 – P3.16 (agent)
+
+- **Plan:** [Phase 3 sub-phases](../04-phases/phase-03-weighbridge-fuel-pilot/sub-phases.md) and [tracker](../04-phases/phase-03-weighbridge-fuel-pilot/tracker.md). 17 sub-phases (weighing P3.1–P3.7, fuel P3.8–P3.11, dashboards and report P3.12–P3.13, SMS/WhatsApp P3.14, export/support/demo P3.15, hardening and pilot P3.16a/b), ADR-0042 … 0050 reserved, amendments A1–A8 (PDFsharp not QuestPDF; `Sales` and `Weighbridge` separate; `online_only` numbering by default; desk mode of the field PWA; providers as ports with fakes; production after P1.17; ROI in the operator console; M2 = Phase 3 exit only).
+- **Entry:** the build may start before the Phase 2 exit gate, as Phase 2 did before M1; carry-overs (P1.15, P1.17, P1.18b, P2.12b, W-8, `?lang=`) gate P3.16b.
+- **Next:** P3.0 (ADR drafts, weighbridge and fuel generators, golden dataset), then P3.1.
+
 ### 2026-11-27 (later) — P2.13 website: cinematic workflow film, islands, slices 2–6 (agent)
 
 - **Website (`E:\Karry-Website`, local `main`, commits 467ee29 and 4e25d62; GitHub repository not created: the auto-mode check refused, it needs the owner).** Owner direction: "cinematic, 3D, top tier, not AI-looking", then "every node a step of Karry's workflow, Karry on top orchestrating". Design written in its `DESIGN.md`, film plan in `docs/plan-workflow-film.md`.
