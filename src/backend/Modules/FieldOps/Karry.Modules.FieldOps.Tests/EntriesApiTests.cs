@@ -117,7 +117,27 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
         (await GetAsync("/api/v1/fieldops/entries", TestTokens.ForTenant(tenant, FieldOpsHost.Operator))).StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
+    [Fact]
+    public async Task Entries_are_filtered_by_a_period_of_shift_dates_both_ends_included()
+    {
+        // A machine's or a person's history, or an export, over the dates the person chose (owner's UI review).
+        var tenant = await ProvisionAsync();
+        var (site, asset, person) = (Guid.CreateVersion7(), Guid.CreateVersion7(), Guid.CreateVersion7());
+        var (first, second, third) = (Id(41), Id(42), Id(43));
+        await InsertAsync(tenant, first, 1, site, asset, person, "1.0", shiftDate: new DateOnly(2026, 11, 1));
+        await InsertAsync(tenant, second, 1, site, asset, person, "2.0", shiftDate: new DateOnly(2026, 11, 5));
+        await InsertAsync(tenant, third, 1, site, asset, person, "3.0", shiftDate: new DateOnly(2026, 11, 9));
+
+        async Task<List<Guid>> Find(string query) => Ids(await Json(await GetAsync($"/api/v1/fieldops/entries?assetId={asset}&{query}", Admin(tenant))));
+
+        (await Find("from=2026-11-01&to=2026-11-05")).Should().Equal(second, first);
+        (await Find("from=2026-11-05")).Should().Equal(third, second);
+        (await Find("to=2026-11-04")).Should().Equal(first);
+        (await Find("from=2026-11-06&to=2026-11-08")).Should().BeEmpty();
+    }
+
     [Theory]
+    [InlineData("from=2026-11-09&to=2026-11-01", "fieldops.period_invalid")]
     [InlineData("limit=0", "fieldops.limit_invalid")]
     [InlineData("limit=201", "fieldops.limit_invalid")]
     [InlineData("status=pending", "fieldops.status_invalid")]
@@ -164,7 +184,8 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
 
     /// <summary>A stored version, as the handlers write it (the handlers themselves are tested in <see cref="ShiftEntryHandlersTests"/>).</summary>
     private async Task InsertAsync(
-        Guid tenant, Guid root, int version, Guid site, Guid asset, Guid person, string start, string? end = null, string[]? flags = null, string shiftCode = "D")
+        Guid tenant, Guid root, int version, Guid site, Guid asset, Guid person, string start, string? end = null, string[]? flags = null, string shiftCode = "D",
+        DateOnly? shiftDate = null)
     {
         await using var connection = new NpgsqlConnection(host.Database.Admin);
         await connection.OpenAsync(Ct);
@@ -174,7 +195,7 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
                 shift_date, shift_code, shift_starts_at, shift_ends_at, started_at, start_value, fuel_start_percent, start_photo,
                 ended_at, end_value, fuel_end_percent, end_photo, stoppages, estimated, flags, envelope_id, command_id, device_id, received_at)
             VALUES ($1, $2, $3, $4, $5, $6, gen_random_uuid(), 'hours', $7, 1,
-                '2026-11-09', $8, '2026-11-09T06:00:00Z', '2026-11-09T14:00:00Z', '2026-11-09T06:05:00Z', $9::numeric, 80, 'sha256:' || repeat('a', 64),
+                $15, $8, '2026-11-09T06:00:00Z', '2026-11-09T14:00:00Z', '2026-11-09T06:05:00Z', $9::numeric, 80, 'sha256:' || repeat('a', 64),
                 $10, $11::numeric, $12, $13, '[]', false, $14, gen_random_uuid(), gen_random_uuid(), gen_random_uuid(), now())
             """, connection);
         insert.Parameters.AddWithValue(tenant);
@@ -191,6 +212,7 @@ public sealed class EntriesApiTests(FieldOpsHost host) : IClassFixture<FieldOpsH
         insert.Parameters.AddWithValue(end is null ? DBNull.Value : 30);
         insert.Parameters.AddWithValue(end is null ? DBNull.Value : "sha256:" + new string('b', 64));
         insert.Parameters.AddWithValue(flags ?? []);
+        insert.Parameters.AddWithValue(shiftDate ?? new DateOnly(2026, 11, 9));
         await insert.ExecuteNonQueryAsync(Ct);
     }
 

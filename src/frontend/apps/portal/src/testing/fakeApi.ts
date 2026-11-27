@@ -199,6 +199,7 @@ export function fakeApi(options: {
   const supportCalls: { method: string; path: string; header: string | null }[] = [];
   let importSteps = 0;
   const auditCalls: { path: string; query: Record<string, string> }[] = [];
+  const entryCalls: { query: Record<string, string> }[] = [];
   const shiftReportCalls: Record<string, string>[] = [];
   const requested: string[] = [];
   const operatorTenants: OperatorTenant[] = [...(options.operatorTenants ?? [])];
@@ -413,11 +414,19 @@ export function fakeApi(options: {
     }
 
     if (request.method === "GET" && url.pathname === "/api/v1/fieldops/entries") {
+      entryCalls.push({ query: Object.fromEntries(url.searchParams) });
       const ids = url.searchParams.getAll("ids");
       const site = url.searchParams.get("siteId");
       const day = url.searchParams.get("shiftDate");
+      const asset = url.searchParams.get("assetId");
+      const operator = url.searchParams.get("operatorId");
+      // The period of shift dates, both ends included (the history and its export).
+      const from = url.searchParams.get("from");
+      const to = url.searchParams.get("to");
+      const dated = (entry: ShiftEntry) => (!from || (entry.shift?.date ?? "") >= from) && (!to || (entry.shift?.date ?? "") <= to);
       return json(200, {
-        items: entries.filter((entry) => (ids.length === 0 || ids.includes(entry.id)) && (!site || entry.siteId === site) && (!day || entry.shift?.date === day)),
+        items: entries.filter((entry) => (ids.length === 0 || ids.includes(entry.id)) && (!site || entry.siteId === site) && (!day || entry.shift?.date === day)
+          && (!asset || entry.assetId === asset) && (!operator || entry.operatorId === operator) && dated(entry)),
         nextCursor: null,
       });
     }
@@ -1267,6 +1276,8 @@ export function fakeApi(options: {
     sent,
     /** Calls of the audit API with their query (filters, cursor). */
     auditCalls,
+    /** Searches of shift entries with their query (the history's period, the export's pages). */
+    entryCalls,
     /** Shift reports issued, with their query (site, date, shift, language). */
     shiftReportCalls,
     /** Every path asked, in order (reads included). */

@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 84" role="img" aria-label="Karry, quarry management system">
+  <!--
+    The Karry logo for dark backgrounds (the login panel), animated once on arrival: the stem rises, the leg slides in,
+    the arrow shoots up to the right, then the name appears; a glint runs along the arrow every few seconds.
+    Nothing moves for people who ask their system for less motion.
+  -->
+  <style>
+    .stem, .leg, .arrow, .word, .sub { transform-box: fill-box; }
+    .stem { transform-origin: 50% 100%; animation: rise .7s cubic-bezier(.2, .8, .2, 1) both; }
+    .leg { animation: slide .6s .25s cubic-bezier(.2, .8, .2, 1) both; }
+    .arrow { animation: shoot .9s .4s cubic-bezier(.18, 1.35, .4, 1) both; }
+    .word { animation: appear .8s .75s cubic-bezier(.2, .8, .2, 1) both; }
+    .sub { animation: appear .8s .95s cubic-bezier(.2, .8, .2, 1) both; }
+    .glint { animation: glint 6s 2.2s ease-in-out infinite; }
+    @keyframes rise { from { transform: scaleY(0); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes slide { from { transform: translate(-8px, -8px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes shoot { from { transform: translate(-18px, 18px) scale(.6); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes appear { from { transform: translateX(-10px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes glint { 0%, 70% { transform: translate(-40px, 40px); } 85%, 100% { transform: translate(40px, -40px); } }
+    @media (prefers-reduced-motion: reduce) {
+      .stem, .leg, .arrow, .word, .sub, .glint { animation: none; }
+      .glint { display: none; }
+    }
+  </style>
+  <defs>
+    <linearGradient id="k-stem" x1="0" y1="1" x2="0.4" y2="0">
+      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="k-arrow" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.5" stop-color="#0ea5e9"/>
+      <stop offset="1" stop-color="#a5f3fc"/>
+    </linearGradient>
+    <linearGradient id="k-leg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#67e8f9"/>
+    </linearGradient>
+    <linearGradient id="k-shine" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0.35" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity=".75"/>
+      <stop offset="0.65" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="k-arrow-shape">
+      <path d="M21.5 36.2 42.6 15.1 37.3 9.8 58 6l-3.8 20.7-5.3-5.3L21.5 48.8z"/>
+    </clipPath>
+    <linearGradient id="k-word" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dbeafe"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(0 2) scale(1.15)">
+    <g class="stem">
+      <path d="M8 9.5 21.5 6v50H8z" fill="url(#k-stem)"/>
+      <path d="M8 9.5 21.5 6 8 32z" fill="#fff" opacity=".22"/>
+      <path d="M21.5 40 21.5 56H8z" fill="#020617" opacity=".18"/>
+    </g>
+    <g class="leg">
+      <path d="M30.5 36.5 39 28l18 28H43.5z" fill="url(#k-leg)"/>
+      <path d="M39 28l18 28h-8.5z" fill="#fff" opacity=".22"/>
+      <path d="M30.5 36.5 39 28l4.5 28z" fill="#020617" opacity=".12"/>
+    </g>
+    <g class="arrow">
+      <path d="M21.5 36.2 42.6 15.1 37.3 9.8 58 6l-3.8 20.7-5.3-5.3L21.5 48.8z" fill="url(#k-arrow)"/>
+      <path d="M21.5 36.2 42.6 15.1l3.1 3.1L21.5 42.5z" fill="#fff" opacity=".18"/>
+      <path d="M37.3 9.8 58 6 48.9 21.4z" fill="#fff" opacity=".3"/>
+      <path d="M58 6l-3.8 20.7-5.3-5.3z" fill="#020617" opacity=".14"/>
+      <g clip-path="url(#k-arrow-shape)">
+        <rect class="glint" x="10" y="0" width="56" height="56" fill="url(#k-shine)"/>
+      </g>
+    </g>
+  </g>
+  <text class="word" x="84" y="54" fill="url(#k-word)" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="46" font-weight="800" letter-spacing="-1.5">karry</text>
+  <text class="sub" x="86" y="74" fill="#7dd3fc" font-family="Inter, 'Segoe UI', Arial, sans-serif" font-size="10.5" font-weight="600" letter-spacing="2.6">QUARRY MANAGEMENT SYSTEM</text>
+</svg>

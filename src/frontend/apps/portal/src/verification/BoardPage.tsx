@@ -78,7 +78,12 @@ export function BoardPage() {
         breadcrumbs={<Trail steps={[{ to: "/review", label: t("portal.nav.review") }]} />}
         title={t("portal.board.title")}
         description={t("portal.board.description")}
-        actions={<Button variant="secondary" asChild><Link to="/review">{t("portal.review.title")}</Link></Button>}
+        actions={(
+          <span className="flex flex-wrap gap-2">
+            <Button variant="secondary" asChild><Link to="/review">{t("portal.review.title")}</Link></Button>
+            <Button variant="secondary" asChild><Link to="/review/history">{t("portal.history.title")}</Link></Button>
+          </span>
+        )}
       />
       <div className="flex flex-wrap items-end gap-3">
         <SelectField label={t("portal.board.site")} value={site} onValueChange={setSiteId}

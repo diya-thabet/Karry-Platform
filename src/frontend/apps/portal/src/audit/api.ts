@@ -26,6 +26,16 @@ export interface AuditFilters {
 
 export const noFilters: AuditFilters = { actor: "", entityType: "", entityId: "", siteId: "", eventType: "", fromDay: "", toDay: "" };
 
+/** A date where the person is, as the date fields write it (YYYY-MM-DD). */
+export function localDay(at: Date): string {
+  return `${String(at.getFullYear())}-${String(at.getMonth() + 1).padStart(2, "0")}-${String(at.getDate()).padStart(2, "0")}`;
+}
+
+/** The filters the log opens with: the last 30 days (today included), nothing else. */
+export function recentPeriod(now: Date = new Date()): AuditFilters {
+  return { ...noFilters, fromDay: localDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29)), toDay: localDay(now) };
+}
+
 /** The start of a day where the person is, as the instant the API takes. */
 export function dayStart(day: string): string {
   return new Date(`${day}T00:00:00`).toISOString();

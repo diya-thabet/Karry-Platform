@@ -1,6 +1,6 @@
 import * as Dropdown from "@radix-ui/react-dropdown-menu";
 import { Check, ChevronRight } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { cn } from "../cn";
 
 /** A command: sign out, open a page. */
@@ -49,7 +49,7 @@ export function Menu(props: { trigger: ReactNode; label: string; header?: ReactN
     <Dropdown.Root>
       <Dropdown.Trigger asChild aria-label={props.label}>{props.trigger}</Dropdown.Trigger>
       <Dropdown.Portal>
-        <Dropdown.Content align={props.align ?? "end"} sideOffset={6} className={panelClasses}>
+        <Dropdown.Content align={props.align ?? "end"} sideOffset={6} collisionPadding={8} className={cn(panelClasses, "max-w-[calc(100vw-1rem)]")}>
           {props.header && <div className="px-2.5 py-2">{props.header}</div>}
           {props.groups.map((group, index) => (
             <Dropdown.Group key={index}>
@@ -69,29 +69,44 @@ export function Menu(props: { trigger: ReactNode; label: string; header?: ReactN
   );
 }
 
+/**
+ * A setting with its value (the language, the theme): its choices open inside the menu, under it, never in a second
+ * panel beside it. On a phone a panel beside the menu had no room and landed off the screen (owner's review
+ * 2026-11-26). A tap or Enter opens and closes it; the arrow towards the reading direction opens it, as a submenu's would.
+ */
 function Choice({ choice }: { choice: MenuChoice }) {
+  const [open, setOpen] = useState(false);
   const current = choice.options.find((option) => option.value === choice.value);
   return (
-    <Dropdown.Sub>
-      <Dropdown.SubTrigger className={itemClasses}>
+    <>
+      <Dropdown.Item
+        className={itemClasses}
+        aria-expanded={open}
+        onSelect={(event) => { event.preventDefault(); setOpen(!open); }}
+        onKeyDown={(event) => {
+          const forward = getComputedStyle(event.currentTarget).direction === "rtl" ? "ArrowLeft" : "ArrowRight";
+          if (event.key === forward) {
+            event.preventDefault();
+            setOpen(true);
+          }
+        }}
+      >
         {choice.icon}
         <span className="flex-1">{choice.label}</span>
         {current && <span className="max-w-32 truncate text-xs text-text-muted" lang={current.lang}>{current.label}</span>}
-        <ChevronRight aria-hidden className="size-4 text-text-muted rtl:-scale-x-100" />
-      </Dropdown.SubTrigger>
-      <Dropdown.Portal>
-        <Dropdown.SubContent sideOffset={6} alignOffset={-6} className={cn(panelClasses, "min-w-48")}>
-          <Dropdown.RadioGroup value={choice.value} onValueChange={choice.onValueChange}>
-            {choice.options.map((option) => (
-              <Dropdown.RadioItem key={option.value} value={option.value} lang={option.lang} className={cn(itemClasses, "data-[state=checked]:font-semibold")}>
-                {option.icon}
-                <span className="flex-1">{option.label}</span>
-                <Dropdown.ItemIndicator><Check aria-hidden className="size-4 text-primary" /></Dropdown.ItemIndicator>
-              </Dropdown.RadioItem>
-            ))}
-          </Dropdown.RadioGroup>
-        </Dropdown.SubContent>
-      </Dropdown.Portal>
-    </Dropdown.Sub>
+        <ChevronRight aria-hidden className={cn("size-4 text-text-muted transition-transform rtl:-scale-x-100", open && "rotate-90 rtl:rotate-90")} />
+      </Dropdown.Item>
+      {open && (
+        <Dropdown.RadioGroup value={choice.value} onValueChange={choice.onValueChange} aria-label={typeof choice.label === "string" ? choice.label : undefined} className="mb-1 ms-6 border-s-[length:var(--karry-border-width)] border-divider ps-1">
+          {choice.options.map((option) => (
+            <Dropdown.RadioItem key={option.value} value={option.value} lang={option.lang} className={cn(itemClasses, "data-[state=checked]:font-semibold")}>
+              {option.icon}
+              <span className="min-w-0 flex-1 truncate">{option.label}</span>
+              <Dropdown.ItemIndicator><Check aria-hidden className="size-4 text-primary" /></Dropdown.ItemIndicator>
+            </Dropdown.RadioItem>
+          ))}
+        </Dropdown.RadioGroup>
+      )}
+    </>
   );
 }

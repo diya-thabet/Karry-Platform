@@ -1,23 +1,414 @@
-/* Karry login: tenant logo and name under the product name, tenant colour on the main button (US-P1-TEN-04). */
+/*
+ * Karry login (US-P1-IAM-01 AC3, US-P1-TEN-04), restyled after the owner's review (2026-11-27: "very ugly"). Keycloak's
+ * v2 pages and markup are kept (their forms, errors, MFA and accessibility); only the look changes:
+ * - wide screens: the company's colour as a panel on the start side with the product and its promise, the form on a
+ *   calm light background on the other side;
+ * - phones: the colour as a band at the top, the form under it;
+ * - a white card with a soft shadow, large fields and a full-width button in the company's colour (Karry blue without).
+ * The company's logo and name come from js/karry-branding.js; its colour sets --karry-brand (contrast checked by the API).
+ */
+
+:root {
+  --karry-brand: #1d4ed8;
+  --karry-ink: #111827;
+  --karry-muted: #5b6474;
+  --karry-line: #d9dee7;
+  --karry-page: #f3f5f9;
+  --karry-radius: 0.75rem;
+  --karry-font: "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans", "Noto Sans Arabic", Roboto, Arial, sans-serif;
+}
+
+/* The page: a light background, and the Karry brand on a navy panel on the start side. */
+body#keycloak-bg {
+  background: var(--karry-page) !important;
+  font-family: var(--karry-font);
+  color: var(--karry-ink);
+  min-height: 100vh;
+}
+
+body#keycloak-bg::before {
+  content: "";
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 44vw;
+  background:
+    url("../img/rising-arrows.svg") center / cover no-repeat,
+    radial-gradient(60% 50% at 85% 15%, rgba(56, 189, 248, 0.3), transparent 70%),
+    radial-gradient(70% 60% at 10% 100%, rgba(37, 99, 235, 0.5), transparent 70%),
+    url("../img/facets.svg") center / cover no-repeat,
+    linear-gradient(155deg, #0b1d42 0%, #102a63 55%, #1e3a8a 100%);
+  background-size: cover, 140% 140%, 140% 140%, cover, cover;
+  animation: karry-aurora 18s ease-in-out infinite alternate;
+  z-index: 0;
+}
+
+/* The panel's light drifts slowly, like daylight over the quarry. */
+@keyframes karry-aurora {
+  from { background-position: center, 0% 0%, 0% 100%, center, center; }
+  to { background-position: center, 30% 20%, 25% 70%, center, center; }
+}
+
+/* On arrival: the logo assembles itself (in its SVG), then the promise and the form rise into place. */
+@keyframes karry-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes karry-sweep {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
+}
+
+[dir="rtl"] body#keycloak-bg::before {
+  inset: 0 0 0 auto;
+}
+
+/* The promise at the bottom of the panel: a headline, then what it means (French by default, English when the page is). */
+body#keycloak-bg::after {
+  content: "Du terrain au bureau,\A des saisies sûres.";
+  white-space: pre-line;
+  position: fixed;
+  inset-inline-start: 0;
+  bottom: calc(10vh + 5.5rem);
+  width: 44vw;
+  padding: 0 5vw;
+  box-sizing: border-box;
+  color: #fff;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  z-index: 1;
+  animation: karry-rise 0.8s 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+html[lang="en"] body#keycloak-bg::after {
+  content: "From the field to the office,\A entries you can trust.";
+}
+
+.pf-v5-c-login::after {
+  content: "Postes, compteurs et photos signés sur la tablette, même hors ligne, puis contrôlés et vérifiables par tous.";
+  position: fixed;
+  inset-inline-start: 0;
+  bottom: 10vh;
+  width: 44vw;
+  padding: 0 5vw;
+  box-sizing: border-box;
+  color: #bfdbfe;
+  font-size: 1rem;
+  line-height: 1.6;
+  z-index: 1;
+  animation: karry-rise 0.8s 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+html[lang="en"] .pf-v5-c-login::after {
+  content: "Shifts, meters and photos signed on the tablet, even offline, then reviewed and verifiable by anyone.";
+}
+
+/* The Karry logo at the top of the panel. */
+.pf-v5-c-login::before {
+  content: "";
+  position: fixed;
+  inset-inline-start: 5vw;
+  top: 9vh;
+  width: min(22rem, 34vw);
+  aspect-ratio: 320 / 84;
+  background: url("../img/karry-logo-light.svg") left center / contain no-repeat;
+  z-index: 1;
+}
+
+.pf-v5-c-login {
+  position: relative;
+  z-index: 2;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  margin-inline-start: 44vw;
+  background: transparent;
+}
+
+.pf-v5-c-login__container {
+  width: 100%;
+  max-width: 27.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0;
+  grid-template-columns: none;
+}
+
+/* The header: the company's logo and name above the card, dark on light (the product name is on the panel). */
+#kc-header.pf-v5-c-login__header {
+  animation: karry-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  margin: 0;
+  padding: 0;
+  color: var(--karry-ink);
+  text-align: center;
+}
+
+#kc-header-wrapper.pf-v5-c-brand,
+.pf-v5-c-login__header .pf-v5-c-brand {
+  font-family: var(--karry-font);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--karry-muted) !important;
+  padding: 0;
+  font-size: 0 !important; /* hides Keycloak's "KARRY" text, which the panel already says; the company stays */
+}
+
 .karry-tenant-logo {
   display: block;
-  max-height: 3rem;
-  max-width: 12rem;
-  margin: 0.5rem auto 0;
+  max-height: 3.5rem;
+  max-width: 13rem;
+  margin: 0.25rem auto 0.5rem;
   object-fit: contain;
 }
 
 .karry-tenant-name {
   display: block;
   margin-top: 0.25rem;
-  font-size: 1rem;
-  font-weight: 400;
-  opacity: 0.85;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--karry-ink);
 }
 
-/* The API only accepts colours with at least 4.5:1 contrast against white, so the white button text stays readable. */
-:root[data-karry-brand] #kc-login,
-:root[data-karry-brand] .pf-v5-c-button.pf-m-primary {
+/* The card. */
+.pf-v5-c-login__main {
+  animation: karry-rise 0.7s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  background: #fff;
+  border: 1px solid var(--karry-line);
+  border-radius: 1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 12px 32px rgba(16, 24, 40, 0.08);
+  margin: 0;
+  overflow: hidden;
+  --pf-v5-c-login__main--BorderTopColor: transparent;
+}
+
+.pf-v5-c-login__main::before,
+.pf-v5-c-login__main::after {
+  display: none;
+}
+
+.pf-v5-c-login__main,
+.pf-v5-c-login__main.pf-v5-c-login__main {
+  border-top: 1px solid var(--karry-line) !important;
+}
+
+/* Keycloak draws the card's coloured top on its header: the company's colour there, one bar only. */
+.pf-v5-c-login__main-header {
+  border-top: 4px solid var(--karry-brand) !important;
+  padding: 2rem 2rem 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  grid-template-columns: none;
+}
+
+#kc-page-title.pf-v5-c-title {
+  font-family: var(--karry-font);
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--karry-ink);
+  margin: 0;
+}
+
+.pf-v5-c-login__main-header-utilities .pf-v5-c-form-control {
+  min-width: 8rem;
+}
+
+#login-select-toggle {
+  font-size: 0.875rem;
+  border-radius: 0.5rem;
+}
+
+.pf-v5-c-login__main-body {
+  padding: 1rem 2rem 2rem;
+}
+
+.pf-v5-c-login__main-footer {
+  padding: 0 2rem 1.5rem;
+}
+
+.pf-v5-c-login__main-footer:empty {
+  display: none;
+}
+
+/* Fields: large enough for a glove and a tired eye. */
+.pf-v5-c-form__label-text {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--karry-ink);
+}
+
+.pf-v5-c-form-control {
+  --pf-v5-c-form-control--BorderRadius: 0.625rem;
+  --pf-v5-c-form-control--before--BorderColor: var(--karry-line);
+  --pf-v5-c-form-control--after--BorderBottomColor: transparent;
+  border-radius: 0.625rem;
+}
+
+.pf-v5-c-form-control > input,
+.pf-v5-c-form-control > select {
+  min-height: 3rem;
+  font-size: 1rem;
+  padding-inline: 0.875rem;
+}
+
+.pf-v5-c-form-control::after {
+  border: 0 !important;
+}
+
+.pf-v5-c-form-control::before {
+  border-color: var(--karry-line) !important;
+  border-radius: 0.625rem;
+}
+
+.pf-v5-c-input-group {
+  border: 1px solid var(--karry-line);
+  border-radius: 0.625rem;
+  overflow: hidden;
+}
+
+.pf-v5-c-input-group .pf-v5-c-form-control,
+.pf-v5-c-input-group .pf-v5-c-form-control::before {
+  border: 0 !important;
+  border-radius: 0;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control {
+  border: 0;
+  border-inline-start: 1px solid var(--karry-line);
+  min-width: 3rem;
+}
+
+.pf-v5-c-input-group .pf-v5-c-button.pf-m-control::after {
+  border: 0;
+}
+
+.pf-v5-c-form-control:focus-within {
+  outline: 3px solid color-mix(in srgb, var(--karry-brand) 35%, transparent);
+  outline-offset: 1px;
+}
+
+.pf-v5-c-form__group {
+  margin-bottom: 1rem;
+}
+
+/* The main button: full width, the company's colour. */
+#kc-login,
+.pf-v5-c-button.pf-m-primary {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: 0.625rem;
+  font-size: 1rem;
+  font-weight: 600;
   background-color: var(--karry-brand);
   border-color: var(--karry-brand);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12);
+  transition: filter 120ms ease;
+}
+
+#kc-login:hover,
+.pf-v5-c-button.pf-m-primary:hover {
+  filter: brightness(1.08);
+  background-color: var(--karry-brand);
+  background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: karry-sweep 0.9s ease-out;
+}
+
+#kc-login:active {
+  transform: translateY(1px);
+}
+
+#kc-login:focus-visible,
+.pf-v5-c-button.pf-m-primary:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--karry-brand) 40%, transparent);
+  outline-offset: 2px;
+}
+
+/* Links ("Mot de passe oublié ?", "Retour") in the company's colour. */
+.pf-v5-c-login__main a,
+.pf-v5-c-button.pf-m-link {
+  color: var(--karry-brand);
+  font-weight: 500;
+}
+
+/* Messages (wrong password, account locked): readable, not shouting. */
+.pf-v5-c-alert {
+  border-radius: 0.625rem;
+  margin-bottom: 1rem;
+}
+
+/* Phones and narrow windows: the colour as a band at the top, the form under it, no side panel. */
+@media (max-width: 900px) {
+  body#keycloak-bg::before {
+    inset: 0 0 auto 0;
+    width: 100%;
+    height: 11rem;
+  }
+
+  body#keycloak-bg::after,
+  html[lang="en"] body#keycloak-bg::after,
+  .pf-v5-c-login::after,
+  html[lang="en"] .pf-v5-c-login::after {
+    content: none;
+  }
+
+  .pf-v5-c-login::before {
+    position: absolute;
+    inset-inline-start: 50%;
+    top: 1.75rem;
+    width: 13rem;
+    transform: translateX(-50%);
+    background-position: center;
+  }
+
+  [dir="rtl"] .pf-v5-c-login::before {
+    transform: translateX(50%);
+  }
+
+  .pf-v5-c-login {
+    margin-inline-start: 0;
+    align-items: flex-start;
+    padding-top: 6rem;
+  }
+
+  .karry-tenant-name {
+    color: #fff;
+    opacity: 0.92;
+  }
+
+  .karry-tenant-logo {
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .pf-v5-c-login__main-header,
+  .pf-v5-c-login__main-body {
+    padding-inline: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body#keycloak-bg::before,
+  body#keycloak-bg::after,
+  .pf-v5-c-login::after,
+  .pf-v5-c-login__main,
+  #kc-header.pf-v5-c-login__header,
+  #kc-login,
+  .pf-v5-c-button.pf-m-primary {
+    animation: none !important;
+    transition: none;
+  }
 }

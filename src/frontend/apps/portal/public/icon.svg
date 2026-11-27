@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- The Karry mark (deploy/keycloak/themes/karry/login/resources/img/karry-mark.svg) on a navy tile. -->
+  <defs>
+    <linearGradient id="k-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#102a63"/>
+      <stop offset="1" stop-color="#0b1d42"/>
+    </linearGradient>
+    <linearGradient id="k-stem" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="k-arrow" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="0.55" stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#a5f3fc"/>
+    </linearGradient>
+    <linearGradient id="k-leg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#67e8f9"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#k-bg)"/>
+  <g transform="translate(96 101) scale(5)">
+    <path d="M8 8h13.5v48H8z" fill="url(#k-stem)"/>
+    <path d="M8 8h13.5L8 31z" fill="#fff" opacity=".18"/>
+    <path d="M30.5 36.5 39 28l18 28H43.5z" fill="url(#k-leg)"/>
+    <path d="M39 28l18 28H48.5z" fill="#fff" opacity=".2"/>
+    <path d="M21.5 36.2 42.6 15.1 37.3 9.8 58 6l-3.8 20.7-5.3-5.3L21.5 48.8z" fill="url(#k-arrow)"/>
+    <path d="M37.3 9.8 58 6 48.9 21.4z" fill="#fff" opacity=".25"/>
+  </g>
+</svg>

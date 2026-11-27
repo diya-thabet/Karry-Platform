@@ -126,6 +126,7 @@ export function QueuePage() {
         actions={(
           <span className="flex flex-wrap gap-2">
             <Button variant="secondary" asChild><Link to="/review/board">{t("portal.board.title")}</Link></Button>
+            <Button variant="secondary" asChild><Link to="/review/history">{t("portal.history.title")}</Link></Button>
             <Button variant="secondary" onClick={() => { setHelp(true); }}>{t("portal.review.keys.title")}</Button>
           </span>
         )} />

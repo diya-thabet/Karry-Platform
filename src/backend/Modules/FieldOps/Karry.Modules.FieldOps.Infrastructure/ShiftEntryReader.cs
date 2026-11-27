@@ -27,6 +27,16 @@ internal sealed class ShiftEntryReader(FieldOpsDbContext db) : IShiftEntryReader
             entries = entries.Where(e => e.ShiftDate == date);
         }
 
+        if (query.From is { } from)
+        {
+            entries = entries.Where(e => e.ShiftDate >= from);
+        }
+
+        if (query.To is { } to)
+        {
+            entries = entries.Where(e => e.ShiftDate <= to);
+        }
+
         if (query.ShiftCode is { } code)
         {
             entries = entries.Where(e => e.ShiftCode == code);
