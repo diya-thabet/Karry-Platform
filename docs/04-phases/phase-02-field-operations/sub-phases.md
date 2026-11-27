@@ -678,8 +678,9 @@ Added at the owner's request (2026-11-27); outside the M2 exit gate.
 - **Goal:** a very professional, eye-catching page that explains Karry in seconds, in French, English and Arabic (right
   to left), with motion and a 3D hero, and **Se connecter** / **Créer un compte** at the top right leading to the
   Karry sign-in page.
-- **Slices, tests and owner inputs:** [P2.13 slice plan](p2.13-landing-page-plan.md) (new app `apps/site`,
-  prerendered per language; unit, axe, end-to-end, visual regression and Lighthouse budgets in CI).
+- **Slices, tests and owner inputs:** [P2.13 slice plan](p2.13-landing-page-plan.md) (its own repository
+  `karry-website`, never shipped with the platform or on-premises, [ADR-0041](../../adr/0041-website-separate-product.md);
+  prerendered per language; unit, axe, end-to-end, visual regression and Lighthouse budgets in its CI).
 - **Owner decision:** how sign-up works (a trial request form, self-service, or a contact link).
 
 ## 5. Story coverage check
