@@ -42,6 +42,8 @@ public sealed partial class MaskingSuite : IDisposable
         ["InvoiceResponse.amount"] = "Karry's invoice to the tenant itself, not the tenant's business data; behind billing.subscription.read (admin, executive, finance) or operators.",
         ["RecordInvoice.amount"] = "The same invoice amount, recorded by a platform operator.",
         ["MrrTotalResponse.amount"] = "Karry's own recurring revenue from its customers (operator console, platform operators only), not a customer's business data.",
+        ["MoneyResponse.amount"] = "A generic amount with its currency: the property holding it carries the marker (CustomerResponse.CreditLimit, masked as a whole).",
+        ["MoneyInput.amount"] = "A generic amount with its currency: the property holding it carries the marker (CustomerInput.CreditLimit, sales.customers.credit-limit).",
     };
 
     /// <summary>Success responses that are not JSON (files): each must be written with <see cref="SensitiveExport"/>.</summary>
@@ -200,6 +202,8 @@ public sealed partial class MaskingSuite : IDisposable
                 _ when target == typeof(long) => (long)number,
                 _ when target == typeof(int) => number,
                 _ when target == typeof(string) => $"canary-{number}",
+                // An amount with its currency (money responses): XTS is ISO 4217's code reserved for testing.
+                _ when target.GetConstructor([typeof(decimal), typeof(string)]) is { } money => money.Invoke([number + 0.37m, "XTS"]),
                 _ => throw new InvalidOperationException($"No canary for {type.Name}.{clr.Name} of type {target}: add one to the masking suite."),
             };
             var backing = type.GetField($"<{clr.Name}>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic);

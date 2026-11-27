@@ -802,6 +802,7 @@
           "Karry.Modules.Materials.Api": "[1.0.0, )",
           "Karry.Modules.Notifications.Api": "[1.0.0, )",
           "Karry.Modules.Organization.Api": "[1.0.0, )",
+          "Karry.Modules.Sales.Api": "[1.0.0, )",
           "Karry.Modules.Sync.Api": "[1.0.0, )",
           "Karry.Modules.Tenancy.Api": "[1.0.0, )",
           "Karry.Modules.Trust.Api": "[1.0.0, )",
@@ -1234,6 +1235,44 @@
           "Karry.Modules.Organization.Application": "[1.0.0, )",
           "Karry.Modules.Organization.Domain": "[1.0.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite": "[10.0.3, )"
+        }
+      },
+      "karry.modules.sales.api": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.Modules.Sales.Application": "[1.0.0, )",
+          "Karry.Modules.Sales.Infrastructure": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sales.application": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Organization.Contracts": "[1.0.0, )",
+          "Karry.Modules.Sales.Contracts": "[1.0.0, )",
+          "Karry.Modules.Sales.Domain": "[1.0.0, )",
+          "Karry.Modules.Tenancy.Contracts": "[1.0.0, )",
+          "NodaTime": "[3.3.5, )"
+        }
+      },
+      "karry.modules.sales.contracts": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sales.domain": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.SharedKernel": "[1.0.0, )"
+        }
+      },
+      "karry.modules.sales.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "Karry.BuildingBlocks": "[1.0.0, )",
+          "Karry.Modules.Sales.Application": "[1.0.0, )",
+          "Karry.Modules.Sales.Domain": "[1.0.0, )"
         }
       },
       "karry.modules.sync.api": {

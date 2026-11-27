@@ -15,6 +15,7 @@
     <ProjectReference Include="../Modules/Flags/Karry.Modules.Flags.Api/Karry.Modules.Flags.Api.csproj" />
     <ProjectReference Include="../Modules/Organization/Karry.Modules.Organization.Api/Karry.Modules.Organization.Api.csproj" />
     <ProjectReference Include="../Modules/Materials/Karry.Modules.Materials.Api/Karry.Modules.Materials.Api.csproj" />
+    <ProjectReference Include="../Modules/Sales/Karry.Modules.Sales.Api/Karry.Modules.Sales.Api.csproj" />
     <ProjectReference Include="../Modules/Assets/Karry.Modules.Assets.Api/Karry.Modules.Assets.Api.csproj" />
     <ProjectReference Include="../Modules/Imports/Karry.Modules.Imports.Api/Karry.Modules.Imports.Api.csproj" />
     <ProjectReference Include="../Modules/Sync/Karry.Modules.Sync.Api/Karry.Modules.Sync.Api.csproj" />

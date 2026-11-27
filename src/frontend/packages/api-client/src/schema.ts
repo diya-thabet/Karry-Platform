@@ -1124,6 +1124,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/sales/customers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ListCustomers"];
+        put?: never;
+        post: operations["CreateCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/customers/{customerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["GetCustomer"];
+        put: operations["ChangeCustomer"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/customers/{customerId}/block": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["BlockCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/sales/customers/{customerId}/unblock": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["UnblockCustomer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/assets/types": {
         parameters: {
             query?: never;
@@ -2289,6 +2353,9 @@ export interface components {
             /** Format: date-time */
             expiresAt: null | string;
         };
+        BlockInput: {
+            reason: null | string;
+        };
         /** @description A bulk approval: its batch (the one ledger entry) and the items, now approved. */
         BulkApprovalResponse: {
             /** Format: uuid */
@@ -2463,6 +2530,69 @@ export interface components {
             flags: {
                 [key: string]: boolean;
             };
+        };
+        /** @description A postal address; `Kind` is billing or delivery. */
+        CustomerAddress: {
+            kind: string;
+            line1: string;
+            line2: null | string;
+            city: string;
+            region: null | string;
+            postalCode: null | string;
+            country: string;
+        };
+        /** @description A person to call or write to at the customer. */
+        CustomerContact: {
+            name: string;
+            role: null | string;
+            phone: null | string;
+            email: null | string;
+        };
+        /**
+         * @description A customer as the API receives it; the code is given once, at creation. The credit limit is the sensitive field
+         *     string SalesPermissions.CreditLimitField: a role that may not write it cannot send it.
+         */
+        CustomerInput: {
+            code: null | string;
+            legalName: null | string;
+            taxId: null | string;
+            addresses: null | components["schemas"]["CustomerAddress"][];
+            contacts: null | components["schemas"]["CustomerContact"][];
+            /** Format: int32 */
+            paymentTermsDays: null | number | string;
+            basis: null | string;
+            allowedSiteIds: null | string[];
+            creditLimit?: null | components["schemas"]["MoneyInput"];
+            maskedFields?: null | string[];
+        };
+        CustomerListResponse: {
+            items: components["schemas"]["CustomerResponse"][];
+        };
+        /**
+         * @description A customer. `AllowedSiteIds` empty means every site; `CreditLimit` is the sensitive field
+         *     `sales.customers.credit-limit` (absent and listed in `maskedFields` for roles that may not read it).
+         */
+        CustomerResponse: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            legalName: string;
+            taxId: null | string;
+            addresses: components["schemas"]["CustomerAddress"][];
+            contacts: components["schemas"]["CustomerContact"][];
+            /** Format: int32 */
+            paymentTermsDays: number | string;
+            basis: string;
+            allowedSiteIds: string[];
+            creditLimit?: null | components["schemas"]["MoneyResponse"];
+            status: string;
+            blockedReason: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            changedAt: string;
+            version: string;
+            maskedFields?: null | string[];
         };
         /** @description Densities as the API receives them (t/m³; moisture as a mass fraction). */
         DensityInput: {
@@ -3014,6 +3144,18 @@ export interface components {
         /** @description `Status`: ok or failed (replacement comes with field operations). */
         MeterStatusRequest: {
             status: null | string;
+        };
+        /** @description Sensitive field `sales.customers.credit-limit`: absent when the caller's role masks or hides it (then listed in `maskedFields` when masked). */
+        MoneyInput: {
+            /** Format: double */
+            amount: null | number | string;
+            currency: null | string;
+        };
+        /** @description Sensitive field `sales.customers.credit-limit`: absent when the caller's role masks or hides it (then listed in `maskedFields` when masked). */
+        MoneyResponse: {
+            /** Format: double */
+            amount: number | string;
+            currency: string;
         };
         /** @description The MRR of all tenants priced in one currency. */
         MrrTotalResponse: {
@@ -8194,6 +8336,250 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListCustomers: {
+        parameters: {
+            query?: {
+                status?: string;
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerListResponse"];
+                };
+            };
+        };
+    };
+    CreateCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerInput"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ChangeCustomer: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-Match"?: string;
+            };
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CustomerInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    BlockCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BlockInput"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    UnblockCustomer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomerResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Conflict */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
