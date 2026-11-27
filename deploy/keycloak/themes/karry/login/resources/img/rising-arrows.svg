@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" preserveAspectRatio="xMidYMid slice">
+  <!--
+    The login panel's motion: small arrows, the Karry mark's own, drift up to the right like a rising chart, each at its
+    own pace, fading in and out. Still for people who ask for less motion.
+  -->
+  <style>
+    .a { fill: url(#a-fill); opacity: 0; animation: drift var(--d, 14s) var(--w, 0s) linear infinite; }
+    @keyframes drift {
+      0% { transform: translate(0, 0); opacity: 0; }
+      12% { opacity: var(--o, .35); }
+      80% { opacity: var(--o, .35); }
+      100% { transform: translate(260px, -260px); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .a { animation: none; opacity: var(--o, .2); }
+    }
+  </style>
+  <defs>
+    <linearGradient id="a-fill" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#3b82f6"/>
+      <stop offset="1" stop-color="#67e8f9"/>
+    </linearGradient>
+    <!-- The arrow of the mark: a shaft rising to the right with its head. -->
+    <path id="arrow" d="M0 29 21 8 16 3 38 0l-3 22-5-5L10 38z"/>
+  </defs>
+  <use href="#arrow" class="a" x="40" y="760" style="--d: 13s; --w: 0s; --o: .45"/>
+  <use href="#arrow" class="a" x="180" y="860" style="--d: 17s; --w: 3s; --o: .3"/>
+  <use href="#arrow" class="a" x="330" y="700" style="--d: 15s; --w: 6s; --o: .4"/>
+  <use href="#arrow" class="a" x="90" y="560" style="--d: 19s; --w: 1.5s; --o: .25"/>
+  <use href="#arrow" class="a" x="260" y="520" style="--d: 12s; --w: 8s; --o: .35"/>
+  <use href="#arrow" class="a" x="420" y="880" style="--d: 16s; --w: 4.5s; --o: .3"/>
+  <use href="#arrow" class="a" x="20" y="400" style="--d: 18s; --w: 10s; --o: .2"/>
+  <use href="#arrow" class="a" x="470" y="620" style="--d: 14s; --w: 11s; --o: .35"/>
+  <use href="#arrow" class="a" x="150" y="300" style="--d: 20s; --w: 7s; --o: .2"/>
+</svg>

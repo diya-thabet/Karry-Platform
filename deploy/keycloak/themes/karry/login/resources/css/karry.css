@@ -32,11 +32,31 @@ body#keycloak-bg::before {
   inset: 0 auto 0 0;
   width: 44vw;
   background:
-    radial-gradient(60% 50% at 85% 15%, rgba(56, 189, 248, 0.28), transparent 70%),
-    radial-gradient(70% 60% at 10% 100%, rgba(37, 99, 235, 0.45), transparent 70%),
+    url("../img/rising-arrows.svg") center / cover no-repeat,
+    radial-gradient(60% 50% at 85% 15%, rgba(56, 189, 248, 0.3), transparent 70%),
+    radial-gradient(70% 60% at 10% 100%, rgba(37, 99, 235, 0.5), transparent 70%),
     url("../img/facets.svg") center / cover no-repeat,
     linear-gradient(155deg, #0b1d42 0%, #102a63 55%, #1e3a8a 100%);
+  background-size: cover, 140% 140%, 140% 140%, cover, cover;
+  animation: karry-aurora 18s ease-in-out infinite alternate;
   z-index: 0;
+}
+
+/* The panel's light drifts slowly, like daylight over the quarry. */
+@keyframes karry-aurora {
+  from { background-position: center, 0% 0%, 0% 100%, center, center; }
+  to { background-position: center, 30% 20%, 25% 70%, center, center; }
+}
+
+/* On arrival: the logo assembles itself (in its SVG), then the promise and the form rise into place. */
+@keyframes karry-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes karry-sweep {
+  from { background-position: 150% 0; }
+  to { background-position: -50% 0; }
 }
 
 [dir="rtl"] body#keycloak-bg::before {
@@ -59,6 +79,7 @@ body#keycloak-bg::after {
   line-height: 1.2;
   letter-spacing: -0.01em;
   z-index: 1;
+  animation: karry-rise 0.8s 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 html[lang="en"] body#keycloak-bg::after {
@@ -77,6 +98,7 @@ html[lang="en"] body#keycloak-bg::after {
   font-size: 1rem;
   line-height: 1.6;
   z-index: 1;
+  animation: karry-rise 0.8s 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 html[lang="en"] .pf-v5-c-login::after {
@@ -119,6 +141,7 @@ html[lang="en"] .pf-v5-c-login::after {
 
 /* The header: the company's logo and name above the card, dark on light (the product name is on the panel). */
 #kc-header.pf-v5-c-login__header {
+  animation: karry-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   margin: 0;
   padding: 0;
   color: var(--karry-ink);
@@ -157,6 +180,7 @@ html[lang="en"] .pf-v5-c-login::after {
 
 /* The card. */
 .pf-v5-c-login__main {
+  animation: karry-rise 0.7s 0.15s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   background: #fff;
   border: 1px solid var(--karry-line);
   border-radius: 1rem;
@@ -297,6 +321,13 @@ html[lang="en"] .pf-v5-c-login::after {
 .pf-v5-c-button.pf-m-primary:hover {
   filter: brightness(1.08);
   background-color: var(--karry-brand);
+  background-image: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.28) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: karry-sweep 0.9s ease-out;
+}
+
+#kc-login:active {
+  transform: translateY(1px);
 }
 
 #kc-login:focus-visible,
@@ -370,7 +401,14 @@ html[lang="en"] .pf-v5-c-login::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  #kc-login {
+  body#keycloak-bg::before,
+  body#keycloak-bg::after,
+  .pf-v5-c-login::after,
+  .pf-v5-c-login__main,
+  #kc-header.pf-v5-c-login__header,
+  #kc-login,
+  .pf-v5-c-button.pf-m-primary {
+    animation: none !important;
     transition: none;
   }
 }

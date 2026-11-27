@@ -1,27 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Karry">
+  <!-- The Karry mark: a K whose arm is an arrow rising to the right. Facets in two tones, after the owner's low-poly design. -->
   <defs>
-    <linearGradient id="k-stem" x1="0" y1="1" x2="0" y2="0">
+    <linearGradient id="k-stem" x1="0" y1="1" x2="0.4" y2="0">
       <stop offset="0" stop-color="#1e3a8a"/>
       <stop offset="1" stop-color="#2563eb"/>
     </linearGradient>
     <linearGradient id="k-arrow" x1="0" y1="1" x2="1" y2="0">
       <stop offset="0" stop-color="#1d4ed8"/>
-      <stop offset="0.55" stop-color="#0ea5e9"/>
+      <stop offset="0.5" stop-color="#0891b2"/>
+      <stop offset="0.5" stop-color="#0ea5e9"/>
       <stop offset="1" stop-color="#67e8f9"/>
     </linearGradient>
     <linearGradient id="k-leg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2563eb"/>
+      <stop offset="0" stop-color="#1d4ed8"/>
       <stop offset="1" stop-color="#22d3ee"/>
     </linearGradient>
   </defs>
-  <!-- The stem of the K. -->
-  <path d="M8 8h13.5v48H8z" fill="url(#k-stem)"/>
-  <path d="M8 8h13.5L8 31z" fill="#fff" opacity=".14"/>
-  <!-- The leg, down to the right. -->
+  <path d="M8 9.5 21.5 6v50H8z" fill="url(#k-stem)"/>
+  <path d="M8 9.5 21.5 6 8 32z" fill="#fff" opacity=".18"/>
+  <path d="M21.5 40 21.5 56H8z" fill="#020617" opacity=".18"/>
   <path d="M30.5 36.5 39 28l18 28H43.5z" fill="url(#k-leg)"/>
-  <path d="M39 28l18 28H48.5z" fill="#fff" opacity=".16"/>
-  <!-- The arm becomes an arrow rising to the right: what Karry is for. -->
+  <path d="M39 28l18 28h-8.5z" fill="#fff" opacity=".2"/>
+  <path d="M30.5 36.5 39 28l4.5 28z" fill="#020617" opacity=".1"/>
   <path d="M21.5 36.2 42.6 15.1 37.3 9.8 58 6l-3.8 20.7-5.3-5.3L21.5 48.8z" fill="url(#k-arrow)"/>
-  <path d="M37.3 9.8 58 6 48.9 21.4z" fill="#fff" opacity=".22"/>
-  <path d="M21.5 36.2 42.6 15.1l3.2 3.2L21.5 42.6z" fill="#fff" opacity=".12"/>
+  <path d="M21.5 36.2 42.6 15.1l3.1 3.1L21.5 42.5z" fill="#fff" opacity=".16"/>
+  <path d="M37.3 9.8 58 6 48.9 21.4z" fill="#fff" opacity=".28"/>
+  <path d="M58 6l-3.8 20.7-5.3-5.3z" fill="#020617" opacity=".12"/>
 </svg>
