@@ -6381,6 +6381,584 @@
         }
       }
     },
+    "/api/v1/weighbridge/haulers": {
+      "get": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "ListHaulers",
+        "parameters": [
+          {
+            "name": "includeArchived",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HaulerListResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "CreateHauler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HaulerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HaulerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/haulers/{haulerId}": {
+      "put": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "ChangeHauler",
+        "parameters": [
+          {
+            "name": "haulerId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HaulerInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HaulerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks": {
+      "get": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "SearchTrucks",
+        "parameters": [
+          {
+            "name": "plate",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "haulerId",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "RegisterTruck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TruckInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks/{truckId}": {
+      "get": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "GetTruck",
+        "parameters": [
+          {
+            "name": "truckId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "ChangeTruck",
+        "parameters": [
+          {
+            "name": "truckId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "If-Match",
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TruckInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks/unknown": {
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "CreateUnknownTruck",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnknownTruckInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks/{truckId}/verify": {
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "VerifyTruck",
+        "parameters": [
+          {
+            "name": "truckId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks/{truckId}/archive": {
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "ArchiveTruck",
+        "parameters": [
+          {
+            "name": "truckId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/weighbridge/trucks/{truckId}/restore": {
+      "post": {
+        "tags": [
+          "WeighbridgeModule"
+        ],
+        "operationId": "RestoreTruck",
+        "parameters": [
+          {
+            "name": "truckId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TruckResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/assets/types": {
       "get": {
         "tags": [
@@ -13344,6 +13922,89 @@
         },
         "description": "A declared flag: its default, this environment's configured value and the platform-wide value (null when not set).\nCompany and user overrides come before these."
       },
+      "HaulerInput": {
+        "required": [
+          "name",
+          "phone",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "HaulerListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HaulerResponse"
+            }
+          }
+        }
+      },
+      "HaulerResponse": {
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "status",
+          "createdAt",
+          "changedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
       "HoldListResponse": {
         "required": [
           "items"
@@ -17671,6 +18332,65 @@
           }
         }
       },
+      "TareInput": {
+        "required": [
+          "kg",
+          "on",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "kg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "on": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date"
+          },
+          "method": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A registered tare: mass in kg, the day it was established and how (`weighed` or `declared`)."
+      },
+      "TareResponse": {
+        "required": [
+          "kg",
+          "on",
+          "method"
+        ],
+        "type": "object",
+        "properties": {
+          "kg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "on": {
+            "type": "string",
+            "format": "date"
+          },
+          "method": {
+            "type": "string"
+          }
+        },
+        "description": "A registered tare: `Kg` (whole kg), the day it was established and `Method` (weighed or declared)."
+      },
       "TenantBrandingResponse": {
         "required": [
           "slug",
@@ -17887,6 +18607,169 @@
           }
         },
         "description": "A threshold of a rule: the company's value, the catalogue's default, the range it may take and its unit."
+      },
+      "TruckInput": {
+        "required": [
+          "plate",
+          "haulerId",
+          "tare",
+          "maxPayloadKg",
+          "axles"
+        ],
+        "type": "object",
+        "properties": {
+          "plate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "haulerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "tare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TareInput"
+              }
+            ]
+          },
+          "maxPayloadKg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "axles": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        },
+        "description": "A truck as the portal or an import sends it; the plate is given once, at registration."
+      },
+      "TruckListResponse": {
+        "required": [
+          "items"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TruckResponse"
+            }
+          }
+        }
+      },
+      "TruckResponse": {
+        "required": [
+          "id",
+          "plate",
+          "plateKey",
+          "haulerId",
+          "tare",
+          "maxPayloadKg",
+          "axles",
+          "status",
+          "createdAt",
+          "changedAt",
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "plate": {
+            "type": "string"
+          },
+          "plateKey": {
+            "type": "string"
+          },
+          "haulerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "tare": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/TareResponse"
+              }
+            ]
+          },
+          "maxPayloadKg": {
+            "pattern": "^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?$",
+            "type": [
+              "null",
+              "number",
+              "string"
+            ],
+            "format": "double"
+          },
+          "axles": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          }
+        },
+        "description": "A truck. `Plate` as written; `PlateKey` what plates are compared on. `Status`: active, unverified\n(created at the desk, flagged until verified) or archived. Masses in kg."
+      },
+      "UnknownTruckInput": {
+        "required": [
+          "plate",
+          "haulerId"
+        ],
+        "type": "object",
+        "properties": {
+          "plate": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "haulerId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          }
+        },
+        "description": "A plate nobody knew, at the desk: only the plate, and the hauler when the driver says."
       },
       "UnlockOnTablet": {
         "required": [
@@ -18337,6 +19220,9 @@
     },
     {
       "name": "SalesModule"
+    },
+    {
+      "name": "WeighbridgeModule"
     },
     {
       "name": "AssetsModule"

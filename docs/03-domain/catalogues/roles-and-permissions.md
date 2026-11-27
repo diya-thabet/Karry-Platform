@@ -65,6 +65,9 @@ The matrix above is the target for the whole product. In code it is the union of
 | `sales.products.read` | tenant | no | Tenant Admin, Executive, Finance, Commercial, Controller, Site Manager, Weighmaster | Products, price list versions and the price on a date (US-P3-SAL-02); unit prices are the sensitive field `sales.prices.unit-price` |
 | `sales.products.manage` | tenant | no | Tenant Admin, Commercial | Create, change, archive and restore products, each a sold material fraction with its sale unit (P3.1) |
 | `sales.prices.manage` | tenant | no | Tenant Admin, Commercial, Finance | Create price list versions, change or withdraw them before they come into force (P3.1) |
+| `weighbridge.trucks.read` | tenant | no | Tenant Admin, Executive, Finance, Commercial, Controller, Site Manager, Weighmaster | Trucks and haulers (US-P3-SAL-04): the desk searches plates (P3.2) |
+| `weighbridge.trucks.manage` | tenant | no | Tenant Admin, Commercial, Weighmaster | Register and change trucks and haulers, archive and restore trucks; create an unknown truck at the desk, which is unverified and flagged (RULE-WB-09) |
+| `weighbridge.trucks.verify` | tenant | no | Tenant Admin, Commercial, Site Manager, Controller | Verify a truck created at the desk (closes its RULE-WB-09 flag); not the weighmaster's, so nobody clears their own flag |
 | `assets.registry.read` | site | no | all 12 default roles | The asset register on the caller's sites, the type catalogue (US-P1-AST-01, US-P1-AST-02) |
 | `assets.registry.manage` | site | no | Tenant Admin, Site Manager, Maintenance Planner | Register, change, move and set the status of assets on the caller's sites |
 | `fieldops.entries.read` | site | no | Tenant Admin, Executive, Finance, Controller, Site Manager, Maintenance Planner | Shift entries of the caller's sites with every version (ADR-0034 §7; P2.4). Field roles see their own history on the tablet (P2.5) |

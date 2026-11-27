@@ -240,6 +240,7 @@ sequenceDiagram
 | `sales.products.read` / `sales.products.manage` | Every sales, weighbridge and finance role / Commercial Manager | Added in P3.1: products and price list versions (prices masked); `sales.prices.read` is the field `sales.prices.unit-price` |
 | `sales.orders.manage` | Commercial Manager | — |
 | `weighbridge.trucks.manage` | Weighmaster, Commercial Manager | Unknown trucks created at the desk are flagged |
+| `weighbridge.trucks.read` / `weighbridge.trucks.verify` | Every weighbridge, sales and finance role / Site Manager, Controller, Commercial Manager | Added in P3.2: verifying an unknown truck closes its RULE-WB-09 flag; the weighmaster cannot verify |
 | `weighbridge.tickets.issue` | Weighmaster (desk device) | Field app desk mode only |
 | `weighbridge.tickets.read` | Site Manager, Controller, Commercial, Finance, Executive (scoped) | — |
 | `weighbridge.tickets.reverse` / `.countersign` | Weighmaster / Controller | Never the same person |

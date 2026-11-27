@@ -11,6 +11,7 @@ using Karry.Modules.Materials.Api;
 using Karry.Modules.Notifications.Api;
 using Karry.Modules.Organization.Api;
 using Karry.Modules.Sales.Api;
+using Karry.Modules.Weighbridge.Api;
 using Karry.Modules.Sync.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
@@ -33,6 +34,7 @@ internal static class ModuleCatalog
         new OrganizationModule(),
         new MaterialsModule(),
         new SalesModule(),
+        new WeighbridgeModule(),
         new AssetsModule(),
         new ImportsModule(),
         new SyncModule(),

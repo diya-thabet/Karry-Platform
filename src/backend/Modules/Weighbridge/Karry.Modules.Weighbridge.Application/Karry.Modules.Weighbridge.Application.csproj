@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Commands, queries, handlers and ports (interfaces) of Weighbridge. -->
+  <ItemGroup>
+    <PackageReference Include="NodaTime" />
+    <ProjectReference Include="../../Tenancy/Karry.Modules.Tenancy.Contracts/Karry.Modules.Tenancy.Contracts.csproj" />
+    <ProjectReference Include="../Karry.Modules.Weighbridge.Domain/Karry.Modules.Weighbridge.Domain.csproj" />
+    <ProjectReference Include="../Karry.Modules.Weighbridge.Contracts/Karry.Modules.Weighbridge.Contracts.csproj" />
+    <!-- An unknown truck created at the desk raises a review flag (RULE-WB-09). -->
+    <ProjectReference Include="../../Integrity/Karry.Modules.Integrity.Contracts/Karry.Modules.Integrity.Contracts.csproj" />
+    <ProjectReference Include="../../../Karry.BuildingBlocks/Karry.BuildingBlocks.csproj" />
+  </ItemGroup>
+</Project>

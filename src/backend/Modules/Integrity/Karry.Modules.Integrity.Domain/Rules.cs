@@ -23,7 +23,7 @@ public sealed record RuleDefinition(string Code, string Severity, bool Security,
     public IReadOnlyDictionary<string, decimal> Defaults => Thresholds.ToDictionary(t => t.Name, t => t.Default, StringComparer.Ordinal);
 }
 
-/// <summary>The rules of P2.7 with their default settings (ADR-0036 §1); security rules cannot be switched off.</summary>
+/// <summary>The rules of P2.7 (and the weighbridge's from P3.2) with their default settings (ADR-0036 §1); security rules cannot be switched off.</summary>
 public static class RuleCatalog
 {
     public static IReadOnlyList<RuleDefinition> All { get; } =
@@ -39,6 +39,9 @@ public static class RuleCatalog
         new("RULE-FO-09", "critical", true, []),
         new("RULE-FO-10", "high", true, []),
         new("RULE-FO-11", "critical", true, []),
+
+        // P3.2: a truck created at the desk for a plate nobody knew, until someone verifies it (US-P3-SAL-04 AC2).
+        new("RULE-WB-09", "low", false, []),
     ];
 
     public static RuleDefinition? Find(string rule) => All.SingleOrDefault(r => string.Equals(r.Code, rule, StringComparison.Ordinal));

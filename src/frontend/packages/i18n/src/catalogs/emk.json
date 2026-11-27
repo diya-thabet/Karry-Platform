@@ -1753,5 +1753,8 @@
   "portal.sales.prices.ask": "Sɔngɔ jira",
   "portal.sales.prices.noPrice": "Sɔngɔ tɛ: sɔngɔ sɛbɛn si tɛ baara la nin feerefɛn na yan. Pɛsɛli bɛna o fɔ.",
   "portal.sales.prices.source.customer": "ka bɔ sannikɛla ka sɛbɛn na {date}",
-  "portal.sales.prices.source.site": "ka bɔ yɔrɔ ka sɛbɛn na {date}"
+  "portal.sales.prices.source.site": "ka bɔ yɔrɔ ka sɛbɛn na {date}",
+  "portal.integrity.rule.RULE-WB-09.title": "Kamiyɔn min ma lajɛ",
+  "portal.integrity.rule.RULE-WB-09.description": "Kamiyɔn min dara pɛsɛli la nimɔrɔ dɔnbali kama, fo mɔgɔ wɛrɛ ni pɛsɛbaga ye k’a lajɛ.",
+  "portal.integrity.flags.subject.truck": "Kamiyɔn"
 }

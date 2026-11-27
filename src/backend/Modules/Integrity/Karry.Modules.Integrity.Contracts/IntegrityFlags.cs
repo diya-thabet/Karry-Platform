@@ -57,6 +57,9 @@ public static class IntegrityRules
     /// <summary>A segment still open some time after its shift ended (US-P2-VER-08 AC2, ADR-0038 §5).</summary>
     public const string MissingEnd = "RULE-FO-08";
 
+    /// <summary>A truck created at the desk for an unknown plate, open until someone verifies it (US-P3-SAL-04 AC2, P3.2).</summary>
+    public const string UnverifiedTruck = "RULE-WB-09";
+
     /// <summary>A fact signed by someone who may not sign on the site's tablets (threat R-13).</summary>
     public const string UnknownSigner = "RULE-FO-09";
 

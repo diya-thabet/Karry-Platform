@@ -32,6 +32,7 @@ last_updated: 2026-11-23
 | RULE-WB-06 | Reversal rate anomaly per weighmaster | > 2× site median | Medium | P3 |
 | RULE-WB-07 | Blocked customer override | Any | Medium | P3 |
 | RULE-WB-08 | Manual override while indicator online | Any | High | P6 |
+| RULE-WB-09 | Unknown truck created at the desk, not yet verified | Any | Low | P3 (P3.2) |
 | RULE-FUEL-01 | Delivery vs dip variance | > 1 % | Medium | P3 |
 | RULE-FUEL-02 | Dispense > asset tank capacity | > capacity + 5 % | High | P3 |
 | RULE-FUEL-03 | Refuel meter inconsistent with shift entries | > tolerance | Medium | P3 |
