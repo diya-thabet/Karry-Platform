@@ -4,12 +4,16 @@ area: phases
 tags: [phase-3, weighbridge, fuel, integrity, pilot]
 source: "PHASES_DETAILED_PLAN.md §10"
 status: baseline
-last_updated: 2026-10-21
+last_updated: 2026-11-27
 ---
 
 # Phase 3 — Weighbridge, Fuel, Integrity & Pilot
 
-> [Docs index](../../README.md) › [04-phases](../README.md)
+> [Docs index](../../README.md) › [04-phases](../README.md) · [Sub-phases P3.0 – P3.16](sub-phases.md) · [Tracker](tracker.md)
+
+**Execution:** this plan is broken into 17 sub-phases in [sub-phases.md](sub-phases.md), with amendments A1–A8
+([§6 there](sub-phases.md#6-amendments-to-the-phase-3-plan)): notably PDFs through PDFsharp/MigraDoc (ADR-0040, not
+QuestPDF), `Sales` and `Weighbridge` as two modules, and `online_only` ticket numbering by default until the legal memo.
 
 **Duration:** 5 weeks (W15–W19) · **Team:** full core team + Customer Success (pilot)
 
@@ -179,7 +183,7 @@ As an owner, I want one screen that shows where my operation may be losing money
 
 ## 10.5 Technical scope
 
-**Modules:** `Weighbridge` (Ticket, Reversal, DeliveryNote, Truck, DailyClose), `Sales` (Customer, Product, PriceList, Order), `Fuel` (Storage, Delivery, Dispense, Dip, Reconciliation, Baseline), `Integrity` (flags & cases, dashboard read models), `Notifications` (channels), `Reporting` (PDF generation via QuestPDF, scheduled reports).
+**Modules:** `Weighbridge` (Ticket, Reversal, DeliveryNote, Truck, DailyClose), `Sales` (Customer, Product, PriceList, Order), `Fuel` (Storage, Delivery, Dispense, Dip, Reconciliation, Baseline), `Integrity` (flags & cases, dashboard read models), `Notifications` (channels), `Documents` (PDF generation via PDFsharp/MigraDoc per ADR-0040, amendment A1; scheduled reports).
 
 **Ticket numbering ADR:** each enrolled weighbridge device reserves a block of numbers per site while online (e.g., 200 numbers); if offline and block exhausted, ticket issued with provisional number `P-<device>-<seq>`, then renumbered on sync with link kept. Legal acceptability of this approach is confirmed in P0 legal memo.
 
