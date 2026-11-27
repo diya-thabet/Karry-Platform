@@ -1,5 +1,11 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { type Page } from "@playwright/test";
 import { expect, test } from "./guard";
+
+// The realm's lockout threshold, read from the realm itself: the test follows the policy if it changes.
+const realm = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..", "deploy", "keycloak", "realm", "karry-realm.json"), "utf8")) as { failureFactor: number };
 
 // Demo users from `Karry.Host seed-demo` (local stack only): <role>@<slug>.karry.test.
 const password = process.env.KARRY_DEMO_PASSWORD ?? "karry-demo-local-only";
@@ -73,7 +79,9 @@ test.describe("sign-in (US-P1-IAM-01, US-P1-IAM-02)", () => {
   test("wrong passwords never reveal whether the account exists, then the account locks (US-P1-IAM-01 AC4)", async ({ page }) => {
     await page.goto(portal("demo-carriere-b"));
 
-    for (let attempt = 0; attempt < 2; attempt++) {
+    // As many wrong passwords as the realm's failureFactor: the account locks whatever the pace. (Two attempts relied
+    // on the quick-login rule, two failures under 1 s apart, and failed on a slow CI runner: #281.)
+    for (let attempt = 0; attempt < realm.failureFactor; attempt++) {
       await signIn(page, "maintenance-planner@demo-carriere-b.karry.test", "wrong-password-123");
       await expect(page.getByText(/mot de passe invalide/i)).toBeVisible();
     }
