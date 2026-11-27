@@ -18,7 +18,7 @@ Live status of Phase 3. The order, the content of each sub-phase and the way of 
 
 | # | Sub-phase | Status | Notes |
 |---|---|---|---|
-| P3.0 | Entry, decisions, golden datasets | 🟡 | Plan written 2026-11-27 |
+| P3.0 | Entry, decisions, golden datasets | 🟡 | Plan #284. ADR-0042 … 0050 proposed. Generators `tools/demo/generate_fuel.py` (with the independent oracle `fuel_oracle.py`) and `generate_weighbridge.py` (with its plain rules); golden vectors `tests/vectors/fuel-golden-month.json`, `weighbridge-golden-days.json` with a drift guard; 31 tool tests (CI `tooling`). Ground truth: 0 false fuel anomalies on 39 seeds, the 25 % overconsumption caught every time, tank flags only on seeded days; weighbridge rules flag exactly the seeded tickets on 29 seeds. Found and decided: tank tolerance = max(0.5 %, dip uncertainty), litres rounded at the dip reading, MAD floor 1 % (ADR-0046, 0047). Waiting: GitHub Actions blocked by account billing (merge needs green CI) |
 | P3.1 | Sales master data: customers, products, price lists | ⬜ | |
 | P3.2 | Trucks & haulers | ⬜ | |
 | P3.3 | Ticket numbering (gap-free, offline) | ⬜ | Legal memo pending: `online_only` default |

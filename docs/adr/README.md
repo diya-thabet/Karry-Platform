@@ -98,3 +98,12 @@ Added in Phase 2 sub-phase P2.0 (they shape P2.1–P2.3; proposed, accepted when
 | [0039](0039-notifications.md) | Notifications: a module fed by the outbox; rules event → audience → channels with defaults in code; in-app polled with ETag (the tablet through the pull); e-mail digests through an `IEmailSender` port; Web Push behind a flag; words never carry what the reader may not see | Accepted |
 | [0040](0040-documents-and-public-verification.md) | Documents and public verification: PDFsharp + MigraDoc 6.2.4 (MIT) chosen by a spike; a Documents module reading through contracts, masked per reader; the envelope signs and ledgers the content hash and the PDF hash; `/verify/{envelopeId}#{token}` with a fragment token, one answer for every miss, rate-limited | Proposed |
 | [0041](0041-website-separate-product.md) | The Karry website is a separate product and repository (`karry-website`): never shipped with the platform or on-premises, imports nothing from it, linked only by addresses and the existing public company lookup; same engineering rules; static hosting deferred | Accepted |
+| [0042](0042-sales-and-weighbridge-modules.md) | Sales and weighbridge modules (Phase 3, P3.1) | Proposed |
+| [0043](0043-gap-free-ticket-numbering.md) | Gap-free ticket numbering, offline (Phase 3, P3.3) | Proposed |
+| [0044](0044-scale-ticket.md) | Scale ticket (Phase 3, P3.4) | Proposed |
+| [0045](0045-weighbridge-desk.md) | Weighbridge desk (Phase 3, P3.5) | Proposed |
+| [0046](0046-fuel-storages-and-stock.md) | Fuel storages and stock (Phase 3, P3.8) | Proposed |
+| [0047](0047-fuel-analytics.md) | Fuel analytics: consumption, baselines, anomalies (Phase 3, P3.11) | Proposed |
+| [0048](0048-integrity-cases-and-dashboards.md) | Integrity cases and dashboards (Phase 3, P3.12) | Proposed |
+| [0049](0049-sms-and-whatsapp.md) | SMS and WhatsApp channels (Phase 3, P3.14) | Proposed |
+| [0050](0050-tenant-export.md) | Tenant export (Phase 3, P3.15) | Proposed |

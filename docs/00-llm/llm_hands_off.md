@@ -355,7 +355,9 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 - **Plan:** [Phase 3 sub-phases](../04-phases/phase-03-weighbridge-fuel-pilot/sub-phases.md) and [tracker](../04-phases/phase-03-weighbridge-fuel-pilot/tracker.md). 17 sub-phases (weighing P3.1–P3.7, fuel P3.8–P3.11, dashboards and report P3.12–P3.13, SMS/WhatsApp P3.14, export/support/demo P3.15, hardening and pilot P3.16a/b), ADR-0042 … 0050 reserved, amendments A1–A8 (PDFsharp not QuestPDF; `Sales` and `Weighbridge` separate; `online_only` numbering by default; desk mode of the field PWA; providers as ports with fakes; production after P1.17; ROI in the operator console; M2 = Phase 3 exit only).
 - **Entry:** the build may start before the Phase 2 exit gate, as Phase 2 did before M1; carry-overs (P1.15, P1.17, P1.18b, P2.12b, W-8, `?lang=`) gate P3.16b.
-- **Next:** P3.0 (ADR drafts, weighbridge and fuel generators, golden dataset), then P3.1.
+- **P3.0 built (branch `feat/p3.0-entry`, stacked on the plan branch):** ADR-0042 … 0050 proposed; fuel generator + independent oracle and weighbridge generator + plain rules; golden vectors in `tests/vectors` (LF pinned in `.gitattributes`, drift guard). Data-driven decisions: tank tolerance = max(0.5 % of throughput, dip uncertainty) because a fixed 0.5 % flagged dipstick noise on quiet days; dip litres rounded to 0.01 at the reading so reconciliations add up to the digit; MAD floored at 1 % of the median.
+- **Blocker (resolved the same day):** GitHub Actions refused every job (failed payments / spending limit); the owner made the repository public, so Actions minutes are free and CI runs again.
+- **Next:** P3.1 (module `Sales`) on a branch stacked on `feat/p3.0-entry`.
 
 ### 2026-11-27 (later) — P2.13 website: cinematic workflow film, islands, slices 2–6 (agent)
 

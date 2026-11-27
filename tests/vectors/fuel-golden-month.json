@@ -1,0 +1,4992 @@
+{
+  "seed": 1,
+  "start": "2026-11-02",
+  "days": 30,
+  "sites": [
+    {
+      "id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "S01"
+    }
+  ],
+  "storages": [
+    {
+      "id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "kind": "fixed_tank",
+      "product": "diesel",
+      "capacity_litres": "20000.00",
+      "height_cm": 250,
+      "calibration": [
+        [
+          "0",
+          "0.00"
+        ],
+        [
+          "25",
+          "1040.00"
+        ],
+        [
+          "50",
+          "2840.00"
+        ],
+        [
+          "75",
+          "5040.00"
+        ],
+        [
+          "100",
+          "7480.00"
+        ],
+        [
+          "125",
+          "10000.00"
+        ],
+        [
+          "150",
+          "12520.00"
+        ],
+        [
+          "175",
+          "14960.00"
+        ],
+        [
+          "200",
+          "17160.00"
+        ],
+        [
+          "225",
+          "18960.00"
+        ],
+        [
+          "250",
+          "20000.00"
+        ]
+      ],
+      "opening_dip_cm": "165.2",
+      "opening_litres": "14003.52"
+    },
+    {
+      "id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "kind": "mobile_bowser",
+      "product": "diesel",
+      "capacity_litres": "4000.00",
+      "height_cm": 120,
+      "calibration": [
+        [
+          "0",
+          "0.00"
+        ],
+        [
+          "12",
+          "208.00"
+        ],
+        [
+          "24",
+          "568.00"
+        ],
+        [
+          "36",
+          "1008.00"
+        ],
+        [
+          "48",
+          "1496.00"
+        ],
+        [
+          "60",
+          "2000.00"
+        ],
+        [
+          "72",
+          "2504.00"
+        ],
+        [
+          "84",
+          "2992.00"
+        ],
+        [
+          "96",
+          "3432.00"
+        ],
+        [
+          "108",
+          "3792.00"
+        ],
+        [
+          "120",
+          "4000.00"
+        ]
+      ],
+      "opening_dip_cm": "84.2",
+      "opening_litres": "2999.33"
+    }
+  ],
+  "assets": [
+    {
+      "id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "LOA-101",
+      "type": "loader",
+      "tank_capacity_litres": "400",
+      "meter_unit": "h"
+    },
+    {
+      "id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "EXC-102",
+      "type": "excavator",
+      "tank_capacity_litres": "500",
+      "meter_unit": "h"
+    },
+    {
+      "id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "HAU-103",
+      "type": "haul_truck",
+      "tank_capacity_litres": "700",
+      "meter_unit": "h"
+    },
+    {
+      "id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "LOA-104",
+      "type": "loader",
+      "tank_capacity_litres": "400",
+      "meter_unit": "h"
+    },
+    {
+      "id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "EXC-105",
+      "type": "excavator",
+      "tank_capacity_litres": "500",
+      "meter_unit": "h"
+    },
+    {
+      "id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "HAU-106",
+      "type": "haul_truck",
+      "tank_capacity_litres": "700",
+      "meter_unit": "h"
+    },
+    {
+      "id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "LOA-107",
+      "type": "loader",
+      "tank_capacity_litres": "400",
+      "meter_unit": "h"
+    },
+    {
+      "id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "site_id": "cd613e30-d8f1-7adf-91b7-584a2265b1f5",
+      "code": "EXC-108",
+      "type": "excavator",
+      "tank_capacity_litres": "500",
+      "meter_unit": "h"
+    }
+  ],
+  "deliveries": [
+    {
+      "id": "7ff2e341-810d-7e30-8bcb-6b2263db01fc",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-03T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-12254",
+      "ordered_litres": "2327",
+      "delivered_litres": "2327",
+      "dip_before_cm": "37.6",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:282ee0bc04a1bde44806aa81e65150b566fec086df2296509cb471a55349da48",
+        "sha256:2298bdb1c85f0d46903715c8fcaf4a5acfa6cf3e53e6d093db87872d336b1a45"
+      ]
+    },
+    {
+      "id": "b11379a2-0ff4-7f65-84d7-59889213147b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-05T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-56523",
+      "ordered_litres": "2083",
+      "delivered_litres": "2083",
+      "dip_before_cm": "43.6",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:d4350b28fbb41d1442553a33237475e12008749797f2a70223669676947f8143",
+        "sha256:3bc8996b16d8e80e9cc930d32c139c1966ad51fd906704c365d60b6e46e3db95"
+      ]
+    },
+    {
+      "id": "b540cce4-cc5d-775a-83bb-ba66e9a413ca",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-07T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-63888",
+      "ordered_litres": "2006",
+      "delivered_litres": "2006",
+      "dip_before_cm": "45.5",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:4264d159d53dde5e764a44e326ee0eac4dbd3dc98b53c16baf5e490bdfbaaafa",
+        "sha256:193fd24d82a1c54c45547d9d0b9e8d4d82a4c12e779409b92b6c57637c0b03ee"
+      ]
+    },
+    {
+      "id": "1cddee9c-e824-7487-a226-ff4390120ea1",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-10T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-34195",
+      "ordered_litres": "2034",
+      "delivered_litres": "2034",
+      "dip_before_cm": "44.8",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:1966a3bbcfcd69020cd3aee89ea4f0bbba5b99cdf06f217a693e6d5dc42dddc2",
+        "sha256:42fe9ca9344fefe11b604336b6f3d08a4406d47fae6ac89a8bb3835bfa85459d"
+      ]
+    },
+    {
+      "id": "a522eeb3-2293-761e-b0aa-e07c874a9033",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-12T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-37942",
+      "ordered_litres": "2237",
+      "delivered_litres": "2237",
+      "dip_before_cm": "39.8",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:e3231fe920bf83611e4fed4c547d9b707afbf3587e6522429f5f48b450bbd9b0",
+        "sha256:d43b1dd589f07848a2a0929b16890d91399b6c9941a7fb5fb2c6fbd023deb6a8"
+      ]
+    },
+    {
+      "id": "f9916395-55ea-7c2b-bf94-1ef51985b59f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-14T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-53129",
+      "ordered_litres": "2006",
+      "delivered_litres": "2006",
+      "dip_before_cm": "45.5",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:5e9ad1e6789e6608be3455c876181cc4ad429a2bc8d68c823ec39c4fa817f426",
+        "sha256:6e96f9b8319ac940efd01861b926e626a9c6057cc5ed8155a6c404447e1cae65"
+      ]
+    },
+    {
+      "id": "23303b1b-aeb2-741d-aad1-2a0f61f3fbc8",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-15T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-87464",
+      "ordered_litres": "10467",
+      "delivered_litres": "10467",
+      "dip_before_cm": "90.3",
+      "dip_after_cm": "196.4",
+      "photos": [
+        "sha256:3dc07bbbed6e472512fca4ed8bdd915d89db4616ac354cdd2111a82298ceb485",
+        "sha256:fca132aab80a5424a9690f9633d141724921bef423b17de061b50dcdd994539a"
+      ]
+    },
+    {
+      "id": "eca5205f-d285-7021-89e5-98babae95d91",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-16T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-54072",
+      "ordered_litres": "2026",
+      "delivered_litres": "2026",
+      "dip_before_cm": "45.0",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:d8ade43d0aeba562bf001e3ead99103b13bdb673181230ae3e54d185e870fbaf",
+        "sha256:808312489866ba582c5836b8f4f59c8c30549cc9711829afd57184186c33e05d"
+      ]
+    },
+    {
+      "id": "9ba2540e-d509-7917-978c-1a16f3b53254",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-18T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-83874",
+      "ordered_litres": "2010",
+      "delivered_litres": "2010",
+      "dip_before_cm": "45.4",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:ae34b1a8999775e47a446bb9dae958f88047c621f09935708ce4c8e6a9122a06",
+        "sha256:789eeb589a8d945773380f5ac49c1282db6ef511e7bc539393617ccebd06a949"
+      ]
+    },
+    {
+      "id": "0944c4fb-8d56-7ee4-baf9-100ce3c043a9",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-21T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-16864",
+      "ordered_litres": "3374",
+      "delivered_litres": "3374",
+      "dip_before_cm": "1.5",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:117c7ea67cfa1dd922b11cce59790c618f25027b7ffd30e45de4c9d4da6fe220",
+        "sha256:ff2e9189ab74180991323f9eeeec9e2bbdd466dbaa0e4f1b519f43ff82dc49a0"
+      ]
+    },
+    {
+      "id": "10dd9828-3be1-75b1-b8e1-a266e4f5c738",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-24T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-90131",
+      "ordered_litres": "2693",
+      "delivered_litres": "2693",
+      "dip_before_cm": "27.8",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:6f18285a1882a2d34b2e8ab3df0a47f9b5f3e0083429c86f627b263751fc0416",
+        "sha256:273ad5cef3b5b682686853aeceff1c9517df154c59de5f8fceec2aa70103376f"
+      ]
+    },
+    {
+      "id": "102bba69-0461-79f1-8e6d-b796387ec319",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-26T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-29377",
+      "ordered_litres": "2038",
+      "delivered_litres": "2038",
+      "dip_before_cm": "44.7",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:425928f85c0f5e75d3b87e671da4eef1e4889088d244089df904281a7e59de02",
+        "sha256:4d907bd6e1177c218a8cc613fbf4f9f4ca2089064f2f2f6bd6bf0959d86f2a2e"
+      ]
+    },
+    {
+      "id": "d4fa0f86-798a-7d2c-97e8-9481d5b01030",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-29T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-75874",
+      "ordered_litres": "3289",
+      "delivered_litres": "3289",
+      "dip_before_cm": "6.4",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:8e2ca2342190581a08cfadabb06b7448cc598cb8109faaedc8e8b117e10ae9e6",
+        "sha256:37b4c9b50b5c92329783f5fb458775f38b57184763bd99728bc193896927a663"
+      ]
+    },
+    {
+      "id": "77eb6cdc-1845-7f6d-9173-0f212c2e2823",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-12-01T17:00:00+00:00",
+      "supplier": "Demo Fuels",
+      "delivery_note": "DN-81985",
+      "ordered_litres": "2042",
+      "delivered_litres": "2042",
+      "dip_before_cm": "44.6",
+      "dip_after_cm": "95.1",
+      "photos": [
+        "sha256:0d2191f5457d46510ed26b73066553c1c90a9f1377e29bc3a79fa395bac36c91",
+        "sha256:987244775b12c2d53536b0dca44219b3bde01579e3a16ea678eba5e9877f4704"
+      ]
+    }
+  ],
+  "dispenses": [
+    {
+      "id": "c74803e3-1ba1-7215-8228-3d15a9ec0806",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "299.09",
+      "meter": "2784.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:07923986bb968a437d5c8dfc5eda92d864ac5db9d707107e855c384429e821a4",
+      "totalizer_photos": [
+        "sha256:97dae38d9d643c25fbb230bbd92a4aa2b410d93c4efbc8d60b21fbac78255d68",
+        "sha256:fb695ffb3a1890c78092b4d42b28fef02b9c014ea5ac06d864c2f2e39403560d"
+      ]
+    },
+    {
+      "id": "3b6fe507-8c5f-78f8-9c3b-f364eb8ac8ce",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "346.89",
+      "meter": "6991.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:7589a82b5a702cfa93ea5c4ed8f33418f3d4e7115804f92283868a29678a5aa3",
+      "totalizer_photos": [
+        "sha256:01762741bab9f87ff50592859be3cecb8c497c68a8c24d4244ef7febe8e5b461",
+        "sha256:bd91a1b7f03edca7e2dcaa37f463b337d20b5d59db610487c89da11b62397bc7"
+      ]
+    },
+    {
+      "id": "6d14475b-349a-7e90-8fb5-262cc7038069",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "515.56",
+      "meter": "7926.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:3328ad088ded3c9691eb79fa5d5f576cdeb8fc4c7b297d0b0e5e18baf320cd57",
+      "totalizer_photos": [
+        "sha256:589890086a17b9af5b569643d037cdff7c240d4969d495dd81355c53f0e642f4",
+        "sha256:75491bc354c56c9a9cc9af4ec9546b439f9d01298a449ebe89d9bf020067dba8"
+      ]
+    },
+    {
+      "id": "959f3a51-8cfe-7cd1-ad5d-b79ba2a7ae1f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "266.89",
+      "meter": "4615.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d1020a15d9ed17e3cc0e95ee8d103ed3cc667e971773308cdc6b13ab2e47dc0e",
+      "totalizer_photos": [
+        "sha256:154ed51212093d26ac512b01f18dd1eed77c96c0084f3dd6415af341ee52bdb6",
+        "sha256:3fe31d0347fc816ac16e2284c10faa4003ba33db73f7ba8e0445d656de3a5db5"
+      ]
+    },
+    {
+      "id": "11cbc288-4a50-72dc-982c-18c92f429ce5",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "393.41",
+      "meter": "5138.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:45ddb87da81aa40a2b0b8c12f3b37f32870266c44155d7ef28dd37eb2adf559a",
+      "totalizer_photos": [
+        "sha256:79490eab7f1a355e526eb523b3df44a47467537a4b63e0efb62ac1fea5f09e63",
+        "sha256:3023580ccbd3f5e06bc1538557e54acc62f5680c4fdf8e1a060cea631d3b993f"
+      ]
+    },
+    {
+      "id": "3586fca7-fa0b-7518-8296-f5eabaeb41a5",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "435.73",
+      "meter": "6337.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:0492c4f539b21c95055455e8f9bddea5d12982e46e80fa489b0bca16f72f2bb8",
+      "totalizer_photos": [
+        "sha256:b46108cc721754ef2904acecf5bb9188b80599e9090b20bb257e845465b675cd",
+        "sha256:f9c08feffa1b1bf13879399bd50e00978b7199cd6d39eb43ad9cedde819d7ca7"
+      ]
+    },
+    {
+      "id": "a6048457-861e-72ec-b923-5bc0736a947a",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "298.33",
+      "meter": "3925.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a185cc8ea8ea37f7523d2a54cdaaac43936aa40cacc66a576518093d07dbf924",
+      "totalizer_photos": [
+        "sha256:e023033d364e433ff7c882f4202cc8284c717095bcc99ae80f0c8a896d21f4cd",
+        "sha256:f07534feeacc110e4f73fd941391f9b9dbc799b0121b28004e6f5a940c250a03"
+      ]
+    },
+    {
+      "id": "022bc320-2161-7022-809a-8a78909ff497",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-03T15:00:00+00:00",
+      "litres": "319.77",
+      "meter": "4387.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:f652d00837b4000bd1c51f86973082d609b4e5d2d9bc1d97e0f3a7ef8f8b2b83",
+      "totalizer_photos": [
+        "sha256:f9495568deb0e066de26e655d3f21dcc2be88b4675fa6dd891fde85ce69bae29",
+        "sha256:58d07674334de73d60c290d00994940e82458cc89f7a7dafb43adc4fc7af3626"
+      ]
+    },
+    {
+      "id": "139f7110-60c7-7494-ad19-2da3c82ad589",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "308.34",
+      "meter": "2801.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5d698c8b44480030f3c668b114ed204990e32e82394553538cdece75921ebce6",
+      "totalizer_photos": [
+        "sha256:e592067375305db71d43d1ffecd1345e88c780f6907f96694ba955f3e4096150",
+        "sha256:9d19ee45032b73284bb57b5cd3e89d320bb662a8c979cb061b943cfc46f57327"
+      ]
+    },
+    {
+      "id": "ca357568-e293-7bf1-937c-99611d775b7c",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "381.20",
+      "meter": "7008.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:297a21d76bc78bf596380ed6fcf7f49dc91752a33d589cab301ba9880a3efb80",
+      "totalizer_photos": [
+        "sha256:d85328b6be77344828b09a933dcdb856ae4ecf4b2ad9a40a736ebf511d95389b",
+        "sha256:8afd2973f8633958ce75f4ba60d6c766f6f62c28e927db486f62e63a1a5356b5"
+      ]
+    },
+    {
+      "id": "50806f01-7a1d-756c-b62c-228e40df7c9a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "517.57",
+      "meter": "7943.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c96fa75802b087f806faadb10a248cff51423286a6ecc31f35263b4519a2105c",
+      "totalizer_photos": [
+        "sha256:642a357c732902f451fbfcc798b8da9fb9fad67e4ba927c3ecf45ccbfb8a99a2",
+        "sha256:99f86c8df845aed9513dd1a6e9d40f2b106ee2ab101e75eb6607b61550332cb8"
+      ]
+    },
+    {
+      "id": "c725bd97-9e28-7761-88fe-a5d73716e7ea",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "259.83",
+      "meter": "4631.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5b177a38a96dfb2c780b25d9b02d3504de1bf0cd8afc5beee4264c9ffade312d",
+      "totalizer_photos": [
+        "sha256:5c47577b3f12d68e32ffd03d4eac98d63534ccae8aa672352ee7af97425375be",
+        "sha256:172a401272a9b8a4c0d76560fbbe938116e3e38047e1a38bd1ea041814d4954e"
+      ]
+    },
+    {
+      "id": "f772f8ea-63f6-76e0-ba38-9b09f0d3fa5c",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "408.88",
+      "meter": "5156.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:9439c746d8ddd2efcaf078b051158de52fd2f79253c617eb0a8266954e896a65",
+      "totalizer_photos": [
+        "sha256:9c842b6a8b525b4f19d7b4035596dfde3eefe7344d84e990ebddb098e4bc6e82",
+        "sha256:ceea590b05373b76385c1b333ebebe3e179030da98910052cebcc1ba943863a5"
+      ]
+    },
+    {
+      "id": "baaad651-1227-732f-9e18-27478d1bc13a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "452.63",
+      "meter": "6353.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5bf3f74dcacc9ec8c02fc22a4a7347fa0289eb06a2a866b40581f255133bb4c2",
+      "totalizer_photos": [
+        "sha256:c71a5b11805db06a19d6d73b2778507cdbeef77adcd69029780587f07e465b19",
+        "sha256:2df810b92c599859aa4da822f3009a5c825f854213bd488e53fdf07ccb8409d6"
+      ]
+    },
+    {
+      "id": "4e3d4d0f-51dd-7d5c-9d94-6658d2511c38",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "330.34",
+      "meter": "3944.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:20552f5f4b2220a49a15a311eb5af9f9d5ae305b83acfb7eb59641d21b5c56d3",
+      "totalizer_photos": [
+        "sha256:c79d444008216b65b8fe2f4be91553a98ba56d3424452ecf34ecf2ede4cd6075",
+        "sha256:8d8e3b13e83b3ab1ac153076cdc986669f9f80d0e730cb28d22f02f350e9e079"
+      ]
+    },
+    {
+      "id": "4c867062-2d9b-7ebf-b497-553cb0894f5a",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-05T15:00:00+00:00",
+      "litres": "396.61",
+      "meter": "4403.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:3f4ed95aaaf38c2fdcb284f8b6febc3a0c6e5973286bef29899918a76ec15d38",
+      "totalizer_photos": [
+        "sha256:6e1fb6adcee9a4fd725a9a5bf6a07500ae9c8563107d72d5c71c5cf140a980bd",
+        "sha256:02c8261b740c1a6589be4b4bd9ee50e2707c70b48a97b9d8400e67ed8c9cf440"
+      ]
+    },
+    {
+      "id": "37b5dbac-6d3f-7d4c-8027-054627e125a4",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "294.01",
+      "meter": "2818.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:ae7fba117eba03520d589a58c842c19ac1fbe94cb8378d8291cbe386f112cfd0",
+      "totalizer_photos": [
+        "sha256:2a30363bd87064fc83dab265624c4b62591550ffa310a849b7975b2864c371cf",
+        "sha256:ced5669f1724925ffb314da0863043d70a6be26cfe8b2b79bada79478b5230ed"
+      ]
+    },
+    {
+      "id": "f59dc887-156e-7b79-a9b1-61f4bca5f87b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "324.54",
+      "meter": "7022.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a8e33c94f78047cfd788c7cc9ded54fdc69806eaf81f5c80239dc599f98ddc84",
+      "totalizer_photos": [
+        "sha256:f8a10e703db18a28ec9f6fbfd9d9320e71ef5e7a14fe7ebcb34dec74afc6ee6f",
+        "sha256:2a2d551f65b184f76ed3f30be746ebebcd7e80a2f0a3a66861e1e80dd9db30af"
+      ]
+    },
+    {
+      "id": "f59cd100-7ceb-7fb4-a8ac-abff9f55c5fc",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "614.80",
+      "meter": "7962.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:1e3b25e5e8c7a01d68815fda88b7cc6b99c61aa86e6716981e83059636469fab",
+      "totalizer_photos": [
+        "sha256:0106bb058f332483bfe4440e60fc47fa3f8b1baa47158a7e4ba44898a9172a05",
+        "sha256:a0a5951807e30f1105628748943ec25a70536e9b8742ced2309944e2f5b5b934"
+      ]
+    },
+    {
+      "id": "48e772ba-2c40-7b95-b4e4-1e7542a95d35",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "283.45",
+      "meter": "4649.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:4039d142c1e6415a95f2ee554fa6961145f21e94335082dc8ad6c1c425fe3a18",
+      "totalizer_photos": [
+        "sha256:f93ee7ccdae720b2cf03fd21dc7a4beeca84ebca72470addaefba2aed5153664",
+        "sha256:c4e199a11f2e490cdb0f01266b82ed5c7da5ad525b616e428b9dd3d42b00b570"
+      ]
+    },
+    {
+      "id": "1baf02cf-cf80-7751-88b7-5541346f3293",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "364.62",
+      "meter": "5172.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:8b97ef4503621f97bf4cc64591be34eb1e39ef8e062ebc92cebb898ae76db5ef",
+      "totalizer_photos": [
+        "sha256:22f7d343a63e0c32f93897b0b96cc27ac2d532faac859f8ff706a8324be1b248",
+        "sha256:80c6bcbd6fea51ca4fae2cf5ce33dd7092947d945fac971a80185844133f3b0a"
+      ]
+    },
+    {
+      "id": "713b831b-1fb7-7628-8037-5c0d52dd34d6",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "531.65",
+      "meter": "6371.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c87868fa56e0a246663f423b8a0f42834e0751d759a78b137315d969b7ccba58",
+      "totalizer_photos": [
+        "sha256:60a7a7b7eaf5c033a5cd95e71cf3d1797e0750ea92484194aef4259cbb2b92c3",
+        "sha256:992149e8a2b249ab47122faafead3bed00fdfeae8e903fd93433b60c61e406a6"
+      ]
+    },
+    {
+      "id": "fcad3888-32e9-7069-82ce-49deba7725a3",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "334.74",
+      "meter": "3962.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:bea01ca0effe76e068b1f3c984546026d5a7eb2e99d026a7762a2ba5ec5df2c7",
+      "totalizer_photos": [
+        "sha256:9eba8775730b19ec2b999f07b3f0b94c4e2a89f5fcd26dadfcd2cf1eb64e172f",
+        "sha256:63a029a5adb5555600e6a30586b46f015c03151c3286423887ecbe86ab392034"
+      ]
+    },
+    {
+      "id": "959d133d-9f22-7e0a-9c7a-92835604c3b6",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-07T15:00:00+00:00",
+      "litres": "403.68",
+      "meter": "4420.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:7e21b8aa1157c8b3bfaf9e2ff7adc0aee5dd6001b312ad6fbbdc55a2f977edf4",
+      "totalizer_photos": [
+        "sha256:a13267974a77814ea6142e5bf78d9952a3ee54d43f64c50cbeeaac97fcd58c0f",
+        "sha256:efe6f675c76330afa23c4b2727f52fa9a117511fb8a61715683115a8055198c0"
+      ]
+    },
+    {
+      "id": "ff11dc91-b6a3-7e92-bc2e-9ff5a72f6600",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-08T20:00:00+00:00",
+      "litres": "448.00",
+      "meter": "4657.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:647ec1543b6bd0a4bd6679c09c1317a35b1916cd450f08648e65e4cfd0a410da",
+      "totalizer_photos": [
+        "sha256:9c434723dde138d8427005f6ca2e36117bcec85d2c1ffacc6653c3b78fa09fa2",
+        "sha256:3e85b0a9b4e9a8069c25b2dbf6bad673423e96d038e9de81b74f34105463852d"
+      ]
+    },
+    {
+      "id": "f20ab305-9b33-7947-a5ef-2114ba6e736c",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "325.33",
+      "meter": "2835.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e4d4ad86235a63d5c7495df9237c9540299bf22d86cec133759aaeee431162a4",
+      "totalizer_photos": [
+        "sha256:1da77d913d90fd276697f21ec05a32a34f4c8db65c70610670d07ebab73b6062",
+        "sha256:3a4548f21b3c137b117746184e34fa77ae7024edb7ee1a9a34c8d03ab7d9365c"
+      ]
+    },
+    {
+      "id": "0b83da50-2fcf-7616-b48f-e7d31997e8f3",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "351.60",
+      "meter": "7037.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:aeecb544377054cfc09f025ee38d62a705f5e71b98f6a644cf39efd70e2af641",
+      "totalizer_photos": [
+        "sha256:e31e1292f6d0ac1db9559250d09dfa6c874e263fb43456227e94f5ab08e2fad3",
+        "sha256:9cfd717d1e39a54c464a8296d67e8ecfa9b576d757aa5ae17139bed19cf94bc1"
+      ]
+    },
+    {
+      "id": "73270133-7eb9-71c8-bbb4-2d9d66531daf",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "522.03",
+      "meter": "7979.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:489cbaffd1f559af3c593e7f3b51d375f9333f742b2935f2c02823ec60bdadce",
+      "totalizer_photos": [
+        "sha256:42041769b705fbf373a26890363f89c263bc6601947678f58c09786b766b5e3c",
+        "sha256:142fab55fe90910336beb903e8d424ee1c66eed297f7634b7f0fad3b5482909f"
+      ]
+    },
+    {
+      "id": "4986f3a6-948b-72b1-9910-ddd76215f679",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "363.15",
+      "meter": "5189.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a5632a15c23105d9d3005630e149a83728fa361a6661b877322578ebeb391d06",
+      "totalizer_photos": [
+        "sha256:e055af1c252a66d863243e5303e2e7c407cc0424e9e6ed7ccb320db826fb5e56",
+        "sha256:145b523821464b6d4111329a61263fdd909311ed0e9f654f8ae63ab1aa311156"
+      ]
+    },
+    {
+      "id": "89778fb7-0914-79cd-83b2-7030e7f524f3",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "501.35",
+      "meter": "6388.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c7e21846460a02eceef208450af5e8d221013eefd733230a8660194d0f93fb05",
+      "totalizer_photos": [
+        "sha256:215c1c0ba3340d967fe9da2007124b2f30ab1c2e174e3f4b6eb8f85f1e10553b",
+        "sha256:72904d18a9bb6dcb312218d0d87abbffd12ff4bfafd03fb9477e4a80be9f0a63"
+      ]
+    },
+    {
+      "id": "a2b73a66-a440-7dab-8285-0da8f8375d93",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "266.99",
+      "meter": "3977.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:2cdeec51972ab68bc9b8056fef6709e9968240ef0f6839853ed43ab33e3b4290",
+      "totalizer_photos": [
+        "sha256:f819b75085ad0c99a36cf2b98f6d0aaab2b3d2229af865df6db076bd59805a17",
+        "sha256:b62e96933309cdb189c08e1c69a36e9a8c0354be5a6d1efce7b128fd0f90e49c"
+      ]
+    },
+    {
+      "id": "446056bf-b6aa-7ae5-91f1-0c60a9921b68",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-09T15:00:00+00:00",
+      "litres": "423.79",
+      "meter": "4439.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:2d75c843406797b6128137eac090bc84f8ecae24b89b02f99c546496be47cc7a",
+      "totalizer_photos": [
+        "sha256:6d9814d5dac504e5340e8462eb2c79d40f078f6c26a8935318b8a008f9f59771",
+        "sha256:83497471d0246ccae9901243175a1163a31a7b190d8509db0b7ef083da277078"
+      ]
+    },
+    {
+      "id": "196a8d84-5ec8-79d7-8049-e97a781b5120",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-09T19:00:00+00:00",
+      "litres": "12.00",
+      "meter": "7979.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:aa0cb6f5717f5eed087ee17b880e180b206a985a0a452b53500c48e1fc147a78",
+      "totalizer_photos": [
+        "sha256:723280c3e1df6f91e61541b6b528614cc36e5359652b0ed7e539d34d20d1eb7d",
+        "sha256:534e570fcce695f740008e261722ebbe451e07ea8646422cbc937d7e064d7a2f"
+      ]
+    },
+    {
+      "id": "dc14f827-08c0-74a2-8d45-5c7115f6063e",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-09T19:20:00+00:00",
+      "litres": "12.00",
+      "meter": "7980.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:42a305d521480046bc377f13502e505642d15cd3bb8c14090ee3bdcb625d4dd2",
+      "totalizer_photos": [
+        "sha256:181437224dc232a6ad83c3fbdb19a0bb1dfca10cce9244cb6153af71cb6915c1",
+        "sha256:ec4c277b5481e7363495d62a8ea32f2e80b380113ed1e0ebd765194f6cc1aeaf"
+      ]
+    },
+    {
+      "id": "641e9e8d-c89b-79d3-8262-cdc556b2a3e4",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-09T19:40:00+00:00",
+      "litres": "12.00",
+      "meter": "7980.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d08ef562a70f268f21358ee61accd4077b2cce17958a3855e54e1ad1f4cfd336",
+      "totalizer_photos": [
+        "sha256:94d43eded5b48ad0d810c3f6b82962a88f036fbefcef921586143e1472d837af",
+        "sha256:fdbb37b8d4e4db03fad32cafe595e3cb07bfaaea891e53cb8523e065b3877f0e"
+      ]
+    },
+    {
+      "id": "73aa1107-119f-769f-92b7-563053db4391",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-10T15:00:00+00:00",
+      "litres": "264.96",
+      "meter": "4673.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:bddbf0caed7852ce5d39f1b8e9b2d06a7442a8cc7acd7a454794ab91fabab7b5",
+      "totalizer_photos": [
+        "sha256:943735d4ec1b27241402f91cece9d8ede3bba436d0cd14a1616a43def841ad26",
+        "sha256:da64b870935ac8d97dff04ae8611f8b90c7950fa2273ea380e5c9bebcd266ea8"
+      ]
+    },
+    {
+      "id": "5e3c1d96-9721-76e5-8597-ebc16e9d7077",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "299.68",
+      "meter": "2852.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e42b0627384da68248a3ff76ceb52fc3b5d4ce457c969920d8fe4338e66743dc",
+      "totalizer_photos": [
+        "sha256:6ce9e7323c377da0e48e1b4de61bacebdd90f85b7e5d933d991ba3ce334c76b8",
+        "sha256:cc5443333056ddb0f1da2b29e9a1a2588b62ccba5dfe36f1acf424d973c2f6f0"
+      ]
+    },
+    {
+      "id": "41adfe67-f9ee-78db-bf87-6918d73ecd63",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "379.70",
+      "meter": "7054.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:83a81a4e6176a3cac53482ec883062fabf2d288b021ea0e2338c912768457e41",
+      "totalizer_photos": [
+        "sha256:cbd5da318293d779e1f86d039da7fdf2675bb4b3138fcc237cb10028e0463f9f",
+        "sha256:755d3871fce5d2c6d9e46a515a11494f0a453e8c6cf3eeea95a8303b940a3aeb"
+      ]
+    },
+    {
+      "id": "0168e969-a45f-719c-b0fb-4bc8b22cc347",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "443.19",
+      "meter": "7994.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:bf323ef2fe725a5ee31ef8fb8332ac334d7ab56dd265bcd71ebb3ef78a70103f",
+      "totalizer_photos": [
+        "sha256:8d2707d7fe692199926c8264a521dadd8b03ee7cc6cd35fff885ce6350c80450",
+        "sha256:f40ff922ed421259d18da490f08b56528ac32bbd6953e9e8868f815448525e8a"
+      ]
+    },
+    {
+      "id": "9615a32e-71b5-7f55-819e-038721858664",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "420.15",
+      "meter": "5207.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a2fc706b40b3d0c629b87baff97c4298fa01208bc5c328968ccc6ff223ec7597",
+      "totalizer_photos": [
+        "sha256:5e4d0c250947aa9290df617ba95b3b44bc735ca76c96edfafe99958f027586da",
+        "sha256:ab6fe7d5c0426a0ce5346059a8b3b3deefbffa3d4813fcaa66f292ed6bbe026b"
+      ]
+    },
+    {
+      "id": "62279051-013b-76ba-98a9-f8f4170c4b00",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "426.17",
+      "meter": "6403.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:bfd64e7fa2c631335f64e0d2c812fed7cbc0981c459f039076e099f944d50172",
+      "totalizer_photos": [
+        "sha256:1dd39048cdb4255d74c6224f6372099a5627922cc4c5475d7b3e5daada2d6582",
+        "sha256:2c0d0a30feb89fff04a65e3925f463566a4a2ead250abf6e5ac04ca47bd55800"
+      ]
+    },
+    {
+      "id": "49825407-c941-7650-96ee-86ef208ad9ff",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "296.76",
+      "meter": "3994.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:bd512b39498afb138387a1e7f065df4a4207158a69b48c0eff6b0446f31aeb00",
+      "totalizer_photos": [
+        "sha256:7c5d00bee9f9fa5bc6e9521855fdc4016efa083b460f923db0fa62166bb685a0",
+        "sha256:b757918366e33812f8b3e021f3085db87dcada54d4620a8bb728b7f93728aab9"
+      ]
+    },
+    {
+      "id": "3aaeb5ed-264c-779b-b76d-838134c590e7",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-11T15:00:00+00:00",
+      "litres": "373.21",
+      "meter": "4455.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:f3c151a4c652fc977ad3530527dccbb040d3458c1a6f936506b0da21baec1fcf",
+      "totalizer_photos": [
+        "sha256:16d3526600c458b4d598c8592ffbbd51b937a988a65023ba662d60881954f128",
+        "sha256:88d4161a37e103558cb252440d05f982feebb948f46ed6dd9ca4f36e6d7cd4ed"
+      ]
+    },
+    {
+      "id": "1dbc77ac-64a1-7177-a7b3-37347f7a6583",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-12T15:00:00+00:00",
+      "litres": "268.46",
+      "meter": "4689.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e7c7999c9d173f5b62e8c79c262d9d551b17a7547aac3fa2da97a9179b2a1bb0",
+      "totalizer_photos": [
+        "sha256:e350835fbe40d9f36aa68fdb41f2b2f3854f639d2ac899d73381d8efb3cfb710",
+        "sha256:e51f0ebaa237b1967e12f154de72428749e133b0896631d2fdf7f3a1ef65f0f8"
+      ]
+    },
+    {
+      "id": "f7fbc221-e299-775e-ad02-121d58cd091b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-12T17:00:00+00:00",
+      "litres": "160.45",
+      "meter": "7061.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c285df1a4cc3e66870b44e18a01d9d308a6090cf0e72c596447d1660b573f61a",
+      "totalizer_photos": [
+        "sha256:b4cd8e8e4534d94e4649dea5820d311a3a82eb3619cb517bd7a6965be7792a6f",
+        "sha256:8f93d205686032b831ffdffe419def822154e35425f96729696170623f10c021"
+      ]
+    },
+    {
+      "id": "f5c74033-e74b-7fb6-9936-ee94a14962f5",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-12T18:00:00+00:00",
+      "litres": "40.00",
+      "meter": "7061.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:69eeec3bf2242639261b58418265c9789be629dbd59e3e53886444510ef54306",
+      "totalizer_photos": [
+        "sha256:36e2f04e7dc7922e445ddd254e48b720b2073b397aeae92e47a066e3452959cf",
+        "sha256:9b1143322d18be2f56a10d9b3ddd98597875e73f995880fb5e2090807fae9d40"
+      ]
+    },
+    {
+      "id": "d25c8062-0522-7a0f-8617-0c370115a71d",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "320.30",
+      "meter": "2871.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:47b963b439798287be38915f15a61486386362319d892a6dd27c3a5b4e287100",
+      "totalizer_photos": [
+        "sha256:b80100ca99e43e9444e20d0d57508c39dc791848fc286e97a02ac240ae41bc78",
+        "sha256:1d07d20c23b26ad158d683c0547007231f24df0305eb81656118446184b7d15b"
+      ]
+    },
+    {
+      "id": "ffaff116-b994-7614-9781-85b813cedb3b",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "548.58",
+      "meter": "8012.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5c9c18980cbd7f938795a22044f34f873fbb550a512838d74ccbe4bf1a6bf371",
+      "totalizer_photos": [
+        "sha256:b85544caef0756b95f3f23f3663a4f3aecfeba262397c884140ca1a807fac177",
+        "sha256:0209da6c460cd339542da6d0adfd295b18074ae53df7b5a2b0f92f03a36cbfa7"
+      ]
+    },
+    {
+      "id": "b962ba01-a425-78db-8a7e-0f4bcdb64aa5",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "435.78",
+      "meter": "5226.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:17508f8c67b8c2f845657cb4ded18ce5ed5f40d09b2d537d203afa3ad7e42f6a",
+      "totalizer_photos": [
+        "sha256:6b314e0b907f236079bffa4687198e7ab9b221639ee213b9939ef122add31ecc",
+        "sha256:4d7be03fa1fa8df8382a1bd2e5f842604d14935464ce2877ef13e6958927b27d"
+      ]
+    },
+    {
+      "id": "3d96bfb1-2cd6-7a72-9c20-5729822ee60d",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "491.56",
+      "meter": "6421.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:89f0f4a1401b0277051dcf528bc3d38a46453b166f42bff6e5b0fcb2370bc2ff",
+      "totalizer_photos": [
+        "sha256:b578afa0673dd93b204656047925de5f4301b66687b7abb6f1e09e06455bf496",
+        "sha256:5cf6e7578b509f22fa3ba057a78826d611aee2975f9c3b5bbeb2cca91a8f973e"
+      ]
+    },
+    {
+      "id": "94b0cd98-af41-7d9d-81e2-021bb92136b9",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "307.38",
+      "meter": "4012.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:130865e427e0b98a21d89737aeb292fb720b6f484ee179589e79c6e507c93091",
+      "totalizer_photos": [
+        "sha256:7bec1bce375d5cf7d3ac07e5e10e1a45ad36ddee24554c27944be91ae9d95e94",
+        "sha256:4ad70091e37aca275d769cea55e103e8c4731c46d9259496cd0dfb4bd7726d00"
+      ]
+    },
+    {
+      "id": "67d80702-7091-7526-9548-052b61b95afe",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-13T15:00:00+00:00",
+      "litres": "376.86",
+      "meter": "4471.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:afdc47c4aab89a164b9848d9450eb7aa252820d699db7b23fa0955731e2c0ef7",
+      "totalizer_photos": [
+        "sha256:027b97bff3cc3e09898b22520218664ef3ff1b4d9a8b0920a38d1eadcca4b02b",
+        "sha256:f13a08998fd9949cbf3aa50a612753f121f09771a49768d9d0b2b05ceb70399f"
+      ]
+    },
+    {
+      "id": "8d103fa1-5b35-7769-8361-442e82116c71",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-14T15:00:00+00:00",
+      "litres": "306.23",
+      "meter": "7075.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5b3e361ba7a50ee5f7f6701de8b437fe9177206dfbcec1bdc86ddbce4559eb49",
+      "totalizer_photos": [
+        "sha256:9f2dc62dceebd5c2ed72f0113ec3afbeb28d8aacd1d8684179526c86cd55924f",
+        "sha256:1dcc99fc289de3aedf3b2f485b935771f3b435198ff699701b04b28c3d644b75"
+      ]
+    },
+    {
+      "id": "a032b015-a855-7c5d-80e4-c61258a43d4e",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-14T15:00:00+00:00",
+      "litres": "258.60",
+      "meter": "4705.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:6a3932eb6f53d0b39df096d00e4034d0ea63aa58c5a66d6be5fb1997feec111e",
+      "totalizer_photos": [
+        "sha256:cc564cc870e6b31e575b3db1d0ee4266c1000bea4b3f1d205bd6a94d60556919",
+        "sha256:576c5be30e580ffe24f5a90184dce8649c11bed6a28ad8cc3cf17ebdb3016992"
+      ]
+    },
+    {
+      "id": "f0fc4b47-1318-70bf-a703-caef06b69ab4",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "232.33",
+      "meter": "2884.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d0a01524cc4145bf8085b157aacf05f86084377cc41da2457573bb6c2ed6d44c",
+      "totalizer_photos": [
+        "sha256:1b1174fad3765e6d864c68f6f8db903a277f761727cf91fbeaff520b49db5c12",
+        "sha256:b466120da240998ecf95442d658422b276e4f7ef04cf3ac5412cb34ef2604f52"
+      ]
+    },
+    {
+      "id": "3fdd8d5e-cdc9-7b5e-8b4b-ae04015cea36",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "553.16",
+      "meter": "8030.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a99343b657ac78d02dd66631a98a6ddc28adfdb0e8414d8d6c47c6d9fb6eb3a5",
+      "totalizer_photos": [
+        "sha256:2933eb1cf5d7ee4d8ecfafe3ef784c8f894ecb0dc667b0a813787e133d38f38e",
+        "sha256:3c5467166d6bbc9c37845506835bb8050585d23f95d9ad91602cc7092cf49ae2"
+      ]
+    },
+    {
+      "id": "ff8aa933-a74f-7dff-9ca3-54d6b0cc1cec",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "410.48",
+      "meter": "5244.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:9127bd471e7ce8577706c34ac78bce5b65ee04653f77675b13c4be398968b582",
+      "totalizer_photos": [
+        "sha256:d0a40d77a4352c1018371c678f59b48116f59e48631199da0c607fe9a4d5daf8",
+        "sha256:05567ef4031d76d8c700c80c3d3bc16b84baed6ffa6460360b83c7057a9abb94"
+      ]
+    },
+    {
+      "id": "2aacba42-6a62-73e1-b912-6cea472fc3b4",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "470.44",
+      "meter": "6437.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c545ff88517d6efdd3a4278bb52056608fc947f3fc72011f22197c77984fbd65",
+      "totalizer_photos": [
+        "sha256:8dc7238e6ae85efacd9454e380680348fdf9117b72dd0d77a2f1cfc988e154aa",
+        "sha256:7ed224ed3362591ecef1bdf6639b57ddb2d3d8f8653e7187b2e9ed252ae90104"
+      ]
+    },
+    {
+      "id": "478c8b5f-911e-7ce3-826b-7d5726c7cfe5",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "297.46",
+      "meter": "4029.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5c4b4649bb254e83156af8409f3e07eeb890b6a2c7d2d9b22cd71c4ad847a872",
+      "totalizer_photos": [
+        "sha256:625f0520596f3d8540950a0341485039422afd572488bce5eda92bb4560b9ad2",
+        "sha256:f574c6332158d607f42fe1b42626fb920372a69b77bf362f90c28c8d47754f9b"
+      ]
+    },
+    {
+      "id": "9e5133be-899d-72ea-9450-0102cd3c409b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-15T15:00:00+00:00",
+      "litres": "376.15",
+      "meter": "4486.8",
+      "meter_unit": "h",
+      "meter_photo": "sha256:23a2258f93de63d63d6566b5df35dbdeb752f9c66de12c088b02d63632cb13fa",
+      "totalizer_photos": [
+        "sha256:ef4b73d7a01a8c21152349b832226707b626ad95642d6bd675e3944e8dcd5310",
+        "sha256:67c779bbbf109e0807bf29b50eb9f2efaad3fcf4c943be9327304c5f13c01044"
+      ]
+    },
+    {
+      "id": "d41c3466-0d54-7900-8ee9-5a3a9e4cd603",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-16T15:00:00+00:00",
+      "litres": "383.42",
+      "meter": "7091.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a112ad73ec5eeb42f4e6521221e2ed95cff1003128ef543b50cb7fc0c80035e4",
+      "totalizer_photos": [
+        "sha256:3ef340079624d494a228587a6f6f545bda9ee69b1ccdf61b1a71580dd266b00a",
+        "sha256:e7f0ee9ce982148c1f1ef0746596256981fa0627811580bc353719fdbea29cb9"
+      ]
+    },
+    {
+      "id": "b75c29d5-d05b-790a-a24a-dc1f84774c41",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-16T15:00:00+00:00",
+      "litres": "325.62",
+      "meter": "4724.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:339863efcf019ed91ef2be2ab7bbe1d600ee0092b99e0db7412dbabb940ea61a",
+      "totalizer_photos": [
+        "sha256:9d13b2fb8b84e5417b665c24a9bdb4ee60c7e1d7900df18dc36a9864fc741d8c",
+        "sha256:ebded950abac4a78abec23572af346e9a370622509a73b97448563f03b0d1139"
+      ]
+    },
+    {
+      "id": "0d42aa6e-e7e7-78b8-974e-358910832bb7",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "375.13",
+      "meter": "2902.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:da92657b25cea933e42ac3222d4172149c50e95fd584b2460b50ad7f755d9916",
+      "totalizer_photos": [
+        "sha256:109bad308044b1fb9554a0b30b05ae32781a9da049181060f0439594e81b04e3",
+        "sha256:6662bec8fe3a0f38178c53966573e4bf90c05631d5e3337cddb001b7fd95e4f1"
+      ]
+    },
+    {
+      "id": "f605a1c1-787b-781c-9a29-396ee7dc97f6",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "569.97",
+      "meter": "8048.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:047601e47a26ec1fdf2c10d0e8ec6b3cf299414d8d5c64d70c90c7bcef44b596",
+      "totalizer_photos": [
+        "sha256:989bd675263eec0bcb938ebf513b4224bfbaf77d96b3e2414dfaa7976d44209d",
+        "sha256:9b6e4823dd720b1410dca628471c583aff33a69bd9d8b4ba8e45661296de7db5"
+      ]
+    },
+    {
+      "id": "94ec71a6-935d-7824-860c-a48cca76ff1d",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "363.97",
+      "meter": "5259.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5500e973e6f7261b19d60f4203ae7c8187908ba192e592740974ba911d0efd5f",
+      "totalizer_photos": [
+        "sha256:5ec2a92ca330d7b008d278868d06ae30c012c0ac5e4bd956eed175405631ca9f",
+        "sha256:8a22739bd8de50a01571620ca2651af5e56efd237c240f1012fc552e952d99f7"
+      ]
+    },
+    {
+      "id": "ec2f23e1-00df-7854-8b49-284dcf72e552",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "436.52",
+      "meter": "6453.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:94883ba1e560e8692569aa4536c499d25c60bf3e53352971e8ec6597292452b2",
+      "totalizer_photos": [
+        "sha256:6bbd6a3c823647d0dde63f075134151e676b00ec1b9e778d96ef069b25f17f9a",
+        "sha256:5e5504189bdcc7f742808849da1421b357670d2ffee2fd5e5c2b12ecd24c91c6"
+      ]
+    },
+    {
+      "id": "ca597dec-d1e3-7e9b-bf24-57cda177eb6e",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "253.54",
+      "meter": "4044.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c92c3f4592e2ab5a48aac7b68ce62ebd65a4fe7ef81ebcb8c12d512f43f89eed",
+      "totalizer_photos": [
+        "sha256:f3d05037efaa4c5ce786ba332b9e8e92b56703d7132d93a4155efa9f9e5e018b",
+        "sha256:a41fc4a8b9e4b7588d0389dd484d435620539f511552b16169eeab4a446d7598"
+      ]
+    },
+    {
+      "id": "0c0fd5b5-7afc-7949-b8c1-a06046f1f3c1",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-17T15:00:00+00:00",
+      "litres": "353.21",
+      "meter": "4501.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:343353b0f9d36e2ecf9034addf9e5384c99305c84d238065831c27cebcd00477",
+      "totalizer_photos": [
+        "sha256:4bc9afd3ed004c2c56f44f8150c1e48a8cfb8251133b6bab8b2db754d26faa2a",
+        "sha256:cc8ef3a15d2b5496d06ae58771359d5509064139221ce34e8423fa5bdc009da5"
+      ]
+    },
+    {
+      "id": "c80a6928-3240-7337-b555-560b443fb052",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-18T15:00:00+00:00",
+      "litres": "401.19",
+      "meter": "7108.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:9d4f9a42f6c9bcb7ed53bda455bdab5f74c472bbf65ebffc5c7e94520e27b9d9",
+      "totalizer_photos": [
+        "sha256:039238450264e491a2a9908ceebb6118ecf50b6e3842cbf35acc5117b925dd5a",
+        "sha256:0a34c4498d4d1138e6103b1e40d924ad2a156e4708427a407d1e2afffb4dbafd"
+      ]
+    },
+    {
+      "id": "3343b7a5-8735-7806-b223-43ef08fc9944",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-18T15:00:00+00:00",
+      "litres": "263.89",
+      "meter": "4739.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:532c97355f12a09d81823d607d9062f53e3696cc49ec713d7167c7b9359da954",
+      "totalizer_photos": [
+        "sha256:3001b9142e76dd6c98255bb431fb56fa12cf7beea7473852f1c75fdf6458ce09",
+        "sha256:9d1907e26d1e121d94cd826deed626a7f4965f1f4c05c1fb9f80be13af347213"
+      ]
+    },
+    {
+      "id": "0bbcb351-c1e3-75a6-9ac7-640d03c1412d",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "320.21",
+      "meter": "2917.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:71b435ff820b49f83b6dc6ab5b047c42e454021a7521269b7523b960c82b9ca5",
+      "totalizer_photos": [
+        "sha256:a0366b60fd0e423cb23ef62455e951c5ecedd0c879db1796b312bb95358ab2cb",
+        "sha256:5b37c7a21c790ecfa456a2700de357ad6ff6c730dcc1afb66246f0bf2513ea80"
+      ]
+    },
+    {
+      "id": "03d47842-60f4-7163-8e72-db140dd4e6cf",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "414.74",
+      "meter": "8061.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:ded0521ed2f3b53fc9755cefe0c215be96d4e1a74f0f0da6569192c85310fbc7",
+      "totalizer_photos": [
+        "sha256:fd3244f2abe63c701eb0db425421d2c914ecb493b7723d4c356465330cbbdbf0",
+        "sha256:f5a057354b56813cb0d5fdffc7f3059120dc84b810f7179ea53b56add22cda44"
+      ]
+    },
+    {
+      "id": "c426dbb0-c16a-7a63-aed8-0e5cb08c2cbc",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "310.63",
+      "meter": "5273.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:4b334ccc4d71a2e75da43b78a409613292f47b34bff5887a811196cac1bb6958",
+      "totalizer_photos": [
+        "sha256:ddc395d0cf88e8337621211bf9196aa686c24bd1ed5903746ba1bb2b60c5a316",
+        "sha256:9b9c963f3b4a9816f00057bb685fa08b32f0f6a9f0b60fc812ff2249dba0e8bf"
+      ]
+    },
+    {
+      "id": "6509b280-b691-72e6-be55-b274397c6a75",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "341.07",
+      "meter": "6465.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:be6a99e74c9bf327fd50ad1fb8579b0f26e85f9b9f33214535cc4955611dc480",
+      "totalizer_photos": [
+        "sha256:4ea8ba03affb7c97b45835dbb6715fe0005fe4e25c2f66a9e10f238ab801fbbc",
+        "sha256:5eea1539fdf830f907fbdd18257994adacdd471a2bbe8e6b7f7713d171bbcfea"
+      ]
+    },
+    {
+      "id": "514d2290-7d5c-72ed-8361-8765cd1afcf4",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "284.72",
+      "meter": "4060.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:8c4d1dd7cf766ede4ad36fb5a55483e3956797591c8c66829a90105ef065f2e6",
+      "totalizer_photos": [
+        "sha256:162054fcc093b8cb4f8bb47fd78c860c02e418d96df5eaf146affd36a9a4c1f8",
+        "sha256:bf76cf0c9b0a7d25dec6dd5a3877202b804b4b701d6e69587dec95c0a3821107"
+      ]
+    },
+    {
+      "id": "5f6b997b-6fd0-7132-83c1-ef62ed4a368d",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-19T15:00:00+00:00",
+      "litres": "440.40",
+      "meter": "4520.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:82e66b1d83a1012f83e60e7598cfbb441a3c93650de0b9d43b05cac0c8cfb955",
+      "totalizer_photos": [
+        "sha256:117c7dcbe2601e08fa7f335f0c5f082aec2ba5ea4ac4430a2135a72229be8d82",
+        "sha256:da3ed7b2b73facb8bb52af4f6c45e05b0fd1f298ac24ccc700cfd09937def267"
+      ]
+    },
+    {
+      "id": "54d6f493-090c-7e5c-b3df-c87cb3574c27",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-20T15:00:00+00:00",
+      "litres": "375.65",
+      "meter": "7124.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:a3e02767816fe1272f5f4baa90030aec0418008d1ea7c5f668216f2b53a1b5b2",
+      "totalizer_photos": [
+        "sha256:e7db782c4ddf19cb2d310b5d3992967b37e715ad2f5269cfc2f0d5d717fb3543",
+        "sha256:2573d716b9fa521ee0c8026650591164cb7bf9400f0d49ca19081ff0ce587091"
+      ]
+    },
+    {
+      "id": "96ec1b5c-0eed-7c4e-9825-91cef637826b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-20T15:00:00+00:00",
+      "litres": "242.24",
+      "meter": "4753.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:1e837f232f6383d0aa2e29a43a519f3ccb20005333423aa271491b2816da2a3a",
+      "totalizer_photos": [
+        "sha256:f3dfe94b166161d61dadecf8ba75fae0bf04888b0dd5e1a633ce604c0eb4feae",
+        "sha256:408b4204b6cbe1de493e98e6f03aba8f384735d1be112bc1cfc26411c9497dc4"
+      ]
+    },
+    {
+      "id": "ebb769f9-4dc6-76d9-8842-c61c46e42744",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "351.90",
+      "meter": "2933.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:74d2d35a68c50d385edc0277d4e3319ec1375dde55c50e4bee4721d7f8b87edc",
+      "totalizer_photos": [
+        "sha256:0461587b82e0766d78a81fb3f5463276656385ef50de36d75a1513355d473c86",
+        "sha256:df21ca9b20732aa5911acc7b4d5dd1362b0313014d6be2872099a8a65ecb3ca3"
+      ]
+    },
+    {
+      "id": "14667d17-293e-717f-a29b-e15026f90507",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "410.76",
+      "meter": "8074.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:2bea3fc450b1c7aba5227b6f5b1fb5823c4508b140fe7aae9cae8b34d00a2b41",
+      "totalizer_photos": [
+        "sha256:8cca96b3276dcee06da8ec2413c77dbd4f4b245b791ad404db1c99df46fbfb30",
+        "sha256:af3c702927e2f47ad84451181b801cbbea97b607731e33ace2e7b3395a6f5d99"
+      ]
+    },
+    {
+      "id": "3110ddfe-f47c-7174-b9e4-bcc00bffe10f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "360.98",
+      "meter": "5289.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:decd2cd9ef34609281fba43e5db7a0f9f66418a4bc4195c35b22a216a643ce68",
+      "totalizer_photos": [
+        "sha256:aa74b7a8cf6cb0f2a085cc6c80ec1814c821d433d9efb08edba5913f5af51434",
+        "sha256:085a75c6601d7e36f2d4e1c82f442e471ed3879da7790c9557925d2f5fe11b09"
+      ]
+    },
+    {
+      "id": "35cd901a-cc60-71c9-b705-c3e1b62ba1d7",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "555.54",
+      "meter": "6484.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:672814349036b7d053ba99d84ded73e0d9107ec8d67645dc3f3964c40ff8116d",
+      "totalizer_photos": [
+        "sha256:b29e753a4a6077b2f11b3de53b542ab30ca8fab1c5be85a45c17eead3e8d3018",
+        "sha256:5e6f5ca83906c25022ad1f66f9cf9b4218de743c320178e701bf57b8918650e5"
+      ]
+    },
+    {
+      "id": "4fbac550-134d-741a-ba63-38ee29912c43",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "294.15",
+      "meter": "4077.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e74f58b999ab1f998a19de64e3bdcc05e6add02f825f088382bcde5592caa6c5",
+      "totalizer_photos": [
+        "sha256:94b19e9f7079bceadf183cd5dcdaf77c6e9fafd0ca0d62628abbbadbdd06485f",
+        "sha256:6edfbaf9320a22785b0a90ecdd3a1627832fff682ed145f47998179883020cf6"
+      ]
+    },
+    {
+      "id": "22329623-246d-7651-8353-bd863a9bc3db",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-21T15:00:00+00:00",
+      "litres": "389.88",
+      "meter": "4536.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:0c9e26332f172edb5ce5d2257c57efb929e14534056d543c354fc5f4c5c3359b",
+      "totalizer_photos": [
+        "sha256:de0a7162b232e727ad8fbba23cc1342c9c14ef2e151c1ca55c3e8ccbc88990a3",
+        "sha256:57a92bdf9a0375703241a461a7eece16a4d1931470f5cdfd164ab910361efb35"
+      ]
+    },
+    {
+      "id": "53d4e3f6-e891-7973-ae23-561afd6078cc",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-22T15:00:00+00:00",
+      "litres": "385.90",
+      "meter": "7141.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:4e6402dede8f4b1e409d41ead1454709d58de3b643331459502540d739cd8586",
+      "totalizer_photos": [
+        "sha256:a23a732c29901ff84b655508031169aff3681a9d6a7c5ae27cd25089f3be7284",
+        "sha256:37a7d9019ceba1bfed5dd6206e3d28e96e72dbe21da570f50c7102614a70c70a"
+      ]
+    },
+    {
+      "id": "ace621d4-4182-7b37-9bca-1c4e480393b6",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-22T15:00:00+00:00",
+      "litres": "271.86",
+      "meter": "4770.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:85b7e13d5b5b341465a2329d1837ca3f5a0a1251248f9d3b529a1a4a2c20b0f8",
+      "totalizer_photos": [
+        "sha256:7301e56cfb783adc6555847b313874cddfbc323db246548991270564be9531b3",
+        "sha256:bafd78e209aa4c073e2e6761b2a548e5f8985df37b2be71dd528d7752669a118"
+      ]
+    },
+    {
+      "id": "16973b75-d9f0-7012-8db8-a26b8bf17146",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "322.12",
+      "meter": "2947.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:7134750d2278c42c294ff57531fab5445b696159df252e31c20c22f6711dd9d4",
+      "totalizer_photos": [
+        "sha256:f84882125652c221913d1c685d33ae1ff44590730b897e21d53ba0beee31a841",
+        "sha256:3be53adb93718176022501b87a71282c7d8bff24919a818e2c6591b8cee67e9e"
+      ]
+    },
+    {
+      "id": "fe5c53d9-667b-7a16-bcd1-d8a33557aa4f",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "466.33",
+      "meter": "8089.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5477351b2b57c724fdcd9d48236921e8431740ab5097a5671f93484b7746802e",
+      "totalizer_photos": [
+        "sha256:4ee36e1887bf36289e024117bdd52e83e969f04cce31b56e2e33d87a21b3170b",
+        "sha256:8d58010282accce8753e7feb77d3731c6d6a8c99b4e393008dec47f03bf80201"
+      ]
+    },
+    {
+      "id": "485444cf-34ec-7c4a-8999-9406d7b88a2f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "364.42",
+      "meter": "5306.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:1e7adbdb5728ca5afb37b6ced03ce69501a5f41eaea6035c2793967cac690e43",
+      "totalizer_photos": [
+        "sha256:9e3defe22dcd1c3fbc0eb77f8346d982a79bf151b695458a6148a7336ce9b02d",
+        "sha256:d5d676d85d1ff705713e7db48880d14ad09f7fe7730c559c70872dede32fde32"
+      ]
+    },
+    {
+      "id": "63372b56-89ca-7c79-98e8-881e1b791e3f",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "367.77",
+      "meter": "6497.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:da574974859f729b72ee47c0799bac6e2e96b4da65ac84287181d7772326a647",
+      "totalizer_photos": [
+        "sha256:7330ff0b9726038ef9c1f002f26515f431a49cd3964fbc630952064997f4206b",
+        "sha256:2c6c0433c192d2dec69f9da3594afa3ae9a33aee4a6d4bfd63c5b89c7d008309"
+      ]
+    },
+    {
+      "id": "8e726096-070e-7f04-8695-9f0ce0a1ce57",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "299.74",
+      "meter": "4094.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:3ad4e5cb8cd262eeed91d103f9b458a7109f165eabf6e6e2cc7061700f80bae3",
+      "totalizer_photos": [
+        "sha256:1a053326beff8904e38bb37555d601d9710c888251aa0055d98b45cb7216b6d9",
+        "sha256:771ed05368cd19f8ee332bb94738067177e1bdc7bf461af00dc564df636958ae"
+      ]
+    },
+    {
+      "id": "6d5d7619-dda4-78ce-8a81-1aef66b87a8c",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-23T15:00:00+00:00",
+      "litres": "336.52",
+      "meter": "4551.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:2621e880816a23d67a4ea707db290098bdaefafe9d12afe9e34e551ee2293c8e",
+      "totalizer_photos": [
+        "sha256:3997ccba318904f19c6b8aa423208544f8a3ba1d59964812255d4c4a51cb299e",
+        "sha256:e08e9cd2a64bfcaf7438f70de313c9793753bf4bfbc7631fcf9c33a6c97df3b7"
+      ]
+    },
+    {
+      "id": "721e8405-2e01-78f0-bd46-14f619ae9a17",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-24T15:00:00+00:00",
+      "litres": "431.11",
+      "meter": "7160.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:50fc29da518ef8c9894058031f962d5089c1cd9b1b00cbfd756fe9002740e40e",
+      "totalizer_photos": [
+        "sha256:a2afdd0fef5145d58f1b1e21ad4662b1f3949dd17e883fabd2f8b954fea1ce09",
+        "sha256:766c5ccacc8f8c5f97a058ec8ff7112651deec8d94d4e111b940c6c6574dece6"
+      ]
+    },
+    {
+      "id": "333dbbe4-895b-7857-bdb3-af932a846be0",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-24T15:00:00+00:00",
+      "litres": "281.25",
+      "meter": "4786.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e7c1cd5352294e6cc7d757d70d3786363ecde79ceef7f77098305efedbdd95d2",
+      "totalizer_photos": [
+        "sha256:5822f194079b38caf15090896b74bfd1540a3d840fc0f277c27d76569ea18ae9",
+        "sha256:68a9a629df724cd6a9221f7be182532d9864301699a994a05c8f8d9a5c0972b1"
+      ]
+    },
+    {
+      "id": "f92aa6b2-85de-70d1-b36a-6a30f1c0d2b4",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "360.97",
+      "meter": "2963.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:f85401642a2ca711288bdb4b31a634b635643c4ff014dd44f134802346f5de70",
+      "totalizer_photos": [
+        "sha256:95bf509471286aa51eada597258dc251f7dda4edf6d2b46e2917e4ee89b0124c",
+        "sha256:cb32d9179b50ac3e55761f8cd98497122240a87f6e68eb722140005285a96bf9"
+      ]
+    },
+    {
+      "id": "3c2a2f21-39ef-7a24-ac95-2a4fc7779d9a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "485.48",
+      "meter": "8105.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:16fa7ac9a6c103b2ec30503308c584567d1cf87097aa8d447f3822a1b16abe90",
+      "totalizer_photos": [
+        "sha256:5c4ab0c735839da2248c91dffeed7d7f90976dee7808cedd886b8efc2231aa79",
+        "sha256:109a1fc9fbb190bf593a0a89bd81fcb6e4c5c13347b1231f234b790ab5751ef8"
+      ]
+    },
+    {
+      "id": "e889c64a-b06e-7d51-b4c5-71253dab0850",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "331.61",
+      "meter": "5321.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d1d6e34944583b620acada4a4dd4d5a9b27b4ab2b8f3b05d014b7769cc10e995",
+      "totalizer_photos": [
+        "sha256:c57fec86cda0fca3d03c39a31b1b9ce1cc1adb8c126689d5307c64a984db8bc6",
+        "sha256:b7f821717204c2361ad4022954f478426678d6bbddf688cf1c32c993db65ad50"
+      ]
+    },
+    {
+      "id": "aac441c4-7b9f-7e49-a6e7-2757b5c26253",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "578.51",
+      "meter": "6516.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:c028d2aeeeb0b5f259514ddda5e6a9315f181bff6e617aff24891b7247d72448",
+      "totalizer_photos": [
+        "sha256:34b89456ec4120028c8b222df73da43a5e384ff96faab8a9695099f9623a93ba",
+        "sha256:ab61d9323db47ffd055643c13d6e08533cedae612513468010b6fb75321564c4"
+      ]
+    },
+    {
+      "id": "0ddf7521-186a-7ff0-9158-3ef970d739f6",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "271.71",
+      "meter": "4109.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:6e209fd60b58bad501f12d2886fb87d6d1a19f05d20bad47d0a8cded2c1ceafe",
+      "totalizer_photos": [
+        "sha256:b1f8defa3c56612fdc1afea121feb7c06a5aa9cc474ac3b3c9253890dabe1ffa",
+        "sha256:95c05e5f578282fec769bdd26a2bbdc8e7e053d05fd5e88fa91f07c0c588b7f6"
+      ]
+    },
+    {
+      "id": "85ede3a4-eb68-7b29-b051-2cdd2114f60d",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-25T15:00:00+00:00",
+      "litres": "392.71",
+      "meter": "4568.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:3ed50deddca460ecd758594e1e02a143596f2b640f6076ad95b14b065d32e427",
+      "totalizer_photos": [
+        "sha256:04e239c2ce2126ba2613c0f2f36a625c6fcf12ca1fe2306ba3b8d5eaa2bb834c",
+        "sha256:06da11b4a34c146b78ece9030656413d49c878ac2684822021426ae85d8c6946"
+      ]
+    },
+    {
+      "id": "7017e9f0-5135-7190-bbd8-aa00d520bf34",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-26T15:00:00+00:00",
+      "litres": "434.21",
+      "meter": "7179.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5e8b53dab299303eddb319a99c66d9a39782537835ef385c113776e91de5dd18",
+      "totalizer_photos": [
+        "sha256:1c7065e63225fc2fe80564c2e20dc1b21b0ff6a75adbb712189ef42a1ab71ac3",
+        "sha256:e943ef1d6e8cf7f0832aa56700eb5e621666e04b9743a31ca779bfa6b08cb3a0"
+      ]
+    },
+    {
+      "id": "645c7423-4c58-7fb6-8f7b-c2dc6dd41db6",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-26T15:00:00+00:00",
+      "litres": "246.35",
+      "meter": "4802.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:9ed41ad0e8aef34f46da2ba9076b44ad98615083ab902ce00a780c39a0c5be36",
+      "totalizer_photos": [
+        "sha256:5256d4e3de8725a7feec0710e8c42cfc44c4281d380924787019547f7a740392",
+        "sha256:44d576ee0e0321fe88b53b26710ee1277a4b32f9f2fd01adf89696ccc6451e49"
+      ]
+    },
+    {
+      "id": "f9ecc6d8-b603-7fe9-a008-617c5f0cd886",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "397.55",
+      "meter": "2981.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:109509d0cf7083e89f5cf17544c7bf25c5063f723395ab9589a8e70803bf8ab9",
+      "totalizer_photos": [
+        "sha256:f62736ecb99106c244120630a5872d740310ce004886e27876437974c8f6d742",
+        "sha256:af6bec1f190e9a501caee40e66c4cc7b90d12d45058b2f75b1039248807c1771"
+      ]
+    },
+    {
+      "id": "9c6aa56e-176d-7a86-b286-6a7de32b725d",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "577.38",
+      "meter": "8123.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:301e67830b2eda1fade96e53dfb0008e96ca437157ff76e1879e69957f943543",
+      "totalizer_photos": [
+        "sha256:8e1aa3d31e06e6c80aef0850ce6cf6511dc7e64e9dfcba4e0e383eea2b6bedfd",
+        "sha256:26725d578887060a2972402033553349c8de9ae0c0c408a94e1b9f35879fe889"
+      ]
+    },
+    {
+      "id": "444e5426-6f70-7ed6-900d-fb69d7229d15",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "376.46",
+      "meter": "5337.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:db28c28611ce71b23f84ce57cff346d593e6fcec493196cc227b79509d519d95",
+      "totalizer_photos": [
+        "sha256:9c6528736e8efb0b05921acbfddd762aeedf77f70e8e0b4643cd659d98942117",
+        "sha256:cf21538bd72bb8fa6fbf93ad6c0284e97980358dd7ecdf87484773c9f71047b7"
+      ]
+    },
+    {
+      "id": "a3015837-ee55-7377-88b7-4b7eadd056e5",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "394.47",
+      "meter": "6531.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:5ad30b9d6a1f1951d95d192df40fc9516dedc685c1e65aa1d2dc4113fb26beca",
+      "totalizer_photos": [
+        "sha256:ca0818042dcc4f05fd8aafc625f13647e92caccb82fad2a15adfbc95f0d3c098",
+        "sha256:de1f35fb11275a6f5d93c2190f313f78f13ea506cf4cad3a3abdcf2239da87d8"
+      ]
+    },
+    {
+      "id": "b0e0fc1a-27ad-7b8d-81f9-23c138142f22",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "286.06",
+      "meter": "4125.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:af49b1387a44115a1b71450661a5f9ac855d2560b460b832fac47018e432817a",
+      "totalizer_photos": [
+        "sha256:4feb6a7b78dff045007865cf9ca7f525c811a9bbee031eb1e607ca41bb75fccd",
+        "sha256:e5ef78a7fa4495f0feff27614a89dfb2b38b5678cb03be7fc6ca728d4333b825"
+      ]
+    },
+    {
+      "id": "08f608be-a9a4-78a0-a16b-aa2da2f95494",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-27T15:00:00+00:00",
+      "litres": "384.22",
+      "meter": "4584.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:21bc49ba0638fb7ddd70a93589096c467501f8e061eef339c4a671bcc999fc8c",
+      "totalizer_photos": [
+        "sha256:b387017c4bc91581e2d939db195dd4a5a53b26167e434377db6e8e543b4a7042",
+        "sha256:3e138af63fb3a1a1192df013557dbf698419f7f6336e6b516fa7d6309ff42579"
+      ]
+    },
+    {
+      "id": "3399dcec-186a-703f-a376-92196e17b154",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-28T15:00:00+00:00",
+      "litres": "309.90",
+      "meter": "7192.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d4739eda823ba80e43ae614b6c1a761e986dc6b47a918783457b865a99249375",
+      "totalizer_photos": [
+        "sha256:b6d5e62c8fabb41c272cfe78f1867a81c859bbb6536993901b49d195c465fc7a",
+        "sha256:0644b92aad67949de6ee6fc8ac165890f184048a427b5230c837da3089b3272d"
+      ]
+    },
+    {
+      "id": "48ba31db-183f-7f8e-8011-ec7243d1afa0",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-28T15:00:00+00:00",
+      "litres": "216.80",
+      "meter": "4815.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:0723d4a261643660f88d3a11b489e0496805f8ca15acf156cd96e6dd239530eb",
+      "totalizer_photos": [
+        "sha256:f872d5c58f617f93c421ac11c66fb37d214428bfb801e5e3952ca86a7a9b9573",
+        "sha256:073463248267657a3ba6d3f2c584e7e3d7614a30cd349f1b7df1532464307382"
+      ]
+    },
+    {
+      "id": "a26741a7-3f90-7910-bcff-9afa3b9095d8",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "390.52",
+      "meter": "2998.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:d4da02374e580023fe159bf4f4e4f8444f8fcd7637bac79ab3969372c5b42d6a",
+      "totalizer_photos": [
+        "sha256:7b2cc013a81bdc99013a7a74967ab0d64d428d58b6c6cba552a06cef894b4121",
+        "sha256:3dde9982f8e853a325c608fe3aee6d30c8f01cb6a84e9fa9df97e44740b27ffd"
+      ]
+    },
+    {
+      "id": "ea0c21e0-f709-7a00-8d9d-2e7bd083ea49",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "494.25",
+      "meter": "8139.7",
+      "meter_unit": "h",
+      "meter_photo": "sha256:e88966e362d5bceb50f2279d12f2ec769f0f7229d68b4399dac796edcb95eb79",
+      "totalizer_photos": [
+        "sha256:ca41a5236695a69c374c22d2721ac1ad09e70660288844b63605c5cdb4917fe0",
+        "sha256:a3233a20b8ae9a653845e1d9c59b02644f90a6cfe58056c1b35feee11cd52fb2"
+      ]
+    },
+    {
+      "id": "3b1c75bd-d2c4-7843-9209-4618118d101a",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "354.12",
+      "meter": "5353.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:0280910b755833fc8e5e5602d3f92143b6f97e4a76ac74538609471b1eac5169",
+      "totalizer_photos": [
+        "sha256:31349f5e1c15db098a53f6de6ec567ac754a0b242ae88d82f3f521b399d8886c",
+        "sha256:e89f1b114b4ed2299b408c6684dd9b7c36d471594ecb5ffc3e4ec06803f94a8d"
+      ]
+    },
+    {
+      "id": "0772109e-0c2a-7d90-8998-ff494402dc9c",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "449.84",
+      "meter": "6546.6",
+      "meter_unit": "h",
+      "meter_photo": "sha256:0ada09bd70f91279fa3ec2b5dade0658c7ede7f4a07a8f0602b0420edfddf8d0",
+      "totalizer_photos": [
+        "sha256:3f235de11d44358e4de1dd09a96a453873c066e850cfcd2113b0858934cf06c0",
+        "sha256:e7f1cf21a2ee736531d657dd07b657df316cd8421c6f10badea93a02ac4961de"
+      ]
+    },
+    {
+      "id": "069a19e5-f95d-7894-ab19-b833e25f587e",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "223.55",
+      "meter": "4138.4",
+      "meter_unit": "h",
+      "meter_photo": "sha256:79a7d5bbd4a5e9e23a37539d8f3a196c075d16f0ba880bacfa5a5dc570b2a9df",
+      "totalizer_photos": [
+        "sha256:236d5f0a395622a9024368b8ea9f4778f30f3f6b8839cdbfd66e0a562c40b580",
+        "sha256:15af3b5393a08338e9ebce7e52006682231a8f66df0b6bcc041715f3100d805c"
+      ]
+    },
+    {
+      "id": "479b2ad2-8b35-7f2c-8206-899c65fd2a62",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-11-29T15:00:00+00:00",
+      "litres": "347.22",
+      "meter": "4600.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:87b40509676e6446dfaf41f562ad590e8af44ca9fc9dbe164249dc015a176aae",
+      "totalizer_photos": [
+        "sha256:7ab2b60bc27faae72e10ce2816a86fd04768f718772874b58884dcee8751faa6",
+        "sha256:069006ef86a159ce355146bc9e25e742e6d6f4a7221334b164db7eeb9012628b"
+      ]
+    },
+    {
+      "id": "2a29ecf4-7afc-7100-b5ff-d0b316829719",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "at": "2026-11-30T15:00:00+00:00",
+      "litres": "385.93",
+      "meter": "7210.2",
+      "meter_unit": "h",
+      "meter_photo": "sha256:26a5f6d603cdaacc48614032e3802dfa670f4095d74f8421a86ade2a0d7836bd",
+      "totalizer_photos": [
+        "sha256:6e1a30cb964fffcbb5470a750a2cb319f23d9268d6b49dd719536eb8cd0570ba",
+        "sha256:77f8e4a590f9506837d59d17d19cbd76f117d5872cdb1f48f4a970197991d36d"
+      ]
+    },
+    {
+      "id": "20895b9c-103e-71ef-b954-1da8df743a44",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "at": "2026-11-30T15:00:00+00:00",
+      "litres": "293.17",
+      "meter": "4832.5",
+      "meter_unit": "h",
+      "meter_photo": "sha256:6ec48e2f5e192007a914d6a483204e477e5ed98c798f10e1818f461a56808dd3",
+      "totalizer_photos": [
+        "sha256:428530a2716d389af39711fdd8bc63f83f81c60895133e42dba90e62d1260da5",
+        "sha256:3a94de7090fa9041cd618f42fe42a3f162e267605b1994056771b6daf117e86e"
+      ]
+    },
+    {
+      "id": "9263af7d-213a-7189-95c0-9a0bd81c39ed",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "346.71",
+      "meter": "3014.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:3e4ab4d3bac3499771599816b74a7c184fc54863affd86366e0a05aa2ac7de89",
+      "totalizer_photos": [
+        "sha256:1ed3a9274136aa7a80525de6f5de29c707176aab623c6d34bff853ff7d4085b7",
+        "sha256:83b535f3a0116ea65319dae8159f41a590c488f506597db0427fcc02496970f6"
+      ]
+    },
+    {
+      "id": "d049eedd-a301-7e55-a61c-9da55f398077",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "575.62",
+      "meter": "8157.9",
+      "meter_unit": "h",
+      "meter_photo": "sha256:aa22810778d85d8cad9876efcef093afdda130c673ec8e79f6b540afc6ff487b",
+      "totalizer_photos": [
+        "sha256:1557617f9001b6647d1fcd46900ca78e1a4f4c47d560c83ed8adacc6a9f60b2f",
+        "sha256:44cc02d30951571b475c40fb04cc4edc0f2826a008b5f7f8ab9fbea4eed3f6f8"
+      ]
+    },
+    {
+      "id": "57840c78-dfb6-702b-b468-b866045ca97e",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "368.03",
+      "meter": "5369.3",
+      "meter_unit": "h",
+      "meter_photo": "sha256:eb9558a0d8439943bc2a40e458887efd39f4e3aff7a920f7d90070cb3ccef498",
+      "totalizer_photos": [
+        "sha256:2730d94064c9ef4c32bbc51d8316918b70c3083d05dda7a40ed051feb6714508",
+        "sha256:51fd3af92c9a79eb0a722a05651faaa814d105973b62e0a22de75f0afe4e7653"
+      ]
+    },
+    {
+      "id": "09c6f69e-299d-7763-86ce-d96e9ebd9a7d",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "359.53",
+      "meter": "6559.0",
+      "meter_unit": "h",
+      "meter_photo": "sha256:84e5644aac640e1c41dbee4eeff69750d0a6d1cd38dc751c6c2c00e2d6682354",
+      "totalizer_photos": [
+        "sha256:d7daef399af018590a63ef16d6a0bb213058f94a701927b3f569202cf8a47f99",
+        "sha256:71531610459930de6d11e93682e9f4ac660019176918697560aa37e1b7083f94"
+      ]
+    },
+    {
+      "id": "bb4faf20-d508-7ae5-b8f5-9627140b6bc2",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "285.58",
+      "meter": "4154.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:8b1677e2d5d601de290e42536e39a8e2e5b7f0702978ee1a6b5a4cf2bffe5a3e",
+      "totalizer_photos": [
+        "sha256:4467072a2c02f68c9f7bbd9c80f7b824ba879ba981ff8fd2c70b7b608241e9e1",
+        "sha256:efab0aae58e9c7bff53bdb49491b3e6d7b373f95bf93683b69b99960fd9f8ac1"
+      ]
+    },
+    {
+      "id": "3d79c0ea-494e-7083-a066-72358d2eff83",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+      "at": "2026-12-01T15:00:00+00:00",
+      "litres": "361.31",
+      "meter": "4615.1",
+      "meter_unit": "h",
+      "meter_photo": "sha256:87f664c2b434757cb76d0e94e2e6f48dcfddd0c58b71cce68acc7feb5bdc7d83",
+      "totalizer_photos": [
+        "sha256:b58115754367c3f5128df1e2a84e2025da2acc820522ad1743c5757239bd3aa2",
+        "sha256:9680c40fccfec804c51f1024ff0d64094393978d2913676c63cb21fbe06b1723"
+      ]
+    }
+  ],
+  "dips": [
+    {
+      "id": "d8a064df-7fd6-7116-a1ea-24c4f9341c68",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-02T21:00:00+00:00",
+      "dip_cm": "165.2",
+      "photo": "sha256:3e2434e37af027bc08d6af57da71144896c8da1964b2d2bc815a47c5f0dfb4a5"
+    },
+    {
+      "id": "6a107b75-677f-7cbd-8c22-af58be6521cc",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-02T21:00:00+00:00",
+      "dip_cm": "84.2",
+      "photo": "sha256:acab1a6bc69d4bd8b3fa7aa7e1fab9d78c7e134f5dfbd3d12c4a3698aa2ca1af"
+    },
+    {
+      "id": "ac954ab5-92c9-757d-b4ac-cd781959b9ef",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-03T21:00:00+00:00",
+      "dip_cm": "155.5",
+      "photo": "sha256:aa7c314bf01dbf291abb8ba37e0ab2ed31b1c27e976699cc6ed5d1bfe585552f"
+    },
+    {
+      "id": "443baac5-3689-7eeb-ade2-b33b56cef8ec",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-03T21:00:00+00:00",
+      "dip_cm": "95.2",
+      "photo": "sha256:ea190b2a58068a9d8c31406deea3d685611575c2d67393d618ae013eaca91679"
+    },
+    {
+      "id": "c78fec45-9a9e-794c-b1a9-a658de0f39a7",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-04T21:00:00+00:00",
+      "dip_cm": "155.5",
+      "photo": "sha256:c52f4fbe8d19821f947810d822a608bf7d2186d3e323ce54b7115c02f44d7e40"
+    },
+    {
+      "id": "6816de06-0a04-7f48-921b-18a91ab1c42f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-04T21:00:00+00:00",
+      "dip_cm": "95.2",
+      "photo": "sha256:20012170d418f7af25b7501ac9c1ffeffdc1786bddbd358f6156c4df12bccdcb"
+    },
+    {
+      "id": "2be893f4-56b3-7574-9617-2adf654d479a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-05T21:00:00+00:00",
+      "dip_cm": "145.7",
+      "photo": "sha256:f9ef954e6aabcb78eec1754ca57d041ecb06718c063fa2b67c5c483d420a4323"
+    },
+    {
+      "id": "8758ff4d-2d75-725d-81ea-06397c6a47a7",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-05T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:afbf5310ee1b8cc470358a27eba1a9d3a61a59e3e49df6bb803af5065136bf62"
+    },
+    {
+      "id": "e20cea4a-cadf-7918-841a-66d982fa4d7a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-06T21:00:00+00:00",
+      "dip_cm": "145.7",
+      "photo": "sha256:5f221dfc8d64b3add9577b6b4cb05ec1b14b69dc4c78c7ab4fd24206342f22ba"
+    },
+    {
+      "id": "bc85e5de-b386-725c-b387-42ad2a4926f0",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-06T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:f5c7b9aa9b29b54be587dd211f8ce97adb34fa8d15c0cdd59836404c76fbb6ed"
+    },
+    {
+      "id": "d8a50636-452f-7c9a-8850-320a65b699ec",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-07T21:00:00+00:00",
+      "dip_cm": "134.3",
+      "photo": "sha256:59758f830297c0d69aff956cc6ad0327d0b9320712cb2f3fc47addc92d9b4f22"
+    },
+    {
+      "id": "11db6acf-6c2f-7ecc-9733-ef95bea7c879",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-07T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:b5d28dee81d579302a04ff67050dc58c714699bda826e5f11126d71a5aece68f"
+    },
+    {
+      "id": "da0dbc78-07d1-7b6b-a92c-d2ded802cb08",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-08T21:00:00+00:00",
+      "dip_cm": "129.9",
+      "photo": "sha256:eee133ea6e883110ed9140c051080deb6710b0e79f5904a6de518343e63ea3d6"
+    },
+    {
+      "id": "44e32dbd-c910-7201-bf98-e0eec2f7c23f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-08T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:9442f362f919cb32defd56702a66b259bb798e9ba03a19151291f006309d57ed"
+    },
+    {
+      "id": "33318247-2833-7e0e-be40-f38e4a945554",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-09T21:00:00+00:00",
+      "dip_cm": "119.7",
+      "photo": "sha256:20599249586ac6e668d52eb618ede6c353001b63856558b263a522e35ecf615d"
+    },
+    {
+      "id": "4ced509a-0b27-74c9-909a-da70932d0488",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-09T21:00:00+00:00",
+      "dip_cm": "51.2",
+      "photo": "sha256:519cd4cc4c5ec38d6ae70ff2504b60b5889f5e9aa6af9b40cc88ebd1d0a079f5"
+    },
+    {
+      "id": "5727d740-fad1-7805-9927-a8fd76ee29aa",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-10T21:00:00+00:00",
+      "dip_cm": "119.7",
+      "photo": "sha256:389c1ccfafef1ac1400839a925fa97dd077148a52af4c78281ee476c88399110"
+    },
+    {
+      "id": "86c0abfe-923b-7bea-a1d3-ff8211180cd9",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-10T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:a4ab4eec37a6437bd9c2b0cfcb517e6a12a3c54bdaeb22a514185d06a41aafac"
+    },
+    {
+      "id": "f233f692-0c0a-78d0-98c1-7f6b6c0046f4",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-11T21:00:00+00:00",
+      "dip_cm": "111.1",
+      "photo": "sha256:6b6cd23aadd763fa8d86850ebc098fd81a6956d4ed10e6b8f837a7d6a6ce9740"
+    },
+    {
+      "id": "1e5fa037-bdba-79eb-abf1-00b0d5bc9f74",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-11T21:00:00+00:00",
+      "dip_cm": "51.2",
+      "photo": "sha256:cb14957dce1c61527ace77832dd5ad98475c61b1af3ef55c43ecf2b9fec08e90"
+    },
+    {
+      "id": "e141cd02-bd3c-7a1f-ae63-5d0dc2485eaa",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-12T21:00:00+00:00",
+      "dip_cm": "111.1",
+      "photo": "sha256:53752bd28102a2410ee3b911264103c588e63e06737c2ee5b1b536f9949eba96"
+    },
+    {
+      "id": "2c0dacc3-9025-7697-8cce-d50db3f2b9a2",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-12T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:a8ef8120914c95d180c5b52f330c29c09031d49539eb63b01dbb2fb1af4cdfb5"
+    },
+    {
+      "id": "07c61448-75a3-7e18-99e4-8393e1fff8d3",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-13T21:00:00+00:00",
+      "dip_cm": "100.8",
+      "photo": "sha256:5ec1c3d1eefb98a946ac0cee6c1a7ddcade3485d993b27e26e9487c1c77ad8c8"
+    },
+    {
+      "id": "7644d38c-9b14-7735-a7f8-6286688eed8f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-13T21:00:00+00:00",
+      "dip_cm": "59.0",
+      "photo": "sha256:b2867e2fb4420d35a565b2450993fab3c775b3dd7883fb1e19644c160da3625d"
+    },
+    {
+      "id": "358f0efb-e5b5-7483-baf2-0e3f058bd113",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-14T21:00:00+00:00",
+      "dip_cm": "100.8",
+      "photo": "sha256:3a5163f4b7728bf865b1d2302cb9e2bbf3fdfbe3d57715f1a1b0b3a8621bed79"
+    },
+    {
+      "id": "1ed334d0-8ac2-7475-a61b-8e2670cb730c",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-14T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:030ea6ed265e9ded200e1425d6f9abcd443681bced40dc4d7cffc46c924925d4"
+    },
+    {
+      "id": "d6ae4cae-bfc2-7715-9b5b-46b365ad563c",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-15T21:00:00+00:00",
+      "dip_cm": "196.4",
+      "photo": "sha256:890d92387dfbbb5a590433bd24d03617b596b5974c3f529739a01c4f2da54a07"
+    },
+    {
+      "id": "d3cd6bb8-83a8-78e2-96ad-66324ab15fee",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-15T21:00:00+00:00",
+      "dip_cm": "62.0",
+      "photo": "sha256:cf6975f7ccf03c364a50d337059b5c7776a4d6e5b493c842357638384c87032c"
+    },
+    {
+      "id": "8f3c3cd2-2fc8-7104-a12d-7797d5734e1a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-16T21:00:00+00:00",
+      "dip_cm": "196.4",
+      "photo": "sha256:d2a959a464d94b3e36ded7157d0b6da50b7b0e03c0f842057434cdaa04102605"
+    },
+    {
+      "id": "62827e2b-827e-7ca2-98eb-c32d30a3e121",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-16T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:9607cf15e0a37d11a89c4b655c175a9a3b93712832737af75c4cc59d859693e9"
+    },
+    {
+      "id": "fd41a332-0759-73cf-898b-bbbfbf5a2c0e",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-17T21:00:00+00:00",
+      "dip_cm": "185.0",
+      "photo": "sha256:b4f5fdba0a667cf58e979917e309ec6129ef95e9bff18e2d6ae1043650c3192c"
+    },
+    {
+      "id": "a12251bd-a9e2-7fe1-b3ba-5d0e969e5481",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-17T21:00:00+00:00",
+      "dip_cm": "61.3",
+      "photo": "sha256:3b9b56ae328a7f0ce7371f87f919c8b52f32ebdb6cb13cd1869f0a4bdf777ac9"
+    },
+    {
+      "id": "56c1858a-57f6-7f4d-950a-de47b529e5f5",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-18T21:00:00+00:00",
+      "dip_cm": "183.3",
+      "photo": "sha256:7e8cd540cde19cd283a40773b39da6e131fec1fe6b91461da59d054b12f5b904"
+    },
+    {
+      "id": "acf67f8d-44ad-7c4b-9503-26252a5615f6",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-18T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:9b7d630d657c11bfce429eddc3d3561f903e07b54d30841886426baad1c44202"
+    },
+    {
+      "id": "024b5a59-0e15-7d2a-90f0-4b490562d3bb",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-19T21:00:00+00:00",
+      "dip_cm": "174.7",
+      "photo": "sha256:0240aadf9c8c768004cc01c8c8ff89b3552c92bd56d1372189b6df0508ed9a49"
+    },
+    {
+      "id": "333a6521-780d-7bba-b61b-a5de8f1c873f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-19T21:00:00+00:00",
+      "dip_cm": "61.0",
+      "photo": "sha256:3bc7bda8e387d1b5405a6b6185821aa48cf86e5794eafc854b9ceb254429c9f9"
+    },
+    {
+      "id": "9d903e47-de04-70c2-a8d8-a8f1ec2254d9",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-20T21:00:00+00:00",
+      "dip_cm": "174.7",
+      "photo": "sha256:3e973b1fee862ab46d147d5416e1839d62f3db21adccf8bddd51c60361e8303b"
+    },
+    {
+      "id": "e09ab5f2-7d45-79c5-9488-1f67d4fed542",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-20T21:00:00+00:00",
+      "dip_cm": "46.2",
+      "photo": "sha256:128033013d5e19b51d2480caa62d6e8f9adc76812dba1741e92c15e457fd0e22"
+    },
+    {
+      "id": "d6841ac9-b0ff-7c9a-933b-ad5e2a3d9f0d",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-21T21:00:00+00:00",
+      "dip_cm": "164.8",
+      "photo": "sha256:50eb4a4837b2c03e04983bdeedf3308efc3c8c87b4f19bdeabad0148d5e802d7"
+    },
+    {
+      "id": "e3f0f9d1-5158-7973-9ae8-1c0b4fc289f7",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-21T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:124d37a7d9dfe7d66a612d8d5686e7197b1d93c316efedad92a8db77c8a11043"
+    },
+    {
+      "id": "7f46d848-b54e-7de3-9026-0a5a2ba1d756",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-22T21:00:00+00:00",
+      "dip_cm": "164.8",
+      "photo": "sha256:bdfa62eed4a9efeb8fedf0c0b97656058d7b7f5762d15f0b0362cba465cdde4f"
+    },
+    {
+      "id": "96b2853f-97e7-7e29-aa57-86c073564174",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-22T21:00:00+00:00",
+      "dip_cm": "77.8",
+      "photo": "sha256:7012192e5a58001fd254eddb5e494e61b9d48fa2d739ac080d34845d5f85a9fd"
+    },
+    {
+      "id": "1a5b09d8-b2fc-797e-9a78-998c27dfb626",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-23T21:00:00+00:00",
+      "dip_cm": "156.3",
+      "photo": "sha256:52575c2d8f6b444c5fe14e06fd469de526d60a8d741f67800d7613396cda28e8"
+    },
+    {
+      "id": "03a02ba7-65e5-70a9-87b6-1c52f007ec1f",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-23T21:00:00+00:00",
+      "dip_cm": "46.1",
+      "photo": "sha256:4d97b5a0b65e141dbda4f5af4d3aacf77203c4b7b77c2bb57cb3c3fe63351346"
+    },
+    {
+      "id": "e6e03aac-a6bd-7070-a381-b2db0225635a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-24T21:00:00+00:00",
+      "dip_cm": "156.3",
+      "photo": "sha256:d6fd5c1b9d98c52cc7b5cb07c89ca4969aae7f1059a4081bf5bc54cef7e700ce"
+    },
+    {
+      "id": "bb96dc96-ca75-795e-889a-ee191c84c266",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-24T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:6fdfa20f6026b2f024ed9e015720852dc0e342322ded103cfcb84e2cd166a38a"
+    },
+    {
+      "id": "cbe18ccf-c00d-7301-912f-e0d67bab3c75",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-25T21:00:00+00:00",
+      "dip_cm": "145.5",
+      "photo": "sha256:9a4a31b48b4a1ef67844082b1783e8d46e568d5b96f18bd3faf0a59ffac7b060"
+    },
+    {
+      "id": "89e730f6-20f3-732b-98cc-65948055ca81",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-25T21:00:00+00:00",
+      "dip_cm": "61.0",
+      "photo": "sha256:8b7eac4c9a1e5878a4a6914864c10c98f1bbd7dfb4f056d9ac8c7168d9196faf"
+    },
+    {
+      "id": "69ee0a33-b14c-76b2-aaa2-d8c5f79054ab",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-26T21:00:00+00:00",
+      "dip_cm": "145.5",
+      "photo": "sha256:a15b69fcc083db727a372c3d65fff45898cc92ac8f598a6eaf6c50e4fd19133a"
+    },
+    {
+      "id": "ff6f041c-8078-7101-9b59-5191237741b5",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-26T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:bac9bc56783bd584721ce91109b969afd9d5486574829604ffafadd62351b462"
+    },
+    {
+      "id": "2d831168-1dae-7000-932f-65c27ddeaa3c",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-27T21:00:00+00:00",
+      "dip_cm": "135.9",
+      "photo": "sha256:e4d1bca3a26f38409841587cf143a03fa4a75a93b4f2ee565bc5dd9c7f1882da"
+    },
+    {
+      "id": "8dbb9ec9-667b-79e8-aee6-784d9fe8e7bc",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-27T21:00:00+00:00",
+      "dip_cm": "58.9",
+      "photo": "sha256:f20271536637f65ea02ca74906196a66c13f69d0d6519b1a6bfdf175f8c8a7bf"
+    },
+    {
+      "id": "12be961c-117f-784c-8add-8d85c4f83b9a",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-28T21:00:00+00:00",
+      "dip_cm": "135.9",
+      "photo": "sha256:899675be173c7bdb4ed1637e5abc2c6c4e84275395ae53910b9bc639d3e8d6a6"
+    },
+    {
+      "id": "d9b62c3d-5b89-71e3-9ee8-c81d7878ac25",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-28T21:00:00+00:00",
+      "dip_cm": "46.3",
+      "photo": "sha256:e06cb6e65aede545a0ad9bf0e35ce4162bcf492ec4c89b9bdb31f2de53af6028"
+    },
+    {
+      "id": "51311cea-d8a2-7045-8d3a-56ef8465a7e6",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-29T21:00:00+00:00",
+      "dip_cm": "126.5",
+      "photo": "sha256:ba6948ad688eb6ade158f4a20a7574f9659b13c151936b5138077d69250eecb5"
+    },
+    {
+      "id": "615a8662-b4d4-736e-8de1-024131bdc612",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-29T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:4448a43891cf4a30eebd999105db57a484953f6ae8d98d724cb08bdff5132f37"
+    },
+    {
+      "id": "fa6c1960-0f92-7d49-be7f-37009613c399",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-11-30T21:00:00+00:00",
+      "dip_cm": "126.5",
+      "photo": "sha256:f2ab5d25c3a01262a5e36228a02d78821c30d755e6816cd475d658f5c33af73e"
+    },
+    {
+      "id": "59e488cc-7464-7e94-bbf5-a5d5f1c5e79b",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-11-30T21:00:00+00:00",
+      "dip_cm": "77.3",
+      "photo": "sha256:d7b3f4ea46d55e5a097dbf9aad40761355cfe33ce360783d17603e6b830c14d4"
+    },
+    {
+      "id": "28cb3fba-0405-7075-bd9b-2d1d409ae1aa",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "at": "2026-12-01T21:00:00+00:00",
+      "dip_cm": "117.2",
+      "photo": "sha256:0e897dfb62658d231ce8e07b26eda22e383847671c4abe9c7bc871fad21b9e0e"
+    },
+    {
+      "id": "e60e212b-56bf-7f0e-9c4b-d4767015c390",
+      "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+      "at": "2026-12-01T21:00:00+00:00",
+      "dip_cm": "95.1",
+      "photo": "sha256:15265ec84a40036e639a5abca75d2246efb4edd561d89b07dfa0639a51877ebf"
+    }
+  ],
+  "seeded": [
+    {
+      "kind": "over_capacity",
+      "rule": "RULE-FUEL-02",
+      "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+      "day": "2026-11-08",
+      "dispense_ids": [
+        "ff11dc91-b6a3-7e92-bc2e-9ff5a72f6600"
+      ],
+      "also": "RULE-FUEL-05 (a tank's worth for 2 h of work)"
+    },
+    {
+      "kind": "frequent_small_refuels",
+      "rule": "RULE-FUEL-08",
+      "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+      "day": "2026-11-09",
+      "dispense_ids": [
+        "196a8d84-5ec8-79d7-8049-e97a781b5120",
+        "dc14f827-08c0-74a2-8d45-5c7115f6063e",
+        "641e9e8d-c89b-79d3-8262-cdc556b2a3e4"
+      ],
+      "also": "RULE-FUEL-05 (12 L in 0.3 h is far above the machine's rate)"
+    },
+    {
+      "kind": "refuel_without_usage",
+      "rule": "RULE-FUEL-06",
+      "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+      "day": "2026-11-12",
+      "dispense_ids": [
+        "f5c74033-e74b-7fb6-9936-ee94a14962f5"
+      ]
+    },
+    {
+      "kind": "delivery_variance",
+      "rule": "RULE-FUEL-01",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "day": "2026-11-15",
+      "also": "RULE-FUEL-04 on that storage and day"
+    },
+    {
+      "kind": "tank_variance",
+      "rule": "RULE-FUEL-04",
+      "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+      "day": "2026-11-18"
+    },
+    {
+      "kind": "overconsumption",
+      "rule": "RULE-FUEL-05",
+      "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+      "from_day": "2026-11-17"
+    }
+  ],
+  "golden": {
+    "intervals": [
+      {
+        "dispense_id": "139f7110-60c7-7494-ad19-2da3c82ad589",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "16.9",
+        "rate": "18.245",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "ca357568-e293-7bf1-937c-99611d775b7c",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "16.6",
+        "rate": "22.964",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "50806f01-7a1d-756c-b62c-228e40df7c9a",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "16.5",
+        "rate": "31.368",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "c725bd97-9e28-7761-88fe-a5d73716e7ea",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "16.2",
+        "rate": "16.039",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "f772f8ea-63f6-76e0-ba38-9b09f0d3fa5c",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "18.2",
+        "rate": "22.466",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "baaad651-1227-732f-9e18-27478d1bc13a",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "16.0",
+        "rate": "28.289",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "4e3d4d0f-51dd-7d5c-9d94-6658d2511c38",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "18.5",
+        "rate": "17.856",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "4c867062-2d9b-7ebf-b497-553cb0894f5a",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.8",
+        "rate": "23.608",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "37b5dbac-6d3f-7d4c-8027-054627e125a4",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "16.7",
+        "rate": "17.605",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "f59dc887-156e-7b79-a9b1-61f4bca5f87b",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "14.3",
+        "rate": "22.695",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "f59cd100-7ceb-7fb4-a8ac-abff9f55c5fc",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "19.4",
+        "rate": "31.691",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "48e772ba-2c40-7b95-b4e4-1e7542a95d35",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "17.2",
+        "rate": "16.480",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "1baf02cf-cf80-7751-88b7-5541346f3293",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "15.7",
+        "rate": "23.224",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "713b831b-1fb7-7628-8037-5c0d52dd34d6",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "18.6",
+        "rate": "28.583",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "fcad3888-32e9-7069-82ce-49deba7725a3",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "18.6",
+        "rate": "17.997",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "959d133d-9f22-7e0a-9c7a-92835604c3b6",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.9",
+        "rate": "23.886",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "ff11dc91-b6a3-7e92-bc2e-9ff5a72f6600",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "8.8",
+        "rate": "50.909",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "f20ab305-9b33-7947-a5ef-2114ba6e736c",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "17.6",
+        "rate": "18.485",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "0b83da50-2fcf-7616-b48f-e7d31997e8f3",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "15.2",
+        "rate": "23.132",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "73270133-7eb9-71c8-bbb4-2d9d66531daf",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "17.2",
+        "rate": "30.351",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "4986f3a6-948b-72b1-9910-ddd76215f679",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.5",
+        "rate": "22.009",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "89778fb7-0914-79cd-83b2-7030e7f524f3",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "17.2",
+        "rate": "29.148",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "a2b73a66-a440-7dab-8285-0da8f8375d93",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "15.1",
+        "rate": "17.681",
+        "baseline": {
+          "source": "type",
+          "median": "17.926",
+          "mad": "0.440",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.37",
+        "z": "-0.38"
+      },
+      {
+        "dispense_id": "446056bf-b6aa-7ae5-91f1-0c60a9921b68",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "18.4",
+        "rate": "23.032",
+        "baseline": {
+          "source": "type",
+          "median": "23.048",
+          "mad": "0.456",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.07",
+        "z": "-0.02"
+      },
+      {
+        "dispense_id": "196a8d84-5ec8-79d7-8049-e97a781b5120",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "0.3",
+        "rate": "40.000",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "dc14f827-08c0-74a2-8d45-5c7115f6063e",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "0.3",
+        "rate": "40.000",
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "641e9e8d-c89b-79d3-8262-cdc556b2a3e4",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "0.3",
+        "rate": "40.000",
+        "baseline": {
+          "source": "type",
+          "median": "30.859",
+          "mad": "1.993",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "29.62",
+        "z": "3.09"
+      },
+      {
+        "dispense_id": "73aa1107-119f-769f-92b7-563053db4391",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "15.9",
+        "rate": "16.664",
+        "baseline": {
+          "source": "type",
+          "median": "17.856",
+          "mad": "0.389",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-6.68",
+        "z": "-2.07"
+      },
+      {
+        "dispense_id": "5e3c1d96-9721-76e5-8597-ebc16e9d7077",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "16.8",
+        "rate": "17.838",
+        "baseline": {
+          "source": "type",
+          "median": "17.769",
+          "mad": "0.596",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "0.39",
+        "z": "0.08"
+      },
+      {
+        "dispense_id": "41adfe67-f9ee-78db-bf87-6918d73ecd63",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "16.9",
+        "rate": "22.467",
+        "baseline": {
+          "source": "type",
+          "median": "23.032",
+          "mad": "0.337",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.45",
+        "z": "-1.13"
+      },
+      {
+        "dispense_id": "0168e969-a45f-719c-b0fb-4bc8b22cc347",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "14.1",
+        "rate": "31.432",
+        "baseline": {
+          "source": "type",
+          "median": "31.368",
+          "mad": "2.785",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "0.20",
+        "z": "0.02"
+      },
+      {
+        "dispense_id": "9615a32e-71b5-7f55-819e-038721858664",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "18.3",
+        "rate": "22.959",
+        "baseline": {
+          "source": "type",
+          "median": "22.998",
+          "mad": "0.417",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.17",
+        "z": "-0.06"
+      },
+      {
+        "dispense_id": "62279051-013b-76ba-98a9-f8f4170c4b00",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "14.9",
+        "rate": "28.602",
+        "baseline": {
+          "source": "type",
+          "median": "31.400",
+          "mad": "2.534",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "-8.91",
+        "z": "-0.74"
+      },
+      {
+        "dispense_id": "49825407-c941-7650-96ee-86ef208ad9ff",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "16.7",
+        "rate": "17.770",
+        "baseline": {
+          "source": "type",
+          "median": "17.838",
+          "mad": "0.407",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.38",
+        "z": "-0.11"
+      },
+      {
+        "dispense_id": "3aaeb5ed-264c-779b-b76d-838134c590e7",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.3",
+        "rate": "22.896",
+        "baseline": {
+          "source": "type",
+          "median": "22.964",
+          "mad": "0.269",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.29",
+        "z": "-0.17"
+      },
+      {
+        "dispense_id": "1dbc77ac-64a1-7177-a7b3-37347f7a6583",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "15.9",
+        "rate": "16.884",
+        "baseline": {
+          "source": "type",
+          "median": "17.804",
+          "mad": "0.320",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-5.17",
+        "z": "-1.94"
+      },
+      {
+        "dispense_id": "f7fbc221-e299-775e-ad02-121d58cd091b",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "6.9",
+        "rate": "23.254",
+        "baseline": {
+          "source": "type",
+          "median": "22.961",
+          "mad": "0.265",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "1.27",
+        "z": "0.74"
+      },
+      {
+        "dispense_id": "f5c74033-e74b-7fb6-9936-ee94a14962f5",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "0.0",
+        "rate": null,
+        "baseline": null,
+        "anomaly": false
+      },
+      {
+        "dispense_id": "d25c8062-0522-7a0f-8617-0c370115a71d",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "18.3",
+        "rate": "17.503",
+        "baseline": {
+          "source": "type",
+          "median": "17.770",
+          "mad": "0.475",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.50",
+        "z": "-0.38"
+      },
+      {
+        "dispense_id": "ffaff116-b994-7614-9781-85b813cedb3b",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "18.2",
+        "rate": "30.142",
+        "baseline": {
+          "source": "type",
+          "median": "31.368",
+          "mad": "2.766",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-3.91",
+        "z": "-0.30"
+      },
+      {
+        "dispense_id": "b962ba01-a425-78db-8a7e-0f4bcdb64aa5",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "19.0",
+        "rate": "22.936",
+        "baseline": {
+          "source": "type",
+          "median": "22.964",
+          "mad": "0.269",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.12",
+        "z": "-0.07"
+      },
+      {
+        "dispense_id": "3d96bfb1-2cd6-7a72-9c20-5729822ee60d",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "17.4",
+        "rate": "28.251",
+        "baseline": {
+          "source": "type",
+          "median": "30.859",
+          "mad": "1.984",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-8.45",
+        "z": "-0.89"
+      },
+      {
+        "dispense_id": "94b0cd98-af41-7d9d-81e2-021bb92136b9",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "17.6",
+        "rate": "17.465",
+        "baseline": {
+          "source": "type",
+          "median": "17.726",
+          "mad": "0.395",
+          "samples": 14
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.47",
+        "z": "-0.45"
+      },
+      {
+        "dispense_id": "67d80702-7091-7526-9548-052b61b95afe",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "15.6",
+        "rate": "24.158",
+        "baseline": {
+          "source": "type",
+          "median": "22.961",
+          "mad": "0.265",
+          "samples": 14
+        },
+        "anomaly": false,
+        "deviation_pct": "5.21",
+        "z": "3.05"
+      },
+      {
+        "dispense_id": "8d103fa1-5b35-7769-8361-442e82116c71",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "13.4",
+        "rate": "22.853",
+        "baseline": {
+          "source": "type",
+          "median": "22.964",
+          "mad": "0.269",
+          "samples": 15
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.48",
+        "z": "-0.28"
+      },
+      {
+        "dispense_id": "a032b015-a855-7c5d-80e4-c61258a43d4e",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "15.4",
+        "rate": "16.792",
+        "baseline": {
+          "source": "type",
+          "median": "17.681",
+          "mad": "0.315",
+          "samples": 15
+        },
+        "anomaly": false,
+        "deviation_pct": "-5.03",
+        "z": "-1.90"
+      },
+      {
+        "dispense_id": "f0fc4b47-1318-70bf-a703-caef06b69ab4",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "13.5",
+        "rate": "17.210",
+        "baseline": {
+          "source": "type",
+          "median": "17.643",
+          "mad": "0.477",
+          "samples": 16
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.46",
+        "z": "-0.61"
+      },
+      {
+        "dispense_id": "3fdd8d5e-cdc9-7b5e-8b4b-ae04015cea36",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "17.3",
+        "rate": "31.975",
+        "baseline": {
+          "source": "asset",
+          "median": "31.561",
+          "mad": "1.315",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "1.31",
+        "z": "0.21"
+      },
+      {
+        "dispense_id": "ff8aa933-a74f-7dff-9ca3-54d6b0cc1cec",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "17.6",
+        "rate": "23.323",
+        "baseline": {
+          "source": "type",
+          "median": "22.961",
+          "mad": "0.265",
+          "samples": 16
+        },
+        "anomaly": false,
+        "deviation_pct": "1.57",
+        "z": "0.92"
+      },
+      {
+        "dispense_id": "2aacba42-6a62-73e1-b912-6cea472fc3b4",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "16.5",
+        "rate": "28.512",
+        "baseline": {
+          "source": "type",
+          "median": "30.859",
+          "mad": "1.984",
+          "samples": 14
+        },
+        "anomaly": false,
+        "deviation_pct": "-7.61",
+        "z": "-0.80"
+      },
+      {
+        "dispense_id": "478c8b5f-911e-7ce3-826b-7d5726c7cfe5",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "17.2",
+        "rate": "17.294",
+        "baseline": {
+          "source": "type",
+          "median": "17.605",
+          "mad": "0.396",
+          "samples": 17
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.77",
+        "z": "-0.53"
+      },
+      {
+        "dispense_id": "9e5133be-899d-72ea-9450-0102cd3c409b",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "15.8",
+        "rate": "23.807",
+        "baseline": {
+          "source": "type",
+          "median": "22.964",
+          "mad": "0.269",
+          "samples": 17
+        },
+        "anomaly": false,
+        "deviation_pct": "3.67",
+        "z": "2.12"
+      },
+      {
+        "dispense_id": "d41c3466-0d54-7900-8ee9-5a3a9e4cd603",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "16.4",
+        "rate": "23.379",
+        "baseline": {
+          "source": "type",
+          "median": "22.998",
+          "mad": "0.279",
+          "samples": 18
+        },
+        "anomaly": false,
+        "deviation_pct": "1.66",
+        "z": "0.92"
+      },
+      {
+        "dispense_id": "b75c29d5-d05b-790a-a24a-dc1f84774c41",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "19.0",
+        "rate": "17.138",
+        "baseline": {
+          "source": "type",
+          "median": "17.554",
+          "mad": "0.394",
+          "samples": 18
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.37",
+        "z": "-0.71"
+      },
+      {
+        "dispense_id": "0d42aa6e-e7e7-78b8-974e-358910832bb7",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "18.4",
+        "rate": "20.388",
+        "baseline": {
+          "source": "type",
+          "median": "17.503",
+          "mad": "0.365",
+          "samples": 19
+        },
+        "anomaly": false,
+        "deviation_pct": "16.48",
+        "z": "5.33"
+      },
+      {
+        "dispense_id": "f605a1c1-787b-781c-9a29-396ee7dc97f6",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "18.5",
+        "rate": "30.809",
+        "baseline": {
+          "source": "asset",
+          "median": "31.691",
+          "mad": "1.340",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.78",
+        "z": "-0.44"
+      },
+      {
+        "dispense_id": "94ec71a6-935d-7824-860c-a48cca76ff1d",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "15.9",
+        "rate": "22.891",
+        "baseline": {
+          "source": "type",
+          "median": "23.032",
+          "mad": "0.291",
+          "samples": 19
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.61",
+        "z": "-0.33"
+      },
+      {
+        "dispense_id": "ec2f23e1-00df-7854-8b49-284dcf72e552",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "15.4",
+        "rate": "28.345",
+        "baseline": {
+          "source": "type",
+          "median": "30.580",
+          "mad": "1.705",
+          "samples": 16
+        },
+        "anomaly": false,
+        "deviation_pct": "-7.31",
+        "z": "-0.88"
+      },
+      {
+        "dispense_id": "ca597dec-d1e3-7e9b-bf24-57cda177eb6e",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "14.8",
+        "rate": "17.131",
+        "baseline": {
+          "source": "type",
+          "median": "17.554",
+          "mad": "0.429",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.41",
+        "z": "-0.66"
+      },
+      {
+        "dispense_id": "0c0fd5b5-7afc-7949-b8c1-a06046f1f3c1",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "15.1",
+        "rate": "23.391",
+        "baseline": {
+          "source": "type",
+          "median": "22.998",
+          "mad": "0.279",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "1.71",
+        "z": "0.95"
+      },
+      {
+        "dispense_id": "c80a6928-3240-7337-b555-560b443fb052",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "17.5",
+        "rate": "22.925",
+        "baseline": {
+          "source": "type",
+          "median": "23.082",
+          "mad": "0.269",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.68",
+        "z": "-0.39"
+      },
+      {
+        "dispense_id": "3343b7a5-8735-7806-b223-43ef08fc9944",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "15.4",
+        "rate": "17.136",
+        "baseline": {
+          "source": "type",
+          "median": "17.484",
+          "mad": "0.363",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.99",
+        "z": "-0.65"
+      },
+      {
+        "dispense_id": "0bbcb351-c1e3-75a6-9ac7-640d03c1412d",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "14.7",
+        "rate": "21.783",
+        "baseline": {
+          "source": "type",
+          "median": "17.484",
+          "mad": "0.354",
+          "samples": 20
+        },
+        "anomaly": true,
+        "deviation_pct": "24.59",
+        "z": "8.20"
+      },
+      {
+        "dispense_id": "03d47842-60f4-7163-8e72-db140dd4e6cf",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "13.0",
+        "rate": "31.903",
+        "baseline": {
+          "source": "asset",
+          "median": "31.561",
+          "mad": "0.981",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "1.08",
+        "z": "0.23"
+      },
+      {
+        "dispense_id": "c426dbb0-c16a-7a63-aed8-0e5cb08c2cbc",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "14.0",
+        "rate": "22.188",
+        "baseline": {
+          "source": "type",
+          "median": "23.082",
+          "mad": "0.235",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "-3.87",
+        "z": "-2.57"
+      },
+      {
+        "dispense_id": "6509b280-b691-72e6-be55-b274397c6a75",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "12.3",
+        "rate": "27.729",
+        "baseline": {
+          "source": "type",
+          "median": "30.580",
+          "mad": "1.705",
+          "samples": 18
+        },
+        "anomaly": false,
+        "deviation_pct": "-9.32",
+        "z": "-1.13"
+      },
+      {
+        "dispense_id": "514d2290-7d5c-72ed-8361-8765cd1afcf4",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "16.2",
+        "rate": "17.575",
+        "baseline": {
+          "source": "type",
+          "median": "17.484",
+          "mad": "0.354",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "0.52",
+        "z": "0.17"
+      },
+      {
+        "dispense_id": "5f6b997b-6fd0-7132-83c1-ef62ed4a368d",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "18.4",
+        "rate": "23.935",
+        "baseline": {
+          "source": "type",
+          "median": "22.996",
+          "mad": "0.279",
+          "samples": 20
+        },
+        "anomaly": false,
+        "deviation_pct": "4.08",
+        "z": "2.27"
+      },
+      {
+        "dispense_id": "54d6f493-090c-7e5c-b3df-c87cb3574c27",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "15.7",
+        "rate": "23.927",
+        "baseline": {
+          "source": "asset",
+          "median": "22.944",
+          "mad": "0.229",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "4.28",
+        "z": "2.89"
+      },
+      {
+        "dispense_id": "96ec1b5c-0eed-7c4e-9825-91cef637826b",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "14.5",
+        "rate": "16.706",
+        "baseline": {
+          "source": "asset",
+          "median": "16.838",
+          "mad": "0.299",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.78",
+        "z": "-0.30"
+      },
+      {
+        "dispense_id": "ebb769f9-4dc6-76d9-8842-c61c46e42744",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "15.8",
+        "rate": "22.272",
+        "baseline": {
+          "source": "asset",
+          "median": "18.042",
+          "mad": "0.491",
+          "samples": 8
+        },
+        "anomaly": true,
+        "deviation_pct": "23.45",
+        "z": "5.81"
+      },
+      {
+        "dispense_id": "14667d17-293e-717f-a29b-e15026f90507",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "13.0",
+        "rate": "31.597",
+        "baseline": {
+          "source": "asset",
+          "median": "31.691",
+          "mad": "0.882",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.30",
+        "z": "-0.07"
+      },
+      {
+        "dispense_id": "3110ddfe-f47c-7174-b9e4-bcc00bffe10f",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.0",
+        "rate": "22.561",
+        "baseline": {
+          "source": "asset",
+          "median": "22.913",
+          "mad": "0.360",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.54",
+        "z": "-0.66"
+      },
+      {
+        "dispense_id": "35cd901a-cc60-71c9-b705-c3e1b62ba1d7",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "18.8",
+        "rate": "29.550",
+        "baseline": {
+          "source": "asset",
+          "median": "28.428",
+          "mad": "0.284",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "3.95",
+        "z": "2.66"
+      },
+      {
+        "dispense_id": "4fbac550-134d-741a-ba63-38ee29912c43",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "17.1",
+        "rate": "17.202",
+        "baseline": {
+          "source": "asset",
+          "median": "17.628",
+          "mad": "0.196",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.42",
+        "z": "-1.47"
+      },
+      {
+        "dispense_id": "22329623-246d-7651-8353-bd863a9bc3db",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.6",
+        "rate": "23.487",
+        "baseline": {
+          "source": "asset",
+          "median": "23.707",
+          "mad": "0.272",
+          "samples": 8
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.93",
+        "z": "-0.55"
+      },
+      {
+        "dispense_id": "53d4e3f6-e891-7973-ae23-561afd6078cc",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "16.8",
+        "rate": "22.970",
+        "baseline": {
+          "source": "asset",
+          "median": "22.964",
+          "mad": "0.269",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "0.03",
+        "z": "0.02"
+      },
+      {
+        "dispense_id": "ace621d4-4182-7b37-9bca-1c4e480393b6",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "16.2",
+        "rate": "16.781",
+        "baseline": {
+          "source": "asset",
+          "median": "16.792",
+          "mad": "0.313",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.06",
+        "z": "-0.02"
+      },
+      {
+        "dispense_id": "16973b75-d9f0-7012-8db8-a26b8bf17146",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "13.9",
+        "rate": "23.174",
+        "baseline": {
+          "source": "asset",
+          "median": "18.245",
+          "mad": "0.742",
+          "samples": 9
+        },
+        "anomaly": true,
+        "deviation_pct": "27.02",
+        "z": "4.48"
+      },
+      {
+        "dispense_id": "fe5c53d9-667b-7a16-bcd1-d8a33557aa4f",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "14.9",
+        "rate": "31.297",
+        "baseline": {
+          "source": "asset",
+          "median": "31.644",
+          "mad": "0.583",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.10",
+        "z": "-0.40"
+      },
+      {
+        "dispense_id": "485444cf-34ec-7c4a-8999-9406d7b88a2f",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.6",
+        "rate": "21.953",
+        "baseline": {
+          "source": "asset",
+          "median": "22.891",
+          "mad": "0.333",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-4.10",
+        "z": "-1.90"
+      },
+      {
+        "dispense_id": "63372b56-89ca-7c79-98e8-881e1b791e3f",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "13.1",
+        "rate": "28.074",
+        "baseline": {
+          "source": "asset",
+          "median": "28.512",
+          "mad": "0.285",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.53",
+        "z": "-1.03"
+      },
+      {
+        "dispense_id": "8e726096-070e-7f04-8695-9f0ce0a1ce57",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "17.3",
+        "rate": "17.326",
+        "baseline": {
+          "source": "asset",
+          "median": "17.575",
+          "mad": "0.281",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.42",
+        "z": "-0.60"
+      },
+      {
+        "dispense_id": "6d5d7619-dda4-78ce-8a81-1aef66b87a8c",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "14.6",
+        "rate": "23.049",
+        "baseline": {
+          "source": "asset",
+          "median": "23.608",
+          "mad": "0.279",
+          "samples": 9
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.37",
+        "z": "-1.35"
+      },
+      {
+        "dispense_id": "721e8405-2e01-78f0-bd46-14f619ae9a17",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "18.9",
+        "rate": "22.810",
+        "baseline": {
+          "source": "asset",
+          "median": "22.967",
+          "mad": "0.230",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.68",
+        "z": "-0.46"
+      },
+      {
+        "dispense_id": "333dbbe4-895b-7857-bdb3-af932a846be0",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "16.5",
+        "rate": "17.045",
+        "baseline": {
+          "source": "asset",
+          "median": "16.787",
+          "mad": "0.215",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "1.54",
+        "z": "0.81"
+      },
+      {
+        "dispense_id": "f92aa6b2-85de-70d1-b36a-6a30f1c0d2b4",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "15.9",
+        "rate": "22.703",
+        "baseline": {
+          "source": "asset",
+          "median": "18.365",
+          "mad": "1.009",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "23.62",
+        "z": "2.90"
+      },
+      {
+        "dispense_id": "3c2a2f21-39ef-7a24-ac95-2a4fc7779d9a",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "15.7",
+        "rate": "30.922",
+        "baseline": {
+          "source": "asset",
+          "median": "31.597",
+          "mad": "0.378",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.14",
+        "z": "-1.20"
+      },
+      {
+        "dispense_id": "e889c64a-b06e-7d51-b4c5-71253dab0850",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "14.6",
+        "rate": "22.713",
+        "baseline": {
+          "source": "asset",
+          "median": "22.726",
+          "mad": "0.379",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.06",
+        "z": "-0.02"
+      },
+      {
+        "dispense_id": "aac441c4-7b9f-7e49-a6e7-2757b5c26253",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "19.7",
+        "rate": "29.366",
+        "baseline": {
+          "source": "asset",
+          "median": "28.428",
+          "mad": "0.284",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "3.30",
+        "z": "2.22"
+      },
+      {
+        "dispense_id": "0ddf7521-186a-7ff0-9158-3ef970d739f6",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "14.9",
+        "rate": "18.236",
+        "baseline": {
+          "source": "asset",
+          "median": "17.520",
+          "mad": "0.238",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "4.08",
+        "z": "2.03"
+      },
+      {
+        "dispense_id": "85ede3a4-eb68-7b29-b051-2cdd2114f60d",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.5",
+        "rate": "23.801",
+        "baseline": {
+          "source": "asset",
+          "median": "23.547",
+          "mad": "0.363",
+          "samples": 10
+        },
+        "anomaly": false,
+        "deviation_pct": "1.08",
+        "z": "0.47"
+      },
+      {
+        "dispense_id": "7017e9f0-5135-7190-bbd8-aa00d520bf34",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "18.9",
+        "rate": "22.974",
+        "baseline": {
+          "source": "asset",
+          "median": "22.964",
+          "mad": "0.230",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "0.04",
+        "z": "0.03"
+      },
+      {
+        "dispense_id": "645c7423-4c58-7fb6-8f7b-c2dc6dd41db6",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "15.5",
+        "rate": "15.894",
+        "baseline": {
+          "source": "asset",
+          "median": "16.792",
+          "mad": "0.253",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-5.35",
+        "z": "-2.39"
+      },
+      {
+        "dispense_id": "f9ecc6d8-b603-7fe9-a008-617c5f0cd886",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "18.1",
+        "rate": "21.964",
+        "baseline": {
+          "source": "asset",
+          "median": "18.485",
+          "mad": "1.275",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "18.82",
+        "z": "1.84"
+      },
+      {
+        "dispense_id": "9c6aa56e-176d-7a86-b286-6a7de32b725d",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "18.7",
+        "rate": "30.876",
+        "baseline": {
+          "source": "asset",
+          "median": "31.514",
+          "mad": "0.526",
+          "samples": 14
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.03",
+        "z": "-0.82"
+      },
+      {
+        "dispense_id": "444e5426-6f70-7ed6-900d-fb69d7229d15",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.1",
+        "rate": "23.383",
+        "baseline": {
+          "source": "asset",
+          "median": "22.713",
+          "mad": "0.247",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "2.95",
+        "z": "1.83"
+      },
+      {
+        "dispense_id": "a3015837-ee55-7377-88b7-4b7eadd056e5",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "14.1",
+        "rate": "27.977",
+        "baseline": {
+          "source": "asset",
+          "median": "28.512",
+          "mad": "0.285",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-1.88",
+        "z": "-1.27"
+      },
+      {
+        "dispense_id": "b0e0fc1a-27ad-7b8d-81f9-23c138142f22",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "16.2",
+        "rate": "17.658",
+        "baseline": {
+          "source": "asset",
+          "median": "17.575",
+          "mad": "0.281",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "0.47",
+        "z": "0.20"
+      },
+      {
+        "dispense_id": "08f608be-a9a4-78a0-a16b-aa2da2f95494",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "16.7",
+        "rate": "23.007",
+        "baseline": {
+          "source": "asset",
+          "median": "23.608",
+          "mad": "0.279",
+          "samples": 11
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.54",
+        "z": "-1.45"
+      },
+      {
+        "dispense_id": "3399dcec-186a-703f-a376-92196e17b154",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "13.5",
+        "rate": "22.956",
+        "baseline": {
+          "source": "asset",
+          "median": "22.967",
+          "mad": "0.230",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.05",
+        "z": "-0.03"
+      },
+      {
+        "dispense_id": "48ba31db-183f-7f8e-8011-ec7243d1afa0",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "13.3",
+        "rate": "16.301",
+        "baseline": {
+          "source": "asset",
+          "median": "16.787",
+          "mad": "0.283",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-2.90",
+        "z": "-1.16"
+      },
+      {
+        "dispense_id": "a26741a7-3f90-7910-bcff-9afa3b9095d8",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "17.6",
+        "rate": "22.189",
+        "baseline": {
+          "source": "asset",
+          "median": "19.436",
+          "mad": "2.080",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "14.16",
+        "z": "0.89"
+      },
+      {
+        "dispense_id": "ea0c21e0-f709-7a00-8d9d-2e7bd083ea49",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "15.8",
+        "rate": "31.282",
+        "baseline": {
+          "source": "asset",
+          "median": "31.432",
+          "mad": "0.543",
+          "samples": 15
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.48",
+        "z": "-0.19"
+      },
+      {
+        "dispense_id": "3b1c75bd-d2c4-7843-9209-4618118d101a",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.1",
+        "rate": "21.995",
+        "baseline": {
+          "source": "asset",
+          "median": "22.802",
+          "mad": "0.379",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-3.54",
+        "z": "-1.44"
+      },
+      {
+        "dispense_id": "0772109e-0c2a-7d90-8998-ff494402dc9c",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "15.6",
+        "rate": "28.836",
+        "baseline": {
+          "source": "asset",
+          "median": "28.428",
+          "mad": "0.284",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "1.43",
+        "z": "0.97"
+      },
+      {
+        "dispense_id": "069a19e5-f95d-7894-ab19-b833e25f587e",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "12.7",
+        "rate": "17.602",
+        "baseline": {
+          "source": "asset",
+          "median": "17.617",
+          "mad": "0.265",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-0.08",
+        "z": "-0.04"
+      },
+      {
+        "dispense_id": "479b2ad2-8b35-7f2c-8206-899c65fd2a62",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "15.3",
+        "rate": "22.694",
+        "baseline": {
+          "source": "asset",
+          "median": "23.547",
+          "mad": "0.363",
+          "samples": 12
+        },
+        "anomaly": false,
+        "deviation_pct": "-3.62",
+        "z": "-1.58"
+      },
+      {
+        "dispense_id": "2a29ecf4-7afc-7100-b5ff-d0b316829719",
+        "asset_id": "6ec9d286-63ca-728d-95f4-b3b2e4b06ce6",
+        "usage": "17.5",
+        "rate": "22.053",
+        "baseline": {
+          "source": "asset",
+          "median": "22.964",
+          "mad": "0.230",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "-3.97",
+        "z": "-2.67"
+      },
+      {
+        "dispense_id": "20895b9c-103e-71ef-b954-1da8df743a44",
+        "asset_id": "e6c3f339-1a2b-7f1f-b1fd-42a29755d4c1",
+        "usage": "17.1",
+        "rate": "17.144",
+        "baseline": {
+          "source": "asset",
+          "median": "16.781",
+          "mad": "0.302",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "2.16",
+        "z": "0.81"
+      },
+      {
+        "dispense_id": "9263af7d-213a-7189-95c0-9a0bd81c39ed",
+        "asset_id": "35bf992d-c9e9-7616-a12e-7696a6cecc1b",
+        "usage": "15.2",
+        "rate": "22.810",
+        "baseline": {
+          "source": "asset",
+          "median": "20.388",
+          "mad": "2.143",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "11.88",
+        "z": "0.76"
+      },
+      {
+        "dispense_id": "d049eedd-a301-7e55-a61c-9da55f398077",
+        "asset_id": "442e3d43-7204-752d-b222-1a58008a05a6",
+        "usage": "18.2",
+        "rate": "31.627",
+        "baseline": {
+          "source": "asset",
+          "median": "31.400",
+          "mad": "0.514",
+          "samples": 16
+        },
+        "anomaly": false,
+        "deviation_pct": "0.72",
+        "z": "0.30"
+      },
+      {
+        "dispense_id": "57840c78-dfb6-702b-b468-b866045ca97e",
+        "asset_id": "025b413f-8a9a-721e-a648-a7dd06839eb9",
+        "usage": "16.0",
+        "rate": "23.002",
+        "baseline": {
+          "source": "asset",
+          "median": "22.713",
+          "mad": "0.511",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "1.27",
+        "z": "0.38"
+      },
+      {
+        "dispense_id": "09c6f69e-299d-7763-86ce-d96e9ebd9a7d",
+        "asset_id": "076f3787-b9d1-79e0-ac0f-d4f5f8130c42",
+        "usage": "12.4",
+        "rate": "28.994",
+        "baseline": {
+          "source": "asset",
+          "median": "28.512",
+          "mad": "0.324",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "1.69",
+        "z": "1.00"
+      },
+      {
+        "dispense_id": "bb4faf20-d508-7ae5-b8f5-9627140b6bc2",
+        "asset_id": "8d88348a-7eed-7d14-b06d-3fef701966a0",
+        "usage": "15.7",
+        "rate": "18.190",
+        "baseline": {
+          "source": "asset",
+          "median": "17.602",
+          "mad": "0.254",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "3.34",
+        "z": "1.56"
+      },
+      {
+        "dispense_id": "3d79c0ea-494e-7083-a066-72358d2eff83",
+        "asset_id": "75a89294-c2cd-789a-b802-08a9ad45f23d",
+        "usage": "15.1",
+        "rate": "23.928",
+        "baseline": {
+          "source": "asset",
+          "median": "23.487",
+          "mad": "0.437",
+          "samples": 13
+        },
+        "anomaly": false,
+        "deviation_pct": "1.88",
+        "z": "0.68"
+      }
+    ],
+    "days": [
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-02",
+        "opening": "14003.52",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "14003.52",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "70.02",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-03",
+        "opening": "14003.52",
+        "delivered": "0.00",
+        "dispensed": "951.29",
+        "closing": "13056.80",
+        "variance": "-4.57",
+        "variance_pct": "-0.48",
+        "tolerance": "19.52",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-04",
+        "opening": "13056.80",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "13056.80",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "65.28",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-05",
+        "opening": "13056.80",
+        "delivered": "0.00",
+        "dispensed": "970.20",
+        "closing": "12086.56",
+        "variance": "0.04",
+        "variance_pct": "0.00",
+        "tolerance": "19.84",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-06",
+        "opening": "12086.56",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "12086.56",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "60.43",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-07",
+        "opening": "12086.56",
+        "delivered": "0.00",
+        "dispensed": "1146.45",
+        "closing": "10937.44",
+        "variance": "2.67",
+        "variance_pct": "0.23",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-08",
+        "opening": "10937.44",
+        "delivered": "0.00",
+        "dispensed": "448.00",
+        "closing": "10493.92",
+        "variance": "-4.48",
+        "variance_pct": "-1.00",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-09",
+        "opening": "10493.92",
+        "delivered": "0.00",
+        "dispensed": "1023.38",
+        "closing": "9465.76",
+        "variance": "4.78",
+        "variance_pct": "0.47",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-10",
+        "opening": "9465.76",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "9465.76",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "47.33",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-11",
+        "opening": "9465.76",
+        "delivered": "0.00",
+        "dispensed": "869.36",
+        "closing": "8598.88",
+        "variance": "-2.48",
+        "variance_pct": "-0.29",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-12",
+        "opening": "8598.88",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "8598.88",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "42.99",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-13",
+        "opening": "8598.88",
+        "delivered": "0.00",
+        "dispensed": "1040.14",
+        "closing": "7560.64",
+        "variance": "-1.90",
+        "variance_pct": "-0.18",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-14",
+        "opening": "7560.64",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "7560.64",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "37.80",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-15",
+        "opening": "7560.64",
+        "delivered": "10467.00",
+        "dispensed": "1023.60",
+        "closing": "16843.20",
+        "variance": "160.84",
+        "variance_pct": "15.71",
+        "tolerance": "18.88",
+        "flag": true
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-16",
+        "opening": "16843.20",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "16843.20",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "84.22",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-17",
+        "opening": "16843.20",
+        "delivered": "0.00",
+        "dispensed": "1006.49",
+        "closing": "15840.00",
+        "variance": "-3.29",
+        "variance_pct": "-0.33",
+        "tolerance": "17.60",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-18",
+        "opening": "15840.00",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "15690.40",
+        "variance": "149.60",
+        "variance_pct": "0.94",
+        "tolerance": "79.20",
+        "flag": true
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-19",
+        "opening": "15690.40",
+        "delivered": "0.00",
+        "dispensed": "755.81",
+        "closing": "14930.72",
+        "variance": "3.87",
+        "variance_pct": "0.51",
+        "tolerance": "18.56",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-20",
+        "opening": "14930.72",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "14930.72",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "74.65",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-21",
+        "opening": "14930.72",
+        "delivered": "0.00",
+        "dispensed": "966.30",
+        "closing": "13964.48",
+        "variance": "-0.06",
+        "variance_pct": "-0.01",
+        "tolerance": "19.52",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-22",
+        "opening": "13964.48",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "13964.48",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "69.82",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-23",
+        "opening": "13964.48",
+        "delivered": "0.00",
+        "dispensed": "834.10",
+        "closing": "13134.88",
+        "variance": "-4.50",
+        "variance_pct": "-0.54",
+        "tolerance": "19.52",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-24",
+        "opening": "13134.88",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "13134.88",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "65.67",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-25",
+        "opening": "13134.88",
+        "delivered": "0.00",
+        "dispensed": "1063.99",
+        "closing": "12066.40",
+        "variance": "4.49",
+        "variance_pct": "0.42",
+        "tolerance": "19.84",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-26",
+        "opening": "12066.40",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "12066.40",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "60.33",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-27",
+        "opening": "12066.40",
+        "delivered": "0.00",
+        "dispensed": "971.85",
+        "closing": "11098.72",
+        "variance": "-4.17",
+        "variance_pct": "-0.43",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-28",
+        "opening": "11098.72",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "11098.72",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "55.49",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-29",
+        "opening": "11098.72",
+        "delivered": "0.00",
+        "dispensed": "944.09",
+        "closing": "10151.20",
+        "variance": "3.43",
+        "variance_pct": "0.36",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-11-30",
+        "opening": "10151.20",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "10151.20",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "50.76",
+        "flag": false
+      },
+      {
+        "storage_id": "1e2feb89-414c-743c-9027-c4d1c386bbc4",
+        "day": "2026-12-01",
+        "opening": "10151.20",
+        "delivered": "0.00",
+        "dispensed": "935.15",
+        "closing": "9213.76",
+        "variance": "2.29",
+        "variance_pct": "0.24",
+        "tolerance": "20.16",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-02",
+        "opening": "2999.33",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "2999.33",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "15.00",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-03",
+        "opening": "2999.33",
+        "delivered": "2327.00",
+        "dispensed": "1924.38",
+        "closing": "3402.67",
+        "variance": "-0.72",
+        "variance_pct": "-0.04",
+        "tolerance": "9.62",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-04",
+        "opening": "3402.67",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "3402.67",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "17.01",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-05",
+        "opening": "3402.67",
+        "delivered": "2083.00",
+        "dispensed": "2085.20",
+        "closing": "3399.00",
+        "variance": "1.47",
+        "variance_pct": "0.07",
+        "tolerance": "10.43",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-06",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "3399.00",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "17.00",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-07",
+        "opening": "3399.00",
+        "delivered": "2006.00",
+        "dispensed": "2005.04",
+        "closing": "3399.00",
+        "variance": "0.96",
+        "variance_pct": "0.05",
+        "tolerance": "10.03",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-08",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "0.00",
+        "closing": "3399.00",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "17.00",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-09",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1766.86",
+        "closing": "1630.40",
+        "variance": "1.74",
+        "variance_pct": "0.10",
+        "tolerance": "8.83",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-10",
+        "opening": "1630.40",
+        "delivered": "2034.00",
+        "dispensed": "264.96",
+        "closing": "3399.00",
+        "variance": "0.44",
+        "variance_pct": "0.17",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-11",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1769.50",
+        "closing": "1630.40",
+        "variance": "-0.90",
+        "variance_pct": "-0.05",
+        "tolerance": "8.85",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-12",
+        "opening": "1630.40",
+        "delivered": "2237.00",
+        "dispensed": "468.91",
+        "closing": "3399.00",
+        "variance": "-0.51",
+        "variance_pct": "-0.11",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-13",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1440.32",
+        "closing": "1958.00",
+        "variance": "0.68",
+        "variance_pct": "0.05",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-14",
+        "opening": "1958.00",
+        "delivered": "2006.00",
+        "dispensed": "564.83",
+        "closing": "3399.00",
+        "variance": "0.17",
+        "variance_pct": "0.03",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-15",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1316.42",
+        "closing": "2084.00",
+        "variance": "-1.42",
+        "variance_pct": "-0.11",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-16",
+        "opening": "2084.00",
+        "delivered": "2026.00",
+        "dispensed": "709.04",
+        "closing": "3399.00",
+        "variance": "1.96",
+        "variance_pct": "0.28",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-17",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1345.85",
+        "closing": "2054.60",
+        "variance": "-1.45",
+        "variance_pct": "-0.11",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-18",
+        "opening": "2054.60",
+        "delivered": "2010.00",
+        "dispensed": "665.08",
+        "closing": "3399.00",
+        "variance": "0.52",
+        "variance_pct": "0.08",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-19",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1355.96",
+        "closing": "2042.00",
+        "variance": "1.04",
+        "variance_pct": "0.08",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-20",
+        "opening": "2042.00",
+        "delivered": "0.00",
+        "dispensed": "617.89",
+        "closing": "1422.80",
+        "variance": "1.31",
+        "variance_pct": "0.21",
+        "tolerance": "8.27",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-21",
+        "opening": "1422.80",
+        "delivered": "3374.00",
+        "dispensed": "1396.91",
+        "closing": "3399.00",
+        "variance": "0.89",
+        "variance_pct": "0.06",
+        "tolerance": "7.73",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-22",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "657.76",
+        "closing": "2739.87",
+        "variance": "1.37",
+        "variance_pct": "0.21",
+        "tolerance": "7.73",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-23",
+        "opening": "2739.87",
+        "delivered": "0.00",
+        "dispensed": "1322.80",
+        "closing": "1418.73",
+        "variance": "-1.66",
+        "variance_pct": "-0.13",
+        "tolerance": "8.13",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-24",
+        "opening": "1418.73",
+        "delivered": "2693.00",
+        "dispensed": "712.36",
+        "closing": "3399.00",
+        "variance": "0.37",
+        "variance_pct": "0.05",
+        "tolerance": "7.73",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-25",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1357.00",
+        "closing": "2042.00",
+        "variance": "0.00",
+        "variance_pct": "0.00",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-26",
+        "opening": "2042.00",
+        "delivered": "2038.00",
+        "dispensed": "680.56",
+        "closing": "3399.00",
+        "variance": "0.44",
+        "variance_pct": "0.06",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-27",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "1444.29",
+        "closing": "1953.80",
+        "variance": "0.91",
+        "variance_pct": "0.06",
+        "tolerance": "7.87",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-28",
+        "opening": "1953.80",
+        "delivered": "0.00",
+        "dispensed": "526.70",
+        "closing": "1426.87",
+        "variance": "0.23",
+        "variance_pct": "0.04",
+        "tolerance": "8.27",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-29",
+        "opening": "1426.87",
+        "delivered": "3289.00",
+        "dispensed": "1315.41",
+        "closing": "3399.00",
+        "variance": "1.46",
+        "variance_pct": "0.11",
+        "tolerance": "7.73",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-11-30",
+        "opening": "3399.00",
+        "delivered": "0.00",
+        "dispensed": "679.10",
+        "closing": "2719.53",
+        "variance": "0.37",
+        "variance_pct": "0.05",
+        "tolerance": "7.73",
+        "flag": false
+      },
+      {
+        "storage_id": "78e51061-7311-78a3-82ce-6f447ed4d57b",
+        "day": "2026-12-01",
+        "opening": "2719.53",
+        "delivered": "2042.00",
+        "dispensed": "1361.63",
+        "closing": "3399.00",
+        "variance": "0.90",
+        "variance_pct": "0.07",
+        "tolerance": "7.73",
+        "flag": false
+      }
+    ],
+    "deliveries": [
+      {
+        "delivery_id": "7ff2e341-810d-7e30-8bcb-6b2263db01fc",
+        "measured": "2325.93",
+        "gap_pct": "0.05",
+        "flag": false
+      },
+      {
+        "delivery_id": "b11379a2-0ff4-7f65-84d7-59889213147b",
+        "measured": "2081.93",
+        "gap_pct": "0.05",
+        "flag": false
+      },
+      {
+        "delivery_id": "b540cce4-cc5d-775a-83bb-ba66e9a413ca",
+        "measured": "2004.67",
+        "gap_pct": "0.07",
+        "flag": false
+      },
+      {
+        "delivery_id": "1cddee9c-e824-7487-a226-ff4390120ea1",
+        "measured": "2033.13",
+        "gap_pct": "0.04",
+        "flag": false
+      },
+      {
+        "delivery_id": "a522eeb3-2293-761e-b0aa-e07c874a9033",
+        "measured": "2236.47",
+        "gap_pct": "0.02",
+        "flag": false
+      },
+      {
+        "delivery_id": "f9916395-55ea-7c2b-bf94-1ef51985b59f",
+        "measured": "2004.67",
+        "gap_pct": "0.07",
+        "flag": false
+      },
+      {
+        "delivery_id": "23303b1b-aeb2-741d-aad1-2a0f61f3fbc8",
+        "measured": "10309.92",
+        "gap_pct": "1.50",
+        "flag": true
+      },
+      {
+        "delivery_id": "eca5205f-d285-7021-89e5-98babae95d91",
+        "measured": "2025.00",
+        "gap_pct": "0.05",
+        "flag": false
+      },
+      {
+        "delivery_id": "9ba2540e-d509-7917-978c-1a16f3b53254",
+        "measured": "2008.73",
+        "gap_pct": "0.06",
+        "flag": false
+      },
+      {
+        "delivery_id": "0944c4fb-8d56-7ee4-baf9-100ce3c043a9",
+        "measured": "3373.00",
+        "gap_pct": "0.03",
+        "flag": false
+      },
+      {
+        "delivery_id": "10dd9828-3be1-75b1-b8e1-a266e4f5c738",
+        "measured": "2691.67",
+        "gap_pct": "0.05",
+        "flag": false
+      },
+      {
+        "delivery_id": "102bba69-0461-79f1-8e6d-b796387ec319",
+        "measured": "2037.20",
+        "gap_pct": "0.04",
+        "flag": false
+      },
+      {
+        "delivery_id": "d4fa0f86-798a-7d2c-97e8-9481d5b01030",
+        "measured": "3288.07",
+        "gap_pct": "0.03",
+        "flag": false
+      },
+      {
+        "delivery_id": "77eb6cdc-1845-7f6d-9173-0f212c2e2823",
+        "measured": "2041.27",
+        "gap_pct": "0.04",
+        "flag": false
+      }
+    ]
+  }
+}
