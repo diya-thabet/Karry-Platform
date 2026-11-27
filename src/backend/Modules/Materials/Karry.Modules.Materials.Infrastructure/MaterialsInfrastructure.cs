@@ -16,6 +16,7 @@ public static class MaterialsInfrastructure
         services.AddModuleDbContext<MaterialsDbContext>(connectionString);
         services.AddOutboxDispatcher<MaterialsDbContext>(eventAssemblies: typeof(Domain.Material).Assembly);
         services.AddScoped<IMaterialStore, MaterialStore>();
+        services.AddScoped<Contracts.IMaterialDirectory, MaterialDirectory>();
         services.AddScoped<MaterialOperations>();
         services.AddScoped<DemoMaterialsSeeder>();
         services.AddScoped<IImportTarget, MaterialImport>();

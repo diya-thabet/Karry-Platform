@@ -37,10 +37,23 @@ are signed field evidence with gap-free numbering.
 site's; no list → no price (the desk says so; the ticket can still be issued and priced later only by a new ticket).
 The ticket stores unit price, currency and amount at issue; later price changes never touch it (TC-P3-WB-003).
 
+As built in P3.1 (`IPriceBook.PriceAtAsync`, `GET /api/v1/sales/prices`):
+
+- The instant's **date on the company's clock** (its settings' time zone) picks the versions in force: per list (the
+  site's, or one customer's at that site) the active version with the latest `effectiveFrom` on or before that date.
+- The rule is per product: when the customer's version in force has no line for the product, the site's price applies.
+- A version **in force never changes** (tickets were priced from it): before its first day it can be changed (with
+  `If-Match`) or withdrawn; after, a correction is a new version. Prices are **never back-dated** (`effectiveFrom` is
+  today or later), and one active version per list starts on a given day (unique index, `NULLS NOT DISTINCT`).
+- Products map to a material that is a sold fraction (Materials' `IMaterialDirectory`: kind product, not archived).
+
 ### 3. Money and quantities
 
 `Money` (`decimal(18,4)`, ISO 4217 currency) and quantities with their unit; no `double` in these modules (architecture
 test). Price fields are sensitive: masked for roles without `sales.prices.read`, in the API and in exports.
+`sales.prices.read` is implemented as read access to the sensitive field `sales.prices.unit-price` (Weighmaster and
+Executive read; Tenant Admin, Commercial and Finance write; Site Manager and Controller see it masked). Price lists and
+the price preview are readable with `sales.products.read`; only the unit price is masked.
 
 ## Consequences
 

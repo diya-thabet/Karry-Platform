@@ -160,7 +160,7 @@ public static class ImportCommits
 /// </summary>
 public interface IImportTarget
 {
-    /// <summary><c>sites</c>, <c>assets</c>, <c>meters</c>, <c>materials</c> or <c>users</c>.</summary>
+    /// <summary><c>sites</c>, <c>assets</c>, <c>meters</c>, <c>materials</c>, <c>users</c>, <c>customers</c> or <c>products</c>.</summary>
     string Kind { get; }
 
     /// <summary>The permission the requester needs besides <c>imports.files.manage</c>.</summary>

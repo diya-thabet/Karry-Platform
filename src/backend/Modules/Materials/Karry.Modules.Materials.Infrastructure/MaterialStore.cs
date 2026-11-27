@@ -1,4 +1,5 @@
 using Karry.Modules.Materials.Application;
+using Karry.Modules.Materials.Contracts;
 using Karry.Modules.Materials.Domain;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -51,4 +52,17 @@ internal sealed class MaterialStore(MaterialsDbContext db) : IMaterialStore
             return false;
         }
     }
+}
+
+internal sealed class MaterialDirectory(MaterialsDbContext db) : IMaterialDirectory
+{
+    public Task<MaterialSummary?> FindAsync(Guid materialId, CancellationToken cancellationToken) =>
+        db.Materials.AsNoTracking().Where(m => m.Id == new MaterialId(materialId))
+            .Select(m => new MaterialSummary(m.Id.Value, m.Code, m.Name, m.Kind == MaterialKind.Product, m.Status == MaterialStatus.Archived))
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<MaterialSummary>> ListAsync(CancellationToken cancellationToken) =>
+        await db.Materials.AsNoTracking().OrderBy(m => m.Code)
+            .Select(m => new MaterialSummary(m.Id.Value, m.Code, m.Name, m.Kind == MaterialKind.Product, m.Status == MaterialStatus.Archived))
+            .ToListAsync(cancellationToken).ConfigureAwait(false);
 }

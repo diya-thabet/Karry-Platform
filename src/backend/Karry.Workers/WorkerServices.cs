@@ -11,6 +11,7 @@ using Karry.Modules.Integrity.Infrastructure;
 using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Notifications.Infrastructure;
 using Karry.Modules.Organization.Infrastructure;
+using Karry.Modules.Sales.Infrastructure;
 using Karry.Modules.Sync.Infrastructure;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
@@ -53,6 +54,9 @@ internal static class WorkerServices
 
         // Materials: delivers its events (material and density changes).
         services.AddMaterialsInfrastructure(connectionString);
+
+        // Sales: delivers its events (customers created, changed, blocked; P3.1).
+        services.AddSalesInfrastructure(connectionString);
 
         // Assets: delivers its events (asset registrations, changes, moves).
         services.AddAssetsInfrastructure(connectionString, configuration);
@@ -102,6 +106,7 @@ internal static class WorkerServices
         services.AddOutboxDispatcherService<FlagsDbContext>();
         services.AddOutboxDispatcherService<OrganizationDbContext>();
         services.AddOutboxDispatcherService<MaterialsDbContext>();
+        services.AddOutboxDispatcherService<SalesDbContext>();
         services.AddOutboxDispatcherService<AssetsDbContext>();
         services.AddOutboxDispatcherService<ImportsDbContext>();
         services.AddOutboxDispatcherService<TrustDbContext>();

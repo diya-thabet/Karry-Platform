@@ -351,6 +351,19 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-27 (late) — P3.1 built: customers, products, price lists, imports, portal (agent)
+
+- **CI back:** the owner made the repository public (Actions minutes free). Merged with the guard: #284 (plan), #285 (P3.0). Stacked branches were brought up to date by **merging `origin/main` into them** (the guard squash-merges, so the branch still carries the original commits; a merge avoids rewriting history and force-pushing). Conflicts are add/add on docs the branch extends: take the branch's version after checking `git diff HEAD:f origin/main:f` shows nothing only in main.
+- **P3.1 (one PR from `feat/p3.1-sales-imports`, containing slices 1, 2, 3a, 3b):**
+  - Slice 1: module `Sales` (schema `sales`, RLS), customers (details, credit limit `sales.customers.credit-limit` masked, block with a reason / unblock, allowed sites, record versions).
+  - Slice 2: products map to a sold material fraction (`Materials.Contracts.IMaterialDirectory`); price list versions per site or per customer at a site (company's clock, never back-dated, frozen once in force, change/withdraw before, one active start per day, `NULLS NOT DISTINCT` unique index); `Sales.Contracts.IPriceBook.PriceAtAsync` and `GET /sales/prices` (customer beats site, per product). ADR-0042 §2–3 records the rules.
+  - Slice 3a: Excel imports `customers` and `products` (TC-P3-SAL-004: 200 rows, errors block the whole file; empty optional cells keep the customer's address, contact and sites; the credit limit is not imported).
+  - Slice 3b: portal Settings › Customers, Products, Price lists (versions, withdraw, new version, price on a date; masked prices shown as •••).
+- **Permissions:** `sales.products.read/manage`, `sales.prices.manage`; the plan's `sales.prices.read` is the sensitive field `sales.prices.unit-price` (masked for Site Manager, Controller). The masking suite needs every `*price*` property marked or listed (`PriceQuoteResponse.priceListId` listed).
+- **Verified locally:** Sales 34/34, isolation 712/712, authorization 9/9, architecture 34/34, Host 67/67, Workers 14/14, Materials 46/46; portal sales/settings/shell/imports 72/72; i18n catalogs 0 problems; eslint, tsc, `dotnet format` clean.
+- **Traps:** the owner's demo Workers/Host lock their `bin`: run those test projects with `--artifacts-path E:\Karry-Platform\.claude\<dir>` (inside the repo: `PostgresServer` looks for `Karry.slnx` above the binaries). `git diff` of `openapi/v1.json` can look huge; `--diff-algorithm=histogram` shows the real additions. Vitest forks fail to start on this disk: `--maxWorkers=1 --pool=threads`. Running vitest and the merge guard together exhausted the page file (`gh` panicked): run them one at a time.
+- **Next:** P3.2 trucks and haulers (module `Weighbridge`), then P3.3 ticket numbering.
+
 ### 2026-11-27 (later) — Phase 3 planned into sub-phases P3.0 – P3.16 (agent)
 
 - **Plan:** [Phase 3 sub-phases](../04-phases/phase-03-weighbridge-fuel-pilot/sub-phases.md) and [tracker](../04-phases/phase-03-weighbridge-fuel-pilot/tracker.md). 17 sub-phases (weighing P3.1–P3.7, fuel P3.8–P3.11, dashboards and report P3.12–P3.13, SMS/WhatsApp P3.14, export/support/demo P3.15, hardening and pilot P3.16a/b), ADR-0042 … 0050 reserved, amendments A1–A8 (PDFsharp not QuestPDF; `Sales` and `Weighbridge` separate; `online_only` numbering by default; desk mode of the field PWA; providers as ports with fakes; production after P1.17; ROI in the operator console; M2 = Phase 3 exit only).

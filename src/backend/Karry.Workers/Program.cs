@@ -14,6 +14,7 @@ using Karry.Modules.Materials.Infrastructure;
 using Karry.Modules.Notifications.Infrastructure;
 using Karry.Modules.Organization.Application;
 using Karry.Modules.Organization.Infrastructure;
+using Karry.Modules.Sales.Infrastructure;
 using Karry.Modules.Sync.Application;
 using Karry.Modules.Tenancy.Infrastructure;
 using Karry.Modules.Trust.Application;
@@ -53,6 +54,7 @@ if (args is ["dispatch-now", ..])
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FlagsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<OrganizationDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<MaterialsDbContext>>()).ConfigureAwait(false);
+    left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<SalesDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<AssetsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<ImportsDbContext>>()).ConfigureAwait(false);
     left += await DrainAsync(once.Services.GetRequiredService<OutboxDispatcher<FieldOpsDbContext>>()).ConfigureAwait(false);

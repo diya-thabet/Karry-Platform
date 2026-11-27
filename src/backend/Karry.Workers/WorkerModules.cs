@@ -10,6 +10,7 @@ using Karry.Modules.Imports.Api;
 using Karry.Modules.Integrity.Api;
 using Karry.Modules.Materials.Api;
 using Karry.Modules.Organization.Api;
+using Karry.Modules.Sales.Api;
 using Karry.Modules.Tenancy.Api;
 using Karry.Modules.Trust.Api;
 using Karry.Modules.Verification.Api;
@@ -32,6 +33,7 @@ internal static class WorkerModules
         new FlagsModule(),
         new OrganizationModule(),
         new MaterialsModule(),
+        new SalesModule(),
         new AssetsModule(),
         new ImportsModule(),
         new FieldOpsModule(),
