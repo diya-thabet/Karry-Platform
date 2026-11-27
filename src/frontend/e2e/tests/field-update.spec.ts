@@ -30,6 +30,11 @@ test.describe("a new version while entries wait (P2.5, US-P1-OFF-01 AC2, ADR-003
       await tablet.evaluate(async () => { await (await navigator.serviceWorker.getRegistration())?.update(); });
       const offer = tablet.getByRole("region", { name: "Mise à jour" });
       await expect(offer).toContainText("Une nouvelle version de Karry Terrain est prête.", { timeout: 60_000 });
+      // The update is applied offline, as on a site without network: the new version is already installed, so the
+      // reload comes from the tablet's own cache, and nothing can leave the outbox meanwhile. No request routing during
+      // the reload: with `context.route` active, the reload's navigation never committed on CI (#281, twice).
+      await context.setOffline(true);
+      await context.unroute("**/api/v1/sync/batches");
       await offer.getByRole("button", { name: "Mettre à jour" }).click();
 
       // The new version reloads the app (locked again); the signed entries are still in the outbox. Wait for the lock
@@ -37,7 +42,7 @@ test.describe("a new version while entries wait (P2.5, US-P1-OFF-01 AC2, ADR-003
       await expect(tablet.getByRole("heading", { name: "Déverrouiller la tablette" })).toBeVisible({ timeout: 30_000 });
       await unlock(tablet);
       await expect(tablet.getByRole("region", { name: "Envoi des saisies" })).toContainText("2 saisies en attente d’envoi");
-      await context.unroute("**/api/v1/sync/batches");
+      await context.setOffline(false);
       await tablet.getByRole("button", { name: "Actualiser" }).click();
       await expect(tablet.getByRole("region", { name: "Envoi des saisies" }).getByText("Tout est envoyé")).toBeVisible({ timeout: 180_000 });
       await tablet.getByRole("button", { name: "Mon historique" }).click();
