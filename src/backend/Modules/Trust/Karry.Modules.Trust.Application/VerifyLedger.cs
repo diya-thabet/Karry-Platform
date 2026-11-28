@@ -32,35 +32,44 @@ public sealed class VerifyLedgerHandler(ILedgerReader ledger, ITenantContext ten
             return Report(ChainVerification.Broken(0, anchorProblem.Sequence, anchorProblem.Message), expected.Anchors.Count);
         }
 
-        var anchoredHashes = expected?.Anchors.ToDictionary(a => a.Sequence, a => a.EntryHash) ?? [];
-        string? mismatch = null;
-        long mismatchAt = 0;
-        var result = await LedgerVerifier.VerifyAsync(Observe(ledger.ReadChainAsync(cancellationToken), cancellationToken), cancellationToken).ConfigureAwait(false);
+        var watch = new AnchorWatch(expected?.Anchors ?? []);
+        var result = await LedgerVerifier.VerifyAsync(watch.Observe(ledger.ReadChainAsync(cancellationToken), cancellationToken), cancellationToken)
+            .ConfigureAwait(false);
 
-        if (mismatch is not null && (result.IsValid || result.FirstBrokenSequence > mismatchAt))
+        if (watch.Mismatch is { } mismatch && (result.IsValid || result.FirstBrokenSequence > mismatch.Sequence))
         {
-            return Report(ChainVerification.Broken(mismatchAt - 1, mismatchAt, mismatch), anchoredHashes.Count);
+            return Report(ChainVerification.Broken(mismatch.Sequence - 1, mismatch.Sequence, mismatch.Message), watch.Count);
         }
 
-        if (result.IsValid && anchoredHashes.Count > 0 && anchoredHashes.Keys.Max() > result.EntriesChecked)
+        if (result.IsValid && watch.LastAnchored is { } last && last > result.EntriesChecked)
         {
-            var missing = anchoredHashes.Keys.Max();
             return Report(ChainVerification.Broken(result.EntriesChecked, result.EntriesChecked + 1,
-                $"the chain ends at {result.EntriesChecked} but sequence {missing} was anchored (entries removed)"), anchoredHashes.Count);
+                $"the chain ends at {result.EntriesChecked} but sequence {last} was anchored (entries removed)"), watch.Count);
         }
 
         return Report(result, expected?.Anchors.Count);
+    }
 
-        // Compares entries with anchored hashes while they stream through the chain check.
-        async IAsyncEnumerable<LedgerEntry> Observe(IAsyncEnumerable<LedgerEntry> entries, [EnumeratorCancellation] CancellationToken token = default)
+    /// <summary>Compares entries with their anchored hashes while they stream through the chain check.</summary>
+    private sealed class AnchorWatch(IEnumerable<LedgerAnchor> anchors)
+    {
+        private readonly Dictionary<long, string> hashes = anchors.ToDictionary(a => a.Sequence, a => a.EntryHash);
+
+        public int Count => hashes.Count;
+
+        public long? LastAnchored => hashes.Count > 0 ? hashes.Keys.Max() : null;
+
+        /// <summary>The first entry that differs from its anchor, once one went through.</summary>
+        public AnchorProblem? Mismatch { get; private set; }
+
+        public async IAsyncEnumerable<LedgerEntry> Observe(IAsyncEnumerable<LedgerEntry> entries, [EnumeratorCancellation] CancellationToken token = default)
         {
             await foreach (var entry in entries.WithCancellation(token).ConfigureAwait(false))
             {
-                if (mismatch is null && anchoredHashes.TryGetValue(entry.Sequence, out var anchoredHash)
+                if (Mismatch is null && hashes.TryGetValue(entry.Sequence, out var anchoredHash)
                     && !string.Equals(anchoredHash, entry.EntryHash, StringComparison.Ordinal))
                 {
-                    mismatch = $"entry {entry.Sequence} differs from its WORM anchor (the chain was rewritten)";
-                    mismatchAt = entry.Sequence;
+                    Mismatch = new AnchorProblem(entry.Sequence, $"entry {entry.Sequence} differs from its WORM anchor (the chain was rewritten)");
                 }
 
                 yield return entry;

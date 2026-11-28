@@ -96,8 +96,12 @@
     });
 
   document.addEventListener("DOMContentLoaded", function () {
-    branding.then(function (value) {
-      show(origin, value);
-    });
+    branding
+      .then(function (value) {
+        show(origin, value);
+      })
+      .catch(function () {
+        // The page keeps Karry's own look when the company's branding cannot be shown.
+      });
   });
 })();

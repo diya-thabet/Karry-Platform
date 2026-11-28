@@ -153,8 +153,14 @@ public static partial class SignatureEnvelopes
     private static bool IsSafeInteger(JsonElement value, out long result)
     {
         result = 0;
-        return value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsInteger(number)
-            && Math.Abs(number) <= 9_007_199_254_740_991 && (result = (long)number) == number;
+        if (value.ValueKind != JsonValueKind.Number || !value.TryGetDouble(out var number) || !double.IsInteger(number)
+            || Math.Abs(number) > 9_007_199_254_740_991)
+        {
+            return false;
+        }
+
+        result = (long)number; // exact: a whole number within ±(2^53 - 1)
+        return true;
     }
 
     private static bool InRange(JsonElement value, double min, double max) =>

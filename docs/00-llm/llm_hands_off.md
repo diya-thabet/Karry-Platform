@@ -351,6 +351,18 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-28 — P3.2 slice 1 merged (#287); SonarCloud quality pass (agent)
+
+- **Read SonarCloud first** (`curl "https://sonarcloud.io/api/issues/search?componentKeys=diya-thabet_Karry-Platform&resolved=false&ps=500"`, public, no token): 118 open issues, most of them test fixtures (passwords of throwaway containers, `http://localhost`, fixed IPs) and `spikes/`.
+- **Real defects fixed (branch `fix/sonar-quality-pass`):**
+  - `SensitiveInputFilter` put a `[]` placeholder in its shared cache while describing a type: a concurrent first request could see "no sensitive fields" and let sensitive input through. The recursion guard is now per thread (`[ThreadStatic]`), the cache only ever holds finished descriptions.
+  - `VerifyLedgerHandler` compared anchors in a local iterator that wrote captured locals (Sonar read the mismatch branch as dead): now an `AnchorWatch` object owns that state.
+  - Asset import used a non-short-circuit `|` on purpose; it's now two named steps. The PDF ternary returned "Page " both ways. The JSON safe-integer check compared doubles. `MaterialConversion` used `state!`. Audit CSV and the ledger CLI ignored the cancellation token on writes.
+  - Portal: regexes that backtrack (`/-+$/`, `/0+$/`, the e-mail pattern) replaced by loops in `src/text.ts` (`slugify`, `trimEnd`, `looksLikeEmail`, with a test on 100 000-character input); sorts got explicit code-unit comparators (the JCS vectors regenerate identically); `DataTable` no longer opens a row for a click or key on a control inside it (the review queue's `stopPropagation` wrapper is gone).
+  - Keycloak theme: unhandled promise, dead `font-size`. Scripts: `[[ ]]`, `curl --proto '=https'`. Bidi character in a test written as `\u202E`.
+- **`.sonarcloud.properties`:** test code is declared as tests (`sonar.tests`, `sonar.test.inclusions`); `spikes/` and the generated k6 bundle are not analysed. Kept as is, after review: the public CORS policy (GET only, no credentials, opt-in per endpoint), the two SQL strings built from a table name and a tenant `Guid` (never user text), `td role="cell"` (the table turns into cards on a phone, which drops the native roles).
+- **Next:** P3.2 slice 2 (portal screens for trucks and haulers, the `trucks` import).
+
 ### 2026-11-27 (night) — P3.1 merged (#286); P3.2 slice 1: trucks and haulers (agent)
 
 - **Merged:** #284 (plan), #285 (P3.0), #286 (P3.1 slices 1–3). Superseded branches deleted.

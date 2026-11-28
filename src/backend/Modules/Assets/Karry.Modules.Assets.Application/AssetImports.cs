@@ -180,8 +180,10 @@ public sealed class AssetImport(
                 continue;
             }
 
-            var changed = asset.Change(clock, details, caller.Subject).Value | asset.MoveTo(clock, siteId.Value, caller.Subject).Value;
-            plans.Add(new ImportRowPlan(row.Number, asset.Code, changed ? ImportAction.Update : ImportAction.Unchanged));
+            // Both run: a row can change the details and move the asset at once.
+            var detailsChanged = asset.Change(clock, details, caller.Subject).Value;
+            var moved = asset.MoveTo(clock, siteId.Value, caller.Subject).Value;
+            plans.Add(new ImportRowPlan(row.Number, asset.Code, detailsChanged || moved ? ImportAction.Update : ImportAction.Unchanged));
         }
 
         if (creates.Count > 0 && await limits.CheckCreateAsync(Metrics.Assets, creates.Count, cancellationToken).ConfigureAwait(false) is { } refused)

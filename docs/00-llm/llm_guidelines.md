@@ -470,7 +470,7 @@ public Property Rul_NeverIncreases_WhenUsageIncreases(PositiveInt used, Positive
 
 **Required checks** (enforced by `tools/ci/merge_guard.py`): `tooling`, `backend`, `architecture`, `frontend`, `local-stack`, `security`, `tenant-isolation`, `authorization`, `openapi-diff`, `links and anchors`; any other failing check also blocks. Server-side branch protection is **not available**: it needs a paid GitHub plan for a private repository, and the owner decided against paying (2026-10-22). The guard is therefore the enforcement point: **never merge any other way**.
 
-**SonarCloud** (automatic analysis since the repository went public, 2026-11-27) also reports on every PR, and the guard blocks on it like any failing check. Its quality gate wants at most 3 % duplication on new code; `.sonarcloud.properties` keeps generated code (migrations, `schema.ts`) and test projects out of the duplication measure only. Do not widen those exclusions to product code: factor the duplication instead.
+**SonarCloud** (automatic analysis since the repository went public, 2026-11-27) also reports on every PR, and the guard blocks on it like any failing check. Its quality gate wants at most 3 % duplication on new code; `.sonarcloud.properties` keeps generated code (migrations, `schema.ts`) and test projects out of the duplication measure only. Do not widen those exclusions to product code: factor the duplication instead. Read its open issues at the start of a session (public API, no token: `api/issues/search?componentKeys=diya-thabet_Karry-Platform&resolved=false`) and fix what is in product code before new work; test code is declared as tests there, so a security finding on product code is never noise.
 
 ### 9.2 Workflow rules
 

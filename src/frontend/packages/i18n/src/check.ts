@@ -1,12 +1,15 @@
 import { IntlMessageFormat } from "intl-messageformat";
 
 /** Problems that make the catalogs unfit to ship (TC-P1-OFF-007). An empty list means the catalogs are consistent. */
+/** Keys and argument names in code-unit order: the report reads the same on every machine, whatever its locale. */
+const ordinal = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 export function checkCatalogs(catalogs: Record<string, Record<string, string>>, usedKeys: Iterable<string> = []): string[] {
   const problems: string[] = [];
   const languages = Object.keys(catalogs);
   const allKeys = new Set(languages.flatMap((language) => Object.keys(catalogs[language] ?? {})));
 
-  for (const key of [...allKeys].sort()) {
+  for (const key of [...allKeys].sort(ordinal)) {
     let reference: { language: string; arguments: string } | undefined;
     for (const language of languages) {
       const message = catalogs[language]?.[key];
@@ -22,7 +25,7 @@ export function checkCatalogs(catalogs: Record<string, Record<string, string>>, 
 
       let names: string;
       try {
-        names = [...argumentNames(new IntlMessageFormat(message, language).getAst())].sort().join(",");
+        names = [...argumentNames(new IntlMessageFormat(message, language).getAst())].sort(ordinal).join(",");
       } catch (error) {
         problems.push(`${language}: invalid ICU message "${key}": ${(error as Error).message}`);
         continue;

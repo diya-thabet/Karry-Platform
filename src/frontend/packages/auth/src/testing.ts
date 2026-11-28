@@ -2,7 +2,7 @@ import { User } from "oidc-client-ts";
 import { Auth, type AuthUser, type SignInManager } from "./auth";
 
 function base64url(value: unknown): string {
-  return btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(value)))).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+  return btoa(String.fromCharCode(...new TextEncoder().encode(JSON.stringify(value)))).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
 /**

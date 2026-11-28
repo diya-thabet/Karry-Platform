@@ -3,6 +3,7 @@ import type { components } from "@karry/api-client";
 import type { AuthUser } from "@karry/auth";
 import type { Status } from "@karry/ui";
 import { useApi } from "../app/api";
+import { slugify } from "../text";
 
 export type OperatorTenant = components["schemas"]["OperatorTenantResponse"];
 export type MrrTotal = components["schemas"]["MrrTotalResponse"];
@@ -30,7 +31,7 @@ export function slugValid(slug: string): boolean {
 
 /** A suggested address from the company name: "Carrière de Sfax" → "carriere-de-sfax". */
 export function slugFrom(name: string): string {
-  return name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40).replace(/-+$/, "");
+  return slugify(name, 40);
 }
 
 /** Every company with its counts, plan, state, MRR and last activity (US-P1-OPS-03 AC1). */

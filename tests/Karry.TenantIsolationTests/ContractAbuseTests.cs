@@ -105,7 +105,7 @@ public sealed partial class TenantIsolationSuite
                 {
                     data.Add(id, path, parameter, "' OR 1=1 --");
                     data.Add(id, path, parameter, new string('9', 10_000));
-                    data.Add(id, path, parameter, "%00%FF‮");
+                    data.Add(id, path, parameter, "%00%FF\u202E");
                 }
             }
         }

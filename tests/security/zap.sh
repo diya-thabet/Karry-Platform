@@ -24,7 +24,7 @@ done
 scan() {
   local status=0
   docker run --rm --network host -v "$out:/zap/wrk:rw" "$image" "$@" || status=$?
-  if [ "$status" -ge 3 ]; then
+  if [[ "$status" -ge 3 ]]; then
     echo "ZAP failed to scan ($*)" >&2
     exit 3
   fi

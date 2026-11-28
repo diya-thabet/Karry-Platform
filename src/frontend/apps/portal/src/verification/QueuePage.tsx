@@ -171,11 +171,9 @@ export function QueuePage() {
               header: t("portal.review.selectHeader"),
               cell: (row) => (unflagged(row)
                 ? (
-                    // The checkbox chooses; it does not open the row.
-                    <span onClick={(event) => { event.stopPropagation(); }} onKeyDown={(event) => { event.stopPropagation(); }}>
-                      <Checkbox label={<span className="sr-only">{t("portal.review.select", { machine: code(row.item.assetId) })}</span>}
-                        checked={selected.has(row.item.id)} onChange={(event) => { toggle(row, event.target.checked); }} />
-                    </span>
+                    // The checkbox chooses; the table does not open the row for a click on a control.
+                    <Checkbox label={<span className="sr-only">{t("portal.review.select", { machine: code(row.item.assetId) })}</span>}
+                      checked={selected.has(row.item.id)} onChange={(event) => { toggle(row, event.target.checked); }} />
                   )
                 : null),
             },

@@ -5,6 +5,7 @@ import { Building2, Coins } from "lucide-react";
 import { intlLocale, useTranslation } from "@karry/i18n";
 import { Button, DataTable, Dialog, EmptyState, PageHeader, StatCard, StatusChip, TextField, useToast } from "@karry/ui";
 import { useApi } from "../app/api";
+import { looksLikeEmail } from "../text";
 import { operatorTenantsKey, slugFrom, slugValid, statusLook, useOperatorTenants, type OperatorTenant } from "./api";
 
 /**
@@ -106,7 +107,7 @@ function NewCompanyDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
   const someAdmin = admin.some((value) => value !== "");
   const nameError = form.name.trim() === "" ? t("portal.operator.nameRequired") : undefined;
   const slugError = slugValid(slug) ? undefined : t("portal.operator.slugInvalid");
-  const adminError = someAdmin && (admin.some((value) => value === "") || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(admin[2] ?? ""))
+  const adminError = someAdmin && (admin.some((value) => value === "") || !looksLikeEmail(admin[2] ?? ""))
     ? t("portal.operator.adminIncomplete")
     : undefined;
 

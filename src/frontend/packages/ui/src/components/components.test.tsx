@@ -208,6 +208,25 @@ describe("DataTable", () => {
     expect(within(table).getByText("EX-01").closest("tr")).toHaveAttribute("aria-selected", "true");
   });
 
+  it("opens a row on a click in it, but not on a click or a key on a control inside it", () => {
+    const select = vi.fn();
+    const ticked = vi.fn();
+    render(<DataTable caption="Machines" rows={rows} rowKey={(r) => r.id} onSelect={select} empty={null}
+      columns={[
+        { key: "pick", header: "Pick", cell: (r) => <input type="checkbox" aria-label={`pick ${r.name}`} onChange={ticked} /> },
+        { key: "n", header: "Name", cell: (r) => r.name },
+      ]} />);
+    const box = screen.getByRole("checkbox", { name: "pick DT-07" });
+
+    fireEvent.click(box);
+    fireEvent.keyDown(box, { key: " " });
+    expect(ticked).toHaveBeenCalledTimes(1);
+    expect(select).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByText("DT-07"));
+    expect(select).toHaveBeenCalledWith(rows[1]);
+  });
+
   it("reports a finger's sideways swipe on a row, toward the end or the start, and nothing else", () => {
     const swiped = vi.fn();
     render(<DataTable caption="Machines" columns={[{ key: "n", header: "Name", cell: (r) => r.name }]} rows={rows} rowKey={(r) => r.id} onSwipe={swiped} empty={null} />);

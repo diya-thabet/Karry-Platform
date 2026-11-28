@@ -167,7 +167,7 @@ public static class ShiftReportPdf
         text.AddLineBreak();
         text.AddText($"{(english ? "Check this document" : "Vérifier ce document")} : {verification.GetLeftPart(UriPartial.Path)}");
         text.AddLineBreak();
-        text.AddText(english ? "Page " : "Page ");
+        text.AddText("Page "); // the same word in both languages
         text.AddPageField();
         text.AddText(" / ");
         text.AddNumPagesField();

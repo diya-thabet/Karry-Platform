@@ -167,7 +167,10 @@ const asset = createRoute({
   },
 });
 
-export function createPortalRouter(history?: RouterHistory, context: PortalContext = { operator: false }) {
+/** A company user's portal (not the operator console): the context when none is given. */
+const companyPortal: PortalContext = Object.freeze({ operator: false });
+
+export function createPortalRouter(history?: RouterHistory, context: PortalContext = companyPortal) {
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
 import { supportedLanguages, type Language } from "@karry/i18n";
 import { useAccess, useApi } from "../app/api";
+import { slugify } from "../text";
 
 export type Checklist = components["schemas"]["ChecklistResponse"];
 export type ChecklistItemInput = components["schemas"]["ChecklistItemInput"];
@@ -81,7 +82,7 @@ export function codeFrom(draft: ItemDraft, position: number): string {
   }
 
   for (const text of Object.values(draft.texts)) {
-    const code = text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+/, "").slice(0, maxCode).replace(/-+$/, "");
+    const code = slugify(text, maxCode);
     if (code) {
       return code;
     }

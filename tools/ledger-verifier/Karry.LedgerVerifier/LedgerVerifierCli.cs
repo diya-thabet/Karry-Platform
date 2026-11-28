@@ -25,14 +25,14 @@ public static class LedgerVerifierCli
         ArgumentNullException.ThrowIfNull(output);
         if (args is not ["verify", .. var options] || !TryParse(options, out var tenant, out var connection))
         {
-            await output.WriteLineAsync("usage: karry-ledger verify --tenant <uuid> [--connection <connection string>]").ConfigureAwait(false);
+            await output.WriteLineAsync("usage: karry-ledger verify --tenant <uuid> [--connection <connection string>]".AsMemory(), cancellationToken).ConfigureAwait(false);
             return 2;
         }
 
         connection ??= Environment.GetEnvironmentVariable(ConnectionVariable);
         if (string.IsNullOrWhiteSpace(connection))
         {
-            await output.WriteLineAsync($"no database: pass --connection or set {ConnectionVariable}").ConfigureAwait(false);
+            await output.WriteLineAsync($"no database: pass --connection or set {ConnectionVariable}".AsMemory(), cancellationToken).ConfigureAwait(false);
             return 2;
         }
 
@@ -46,11 +46,12 @@ public static class LedgerVerifierCli
         if (report.Valid)
         {
             var anchors = report.AnchorsChecked is { } count ? $"{count} anchors matched" : "anchors not checked (no Trust__Anchoring settings)";
-            await output.WriteLineAsync($"OK tenant {tenant}: {report.EntriesChecked} entries, head {report.HeadHash ?? "(empty)"}; {anchors}").ConfigureAwait(false);
+            await output.WriteLineAsync($"OK tenant {tenant}: {report.EntriesChecked} entries, head {report.HeadHash ?? "(empty)"}; {anchors}".AsMemory(), cancellationToken)
+                .ConfigureAwait(false);
             return 0;
         }
 
-        await output.WriteLineAsync($"BROKEN tenant {tenant}: first broken sequence {report.FirstBrokenSequence} ({report.Problem}); {report.EntriesChecked} entries verified before it")
+        await output.WriteLineAsync($"BROKEN tenant {tenant}: first broken sequence {report.FirstBrokenSequence} ({report.Problem}); {report.EntriesChecked} entries verified before it".AsMemory(), cancellationToken)
             .ConfigureAwait(false);
         return 1;
     }

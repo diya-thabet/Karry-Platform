@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { components } from "@karry/api-client";
 import type { MaterialState, QuantityStateOption, QuantityUnit } from "@karry/ui";
 import { useAccess, useApi } from "../app/api";
+import { trimEnd } from "../text";
 
 export type Material = components["schemas"]["MaterialResponse"];
 export type MaterialInput = components["schemas"]["MaterialInput"];
@@ -74,7 +75,7 @@ export function shiftDecimal(text: string, places: number): string {
 
   digits = digits.padEnd(point, "0");
   const integer = digits.slice(0, point).replace(/^0+(?=\d)/, "") || "0";
-  const rest = digits.slice(point).replace(/0+$/, "");
+  const rest = trimEnd(digits.slice(point), "0");
   return rest ? `${integer}.${rest}` : integer;
 }
 

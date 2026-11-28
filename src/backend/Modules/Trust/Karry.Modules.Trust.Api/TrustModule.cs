@@ -171,11 +171,12 @@ public sealed class TrustModule : IModule
         return TypedResults.Stream(async body =>
         {
             await using var writer = new StreamWriter(body, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true), leaveOpen: true);
-            await writer.WriteAsync(AuditCsv.Header).ConfigureAwait(false);
+            await writer.WriteAsync(AuditCsv.Header.AsMemory(), cancellationToken).ConfigureAwait(false);
             await foreach (var entry in run.Value.Entries.WithCancellation(cancellationToken).ConfigureAwait(false))
             {
                 var shown = AuditEntryResponse.From(entry, null, events, options); // masked exactly as in the JSON API
-                await writer.WriteAsync(AuditCsv.Row(entry, ActorName(names, entry.Actor), shown.Changes, shown.Event?.ToJsonString())).ConfigureAwait(false);
+                await writer.WriteAsync(AuditCsv.Row(entry, ActorName(names, entry.Actor), shown.Changes, shown.Event?.ToJsonString()).AsMemory(), cancellationToken)
+                    .ConfigureAwait(false);
             }
         }, AuditCsv.ContentType, fileName);
     }
