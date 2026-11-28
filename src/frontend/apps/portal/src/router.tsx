@@ -9,6 +9,7 @@ import { ImportsPage } from "./imports/ImportsPage";
 import { ComingSoon } from "./shell/Placeholders";
 import { MaterialPage, MaterialsPage } from "./materials/MaterialsPages";
 import { CustomerPage, CustomersPage, PriceListsPage, ProductPage, ProductsPage } from "./sales/SalesPages";
+import { HaulersPage, TruckPage, TrucksPage } from "./weighbridge/TrucksPages";
 import { TenantPage } from "./operator/TenantPage";
 import { TenantsPage } from "./operator/TenantsPage";
 import { sections } from "./shell/sections";
@@ -132,6 +133,17 @@ const product = createRoute({
     return <ProductPage key={productId} productId={productId} />;
   },
 });
+const trucks = createRoute({ getParentRoute: () => company, path: "/settings/trucks", component: TrucksPage });
+const newTruck = createRoute({ getParentRoute: () => company, path: "/settings/trucks/new", component: () => <TruckPage /> });
+const truck = createRoute({
+  getParentRoute: () => company,
+  path: "/settings/trucks/$truckId",
+  component: function Truck() {
+    const { truckId } = truck.useParams();
+    return <TruckPage key={truckId} truckId={truckId} />;
+  },
+});
+const haulers = createRoute({ getParentRoute: () => company, path: "/settings/haulers", component: HaulersPage });
 const priceLists = createRoute({ getParentRoute: () => company, path: "/settings/price-lists", component: PriceListsPage });
 const checklists = createRoute({ getParentRoute: () => company, path: "/settings/checklists", component: ChecklistsPage });
 const newChecklist = createRoute({ getParentRoute: () => company, path: "/settings/checklists/new", component: () => <ChecklistPage /> });
@@ -174,7 +186,7 @@ export function createPortalRouter(history?: RouterHistory, context: PortalConte
   return createRouter({
     routeTree: root.addChildren([
       company.addChildren([
-        home, ...routes, audit, review, board, entryHistory, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, noticeRules, materials, newMaterial, material, customers, newCustomer, customer, products, newProduct, product, priceLists, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
+        home, ...routes, audit, review, board, entryHistory, notifications, settings, roles, newRole, role, users, plan, imports, tablets, support, companySettings, integrityRules, reviewPolicies, noticeRules, materials, newMaterial, material, customers, newCustomer, customer, products, newProduct, product, priceLists, trucks, newTruck, truck, haulers, checklists, newChecklist, checklist, sites, newSite, site, assets, holds, integrityFlags, newAsset, asset,
       ]),
       operatorArea.addChildren([companies, operatorCompany]),
     ]),

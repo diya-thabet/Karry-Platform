@@ -144,6 +144,19 @@ const explained = new Set([
   "units.not_convertible",
   "units.density_missing",
   "units.quantity_invalid",
+  "weighbridge.hauler_not_found",
+  "weighbridge.hauler_name_taken",
+  "weighbridge.hauler_name_invalid",
+  "weighbridge.hauler_phone_invalid",
+  "weighbridge.hauler_status_invalid",
+  "weighbridge.truck_not_found",
+  "weighbridge.truck_plate_taken",
+  "weighbridge.truck_plate_invalid",
+  "weighbridge.truck_hauler_unknown",
+  "weighbridge.truck_status_invalid",
+  "weighbridge.truck_tare_invalid",
+  "weighbridge.truck_payload_invalid",
+  "weighbridge.truck_axles_invalid",
 ]);
 
 /**

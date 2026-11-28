@@ -11,6 +11,7 @@
     <ProjectReference Include="../../Trust/Karry.Modules.Trust.Api/Karry.Modules.Trust.Api.csproj" />
     <!-- Review flags of unknown trucks (RULE-WB-09). -->
     <ProjectReference Include="../../Integrity/Karry.Modules.Integrity.Api/Karry.Modules.Integrity.Api.csproj" />
+    <ProjectReference Include="../../Imports/Karry.Modules.Imports.Api/Karry.Modules.Imports.Api.csproj" />
     <ProjectReference Include="../../../../../tests/Karry.Testing/Karry.Testing.csproj" />
   </ItemGroup>
 </Project>

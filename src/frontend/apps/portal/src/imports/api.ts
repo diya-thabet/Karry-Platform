@@ -10,7 +10,7 @@ export const workbookType = "application/vnd.openxmlformats-officedocument.sprea
 
 /**
  * The kinds of data a file can load, in the order a new company loads them (machines and users point to sites, meters
- * to machines, customers to sites, products to materials), each with the permission that lets the person change that data: the API checks both (ADR-0027 §5).
+ * to machines, customers to sites, products to materials, trucks to haulers), each with the permission that lets the person change that data: the API checks both (ADR-0027 §5).
  */
 export const importKinds = [
   { kind: "sites", permission: "organization.sites.manage" },
@@ -20,6 +20,7 @@ export const importKinds = [
   { kind: "users", permission: "identity.users.manage" },
   { kind: "customers", permission: "sales.customers.manage" },
   { kind: "products", permission: "sales.products.manage" },
+  { kind: "trucks", permission: "weighbridge.trucks.manage" },
 ] as const;
 
 /** At most this many issues and preview rows are shown (the API's page size); a file with more is fixed in parts. */

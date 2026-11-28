@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Bell, Building2, ClipboardCheck, Contact, CreditCard, FileSpreadsheet, Layers, LifeBuoy, ListChecks, Package, ScanEye, ShieldCheck, Tablet, Tags, Users } from "lucide-react";
+import { Bell, Building2, ClipboardCheck, Contact, CreditCard, FileSpreadsheet, Layers, LifeBuoy, ListChecks, Package, ScanEye, ShieldCheck, Tablet, Tags, Truck, Users } from "lucide-react";
 import { useTranslation } from "@karry/i18n";
 import { PageHeader } from "@karry/ui";
 import { BillingReadPermission, DevicesManagePermission, SupportManagePermission, useAccess } from "../app/api";
@@ -10,6 +10,7 @@ import { MaterialsReadPermission } from "../materials/api";
 import { NoticeRulesManagePermission } from "../notifications/api";
 import { CustomersReadPermission, ProductsReadPermission } from "../sales/api";
 import { ItemsReadPermission } from "../verification/api";
+import { TrucksReadPermission } from "../weighbridge/api";
 
 /** Settings: the company's (read-only without the permission) and only the other screens the person may use (the API checks every call anyway). */
 export function SettingsPage() {
@@ -24,6 +25,7 @@ export function SettingsPage() {
     { to: "/settings/customers", icon: Contact, label: t("portal.sales.customers.title"), hint: t("portal.settings.customersHint"), permission: CustomersReadPermission },
     { to: "/settings/products", icon: Package, label: t("portal.sales.products.title"), hint: t("portal.settings.productsHint"), permission: ProductsReadPermission },
     { to: "/settings/price-lists", icon: Tags, label: t("portal.sales.prices.title"), hint: t("portal.settings.priceListsHint"), permission: ProductsReadPermission },
+    { to: "/settings/trucks", icon: Truck, label: t("portal.trucks.title"), hint: t("portal.settings.trucksHint"), permission: TrucksReadPermission },
     { to: "/settings/checklists", icon: ClipboardCheck, label: t("portal.checklists.title"), hint: t("portal.settings.checklistsHint"), permission: ChecklistsReadPermission },
     { to: "/settings/integrity", icon: ScanEye, label: t("portal.integrity.rules.title"), hint: t("portal.settings.integrityHint"), permission: FlagsReadPermission },
     { to: "/settings/review-policies", icon: ListChecks, label: t("portal.reviewPolicies.title"), hint: t("portal.settings.reviewPoliciesHint"), permission: ItemsReadPermission },
