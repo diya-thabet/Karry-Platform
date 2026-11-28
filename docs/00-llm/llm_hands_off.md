@@ -351,6 +351,14 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-28 (night) — CodeScene's full analysis read; sub-phase P3.Q started (agent)
+
+- **Reading CodeScene's project analysis without a token:** the owner signed in to codescene.io in the app's built-in browser; the results pages load JSON that the page itself can fetch: `/projects/88453/jobs/<job>/results/code/hotspots/systemmap.json` (every file: `high-resolution-score` = code health, `revs`, `is-hotspot`, `refactoring-target-type`, `friction`) and `.../code/biomarkersdetails.json?team=` (the code smells of the hotspots, with functions and lines). The job ID changes with each analysis (dashboard link).
+- **Findings (analysis of 2026-11-28):** average 9.25; red 1.4 %, yellow 22.2 %; refactoring targets `portal/src/testing/fakeApi.ts` (2.84, primary) and `TenantIsolationSuite.cs` (7.16); product hotspots `ShiftEntries.cs` 7.60 and `IdentityModule.cs` 8.34; every Excel import between 7 and 8.4 for the same reason.
+- **P3.Q (code health)** added to sub-phases.md (card, amendment A9) and the tracker; the owner wants a higher score: targets no red code, hotspots ≥ 9, average ≥ 9.5.
+- **Step 1:** `fakeApi.ts` split with a script that moves code verbatim by line ranges (`testing/fake/`): `state.ts` (one object per test; `tenant`, `changes`, `verification`, `importSteps` are its properties), `factories.ts` (re-exported by `fakeApi.ts`: tests import as before), `http.ts` (`Ctx`, `Route`, `json`, `problem`, `answer`), `routes/*.ts`. The dispatcher keeps the order: support-visit checks, sign-in reads (not recorded), then recorded calls, the test switches, the modules' routes, identity last (its catch-all answers unknown paths). Portal 368/368 unchanged.
+- **Owner to do in CodeScene:** Exclusions & Filters: `**/Migrations/**`, `src/frontend/packages/api-client/src/schema.ts`, `tests/load/lib/crypto.gen.js`, `spikes/**`; then re-run the analysis.
+
 ### 2026-11-28 (evening) — P3.2 merged (#289); CodeScene connected (agent)
 
 - **#289 merged:** P3.2 is done (tracker ✅).
