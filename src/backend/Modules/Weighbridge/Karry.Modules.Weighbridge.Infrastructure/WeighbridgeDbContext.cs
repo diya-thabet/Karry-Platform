@@ -1,4 +1,5 @@
 using System.Data.Common;
+using Karry.BuildingBlocks.Imports;
 using Karry.BuildingBlocks.Outbox;
 using Karry.BuildingBlocks.Persistence;
 using Karry.Modules.Weighbridge.Application;
@@ -109,6 +110,25 @@ internal sealed class HaulerStore(WeighbridgeDbContext db) : IHaulerStore
 
 internal sealed class TruckStore(WeighbridgeDbContext db) : ITruckStore
 {
+    public async Task<IReadOnlyList<Truck>> FindByKeysAsync(IReadOnlyCollection<string> plateKeys, CancellationToken cancellationToken) =>
+        plateKeys.Count == 0 ? [] : await db.Trucks.Where(t => plateKeys.Contains(t.PlateKey)).ToListAsync(cancellationToken).ConfigureAwait(false);
+
+    public void Add(Truck truck) => db.Trucks.Add(truck);
+
+    public async Task<bool> TrySaveAllAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false); // one transaction with the outbox and ledger rows
+            return true;
+        }
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
+        {
+            db.ChangeTracker.Clear();
+            return false;
+        }
+    }
+
     public Task<Truck?> FindAsync(TruckId id, CancellationToken cancellationToken) => db.Trucks.SingleOrDefaultAsync(t => t.Id == id, cancellationToken);
 
     public async Task<IReadOnlyList<Truck>> SearchAsync(string? plateKey, TruckStatus? status, Guid? haulerId, int limit, CancellationToken cancellationToken)
@@ -176,6 +196,7 @@ public static class WeighbridgeInfrastructure
         services.AddScoped<HaulerOperations>();
         services.AddScoped<ITruckStore, TruckStore>();
         services.AddScoped<TruckOperations>();
+        services.AddScoped<IImportTarget, TruckImport>();
         return services;
     }
 }

@@ -1,5 +1,4 @@
 using System.Data.Common;
-using System.Globalization;
 using Karry.BuildingBlocks.Authorization;
 using Karry.BuildingBlocks.Persistence;
 using Karry.BuildingBlocks.Tenancy;
@@ -81,6 +80,18 @@ public interface ITruckStore
     /// review flag), all or nothing; false when the plate is taken or the truck changed since it was loaded.
     /// </summary>
     Task<bool> TrySaveAsync(Truck truck, Func<DbConnection, DbTransaction, Task> alsoInTransaction, CancellationToken cancellationToken);
+
+    /// <summary>The trucks with these plate keys, archived ones included, tracked for an import's changes.</summary>
+    Task<IReadOnlyList<Truck>> FindByKeysAsync(IReadOnlyCollection<string> plateKeys, CancellationToken cancellationToken);
+
+    /// <summary>Adds a new truck to the next <see cref="TrySaveAllAsync"/>.</summary>
+    void Add(Truck truck);
+
+    /// <summary>
+    /// Saves every added and changed truck with their events in one transaction (an import); false when a plate was taken
+    /// or a truck changed meanwhile, and then nothing is saved. Statuses never change this way, so no review flag moves.
+    /// </summary>
+    Task<bool> TrySaveAllAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>Haulers: the companies whose trucks cross the scale.</summary>
@@ -313,13 +324,18 @@ public sealed class TruckOperations(
         return axles.IsSuccess ? new TruckDetails(input.HaulerId, tare.Value, payload.Value, axles.Value) : axles.Error;
     }
 
-    /// <summary>Today on the company's clock (a tare is not established in the future).</summary>
-    private async Task<DateOnly> TodayAsync(CancellationToken cancellationToken)
-    {
-        var zone = (await tenants.FindAsync(Tenant, cancellationToken).ConfigureAwait(false))?.TimeZone ?? "UTC";
-        var date = Instant.FromDateTimeOffset(clock.GetUtcNow()).InZone(DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZone.Utc).Date;
-        return DateOnly.Parse(date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture);
-    }
+    private Task<DateOnly> TodayAsync(CancellationToken cancellationToken) => CompanyDay.TodayAsync(tenants, Tenant, clock, cancellationToken);
 
     private TenantId Tenant => tenant.Current ?? throw new InvalidOperationException("Weighbridge needs a tenant.");
+}
+
+/// <summary>Today on the company's clock, in its time zone: a tare is not established in the future.</summary>
+internal static class CompanyDay
+{
+    public static async Task<DateOnly> TodayAsync(ITenantDirectory tenants, TenantId tenant, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var zone = (await tenants.FindAsync(tenant, cancellationToken).ConfigureAwait(false))?.TimeZone ?? "UTC";
+        var date = Instant.FromDateTimeOffset(clock.GetUtcNow()).InZone(DateTimeZoneProviders.Tzdb.GetZoneOrNull(zone) ?? DateTimeZone.Utc).Date;
+        return new DateOnly(date.Year, date.Month, date.Day);
+    }
 }

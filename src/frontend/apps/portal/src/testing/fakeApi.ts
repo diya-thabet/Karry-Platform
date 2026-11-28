@@ -44,6 +44,10 @@ type ProductInput = components["schemas"]["ProductInput"];
 type PriceList = components["schemas"]["PriceListResponse"];
 type PriceListInput = components["schemas"]["PriceListInput"];
 type PriceQuote = components["schemas"]["PriceQuoteResponse"];
+type Truck = components["schemas"]["TruckResponse"];
+type TruckInput = components["schemas"]["TruckInput"];
+type Hauler = components["schemas"]["HaulerResponse"];
+type HaulerInput = components["schemas"]["HaulerInput"];
 
 export interface Sent {
   method: string;
@@ -104,6 +108,10 @@ export function fakeApi(options: {
   customers?: Customer[];
   /** Products of `GET /sales/products` (default: none). */
   products?: Product[];
+  /** Trucks of `GET /weighbridge/trucks` (default: none). */
+  trucks?: Truck[];
+  /** Haulers of `GET /weighbridge/haulers` (default: none). */
+  haulers?: Hauler[];
   /** Price list versions of `GET /sales/price-lists` (default: none). */
   priceLists?: PriceList[];
   /** Answers of `GET /sales/prices` by product ID; a product without one has no price (404 `sales.no_price`). */
@@ -180,6 +188,8 @@ export function fakeApi(options: {
   const materials: Material[] = [...(options.materials ?? [])];
   const customers: Customer[] = [...(options.customers ?? [])];
   const products: Product[] = [...(options.products ?? [])];
+  const trucks: Truck[] = [...(options.trucks ?? [])];
+  const haulers: Hauler[] = [...(options.haulers ?? [])];
   const priceLists: PriceList[] = [...(options.priceLists ?? [])];
   const integrityRules: IntegrityRule[] = [...(options.integrityRules ?? integrityCatalog())];
   const assets: Asset[] = [...(options.assets ?? [])];
@@ -668,6 +678,11 @@ export function fakeApi(options: {
       return sold;
     }
 
+    const weighed = weighbridgeRoute(request.method, url, body, request.headers.get("If-Match"));
+    if (weighed) {
+      return weighed;
+    }
+
     const held = holdsRoute(request.method, url, body);
     if (held) {
       return held;
@@ -1059,6 +1074,103 @@ export function fakeApi(options: {
   }
 
   /** Sales (P3.1): customers, products, price list versions and the price on a date, as the API answers them. */
+  /** Trucks and haulers: a plate matched on its letters and digits, as the API does. */
+  function weighbridgeRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
+    const match = /^\/api\/v1\/weighbridge\/(trucks|haulers)(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
+    if (!match) {
+      return null;
+    }
+
+    const [, kind, id, action] = match;
+    const key = (text: string) => text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (kind === "haulers") {
+      if (!id && method === "GET") {
+        const all = url.searchParams.get("includeArchived") === "true";
+        return json(200, { items: haulers.filter((h) => all || h.status === "active") });
+      }
+
+      const input = body as HaulerInput;
+      if (haulers.some((h) => h.id !== id && key(h.name) === key(input.name ?? ""))) {
+        return problem(409, "weighbridge.hauler_name_taken");
+      }
+
+      if (!id) {
+        const created = hauler({ id: `0192f0c1-0000-7000-8000-${String(9500 + haulers.length + 1).padStart(12, "0")}`, name: input.name ?? "", phone: input.phone ?? null });
+        haulers.push(created);
+        return json(201, created);
+      }
+
+      const index = haulers.findIndex((h) => h.id === id);
+      const found = haulers[index];
+      if (!found) {
+        return problem(404, "weighbridge.hauler_not_found");
+      }
+
+      haulers[index] = { ...found, name: input.name ?? "", phone: input.phone ?? null, status: input.status ?? "active", version: nextVersion(found.version) };
+      return json(200, haulers[index]);
+    }
+
+    if (!id && method === "GET") {
+      const plate = key(url.searchParams.get("plate") ?? "");
+      const status = url.searchParams.get("status");
+      return json(200, { items: trucks.filter((t) => (!status || t.status === status) && t.plateKey.includes(plate)) });
+    }
+
+    if (!id || id === "unknown") {
+      const input = body as TruckInput;
+      const plate = (input.plate ?? "").trim().toUpperCase();
+      if (key(plate).length < 2) {
+        return problem(400, "weighbridge.truck_plate_invalid");
+      }
+
+      if (trucks.some((t) => t.plateKey === key(plate))) {
+        return problem(409, "weighbridge.truck_plate_taken");
+      }
+
+      const created = truck({
+        id: `0192f0c1-0000-7000-8000-${String(9600 + trucks.length + 1).padStart(12, "0")}`, plate, plateKey: key(plate), haulerId: input.haulerId ?? null,
+        tare: input.tare?.kg && input.tare.on ? { kg: Number(input.tare.kg), on: input.tare.on, method: input.tare.method ?? "weighed" } : null,
+        maxPayloadKg: input.maxPayloadKg === null ? null : Number(input.maxPayloadKg), axles: input.axles ?? null,
+        status: id === "unknown" ? "unverified" : "active",
+      });
+      trucks.push(created);
+      return json(201, created);
+    }
+
+    const index = trucks.findIndex((t) => t.id === id);
+    const found = trucks[index];
+    if (!found) {
+      return problem(404, "weighbridge.truck_not_found");
+    }
+
+    const save = (next: Truck) => {
+      trucks[index] = { ...next, version: nextVersion(found.version) };
+      return json(200, trucks[index]);
+    };
+    if (method === "GET") {
+      return json(200, found);
+    }
+
+    if (action === "verify") {
+      return found.status === "unverified" ? save({ ...found, status: "active" }) : json(200, found);
+    }
+
+    if (action === "archive" || action === "restore") {
+      return save({ ...found, status: action === "archive" ? "archived" : "active" });
+    }
+
+    if (ifMatch !== null && ifMatch !== found.version) {
+      return problem(409, "request.version_conflict");
+    }
+
+    const input = body as TruckInput;
+    return save({
+      ...found, haulerId: input.haulerId ?? null,
+      tare: input.tare?.kg && input.tare.on ? { kg: Number(input.tare.kg), on: input.tare.on, method: input.tare.method ?? "weighed" } : null,
+      maxPayloadKg: input.maxPayloadKg === null ? null : Number(input.maxPayloadKg), axles: input.axles ?? null,
+    });
+  }
+
   function salesRoute(method: string, url: URL, body: unknown, ifMatch: string | null): Response | null {
     const match = /^\/api\/v1\/sales\/(customers|products|price-lists|prices)(?:\/([^/]+))?(?:\/([^/]+))?$/.exec(url.pathname);
     if (!match) {
@@ -1678,6 +1790,21 @@ export function product(overrides: Partial<Product> = {}): Product {
   return {
     id: "0192f0c1-0000-7000-8000-000000008001", code: "G-8/16", name: "Gravier 8/16", materialId: "0192f0c1-0000-7000-8000-000000006001",
     saleUnit: "t", status: "active", createdAt: "2026-11-27T08:00:00Z", changedAt: "2026-11-27T08:00:00Z", version: '"1"', ...overrides,
+  };
+}
+
+export function truck(overrides: Partial<Truck> = {}): Truck {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000009601", plate: "123 TU 4567", plateKey: "123TU4567", haulerId: null,
+    tare: { kg: 14200, on: "2026-11-02", method: "weighed" }, maxPayloadKg: 26000, axles: "2+3", status: "active",
+    createdAt: "2026-11-27T08:00:00Z", changedAt: "2026-11-27T08:00:00Z", version: '"1"', ...overrides,
+  };
+}
+
+export function hauler(overrides: Partial<Hauler> = {}): Hauler {
+  return {
+    id: "0192f0c1-0000-7000-8000-000000009501", name: "Transports Ben Salah", phone: "+216 71 000 000", status: "active",
+    createdAt: "2026-11-27T08:00:00Z", changedAt: "2026-11-27T08:00:00Z", version: '"1"', ...overrides,
   };
 }
 

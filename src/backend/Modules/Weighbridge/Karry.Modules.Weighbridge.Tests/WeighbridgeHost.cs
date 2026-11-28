@@ -2,6 +2,7 @@ using Karry.BuildingBlocks.Api;
 using Karry.BuildingBlocks.Idempotency;
 using Karry.BuildingBlocks.Modules;
 using Karry.BuildingBlocks.Persistence;
+using Karry.BuildingBlocks.Storage;
 using Karry.BuildingBlocks.Tenancy;
 using Karry.Modules.Identity.Contracts;
 using Karry.Modules.Integrity.Api;
@@ -18,7 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Karry.Modules.Weighbridge.Tests;
 
 /// <summary>
-/// Tenancy, Weighbridge, Integrity (review flags of unknown trucks) and Trust behind the real pipeline, on PostgreSQL and
+/// Tenancy, Weighbridge, Integrity (review flags of unknown trucks), Trust and Imports (truck files) behind the real pipeline, on PostgreSQL and
 /// the real roles. Every caller is a Tenant Admin except <see cref="Weighmaster"/> and <see cref="SiteManager"/>.
 /// </summary>
 public sealed class WeighbridgeHost : IAsyncLifetime
@@ -33,6 +34,14 @@ public sealed class WeighbridgeHost : IAsyncLifetime
 
     public HttpClient Client { get; private set; } = null!;
 
+    /// <summary>The imported files (trucks).</summary>
+    public InMemoryObjectStore Files { get; } = new();
+
+    /// <summary>Runs the queued import steps (validation, commit), as the worker does.</summary>
+    public Task RunImportsAsync() =>
+        app!.Services.GetRequiredService<Karry.BuildingBlocks.Outbox.OutboxDispatcher<Imports.Infrastructure.ImportsDbContext>>()
+            .DispatchPendingAsync(100, CancellationToken.None);
+
     public async ValueTask InitializeAsync()
     {
         server = await PostgresServer.StartAsync();
@@ -45,7 +54,8 @@ public sealed class WeighbridgeHost : IAsyncLifetime
         builder.Services.AddKarryTenancy(builder.Configuration);
         builder.Services.TrustTestIssuer();
         builder.Services.AddIdempotency(Database.App);
-        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IntegrityModule(), new WeighbridgeModule(), new Trust.Api.TrustModule()]);
+        builder.Services.AddSingleton<IObjectStore>(Files);
+        builder.Services.AddModules(builder.Configuration, [new TenancyModule(), new IntegrityModule(), new WeighbridgeModule(), new Trust.Api.TrustModule(), new Imports.Api.ImportsModule()]);
 
         // Ports of other modules Integrity asks (Identity, FieldOps, Notifications): nobody linked, nobody took part, notices dropped.
         builder.Services.AddSingleton<IReviewers, NoReviewers>();

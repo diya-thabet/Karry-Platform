@@ -135,6 +135,7 @@ reviewer knows what to read. Remove a key once a native speaker has checked it i
 | 2026-11-27 | `portal.imports.kind.customers`, `portal.imports.kind.products` | ar, emk, nqo | P3.1 customer and product imports |
 | 2026-11-27 | `portal.sales.*` (all), `portal.settings.customersHint`, `portal.settings.productsHint`, `portal.settings.priceListsHint` | ar, emk, nqo | P3.1 portal screens: customers, products, price lists |
 | 2026-11-27 | `portal.integrity.rule.RULE-WB-09.title`, `portal.integrity.rule.RULE-WB-09.description`, `portal.integrity.flags.subject.truck` | ar, emk, nqo | P3.2 unverified truck flag |
+| 2026-11-28 | `portal.trucks.*`, `portal.haulers.*` (all), `portal.settings.trucksHint`, `portal.imports.kind.trucks`, `errors.weighbridge.*` (all) | ar, emk, nqo | P3.2 truck and hauler screens, trucks import, weighbridge error messages |
 
 ## 6. Not translated yet
 

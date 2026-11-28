@@ -351,6 +351,15 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-28 (later) — Quality pass merged (#288); P3.2 slice 2: trucks import and portal (agent)
+
+- **#288 merged** (the SonarCloud pass). Its CI failed once on `check:k6-bundle`: any change to `packages/crypto` needs `pnpm --filter @karry/crypto bundle:k6` and the regenerated `tests/load/lib/crypto.gen.js` committed.
+- **Trucks import (`TruckImport`, kind `trucks`):** keyed by the plate key, so "123-tu-4567" updates "123 TU 4567" (TC-P3-WB-016); the hauler is named and matched on its name key; **an empty cell keeps the truck's value** (a file never erases a registered tare by leaving a column out), the three tare cells go together and the issue points at the wrong cell (mass, else day, else method); an archived truck is an error (`weighbridge.truck_archived`); **an unverified truck stays unverified**: importing is `weighbridge.trucks.manage`, which the weighmaster has, so an import must not clear the flag of a truck met at the desk. Store: `FindByKeysAsync`, `Add`, `TrySaveAllAsync` (statuses never change in an import, so no flag moves). `CompanyDay.TodayAsync` is shared by the operations and the import.
+- **Portal:** Settings › Trucks (search as you type with the previous results kept, status filter), truck form (hauler, tare kg + date + method, payload, axles; plate fixed after registration), the "truck to verify" panel with **Verify** only for `weighbridge.trucks.verify` (the weighmaster is told who verifies), archive/restore, Settings › Haulers (add, rename, archive). Import kind `trucks`. `errors.weighbridge.*` added to the catalogs and to `ErrorDialog`'s `explained` list.
+- **Gap found:** the `sales.*` error codes (P3.1) are neither in `ErrorDialog`'s `explained` list nor translated: people see the generic error. Fix it with the next sales work.
+- **Local:** a 3-node kind cluster (`my-cluster`, not ours) uses memory and made Trust's Postgres tests time out; left running.
+- **Next:** P3.3 ticket numbering (gap-free, offline; ADR-0043).
+
 ### 2026-11-28 — P3.2 slice 1 merged (#287); SonarCloud quality pass (agent)
 
 - **Read SonarCloud first** (`curl "https://sonarcloud.io/api/issues/search?componentKeys=diya-thabet_Karry-Platform&resolved=false&ps=500"`, public, no token): 118 open issues, most of them test fixtures (passwords of throwaway containers, `http://localhost`, fixed IPs) and `spikes/`.
