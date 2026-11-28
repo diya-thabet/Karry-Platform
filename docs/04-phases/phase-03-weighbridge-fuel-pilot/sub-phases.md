@@ -100,6 +100,7 @@ flowchart LR
 | P3.0 | Entry, decisions, golden datasets | — | S | — | Read §0 and §6 |
 | P3.1 | Sales master data: customers, products, price lists | SAL-01, SAL-02 | M | — (price fields masked) | Pilot's product list and one price list (sample is enough); currency |
 | P3.2 | Trucks & haulers | SAL-04 | S | — | — |
+| P3.Q | Code health (CodeScene) | — (quality) | M | — | Exclusions in CodeScene (generated files) |
 | P3.3 | Ticket numbering (gap-free, offline) | WB-01 AC4, AC6 | M | **Sync** | Legal memo on provisional numbers (WP-P0-06); default online-only |
 | P3.4 | Scale tickets (server) | WB-01 AC1–AC5 (server) | L | **Trust** (signed, immutable) | Ticket number prefix per site; flows used (inbound/outbound); stored-tare policy |
 | P3.5 | Weighbridge desk (tablet and PC) | WB-01 (UI), WB-03 AC2 | L | — | A weighmaster (or proxy) for the 90-second test; printer type (A5 laser or 80 mm thermal) |
@@ -335,6 +336,29 @@ test needs: a weighbridge day generator and a fuel month generator with a known 
 - **Tests:** TC-P3-WB-016 (plate normalisation: spaces and case do not create duplicates), TC-P3-WB-017 (unknown truck
   at the desk → `unverified` + flag), isolation suite.
 - **Done when:** the desk can find any truck by plate in under a keystroke's delay and create an unknown one.
+
+---
+
+### P3.Q — Code health (CodeScene)
+
+**In plain words:** pay back the technical debt CodeScene found where it costs the most, before the weighbridge adds to it.
+
+- **Why now:** the first analysis (2026-11-28) gave an average of 9.25 (healthy), but the hotspots are not: the portal's
+  test double `testing/fakeApi.ts` scored 2.84 (red; one `fetch` of 542 lines, cyclomatic complexity 259) and every
+  portal feature edits it, so CodeScene's *Prevent Hotspot Decline* gate would block the next portal PR.
+- **Targets:** no red code; every hotspot at 9 or more; average 9.5 or more (with generated files excluded in CodeScene:
+  `**/Migrations/**`, `src/frontend/packages/api-client/src/schema.ts`, `tests/load/lib/crypto.gen.js`, `spikes/**`);
+  no PR lowers code health (CodeScene gate).
+- **Steps, one PR each:**
+  1. Split `fakeApi.ts`: one route module per API module (`testing/fake/routes`), one state (`fake/state.ts`), factories
+     in `fake/factories.ts`, re-exported so no test changes.
+  2. `ShiftEntries.SignedRecord` (complexity 25, 9 complex conditions): its checks as a table.
+  3. `IdentityModule`: endpoint groups, one handler for the duplicated role endpoints, parameter objects for the 6–7
+     argument handlers.
+  4. One shared import row helper for the six Excel imports (assets, users, materials, customers, products, trucks).
+  5. `TenantIsolationSuite`: table-driven attack values, one seeding helper.
+- **Tests:** behaviour unchanged: every existing suite passes unmodified (the refactors add no feature).
+- **Done when:** CodeScene shows no red file and no hotspot below 9.
 
 ---
 
@@ -661,6 +685,7 @@ All 22 stories are covered; none is split across more than three sub-phases.
 | A6 | Production environment in P3 | P3.16b, after P1.17 chooses a hosting provider | External dependency; everything else builds without it |
 | A7 | ROI calculator as a spreadsheet or web page | An operator console page | Internal sales tool; the public website (ADR-0041) must not carry it |
 | A8 | M2 also used for the Phase 2 exit | M2 only for the Phase 3 exit (pilot live) | Roadmap §6.1 |
+| A9 | No code-health work planned | Sub-phase **P3.Q** after P3.2: the five CodeScene refactoring priorities, each its own PR | The first CodeScene analysis (2026-11-28): average 9.25, but the portal's fake API at 2.84 is the top hotspot every portal PR edits, and the *Prevent Hotspot Decline* gate would block the next one |
 
 ---
 
