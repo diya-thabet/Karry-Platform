@@ -87,21 +87,57 @@ public sealed record SignedRecord(JsonElement Record, JsonElement Envelope, stri
     /// <summary>The same for another record type (a checklist, ADR-0035 §3), refused with <paramref name="invalid"/> when the payload's shape is wrong.</summary>
     public static (SignedRecord? Signed, HandlerOutcome.Rejected? Problem) Read(JsonElement payload, Guid rootId, int version, string recordType, HandlerOutcome.Rejected invalid)
     {
-        if (payload.ValueKind != JsonValueKind.Object
-            || !payload.TryGetProperty("record", out var record) || !payload.TryGetProperty("envelope", out var envelope)
-            || !payload.TryGetProperty("deviceSignature", out var signature) || signature.ValueKind != JsonValueKind.String
-            || !payload.EnumerateObject().All(m => PayloadMembers.Contains(m.Name)) || envelope.ValueKind != JsonValueKind.Object
-            || (payload.TryGetProperty(CapturesMember, out var captures) && captures.ValueKind != JsonValueKind.Array)
-            || !TryClockOffset(payload, out _))
+        if (!HasShape(payload, out var record, out var envelope, out var signature))
         {
             return (null, invalid);
         }
 
-        var binds = envelope.TryGetProperty("recordType", out var type) && type.ValueKind == JsonValueKind.String && type.GetString() == recordType
-            && envelope.TryGetProperty("recordId", out var id) && id.ValueKind == JsonValueKind.String && id.GetString() == rootId.ToString()
-            && envelope.TryGetProperty("recordVersion", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) && n == version
-            && envelope.TryGetProperty("payloadHash", out var hash) && hash.ValueKind == JsonValueKind.String && hash.GetString() == SignatureEnvelopes.PayloadHash(record);
-        return binds ? (new SignedRecord(record, envelope, signature.GetString()!), null) : (null, EnvelopeMismatch);
+        return BindsTo(envelope, record, recordType, rootId, version) ? (new SignedRecord(record, envelope, signature), null) : (null, EnvelopeMismatch);
+    }
+
+    /// <summary>
+    /// The payload is <c>{record, envelope, deviceSignature}</c> (an object and a string for the last two), with no other
+    /// member than <see cref="PayloadMembers"/>, the captures as a list and a well-formed clock.
+    /// </summary>
+    private static bool HasShape(JsonElement payload, out JsonElement record, out JsonElement envelope, out string signature)
+    {
+        record = default;
+        envelope = default;
+        signature = string.Empty;
+        if (payload.ValueKind != JsonValueKind.Object || !payload.EnumerateObject().All(m => PayloadMembers.Contains(m.Name))
+            || !payload.TryGetProperty("record", out record)
+            || !payload.TryGetProperty("envelope", out envelope) || envelope.ValueKind != JsonValueKind.Object
+            || StringMember(payload, "deviceSignature") is not { } signed)
+        {
+            return false;
+        }
+
+        signature = signed;
+        var capturesListed = !payload.TryGetProperty(CapturesMember, out var captures) || captures.ValueKind == JsonValueKind.Array;
+        return capturesListed && TryClockOffset(payload, out _);
+    }
+
+    /// <summary>The envelope names this record (type, ID and version) and holds the hash of the record's RFC 8785 form.</summary>
+    private static bool BindsTo(JsonElement envelope, JsonElement record, string recordType, Guid rootId, int version) =>
+        StringMember(envelope, "recordType") == recordType
+        && StringMember(envelope, "recordId") == rootId.ToString()
+        && envelope.TryGetProperty("recordVersion", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var n) && n == version
+        && StringMember(envelope, "payloadHash") == SignatureEnvelopes.PayloadHash(record);
+
+    private static string? StringMember(JsonElement element, string name) =>
+        element.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    /// <summary>
+    /// Records the envelope with the device's signature in the upload's transaction (Trust checks and stores it); a final
+    /// rejection with Trust's code when it is refused (a revoked tablet, a bad signature, a replay).
+    /// </summary>
+    internal async Task<HandlerOutcome.Rejected?> RecordAsync(
+        IEnvelopeRecorder envelopes, ITenantContext tenant, VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    {
+        var tenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant.");
+        var outcome = await envelopes.RecordAsync(transaction.Connection, transaction.Transaction,
+            new EnvelopeSubmission(tenantId.Value, command.DeviceId, command.CommandId, Envelope, DeviceSignature, command.ReceivedAt), cancellationToken).ConfigureAwait(false);
+        return outcome is EnvelopeOutcome.Refused refused ? new HandlerOutcome.Rejected(refused.Code, Retryable: false) : null;
     }
 
     /// <summary>
@@ -314,22 +350,35 @@ public sealed class StartShiftEntry(
             segmentNo = previousEntry.SegmentNo + 1;
         }
 
-        var tenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant.");
-        var outcome = await envelopes.RecordAsync(transaction.Connection, transaction.Transaction,
-            new EnvelopeSubmission(tenantId.Value, command.DeviceId, command.CommandId, signed.Envelope, signed.DeviceSignature, command.ReceivedAt), cancellationToken).ConfigureAwait(false);
-        if (outcome is EnvelopeOutcome.Refused refused)
+        if (await signed.RecordAsync(envelopes, tenant, command, transaction, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            return new HandlerOutcome.Rejected(refused.Code, Retryable: false);
+            return refused;
         }
 
         var shift = await shifts.ResolveAsync(command.SiteId, startedAt, cancellationToken).ConfigureAwait(false);
-        var flags = new List<string>(ShiftEntryRules.StartFlags(await ContinuesFromAsync(previousEntry, meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false), startValue));
-        if (await OverlapsAsync(store, signed.Signer, rootId, startedAt, null, cancellationToken).ConfigureAwait(false))
+        var flags = await StartFlagsAsync(record, previousEntry, signed.Signer, meter, command.SiteId, shift, cancellationToken).ConfigureAwait(false);
+        var entry = NewEntry(record, meter, signed, command, segmentNo, shift, flags);
+        store.Add(entry);
+        await store.SaveAsync(cancellationToken).ConfigureAwait(false);
+        await FindingsAsync(entry, signed, command, transaction, cancellationToken).ConfigureAwait(false);
+        return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
+    }
+
+    /// <summary>
+    /// What a start is flagged with when it arrives: a meter value that does not continue the last end (RULE-FO-01), a
+    /// time the operator was on another machine, a machine not on this site, no shift then, a machine held as unsafe.
+    /// </summary>
+    private async Task<List<string>> StartFlagsAsync(
+        StartRecord record, ShiftEntryVersion? previousEntry, Guid operatorId, MeterSummary meter, Guid siteId, ResolvedShift? shift, CancellationToken cancellationToken)
+    {
+        var continues = await ContinuesFromAsync(previousEntry, record, cancellationToken).ConfigureAwait(false);
+        var flags = new List<string>(ShiftEntryRules.StartFlags(continues, record.StartValue));
+        if (await OverlapsAsync(store, operatorId, record.RootId, record.StartedAt, null, cancellationToken).ConfigureAwait(false))
         {
             flags.Add(ShiftEntryFlags.Overlap);
         }
 
-        if (meter.SiteAt(startedAt) != command.SiteId)
+        if (meter.SiteAt(record.StartedAt) != siteId)
         {
             flags.Add(ShiftEntryFlags.AssetNotOnSite);
         }
@@ -339,55 +388,62 @@ public sealed class StartShiftEntry(
             flags.Add(ShiftEntryFlags.OutsidePattern);
         }
 
-        if (await store.HeldAtAsync(assetId, startedAt, cancellationToken).ConfigureAwait(false))
+        if (await store.HeldAtAsync(record.AssetId, record.StartedAt, cancellationToken).ConfigureAwait(false))
         {
             flags.Add(ShiftEntryFlags.AssetUnsafe);
         }
 
-        var entry = new ShiftEntryVersion
-        {
-            TenantId = tenantId,
-            RootId = rootId,
-            Version = 1,
-            Status = ShiftEntryStatus.Open,
-            SiteId = command.SiteId,
-            AssetId = assetId,
-            MeterId = meterId,
-            MeterKind = meter.Kind,
-            OperatorId = signed.Signer,
-            SegmentNo = segmentNo,
-            PreviousRootId = previousRootId,
-            ShiftDate = shift?.Date,
-            ShiftCode = shift?.Code,
-            ShiftStartsAt = shift?.StartsAt,
-            ShiftEndsAt = shift?.EndsAt,
-            StartedAt = startedAt,
-            StartValue = startValue,
-            StartPosition = signed.Position,
-            FuelStartPercent = fuel,
-            StartPhoto = photo,
-            Remarks = remarks,
-            Estimated = meter.Status == "failed",
-            Flags = flags,
-            EnvelopeId = signed.EnvelopeId,
-            CommandId = command.CommandId,
-            DeviceId = command.DeviceId,
-            ReceivedAt = command.ReceivedAt,
-        };
-        store.Add(entry);
-        await store.SaveAsync(cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, meterId, meter.Kind, command.SiteId, cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "start", photo, null, command.SiteId, cancellationToken)
+        return flags;
+    }
+
+    /// <summary>The entry's first version: open, with the start the operator signed and the shift it falls in.</summary>
+    private ShiftEntryVersion NewEntry(
+        StartRecord record, MeterSummary meter, SignedRecord signed, VerifiedCommand command, int segmentNo, ResolvedShift? shift, List<string> flags) => new()
+    {
+        TenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant."),
+        RootId = record.RootId,
+        Version = 1,
+        Status = ShiftEntryStatus.Open,
+        SiteId = command.SiteId,
+        AssetId = record.AssetId,
+        MeterId = record.MeterId,
+        MeterKind = meter.Kind,
+        OperatorId = signed.Signer,
+        SegmentNo = segmentNo,
+        PreviousRootId = record.PreviousRootId,
+        ShiftDate = shift?.Date,
+        ShiftCode = shift?.Code,
+        ShiftStartsAt = shift?.StartsAt,
+        ShiftEndsAt = shift?.EndsAt,
+        StartedAt = record.StartedAt,
+        StartValue = record.StartValue,
+        StartPosition = signed.Position,
+        FuelStartPercent = record.FuelPercent,
+        StartPhoto = record.Photo,
+        Remarks = record.Remarks,
+        Estimated = meter.Status == "failed",
+        Flags = flags,
+        EnvelopeId = signed.EnvelopeId,
+        CommandId = command.CommandId,
+        DeviceId = command.DeviceId,
+        ReceivedAt = command.ReceivedAt,
+    };
+
+    /// <summary>The integrity rules a saved start feeds, in the upload's transaction: continuity, photo, clock, geofence, signer, checklist.</summary>
+    private async Task FindingsAsync(ShiftEntryVersion entry, SignedRecord signed, VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    {
+        var (rootId, siteId) = (entry.RootId, entry.SiteId);
+        await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, entry.MeterId, entry.MeterKind, siteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "start", entry.StartPhoto, null, siteId, cancellationToken)
             .ConfigureAwait(false);
-        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, ClockOffset(command), command.ReceivedAt, rootId, "start", command.SiteId, cancellationToken)
+        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, ClockOffset(command), command.ReceivedAt, rootId, "start", siteId, cancellationToken)
             .ConfigureAwait(false);
-        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "start", command.SiteId, cancellationToken).ConfigureAwait(false);
-        if (await assets.FindAsync(assetId, cancellationToken).ConfigureAwait(false) is { } asset)
+        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "start", siteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "start", siteId, cancellationToken).ConfigureAwait(false);
+        if (await assets.FindAsync(entry.AssetId, cancellationToken).ConfigureAwait(false) is { } asset)
         {
             await IntegrityFindings.SyncChecklistAsync(store, integrity, transaction, entry, asset.Type, cancellationToken).ConfigureAwait(false);
         }
-        return flags.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, flags);
     }
 
     /// <summary>The clock offset the command reports (its shape was checked when the payload was read).</summary>
@@ -403,14 +459,14 @@ public sealed class StartShiftEntry(
     /// meter's last segment before the start. None while that segment is open (its end is missing or not here yet):
     /// nothing is compared, and P2.7 re-evaluates in shift-time order.
     /// </summary>
-    private async Task<decimal?> ContinuesFromAsync(ShiftEntryVersion? previous, Guid meterId, Guid rootId, DateTimeOffset startedAt, CancellationToken cancellationToken)
+    private async Task<decimal?> ContinuesFromAsync(ShiftEntryVersion? previous, StartRecord record, CancellationToken cancellationToken)
     {
-        if (previous is not null && previous.MeterId == meterId)
+        if (previous is not null && previous.MeterId == record.MeterId)
         {
             return previous.EndValue;
         }
 
-        return (await store.LastSegmentOfMeterAsync(meterId, rootId, startedAt, cancellationToken).ConfigureAwait(false))?.EndValue;
+        return (await store.LastSegmentOfMeterAsync(record.MeterId, record.RootId, record.StartedAt, cancellationToken).ConfigureAwait(false))?.EndValue;
     }
 }
 
@@ -480,12 +536,9 @@ public sealed class EndShiftEntry(
             return VersionConflict;
         }
 
-        var tenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant.");
-        var outcome = await envelopes.RecordAsync(transaction.Connection, transaction.Transaction,
-            new EnvelopeSubmission(tenantId.Value, command.DeviceId, command.CommandId, signed.Envelope, signed.DeviceSignature, command.ReceivedAt), cancellationToken).ConfigureAwait(false);
-        if (outcome is EnvelopeOutcome.Refused refused)
+        if (await signed.RecordAsync(envelopes, tenant, command, transaction, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            return new HandlerOutcome.Rejected(refused.Code, Retryable: false);
+            return refused;
         }
 
         // A version carries the entry's flags as of that version: the start's, then what the end raises (ADR-0034 §6).
@@ -495,59 +548,10 @@ public sealed class EndShiftEntry(
             raised.Add(ShiftEntryFlags.Overlap);
         }
 
-        var flags = start.Flags.Union(raised, StringComparer.Ordinal).ToList();
-
-        var ended = new ShiftEntryVersion
-        {
-            TenantId = tenantId,
-            RootId = rootId,
-            Version = version,
-            Status = ShiftEntryStatus.Closed,
-            SiteId = start.SiteId,
-            AssetId = start.AssetId,
-            MeterId = start.MeterId,
-            MeterKind = start.MeterKind,
-            OperatorId = start.OperatorId,
-            SegmentNo = start.SegmentNo,
-            PreviousRootId = start.PreviousRootId,
-            ShiftDate = start.ShiftDate,
-            ShiftCode = start.ShiftCode,
-            ShiftStartsAt = start.ShiftStartsAt,
-            ShiftEndsAt = start.ShiftEndsAt,
-            StartedAt = start.StartedAt,
-            StartValue = start.StartValue,
-            StartPosition = start.StartPosition,
-            FuelStartPercent = start.FuelStartPercent,
-            StartPhoto = start.StartPhoto,
-            EndedAt = endedAt,
-            EndValue = endValue,
-            EndPosition = signed.Position,
-            FuelEndPercent = fuel,
-            EndPhoto = photo,
-            Stoppages = stoppages,
-            Remarks = remarks ?? start.Remarks,
-            Estimated = start.Estimated,
-            Flags = flags,
-            EnvelopeId = signed.EnvelopeId,
-            CommandId = command.CommandId,
-            DeviceId = command.DeviceId,
-            ReceivedAt = command.ReceivedAt,
-        };
+        var ended = Ended(start, record, signed, command, [.. start.Flags.Union(raised, StringComparer.Ordinal)]);
         store.Add(ended);
         await store.SaveAsync(cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, start.MeterId, start.MeterKind, start.SiteId, cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "end", photo, start.StartPhoto, start.SiteId, cancellationToken)
-            .ConfigureAwait(false);
-        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, StartShiftEntry.ClockOffset(command), command.ReceivedAt, rootId, "end", start.SiteId, cancellationToken)
-            .ConfigureAwait(false);
-        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
-        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "end", start.SiteId, cancellationToken).ConfigureAwait(false);
-        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.Delta, start.SiteId,
-            IntegrityFindings.Delta(ended, (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"]),
-            cancellationToken).ConfigureAwait(false);
-        // The end arrived: a "missing end" raised meanwhile no longer holds (ADR-0038 §5).
-        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, new FlagSubject(IntegrityFindings.ShiftEntry, rootId), IntegrityRules.MissingEnd, start.SiteId,
-            [], cancellationToken).ConfigureAwait(false);
+        await FindingsAsync(start, ended, signed, command, transaction, cancellationToken).ConfigureAwait(false);
 
         // The ended version is what a controller decides on (ADR-0037 §1): submitted in this transaction, bound to the
         // hash the operator signed.
@@ -555,6 +559,66 @@ public sealed class EndShiftEntry(
             ReviewRecordTypes.ShiftEntry, rootId, ended.Version, signed.Envelope.GetProperty("payloadHash").GetString()!, ended.SiteId, ended.OperatorId,
             ended.AssetId, ended.StartedAt, ended.EndedAt, ended.Flags), cancellationToken).ConfigureAwait(false);
         return raised.Count == 0 ? new HandlerOutcome.Accepted(rootId) : new HandlerOutcome.Conflict(rootId, raised);
+    }
+
+    /// <summary>The next version: the start as it was, closed with the end the operator signed and the flags as of now.</summary>
+    private static ShiftEntryVersion Ended(ShiftEntryVersion start, EndRecord end, SignedRecord signed, VerifiedCommand command, List<string> flags) => new()
+    {
+        TenantId = start.TenantId,
+        RootId = start.RootId,
+        Version = end.Version,
+        Status = ShiftEntryStatus.Closed,
+        SiteId = start.SiteId,
+        AssetId = start.AssetId,
+        MeterId = start.MeterId,
+        MeterKind = start.MeterKind,
+        OperatorId = start.OperatorId,
+        SegmentNo = start.SegmentNo,
+        PreviousRootId = start.PreviousRootId,
+        ShiftDate = start.ShiftDate,
+        ShiftCode = start.ShiftCode,
+        ShiftStartsAt = start.ShiftStartsAt,
+        ShiftEndsAt = start.ShiftEndsAt,
+        StartedAt = start.StartedAt,
+        StartValue = start.StartValue,
+        StartPosition = start.StartPosition,
+        FuelStartPercent = start.FuelStartPercent,
+        StartPhoto = start.StartPhoto,
+        EndedAt = end.EndedAt,
+        EndValue = end.EndValue,
+        EndPosition = signed.Position,
+        FuelEndPercent = end.FuelPercent,
+        EndPhoto = end.Photo,
+        Stoppages = end.Stoppages,
+        Remarks = end.Remarks ?? start.Remarks,
+        Estimated = start.Estimated,
+        Flags = flags,
+        EnvelopeId = signed.EnvelopeId,
+        CommandId = command.CommandId,
+        DeviceId = command.DeviceId,
+        ReceivedAt = command.ReceivedAt,
+    };
+
+    /// <summary>
+    /// The integrity rules a saved end feeds, in the upload's transaction: continuity, photo, clock, geofence, signer, Δ
+    /// against the shift; and a "missing end" raised meanwhile no longer holds (ADR-0038 §5).
+    /// </summary>
+    private async Task FindingsAsync(
+        ShiftEntryVersion start, ShiftEntryVersion ended, SignedRecord signed, VerifiedCommand command, ISyncTransaction transaction, CancellationToken cancellationToken)
+    {
+        var (rootId, siteId) = (ended.RootId, start.SiteId); // the end photo was just set from the signed end
+        await IntegrityFindings.SyncContinuityAsync(store, meterEvents, integrity, transaction, start.MeterId, start.MeterKind, siteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncPhotoAsync(store, integrity, transaction, command.Payload, signed.EnvelopeId, rootId, "end", ended.EndPhoto!, start.StartPhoto, siteId, cancellationToken)
+            .ConfigureAwait(false);
+        await IntegrityFindings.SyncClockAsync(integrity, transaction, signed, StartShiftEntry.ClockOffset(command), command.ReceivedAt, rootId, "end", siteId, cancellationToken)
+            .ConfigureAwait(false);
+        await IntegrityFindings.SyncGeofenceAsync(geofence, integrity, transaction, signed, rootId, "end", siteId, cancellationToken).ConfigureAwait(false);
+        await IntegrityFindings.SyncSignerAsync(signers, integrity, transaction, signed, rootId, "end", siteId, cancellationToken).ConfigureAwait(false);
+        var subject = new FlagSubject(IntegrityFindings.ShiftEntry, rootId);
+        var tolerance = (await integrity.SettingsAsync(IntegrityRules.Delta, cancellationToken).ConfigureAwait(false)).Thresholds["toleranceHours"];
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, subject, IntegrityRules.Delta, siteId, IntegrityFindings.Delta(ended, tolerance), cancellationToken)
+            .ConfigureAwait(false);
+        await integrity.SyncAsync(transaction.Connection, transaction.Transaction, subject, IntegrityRules.MissingEnd, siteId, [], cancellationToken).ConfigureAwait(false);
     }
 
     private static bool Stoppages(JsonElement record, out IReadOnlyList<Stoppage> stoppages)

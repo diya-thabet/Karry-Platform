@@ -128,13 +128,12 @@ public sealed class SubmitChecklist(
             return Exists;
         }
 
-        var tenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant.");
-        var outcome = await envelopes.RecordAsync(transaction.Connection, transaction.Transaction,
-            new EnvelopeSubmission(tenantId.Value, command.DeviceId, command.CommandId, signed.Envelope, signed.DeviceSignature, command.ReceivedAt), cancellationToken).ConfigureAwait(false);
-        if (outcome is EnvelopeOutcome.Refused refused)
+        if (await signed.RecordAsync(envelopes, tenant, command, transaction, cancellationToken).ConfigureAwait(false) is { } refused)
         {
-            return new HandlerOutcome.Rejected(refused.Code, Retryable: false);
+            return refused;
         }
+
+        var tenantId = tenant.Current ?? throw new InvalidOperationException("A sync command is handled in its tenant.");
 
         var submission = new ChecklistSubmission
         {
