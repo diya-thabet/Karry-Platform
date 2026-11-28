@@ -27,7 +27,7 @@ function toBase64Url(bytes) {
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=/g, "");
 }
 function fromBase64Url(text2) {
   return fromBase64(text2.replace(/-/g, "+").replace(/_/g, "/"));
