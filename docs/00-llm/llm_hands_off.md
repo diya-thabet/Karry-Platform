@@ -351,6 +351,13 @@ Copied from [Open Questions & Next Steps §28](../07-management/open-questions.m
 
 ## 10. Session Log (newest first)
 
+### 2026-11-28 (evening) — P3.2 merged (#289); CodeScene connected (agent)
+
+- **#289 merged:** P3.2 is done (tracker ✅).
+- **SonarCloud after #288:** 118 → 11 open issues, all reviewed and kept on purpose (public GET-only CORS, SQL built from a table name and a tenant `Guid`, local demo defaults, `td role="cell"`, spikes workflow).
+- **CodeScene:** the owner enabled its pull request integration (profile *Minimal Safety Net*, a comment on every PR, findings in the check run details and annotations, no PR review). The routine is in llm_guidelines.md §CI. Without a token, only PR checks are visible; the project dashboard (hotspots, code health per file) needs the owner's read-only `CODESCENE_TOKEN` as a user environment variable.
+- **Next:** P3.3 ticket numbering (ADR-0043).
+
 ### 2026-11-28 (later) — Quality pass merged (#288); P3.2 slice 2: trucks import and portal (agent)
 
 - **#288 merged** (the SonarCloud pass). Its CI failed once on `check:k6-bundle`: any change to `packages/crypto` needs `pnpm --filter @karry/crypto bundle:k6` and the regenerated `tests/load/lib/crypto.gen.js` committed.
