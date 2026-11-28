@@ -15,6 +15,9 @@ type Role = components["schemas"]["RoleResponse"];
 
 const rolesKey = ["identity", "roles"] as const;
 
+/** Permission codes in code-unit order, the order the API stores and returns them in (never the locale's). */
+const byCode = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+
 function useRoles() {
   const api = useApi();
   return useQuery({ queryKey: rolesKey, queryFn: async () => (await api.GET("/api/v1/identity/roles")).data?.items ?? [] });
@@ -90,7 +93,7 @@ function draftOf(role: Role | undefined, basedOn: string | null): Draft {
     description: role && basedOn === null ? (role.description ?? "") : "",
     office: role?.office ?? true,
     basedOn,
-    permissions: [...(role?.permissions ?? [])].sort(),
+    permissions: [...(role?.permissions ?? [])].sort(byCode),
     fieldLevels: { ...(role?.fieldLevels ?? {}) },
   };
 }
@@ -255,7 +258,7 @@ function RoleForm({ role, roles, catalog }: { role: Role | undefined; roles: Rol
                       disabled={!permissionsEditable}
                       onChange={(e) => {
                         const others = draft.permissions.filter((code) => code !== permission.code);
-                        setDraft({ ...draft, permissions: e.target.checked ? [...others, permission.code].sort() : others });
+                        setDraft({ ...draft, permissions: e.target.checked ? [...others, permission.code].sort(byCode) : others });
                       }}
                     />
                     <span>{permissionLabel(t, permission.code)}</span>

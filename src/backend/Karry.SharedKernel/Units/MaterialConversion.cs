@@ -90,7 +90,11 @@ public static class MaterialConversion
             return new Conversion(Quantity.Tonnes(tonnes).To(unit), factors);
         }
 
-        var target = state!.Value;
+        if (state is not { } target)
+        {
+            return NotConvertible; // unreachable: a volume unit always has a state (checked above)
+        }
+
         if (densities.Of(target) is not { } targetDensity)
         {
             return DensityMissing(target);

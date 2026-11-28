@@ -14,7 +14,7 @@ here="$(cd "$(dirname "$0")" && pwd)"
 k6="${K6:-$(command -v k6 || echo "$HOME/.local/bin/k6")}"
 api="${KARRY_API:-http://127.0.0.1:5000}"
 keycloak="${KARRY_KEYCLOAK:-http://localhost:8080}"
-[ -x "$k6" ] || { echo "k6 not found: tools/ci/install-tool.sh k6" >&2; exit 2; }
+[[ -x "$k6" ]] || { echo "k6 not found: tools/ci/install-tool.sh k6" >&2; exit 2; }
 curl -fsS -o /dev/null "$api/health/ready" || { echo "Karry.Host is not ready at $api" >&2; exit 2; }
 curl -fsS -o /dev/null "$keycloak/realms/karry/.well-known/openid-configuration" || { echo "Keycloak is not up at $keycloak" >&2; exit 2; }
 
@@ -52,7 +52,7 @@ echo "== outboxes drained"
 if SINCE="$since" "$here/outbox-drained.sh" > "$out/outbox-drained.txt" 2>&1; then echo "   passed"; else status=1; echo "   FAILED"; fi
 cat "$out/outbox-drained.txt"
 
-if [ -n "${GITHUB_STEP_SUMMARY:-}" ]; then
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
   python3 "$here/summary.py" "$out" >> "$GITHUB_STEP_SUMMARY"
 fi
 python3 "$here/summary.py" "$out"

@@ -151,7 +151,6 @@ html[lang="en"] .pf-v5-c-login::after {
 #kc-header-wrapper.pf-v5-c-brand,
 .pf-v5-c-login__header .pf-v5-c-brand {
   font-family: var(--karry-font);
-  font-size: 0.875rem;
   font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;

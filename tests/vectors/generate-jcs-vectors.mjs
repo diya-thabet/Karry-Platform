@@ -4,12 +4,15 @@
 // Run: node tests/vectors/generate-jcs-vectors.mjs   (deterministic: fixed seed)
 import { writeFileSync } from "node:fs";
 
+// RFC 8785 orders keys by UTF-16 code units: an explicit comparator, never the locale's collation.
+const byCodeUnits = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
+
 const canonicalize = (v) =>
   v === null || typeof v !== "object"
     ? JSON.stringify(v)
     : Array.isArray(v)
       ? `[${v.map(canonicalize).join(",")}]`
-      : `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${canonicalize(v[k])}`).join(",")}}`;
+      : `{${Object.keys(v).sort(byCodeUnits).map((k) => `${JSON.stringify(k)}:${canonicalize(v[k])}`).join(",")}}`;
 
 // RFC 8785 Appendix B: IEEE-754 bit patterns and their expected serialization (computed here, not copied).
 const bits = [

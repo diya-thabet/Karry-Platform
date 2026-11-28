@@ -34,7 +34,7 @@ esac
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-curl -fsSL --retry 3 -o "$work/archive.tar.gz" "$url"
+curl -fsSL --proto '=https' --tlsv1.2 --retry 3 -o "$work/archive.tar.gz" "$url"
 echo "${sha256}  $work/archive.tar.gz" | sha256sum -c --quiet -
 tar -xzf "$work/archive.tar.gz" -C "$work" "${member:-$tool}"
 mkdir -p "$HOME/.local/bin"

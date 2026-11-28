@@ -26,9 +26,9 @@ def anchors(path: str) -> set:
             fence = not fence
         if fence:
             continue
-        m = re.match(r"^#{1,6} (.+?)\s*$", line)
+        m = re.match(r"^#{1,6} (.+)", line)  # no trailing \s*$ after a lazy group: that backtracks
         if m:
-            base = slugify(m.group(1))
+            base = slugify(m.group(1).rstrip())
             n = counts.get(base, 0)
             found.add(base if n == 0 else f"{base}-{n}")
             counts[base] = n + 1

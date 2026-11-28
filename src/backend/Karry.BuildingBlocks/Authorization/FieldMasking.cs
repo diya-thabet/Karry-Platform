@@ -143,6 +143,14 @@ public static class SensitiveInputFilter
     private const int MaxDepth = 8;
     private static readonly ConcurrentDictionary<Type, Member[]> Members = new();
 
+    /// <summary>
+    /// Types this thread is describing right now: a type that refers to itself does not recurse forever. Kept per
+    /// thread, never in <see cref="Members"/>: a placeholder there would let a concurrent request see "no sensitive
+    /// fields" for a type still being described, and let its sensitive input through.
+    /// </summary>
+    [ThreadStatic]
+    private static HashSet<Type>? describing;
+
     private sealed record Member(PropertyInfo Property, string? Field, bool Collection);
 
     public static EndpointFilterDelegate Create(EndpointFilterFactoryContext context, EndpointFilterDelegate next)
@@ -219,12 +227,29 @@ public static class SensitiveInputFilter
             return [];
         }
 
-        return Members.TryGetValue(type, out var known) ? known : Describe(type);
+        if (Members.TryGetValue(type, out var known))
+        {
+            return known;
+        }
+
+        describing ??= [];
+        if (!describing.Add(type))
+        {
+            return []; // the outer call is describing this type
+        }
+
+        try
+        {
+            return Members.GetOrAdd(type, Describe(type));
+        }
+        finally
+        {
+            describing.Remove(type);
+        }
     }
 
     private static Member[] Describe(Type type)
     {
-        Members[type] = []; // while describing: a type that refers to itself does not recurse forever
         var parameters = type.GetConstructors().SelectMany(c => c.GetParameters())
             .Select(p => (p.Name, p.GetCustomAttribute<SensitiveAttribute>()?.Field)).Where(p => p.Field is not null)
             .GroupBy(p => p.Name!, StringComparer.Ordinal).ToDictionary(g => g.Key, g => g.First().Field!, StringComparer.Ordinal);
@@ -245,9 +270,7 @@ public static class SensitiveInputFilter
             }
         }
 
-        Member[] described = [.. members];
-        Members[type] = described;
-        return described;
+        return [.. members];
     }
 
     private static Type? ElementType(Type type) =>

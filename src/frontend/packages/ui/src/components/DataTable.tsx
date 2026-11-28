@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, type MouseEvent, type ReactNode } from "react";
 import { useTranslation } from "@karry/i18n";
 import { Skeleton } from "./Skeleton";
 
@@ -73,8 +73,10 @@ export function DataTable<T>(props: {
                 role="row"
                 aria-selected={props.onSelect ? selected : undefined}
                 tabIndex={props.onSelect ? 0 : undefined}
-                onClick={props.onSelect ? () => { props.onSelect?.(row); } : undefined}
-                onKeyDown={props.onSelect ? (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); props.onSelect?.(row); } } : undefined}
+                onClick={props.onSelect ? (event) => { if (!fromControl(event)) props.onSelect?.(row); } : undefined}
+                onKeyDown={props.onSelect ? (event) => {
+                  if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); props.onSelect?.(row); }
+                } : undefined}
                 onPointerDown={props.onSwipe ? (event) => { if (event.pointerType === "touch") swipe.current = { key, x: event.clientX, y: event.clientY }; } : undefined}
                 onPointerUp={props.onSwipe ? (event) => {
                   const start = swipe.current;
@@ -104,6 +106,15 @@ export function DataTable<T>(props: {
       </table>
     </div>
   );
+}
+
+/**
+ * The click started on a control inside the row (a checkbox, a button, a link): it acts on its own and does not open
+ * the row. Keys only open the row when the row itself has the focus, for the same reason.
+ */
+function fromControl(event: MouseEvent<HTMLElement>): boolean {
+  const control = (event.target as Element).closest("a, button, input, label, select, textarea, [role=button]");
+  return control !== null && event.currentTarget.contains(control);
 }
 
 /** On a phone: the first cell is the card's title, the others a line with the column's name before the value. */

@@ -13,10 +13,10 @@ limit="${1:-${QUEUE_SECONDS:-10}}"
 psql() { "${compose[@]}" exec -T postgres psql -U postgres -d karry -Atc "$1"; }
 
 mapfile -t tables < <(psql "SELECT table_schema || '.outbox_messages' FROM information_schema.tables WHERE table_name = 'outbox_messages' ORDER BY 1")
-[ "${#tables[@]}" -gt 0 ] || { echo "no outbox table found: is the stack migrated?" >&2; exit 2; }
+[[ "${#tables[@]}" -gt 0 ]] || { echo "no outbox table found: is the stack migrated?" >&2; exit 2; }
 count() { # pending | dead
   local where="processed_at IS NULL AND dead_lettered_at IS NULL"
-  [ "$1" = dead ] && where="dead_lettered_at >= '${SINCE:?SINCE: the UTC time the run started}'::timestamptz"
+  [[ "$1" = dead ]] && where="dead_lettered_at >= '${SINCE:?SINCE: the UTC time the run started}'::timestamptz"
   local query="" table
   for table in "${tables[@]}"; do query+="${query:+ + }(SELECT count(*) FROM $table WHERE $where)"; done
   psql "SELECT $query"
@@ -26,8 +26,8 @@ start=$(date +%s)
 while :; do
   pending="$(count pending)"
   waited=$(( $(date +%s) - start ))
-  [ "$pending" = 0 ] && break
-  if [ "$waited" -ge "$limit" ]; then
+  [[ "$pending" = 0 ]] && break
+  if [[ "$waited" -ge "$limit" ]]; then
     echo "FAIL  $pending outbox message(s) still waiting after ${limit}s (${#tables[@]} outboxes): is Karry.Workers running?" >&2
     exit 1
   fi
@@ -35,7 +35,7 @@ while :; do
 done
 
 dead="$(count dead)"
-if [ "$dead" != 0 ]; then
+if [[ "$dead" != 0 ]]; then
   echo "FAIL  $dead outbox message(s) dead-lettered since $SINCE" >&2
   exit 1
 fi

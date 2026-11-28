@@ -14,7 +14,7 @@ export KARRY_LEDGER_CONNECTION="$connection"
 
 # Listing every tenant crosses tenants: only the administrator may (inside the database container, never exposed).
 mapfile -t tenants < <("${compose[@]}" exec -T postgres psql -U postgres -d karry -Atc "SELECT tenant_id FROM audit.ledger_heads ORDER BY tenant_id")
-[ "${#tenants[@]}" -gt 0 ] || { echo "no ledger found: is the stack seeded?" >&2; exit 2; }
+[[ "${#tenants[@]}" -gt 0 ]] || { echo "no ledger found: is the stack seeded?" >&2; exit 2; }
 
 dotnet build "$root/tools/ledger-verifier/Karry.LedgerVerifier" -c Release --nologo -v quiet > /dev/null
 verifier=(dotnet "$root/tools/ledger-verifier/Karry.LedgerVerifier/bin/Release/net10.0/karry-ledger.dll")
@@ -22,5 +22,5 @@ status=0
 for tenant in "${tenants[@]}"; do
   "${verifier[@]}" verify --tenant "$tenant" || status=1
 done
-echo "== ${#tenants[@]} ledgers checked: $([ "$status" = 0 ] && echo "all intact" || echo "BROKEN ledger(s) above")"
+echo "== ${#tenants[@]} ledgers checked: $([[ "$status" = 0 ]] && echo "all intact" || echo "BROKEN ledger(s) above")"
 exit "$status"
